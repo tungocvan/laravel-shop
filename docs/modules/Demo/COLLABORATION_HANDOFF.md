@@ -94,3 +94,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Focused, impacted regression and manual UI gates are recorded as user-confirmed PASS; raw CLI output/browser artifacts were not attached in this conversation.
 - Phase 03 is accepted for continuation, **not merged into main**. PR #346 for Phase 02 remains open and unmerged.
 - Next: audit Phase 04 demo from this accepted feature branch, preserve prior accepted changes, seek architecture approval before major changes, then stop at Git Pull/Test checkpoint.
+
+## Phase 04 — Coffee Shop Sales Git Pull/Test checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-coffee-shop-sales-20261029` from accepted Phase 03 commit `f0b6c2e91bb406e32e7faed355706ef4735f37bf`. Phase 02 PR #346 stays open; do not merge main.
+- REHOME: Coffee Shop Sales UI/dataset controllers, Blade, CSS/JS and routes into `Modules/Demo`; KEEP: original URL, business JS/embedded HTML export, localStorage, IndexedDB, themes, private server JSON library and shared menu API; DEFER: Blade sidebar refactor because JS dynamically owns `#sb`; QUARANTINE: untracked files and runtime data.
+- Adopted module layout and module-owned shared menu editor. Asset URLs preserved through strict allowlist. Tracked legacy sources retired.
+- Focused tests PENDING: `php artisan test tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php`.
+- Impacted regression after focused PASS PENDING: `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: all coffee screens, CRUD/orders, inventory deduction, browser data persistence, IndexedDB, JSON server snapshots, menu editor/presets, themes, Excel/print/offline HTML export, responsive and console errors.
+- GitHub connector did not run local PHPUnit or browser checks. No PR merge, no production deploy; next Demo only after user confirms TEST + UI PASS.
