@@ -27,6 +27,7 @@ class CoffeeShopSalesDemoTest extends TestCase
 
     public function test_dataset_write_is_protected_when_secret_is_missing(): void
     {
+        config()->set('warehouse_demo.backup_code', null);
         $this->postJson('/demo/quan-ly-ban-hang-ca-phe/datasets', [
             'name' => 'Dữ liệu quán', 'data' => ['nl' => [], 'menu' => [], 'orders' => []],
         ])->assertStatus(503);
