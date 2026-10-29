@@ -61,3 +61,12 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Shared Blade layout, sidebar shell and module menu editor are reused. Hotel-specific nav/brand/card/footer remain in demo partials. Browser asset URLs are preserved via allowlisted controller; tracked public CSS/JS removed.
 - Test gate: `HotelUniformDemoTest.php` + `DemoModuleHotelUniformOwnershipTest.php` focused, then `SharedDemoSidebarMenuTest.php` + `DemoModuleRentalRoomOwnershipTest.php` regression. No local tests or browser UI were executed by GitHub connector. Both TEST and UI remain PENDING.
 - Validate all 13 screens, CRUD, Excel, print, localStorage, JSON backup/restore, server snapshots, five themes, menu editor and mobile drawer. Check browser console, HTTP 403/419/422/503, CSS/JS URLs and Nginx static fallback. No merge or deploy without explicit authorization.
+
+## Phase 02 — Hotel Uniform theme-card UI checkpoint (2026-10-29)
+
+- User reported both focused and module regression test tiers PASS for the preceding Phase 02 migration; no raw PHPUnit logs are available in this conversation.
+- User requested and approved replacing the five text-only theme buttons with palette preview cards similar to Rental Room.
+- Changed only `Modules/Demo/resources/assets/projects/hotel-uniform/js/integrations.js` and `Modules/Demo/resources/assets/projects/hotel-uniform/css/app.css`.
+- Cards preview each demo's existing two palette colors, retain `hotel_uniform_theme_v1`, the existing `setTheme()` function, all five palette values and all business logic. Selected card uses `aria-pressed` and a checkmark; keyboard focus and mobile responsive grid included.
+- This new UI change has NOT been retested; focused TEST PENDING and UI PENDING for the updated commit. Run `node --check Modules/Demo/resources/assets/projects/hotel-uniform/js/integrations.js`, focused Hotel Uniform tests, then impacted regression. Check five themes on desktop/tablet/iPhone, persistence after reload, menu editor, browser console.
+- No PR, merge, production deployment or changes to other demo assets.
