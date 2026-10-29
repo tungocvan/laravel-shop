@@ -5,8 +5,10 @@
   const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const notice = (message, error = false) => typeof toast === 'function' ? toast(message, error ? 'err' : '') : alert(message);
+  const code = () => document.getElementById('coffee-dataset-code')?.value || '';
   const get = async url => {
-    const res = await fetch(url, {credentials:'same-origin', headers:{'Accept':'application/json'},cache:'no-store'});
+    if (!code()) throw Error('Nhập mã bảo vệ server trước khi truy cập thư viện.');
+    const res = await fetch(url, {credentials:'same-origin', headers:{'Accept':'application/json','X-Demo-Backup-Code':code()},cache:'no-store'});
     if (!res.ok) throw Error('Máy chủ trả về HTTP ' + res.status);
     return res.json();
   };
@@ -54,7 +56,6 @@
       });
       if (!response.ok) throw Error('Lưu thất bại (HTTP ' + response.status + ').');
       const secret = document.getElementById('coffee-dataset-code');
-      if (secret) secret.value = '';
       notice('Đã lưu bản JSON trên server.'); await refresh();
     } catch (error) { notice(error.message, true); }
   }
@@ -89,7 +90,8 @@
       if (button) apply(button.dataset.coffeeTheme);
     });
     apply(document.documentElement.dataset.coffeeTheme || 'ruby');
-    refresh();
+    const list = document.getElementById('coffee-datasets-list');
+    if (list) list.textContent = 'Nhập mã bảo vệ rồi chọn “Tải danh sách”.';
   }
   if (typeof APP !== 'undefined' && APP.pages?.settings) {
     const original = APP.pages.settings[2];
