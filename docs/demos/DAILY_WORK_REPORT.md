@@ -19,3 +19,13 @@
 - Schema version 1 header/footer/groups, `footer.showSave` tương thích, badge động phải kiểm tra trên UI. POST/PUT/DELETE dùng CSRF, mã quản trị `config('warehouse_demo.backup_code')`, throttle.
 - Không sửa dữ liệu báo cáo `S` hoặc khóa localStorage nghiệp vụ. Kiểm tra F5, modal Menu/Header/Footer/Thư viện JSON, link, CRUD menu, badge và responsive.
 - Focused: `php artisan test tests/Feature/DailyWorkReportMenuTest.php tests/Feature/DailyWorkReportDemoTest.php`; sau PASS chạy `tests/Feature/SharedDemoSidebarMenuTest.php` và regression các demo liên quan.
+
+## Phase 05 — Demo module migration (2026-10-29)
+
+- Branch `refactor/demo-module-daily-work-report-20261029` from accepted Demo 04; no merge into main.
+- Controller: `Modules/Demo/Http/Controllers/Projects/DailyWorkReport/`; Blade: `Modules/Demo/resources/views/projects/daily-work-report/`; CSS/JS and original offline HTML: `Modules/Demo/resources/assets/projects/daily-work-report/`.
+- Route name/URL and all browser asset URLs unchanged through allowlisted module controller; original offline HTML source remains intact for export.
+- Shared sidebar menu builder/preset JSON API unchanged. Browser business data, JSON export, Excel and offline HTML are preserved; no new server business JSON library.
+- Five responsive preview cards including original theme, existing theme storage key unchanged.
+- Focused: `php artisan test tests/Feature/DailyWorkReportDemoTest.php tests/Feature/DailyWorkReportMenuTest.php tests/Feature/DemoModuleDailyWorkReportOwnershipTest.php`.
+- Impacted regression and manual UI acceptance pending. Do not merge or deploy.
