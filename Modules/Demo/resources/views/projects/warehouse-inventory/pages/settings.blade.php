@@ -1,8 +1,9 @@
 <section class="page" id="page-settings">
         <div class="card" style="padding:20px;margin-bottom:16px" id="warehouseThemeSettings">
           <h4 style="font-size:16px;margin-bottom:6px">Giao diện &amp; màu sắc</h4>
-          <p style="color:var(--muted);font-size:13px">Chọn một trong 4 theme. Giao diện đổi màu ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu kho.</p>
+          <p style="color:var(--muted);font-size:13px">Chọn một trong 5 theme. Giao diện đổi màu ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu kho.</p>
           <div class="warehouse-theme-grid" role="group" aria-label="Chọn theme màu">
+            <button type="button" class="warehouse-theme-choice" data-warehouse-theme-choice="original" aria-pressed="false" onclick="applyWarehouseTheme('original',true)" style="--swatch-main:#4f46e5;--swatch-dark:#1e1b4b"><span class="warehouse-theme-swatch" aria-hidden="true"></span><span><strong>Màu gốc</strong><small>Giao diện ban đầu</small></span></button>
             <button type="button" class="warehouse-theme-choice" data-warehouse-theme-choice="indigo" aria-pressed="true" onclick="applyWarehouseTheme('indigo',true)" style="--swatch-main:#4f46e5;--swatch-dark:#1e1b4b"><span class="warehouse-theme-swatch" aria-hidden="true"></span><span><strong>Tím Indigo</strong><small>Mặc định</small></span></button>
             <button type="button" class="warehouse-theme-choice" data-warehouse-theme-choice="ruby" aria-pressed="false" onclick="applyWarehouseTheme('ruby',true)" style="--swatch-main:#c62828;--swatch-dark:#391313"><span class="warehouse-theme-swatch" aria-hidden="true"></span><span><strong>Đỏ Ruby</strong><small>Ấm áp, nổi bật</small></span></button>
             <button type="button" class="warehouse-theme-choice" data-warehouse-theme-choice="ocean" aria-pressed="false" onclick="applyWarehouseTheme('ocean',true)" style="--swatch-main:#087e9b;--swatch-dark:#123b52"><span class="warehouse-theme-swatch" aria-hidden="true"></span><span><strong>Xanh Ocean</strong><small>Chuyên nghiệp</small></span></button>
