@@ -1027,7 +1027,7 @@ function dailyApplyTheme(theme){
  MAU.chu=v[0];MAU.dam=v[1];MAU.sang=v[2];MAU.nhat=v[3];MAU.sb=v[4];
  try{localStorage.setItem(DAILY_THEME_KEY,theme)}catch(e){}
  document.querySelectorAll('[data-daily-theme]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dailyTheme===theme)));
- if(typeof CUR!=='undefined'&&CUR&&CUR!=='settings')rerender();
+ if(S && typeof CUR!=='undefined' && CUR && CUR!=='settings')rerender();
 }
 const originalDailyRenderSettings=renderSettings;
 renderSettings=function(){
