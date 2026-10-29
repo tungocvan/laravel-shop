@@ -7,8 +7,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ asset('demo-assets/quan-ly-ban-hang-ca-phe/css/app.css') }}?v={{ filemtime(public_path('demo-assets/quan-ly-ban-hang-ca-phe/css/app.css')) }}">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 </head><body>
 @yield('content')
 <script id="du-lieu" type="application/json">null</script>
 <script src="{{ asset('demo-assets/quan-ly-ban-hang-ca-phe/js/app.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-ban-hang-ca-phe/js/app.js')) }}" defer></script>
+<script src="{{ asset('demo-assets/quan-ly-ban-hang-ca-phe/js/integrations.js') }}?v={{ filemtime(public_path('demo-assets/quan-ly-ban-hang-ca-phe/js/integrations.js')) }}" defer></script>
+<x-demo.sidebar-menu-builder slug="quan-ly-ban-hang-ca-phe" />
 </body></html>
