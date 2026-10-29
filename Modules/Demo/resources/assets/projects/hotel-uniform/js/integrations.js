@@ -32,9 +32,17 @@
     if (!page) return;
     if (!page.querySelector('#uniformThemePanel')) {
       const box=document.createElement('div');box.className='card noprint';box.id='uniformThemePanel';box.style.cssText='padding:18px;margin-bottom:16px';
-      const h=document.createElement('h3');h.textContent='Giao diện · 5 themes';box.append(h);
-      const buttons=document.createElement('div');buttons.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:12px';
-      Object.entries(themeNames).forEach(([key,label])=>{const b=document.createElement('button');b.type='button';b.className='btn';b.dataset.uniformTheme=key;b.textContent=label;b.onclick=()=>setTheme(key);buttons.append(b);});
+      const h=document.createElement('h3');h.textContent='Màu sắc giao diện';box.append(h);
+      const hint=document.createElement('p');hint.className='muted';hint.textContent='Chọn một trong 5 giao diện. Lựa chọn được lưu trên trình duyệt.';box.append(hint);
+      const buttons=document.createElement('div');buttons.className='uniform-theme-options';
+      Object.entries(themeNames).forEach(([key,label])=>{
+        const b=document.createElement('button');b.type='button';b.className='uniform-theme-option';b.dataset.uniformTheme=key;
+        b.setAttribute('aria-label','Chọn giao diện '+label);b.setAttribute('aria-pressed','false');
+        const swatch=document.createElement('span');swatch.className='uniform-theme-swatch';swatch.setAttribute('aria-hidden','true');
+        swatch.style.setProperty('--theme-dark',palettes[key][2]);swatch.style.setProperty('--theme-light',palettes[key][0]);
+        const name=document.createElement('span');name.className='uniform-theme-name';name.textContent=label==='Nguyên bản'?'Màu gốc':label;
+        b.append(swatch,name);b.onclick=()=>setTheme(key);buttons.append(b);
+      });
       box.append(buttons);page.prepend(box);
       let selected='original';try{selected=localStorage.getItem(storageKey)||selected}catch(e){}
       setTheme(selected);
