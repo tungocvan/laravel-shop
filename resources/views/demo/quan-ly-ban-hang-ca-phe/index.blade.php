@@ -5,4 +5,5 @@
 @include('demo.quan-ly-ban-hang-ca-phe.partials.overlay')
 @include('demo.quan-ly-ban-hang-ca-phe.pages.workspace')
 </div>
+<div id="printArea"></div>
 @endsection
