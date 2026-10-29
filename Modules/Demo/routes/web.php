@@ -200,5 +200,10 @@ Route::prefix('/demo/{demo}/menu')->group(function () {
 });
 });
 
+// Shared sidebar editor assets are served from module-owned sources, not public/demo.
+Route::get('/demo-assets/shared/sidebar-menu/{asset}', \\Modules\\Demo\\Http\\Controllers\\Shared\\SharedSidebarAssetController::class)
+    ->where('asset', 'menu-builder\\\\.(?:css|js)')
+    ->name('demo.shared-sidebar.asset');
+
 // Central navigation hub for all Demo applications.
 Route::get('/demo', \Modules\Demo\Http\Controllers\DemoHubController::class)->middleware('web')->name('demo.hub');
