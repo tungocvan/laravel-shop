@@ -36,4 +36,19 @@ final class DemoModuleCoffeeShopSalesOwnershipTest extends TestCase
         $this->get('/demo-assets/quan-ly-ban-hang-ca-phe/shared/menu-editor.js')->assertOk();
         $this->get('/demo-assets/quan-ly-ban-hang-ca-phe/unknown.js')->assertNotFound();
     }
+    public function test_theme_preview_cards_replace_duplicate_server_json_settings(): void
+    {
+        $integration=file_get_contents(base_path('Modules/Demo/resources/assets/projects/coffee-shop-sales/js/integrations.js'));
+        $style=file_get_contents(base_path('Modules/Demo/resources/assets/projects/coffee-shop-sales/css/app.css'));
+        $this->assertStringContainsString('coffee_shop_sales_theme_v1', $integration);
+        $this->assertStringContainsString('coffee-theme-swatch', $integration);
+        $this->assertStringContainsString('aria-pressed', $integration);
+        foreach (['original','ruby','ocean','emerald','indigo'] as $theme) {
+            $this->assertStringContainsString($theme.':', $integration);
+        }
+        $this->assertStringNotContainsString('coffee-dataset-upload', $integration);
+        $this->assertStringNotContainsString('coffee-dataset-code', $integration);
+        $this->assertStringContainsString('grid-template-columns: repeat(5', $style);
+    }
+
 }
