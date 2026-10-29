@@ -31,3 +31,13 @@
 - Root cause: `routes/web.php` has `where('demo', ...)` constraints for eight shared-menu routes, which omitted the new demo slug even though the controller allowlist was already updated.
 - Added `quan-ly-dong-phuc-khach-san` to exactly those eight route constraints, including default preset selection. No unrelated demo routes changed.
 - **Focused retest PENDING**. Only proceed to impacted regression after focused PASS.
+
+## Phase 02 — Rehome to Modules/Demo (2026-10-29)
+
+- Canonical route remains `/demo/quan-ly-dong-phuc-khach-san`, now registered by `Modules/Demo/routes/web.php`.
+- Controllers: `Modules/Demo/Http/Controllers/Projects/HotelUniform/`; Blade: `Modules/Demo/resources/views/projects/hotel-uniform/`; assets: `Modules/Demo/resources/assets/projects/hotel-uniform/`.
+- Module shared layout, sidebar and menu editor are adopted; demo-specific five themes remain untouched to preserve the original CSS variables. Existing localStorage, private snapshots and menu API remain compatible.
+- Module asset route serves the original `/demo-assets/quan-ly-dong-phuc-khach-san/*` URLs. Production deployment requires separate web-server fallback audit; stale untracked files can shadow route.
+- Focused: `php artisan test tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php`.
+- Regression after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php`.
+- TEST PENDING, UI PENDING. Do not merge or deploy until acceptance and user authorization.

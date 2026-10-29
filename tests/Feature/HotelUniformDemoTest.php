@@ -17,9 +17,9 @@ class HotelUniformDemoTest extends TestCase
             ->assertSee('page-thu')
             ->assertSee('page-settings')
             ->assertSee('data-demo-menu');
-        $this->assertFileExists(public_path('demo-assets/quan-ly-dong-phuc-khach-san/js/app.js'));
-        $this->assertFileExists(public_path('demo-assets/quan-ly-dong-phuc-khach-san/js/integrations.js'));
-        $this->assertFileExists(public_path('demo-assets/quan-ly-dong-phuc-khach-san/css/app.css'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/hotel-uniform/js/app.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/hotel-uniform/js/integrations.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/hotel-uniform/css/app.css'));
     }
 
     public function test_hotel_uniform_uses_own_menu_namespace(): void

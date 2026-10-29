@@ -25,7 +25,7 @@ final class EnterpriseManagementReportDemoTest extends TestCase
         $this->assertSame(['GET', 'HEAD'], $route->methods());
         $this->assertSame('demo/bao-cao-quan-tri-doanh-nghiep', $route->uri());
         $this->assertFileDoesNotExist(public_path('demo/bao-cao-quan-tri-doanh-nghiep/index.html'));
-        $this->assertFileExists(public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/app.js'));
-        $this->assertFileExists(public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/original.html'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/js/app.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/original.html'));
     }
 }

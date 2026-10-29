@@ -70,6 +70,10 @@ class CoffeeShopSalesDemoTest extends TestCase
     public function test_assets_do_not_shadow_route(): void
     {
         $this->assertDirectoryDoesNotExist(public_path('demo/quan-ly-ban-hang-ca-phe'));
-        $this->assertFileExists(public_path('demo-assets/quan-ly-ban-hang-ca-phe/js/app.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/coffee-shop-sales/js/app.js'));
+        $this->assertFileDoesNotExist(public_path('demo-assets/quan-ly-ban-hang-ca-phe/js/app.js'));
+        $this->get('/demo-assets/quan-ly-ban-hang-ca-phe/js/app.js')
+            ->assertOk()
+            ->assertHeader('X-Content-Type-Options', 'nosniff');
     }
 }

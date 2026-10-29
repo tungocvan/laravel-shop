@@ -37,3 +37,13 @@
 - Both writes serialize the full `config`, including `header`, `footer`, and `groups`.
 - **Mặc định** reloads the server's selected default config into the editing draft for this demo, or original menu if no server default exists; **Cập nhật giao diện** applies it.
 - Tests and UI for these changes are **NOT YET RUN**; verify selected file name, save/update, header/footer persistence and reload, default behavior, and unaffected other demos.
+
+## Phase 03 — Modules/Demo ownership migration (2026-10-29)
+
+- Branch `refactor/demo-module-equipment-maintenance-20261029` is based on accepted Phase 02 commit, not `main`. Demo 02 PR #346 remains unmerged.
+- Canonical Controller/API: `Modules/Demo/Http/Controllers/Projects/EquipmentMaintenance/`; views: `Modules/Demo/resources/views/projects/equipment-maintenance/`; source CSS/JS: `Modules/Demo/resources/assets/projects/equipment-maintenance/`.
+- The module layout is shared; sidebar/navigation is still dynamically constructed by the original JS and cannot be safely replaced with a static Blade sidebar without a separate UI refactor.
+- Original browser asset URLs remain through an allowlisted Laravel route. All browser state, offline HTML export, server snapshots and five themes are preserved.
+- Focused: `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php`.
+- Regression after focused PASS: `php artisan test tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- TEST and UI PENDING. Do not merge or deploy.

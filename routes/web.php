@@ -1,36 +1,13 @@
 <?php
 
 // Private hotel uniform JSON snapshots (no database)
-\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.hotel-uniform.datasets');
-\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets/{dataset}', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.hotel-uniform.datasets.show');
-\Illuminate\Support\Facades\Route::post('/demo/quan-ly-dong-phuc-khach-san/datasets', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.hotel-uniform.datasets.store');
 
 // Standalone hotel uniform demo
-\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san', \App\Http\Controllers\Demo\HotelUniformController::class)->name('demo.hotel-uniform');
 
 
 // Equipment maintenance standalone demo
-Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets');
-Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets/{dataset}', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets.show');
-Route::post('/demo/quan-ly-thiet-bi-bao-tri/datasets', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.equipment-maintenance.datasets.store');
-Route::get('/demo/quan-ly-thiet-bi-bao-tri', \App\Http\Controllers\Demo\EquipmentMaintenanceController::class)->name('demo.equipment-maintenance');
 
 
-// Coffee Shop Sales standalone demo (UI route; assets in public/demo-assets).
-Route::get('/demo/quan-ly-ban-hang-ca-phe', \App\Http\Controllers\Demo\CoffeeShopSalesController::class)
-    ->name('demo.coffee-shop-sales');
-Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets', [\App\Http\Controllers\Demo\CoffeeShopSalesDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.coffee-shop-sales.datasets');
-Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets/{dataset}', [\App\Http\Controllers\Demo\CoffeeShopSalesDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.coffee-shop-sales.datasets.show');
-Route::post('/demo/quan-ly-ban-hang-ca-phe/datasets', [\App\Http\Controllers\Demo\CoffeeShopSalesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.coffee-shop-sales.datasets.store');
-
-
-// Daily Work Report standalone demo
-Route::get(
-    '/demo/bao-cao-cong-viec-hang-ngay',
-    \App\Http\Controllers\Demo\DailyWorkReportController::class
-)->name('demo.daily-work-report');
-
-use App\Http\Controllers\Demo\EnterpriseManagementReportController;
 
 
 use App\Http\Controllers\Demo\AttendancePayrollController;
@@ -129,6 +106,5 @@ Route::fallback(function (Request $request) {
     abort(404);
 });
 
-Route::get('/demo/bao-cao-quan-tri-doanh-nghiep', EnterpriseManagementReportController::class)
-    ->name('demo.enterprise-management-report');
+
 

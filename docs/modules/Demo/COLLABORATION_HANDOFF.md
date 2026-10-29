@@ -53,3 +53,108 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - User explicitly authorized merging PR #345 into main after review.
 - These are user-reported local test/UI results; GitHub connector did not execute the local test suite or browser UI.
 - Preserve untracked local files and do not deploy production. After merge, synchronize local main and verify HEAD equals origin/main.
+
+## Phase 02 — Hotel Uniform implementation checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-hotel-uniform-20261029`, based on `main` commit `e7bb8f3a3adfbe5f95452554a0046adaeff36a62`.
+- REHOME: Hotel Uniform UI/dataset controllers, Blade, CSS and JS to `Modules/Demo`; KEEP: original URL, dataset storage directory, browser keys, five original Hotel Uniform themes, shared menu endpoints; DEFER: theme-selector palette generalization; QUARANTINE: runtime snapshots, untracked files and production.
+- Shared Blade layout, sidebar shell and module menu editor are reused. Hotel-specific nav/brand/card/footer remain in demo partials. Browser asset URLs are preserved via allowlisted controller; tracked public CSS/JS removed.
+- Test gate: `HotelUniformDemoTest.php` + `DemoModuleHotelUniformOwnershipTest.php` focused, then `SharedDemoSidebarMenuTest.php` + `DemoModuleRentalRoomOwnershipTest.php` regression. No local tests or browser UI were executed by GitHub connector. Both TEST and UI remain PENDING.
+- Validate all 13 screens, CRUD, Excel, print, localStorage, JSON backup/restore, server snapshots, five themes, menu editor and mobile drawer. Check browser console, HTTP 403/419/422/503, CSS/JS URLs and Nginx static fallback. No merge or deploy without explicit authorization.
+
+## Phase 02 — Hotel Uniform theme-card UI checkpoint (2026-10-29)
+
+- User reported both focused and module regression test tiers PASS for the preceding Phase 02 migration; no raw PHPUnit logs are available in this conversation.
+- User requested and approved replacing the five text-only theme buttons with palette preview cards similar to Rental Room.
+- Changed only `Modules/Demo/resources/assets/projects/hotel-uniform/js/integrations.js` and `Modules/Demo/resources/assets/projects/hotel-uniform/css/app.css`.
+- Cards preview each demo's existing two palette colors, retain `hotel_uniform_theme_v1`, the existing `setTheme()` function, all five palette values and all business logic. Selected card uses `aria-pressed` and a checkmark; keyboard focus and mobile responsive grid included.
+- This new UI change has NOT been retested; focused TEST PENDING and UI PENDING for the updated commit. Run `node --check Modules/Demo/resources/assets/projects/hotel-uniform/js/integrations.js`, focused Hotel Uniform tests, then impacted regression. Check five themes on desktop/tablet/iPhone, persistence after reload, menu editor, browser console.
+- No PR, merge, production deployment or changes to other demo assets.
+
+## Phase 02 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** after the Hotel Uniform five-theme card UI update, including the previously reported two test tiers.
+- Evidence: user confirmation in collaboration chat; raw local PHPUnit logs and browser automation reports were not attached.
+- GitHub comparison against `main` showed feature branch ahead with no divergence at acceptance check.
+- Next gate: PR review and tracked working-tree check on Admin. Do not merge until explicit user approval; no production deployment.
+
+## Phase 03 — Equipment Maintenance Git Pull/Test checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-equipment-maintenance-20261029` created from Phase 02 accepted commit `7303e9ccfa645f3f5be2ea98cb0af1870a0bf56b`. PR #346 remains OPEN and unmerged.
+- REHOME: equipment UI/dataset controllers, Blade, CSS and JS to `Modules/Demo`; KEEP: route names/URLs, original business JS, offline HTML template, browser keys, five themes, menu API and server snapshot directory; DEFER: shared Blade sidebar markup because JS owns the dynamic sidebar; QUARANTINE: private snapshots, untracked files and production.
+- Module layout and module-owned shared menu editor are adopted. Module asset controller retains browser asset URLs using a strict allowlist. Legacy tracked files retired.
+- Focused tests (PENDING): `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php`.
+- Impacted regression only after focused PASS (PENDING): `php artisan test tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: desktop/tablet/iPhone, dynamic sidebar, menu editor/presets/default preset, all screens and CRUD, JSON import/export and server snapshots, Excel, print, offline HTML export, five themes and persistence after reload, console/network errors.
+- No local tests have been executed by the GitHub connector. Do not merge main, close PR #346 or deploy production; proceed to Demo 04 only after user confirms TEST + UI PASS.
+
+## Phase 03 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** for Equipment Maintenance after the Phase 03 Git Pull/Test checkpoint.
+- Focused, impacted regression and manual UI gates are recorded as user-confirmed PASS; raw CLI output/browser artifacts were not attached in this conversation.
+- Phase 03 is accepted for continuation, **not merged into main**. PR #346 for Phase 02 remains open and unmerged.
+- Next: audit Phase 04 demo from this accepted feature branch, preserve prior accepted changes, seek architecture approval before major changes, then stop at Git Pull/Test checkpoint.
+
+## Phase 04 — Coffee Shop Sales Git Pull/Test checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-coffee-shop-sales-20261029` from accepted Phase 03 commit `f0b6c2e91bb406e32e7faed355706ef4735f37bf`. Phase 02 PR #346 stays open; do not merge main.
+- REHOME: Coffee Shop Sales UI/dataset controllers, Blade, CSS/JS and routes into `Modules/Demo`; KEEP: original URL, business JS/embedded HTML export, localStorage, IndexedDB, themes, private server JSON library and shared menu API; DEFER: Blade sidebar refactor because JS dynamically owns `#sb`; QUARANTINE: untracked files and runtime data.
+- Adopted module layout and module-owned shared menu editor. Asset URLs preserved through strict allowlist. Tracked legacy sources retired.
+- Focused tests PENDING: `php artisan test tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php`.
+- Impacted regression after focused PASS PENDING: `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: all coffee screens, CRUD/orders, inventory deduction, browser data persistence, IndexedDB, JSON server snapshots, menu editor/presets, themes, Excel/print/offline HTML export, responsive and console errors.
+- GitHub connector did not run local PHPUnit or browser checks. No PR merge, no production deploy; next Demo only after user confirms TEST + UI PASS.
+
+## Phase 04 — Focused test failure: obsolete public asset assertion (2026-10-29)
+
+- User reported `CoffeeShopSalesDemoTest::test_assets_do_not_shadow_route` failed: old assertion expected `public/demo-assets/quan-ly-ban-hang-ca-phe/js/app.js` after intentional move to module-owned assets. Focused run: 1 failed, 9 passed (42 assertions); regression not yet run.
+- Root cause: stale test contract, not proof of broken browser JS. Updated test to assert module source exists, old public copy is absent, and allowlisted browser asset URL returns 200 with `nosniff`.
+- Focused and impacted regression must be rerun. UI PASS must be confirmed after correction. No merge or deployment.
+
+## Phase 04 — Coffee Shop theme UI adjustment (2026-10-29)
+
+- User supplied screenshot of Coffee Shop Settings and requested theme preview cards matching previous demos and removal of the separate `Giao diện & thư viện JSON server` card.
+- Replaced the Coffee Shop theme selector with five responsive palette preview cards (Màu gốc, Ruby, Ocean, Emerald, Indigo), `aria-pressed`, keyboard focus and persistent existing `coffee_shop_sales_theme_v1` key. Existing four nondefault CSS palettes remain unchanged; original uses base CSS variables.
+- Removed only the redundant Coffee Shop Settings server JSON library UI from `integrations.js`. Existing server dataset API/controller and private saved files are preserved for backward compatibility and data safety. Shared menu editor/preset JSON remains untouched; menu preset JSON and business dataset JSON have different meanings.
+- Added focused source contract test. Previous tests/UI (if any) are superseded for changed assets: syntax, focused, impacted regression and user-confirmed UI PENDING. No merge or production changes.
+
+## Phase 04 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** for Coffee Shop Sales after the five-theme preview and removal of redundant JSON server Settings widget.
+- This is user-confirmed acceptance; raw CLI and browser artifacts were not attached in this turn.
+- Demo 04 accepted for progression to Demo 05, not merged into main. Existing PR #346 remains unmerged; no production deploy.
+- Next phase must branch from this accepted Demo 04 tip, audit the next remaining demo read-only, and preserve all prior accepted demos.
+
+## Phase 05 — Daily Work Report Git Pull/Test checkpoint (2026-10-29)
+
+- Branch `refactor/demo-module-daily-work-report-20261029` created from accepted Demo 04 commit `854b016eac31ea5e13891e0d56db0854a3b1c1c4`; all Demo 01–04 accepted changes retained. Demo 02 PR #346 remains OPEN and unmerged.
+- REHOME: UI controller/route, Blade layout/sidebar/eight page partials, CSS/JS and `original.html` into `Modules/Demo`. KEEP: original browser URLs, menu editor component and API, localStorage, IndexedDB, HTML/Excel/JSON export, data/DOM event handlers. DEFER: additional refactors to shared sidebar. QUARANTINE: production, untracked files, private runtime data.
+- Original offline HTML template preserved byte-for-byte in module-owned assets; browser URL served via strict allowlist. Legacy tracked public copies retired. Validate web-server fallback and stale public files before any deployment.
+- Five theme preview cards including Màu gốc implemented, existing storage key retained; no separate server business JSON library introduced.
+- Focused PENDING: `php artisan test tests/Feature/DailyWorkReportDemoTest.php tests/Feature/DailyWorkReportMenuTest.php tests/Feature/DemoModuleDailyWorkReportOwnershipTest.php`.
+- Impacted after focused PASS PENDING: `php artisan test tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: desktop/tablet/iPhone, all pages, CRUD, badge and menu editor/presets, five themes and reload, browser persistence, Excel/JSON/offline HTML export, browser console/network errors.
+- No tests or UI checks executed by GitHub connector. No merge, no deploy. Stop at Git Pull/Test until user confirms TEST + UI PASS.
+
+## Phase 05 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** for Daily Work Report after the Phase 05 Git Pull/Test checkpoint; CLI logs and browser screenshots were not attached.
+- Demo 05 accepted for sequential progression to Demo 06, without merging main or deploying.
+- Demo 06 must branch from this accepted tip and preserve all accepted Demo 01–05 changes.
+
+## Phase 06 — Enterprise Management Report Git Pull/Test checkpoint (2026-10-29)
+
+- User confirmed Demo 05 TEST + UI PASS; acceptance recorded on Demo 05 branch before creating `refactor/demo-module-enterprise-management-report-20261029` from its tip. Demo 01–05 accepted code remains inherited; main unmerged.
+- REHOME: enterprise report controller/route, Blade, CSS/JS/preferences and original offline HTML into `Modules/Demo`. KEEP: browser route/asset URLs, business JS, DOM IDs, browser state, Excel/JSON/print/offline export, menu API/presets and operator-code authorization. DEFER: static Blade sidebar refactor because JS owns the sidebar DOM. QUARANTINE: runtime data, untracked files and production.
+- Five responsive theme preview cards (Màu gốc/Ruby/Ocean/Emerald/Indigo), existing theme storage key preserved. No new business server JSON library.
+- Focused PENDING: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php tests/Feature/DemoModuleEnterpriseManagementReportOwnershipTest.php`; `node --check` for both module-owned JS files.
+- Impacted regression after focused PASS PENDING: `php artisan test tests/Feature/DailyWorkReportDemoTest.php tests/Feature/DailyWorkReportMenuTest.php tests/Feature/DemoModuleDailyWorkReportOwnershipTest.php tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: desktop/tablet/iPhone; reports, forms, CRUD, browser state, sidebar/menu editor/presets, five themes and persistence after F5, JSON/Excel/print, offline HTML opening with data, console/network errors.
+- GitHub connector has not run local PHP tests or browser checks. Stop at checkpoint; no merge or deploy. Keep PR #346 open/unmerged until user explicitly authorizes final merge.
+
+## Phase 06 — UI correction: sidebar editor alignment (2026-10-29)
+
+- User supplied comparison screenshots: Demo 06 menu editor was a long single-panel form; Demo 05 uses tabs Menu/Header/Footer/Thư viện JSON.
+- Root cause: Demo 06 still uses its legacy standalone preferences editor even after migrating to the Demo module; merely moving assets did not unify its modal UX.
+- Refactored the existing Demo 06 editor presentation to the shared Demo tabbed UX (heading, tabs, scrollable content, fixed actions). Existing menu normalization, localStorage key, operator-code authorization, server preset API, drag/drop, JSON import/export and theme selection remain in their current module-specific adapter. This is **visual/interaction alignment**, not a claim that both demos now share the same editor implementation; a true shared component migration needs a separate adapter and regression plan.
+- Added source-level focused test for tab structure and persistence hooks. No local PHP/Node/browser execution available via GitHub connector; focused, impacted and UI gates must be rerun and user-confirmed before Demo 07.
