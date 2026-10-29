@@ -42,6 +42,5 @@
 
 
 <div data-demo-menu="tinh-gia-thanh-san-pham"></div>
-<script src="{{ asset('demo-assets/tinh-gia-thanh-san-pham/shared/menu-editor.js') }}"></script>
 
 @endsection
