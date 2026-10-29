@@ -90,7 +90,7 @@ use Modules\Demo\Http\Controllers\Projects\AttendancePayroll\AttendancePayrollDa
 use Modules\Demo\Http\Controllers\Projects\AttendancePayroll\AttendancePayrollAssetController;
 
 Route::get('/demo-assets/cham-cong-tinh-luong/{asset}', AttendancePayrollAssetController::class)
-    ->where('asset', 'css/app\\.css|css/extensions\\.css|js/core\\.js|js/payroll\\.js|js/extensions\\.js')
+    ->where('asset', 'css/app\\.css|css/extensions\\.css|js/core\\.js|js/payroll\\.js|js/extensions\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
     ->name('demo.attendance-payroll.asset');
 
 Route::middleware('web')->group(function (): void {
