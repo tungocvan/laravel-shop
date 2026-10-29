@@ -419,3 +419,15 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 .enterprise-dialog .inp{width:100%}
 .enterprise-dialog p{overflow-wrap:anywhere}
 @media(max-width:700px){.enterprise-server-library{padding:10px}.enterprise-editor-actions .btn{flex:1 1 auto}.enterprise-editor{max-height:95dvh}}
+
+/* Enterprise report: five accessible responsive theme preview cards. */
+.enterprise-themes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:12px 0 16px}
+.enterprise-theme-option{appearance:none;display:flex;flex-direction:column;gap:7px;min-width:0;padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);cursor:pointer}
+.enterprise-theme-option:hover{border-color:var(--chu-dao)}
+.enterprise-theme-option[aria-pressed="true"]{border:2px solid var(--chu-dao);padding:5px;box-shadow:0 0 0 1px var(--cd-nhat)}
+.enterprise-theme-option:focus-visible{outline:3px solid var(--chu-dao);outline-offset:3px}
+.enterprise-theme-swatch{display:block;width:100%;height:31px;border-radius:5px;background:linear-gradient(125deg,var(--preview-dark) 0 37%,var(--preview-light) 37% 100%)}
+.enterprise-theme-name{display:block;text-align:center;font-size:12px;font-weight:700}
+.enterprise-theme-option[aria-pressed="true"] .enterprise-theme-name::before{content:'✓ ';color:var(--chu-dao)}
+@media(max-width:650px){.enterprise-themes{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:380px){.enterprise-themes{grid-template-columns:repeat(2,minmax(0,1fr))}}
