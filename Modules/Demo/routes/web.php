@@ -99,3 +99,18 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/cham-cong-tinh-luong/datasets/{dataset}', [AttendancePayrollDatasetController::class, 'show'])->name('demo.attendance-payroll.datasets.show');
     Route::post('/demo/cham-cong-tinh-luong/datasets', [AttendancePayrollDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.attendance-payroll.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\HumanResources\HumanResourcesController;
+use Modules\Demo\Http\Controllers\Projects\HumanResources\HumanResourcesDatasetController;
+use Modules\Demo\Http\Controllers\Projects\HumanResources\HumanResourcesAssetController;
+
+Route::get('/demo-assets/quan-ly-nhan-su/{asset}', HumanResourcesAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/menu-adapter\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.human-resources.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/quan-ly-nhan-su', HumanResourcesController::class)->name('demo.human-resources');
+    Route::get('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'index'])->name('demo.human-resources.datasets');
+    Route::get('/demo/quan-ly-nhan-su/datasets/{dataset}', [HumanResourcesDatasetController::class, 'show'])->name('demo.human-resources.datasets.show');
+    Route::post('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.human-resources.datasets.store');
+});
