@@ -11,9 +11,7 @@
 
 
 
-use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\SharedSidebarMenuController;
-use App\Http\Controllers\Demo\SalesDemoDatasetController;
 use App\Http\Controllers\Demo\WarehouseInventoryController;
 use App\Http\Controllers\Demo\WarehouseDemoDatasetController;
 use Illuminate\Http\Request;
@@ -26,13 +24,7 @@ use Modules\System\Services\ApplicationRootRedirectService;
 
 // Debt Management routes moved to Modules/Demo/routes/web.php.
 
-// Standalone demo: a single GET route, with browser-only persistence.
-Route::get('/demo/doanh-so-nhan-vien', SalesEmployeesController::class)
-    ->name('demo.sales-employees');
-
-Route::get('/demo/doanh-so-nhan-vien/datasets', [SalesDemoDatasetController::class, 'index'])->name('demo.sales-employees.datasets');
-Route::get('/demo/doanh-so-nhan-vien/datasets/{dataset}', [SalesDemoDatasetController::class, 'show'])->name('demo.sales-employees.datasets.show');
-Route::post('/demo/doanh-so-nhan-vien/datasets', [SalesDemoDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.sales-employees.datasets.store');
+// Sales Employees routes moved to Modules/Demo/routes/web.php.
 
 Route::get('/demo/quan-ly-xuat-nhap-ton', WarehouseInventoryController::class)
     ->name('demo.warehouse-inventory');
