@@ -117,3 +117,10 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Replaced the Coffee Shop theme selector with five responsive palette preview cards (Màu gốc, Ruby, Ocean, Emerald, Indigo), `aria-pressed`, keyboard focus and persistent existing `coffee_shop_sales_theme_v1` key. Existing four nondefault CSS palettes remain unchanged; original uses base CSS variables.
 - Removed only the redundant Coffee Shop Settings server JSON library UI from `integrations.js`. Existing server dataset API/controller and private saved files are preserved for backward compatibility and data safety. Shared menu editor/preset JSON remains untouched; menu preset JSON and business dataset JSON have different meanings.
 - Added focused source contract test. Previous tests/UI (if any) are superseded for changed assets: syntax, focused, impacted regression and user-confirmed UI PENDING. No merge or production changes.
+
+## Phase 04 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** for Coffee Shop Sales after the five-theme preview and removal of redundant JSON server Settings widget.
+- This is user-confirmed acceptance; raw CLI and browser artifacts were not attached in this turn.
+- Demo 04 accepted for progression to Demo 05, not merged into main. Existing PR #346 remains unmerged; no production deploy.
+- Next phase must branch from this accepted Demo 04 tip, audit the next remaining demo read-only, and preserve all prior accepted demos.
