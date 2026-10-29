@@ -19,3 +19,9 @@
 - Sau focused PASS, chạy impacted tests của shared sidebar và các demo có liên quan.
 - Rollback: revert PR/commits của feature branch; giữ nguyên browser localStorage và các file untracked.
 - Chưa tạo PR, chưa merge/deploy.
+
+## Route 404 correction — 2026-10-29
+- Focused test output from Admin: 2 FAIL (HTTP 404); route declarations were printed to stdout before PHPUnit results.
+- Root cause confirmed: four new route declarations had been prepended *before* the `<?php` opening tag of `routes/web.php`, so PHP emitted them as plain text and did not register routes.
+- Fixed by moving exactly those four declarations inside the PHP block, preserving existing routes and all other demo files. Commit `f824fe7d`.
+- Re-run focused test after pulling feature branch; **TEST PENDING**, do not claim PASS until actual results. No impacted regression until focused PASS.
