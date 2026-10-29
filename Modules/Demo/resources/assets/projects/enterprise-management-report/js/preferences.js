@@ -3,6 +3,7 @@
 'use strict';
 const prefix='enterprise_management_report_';
 const themes={
+  original:['#00838F','#006064','#26C6DA','#E0F5F7','#063B42','#0C4E57','#02252A','rgba(0,131,143,.30)'],
   ruby:['#C62828','#8E1B1B','#E57373','#FDE8E8','#4B171B','#641F25','#2C1115','rgba(198,40,40,.3)'],
   ocean:['#087E9B','#065B75','#38B7CD','#E0F5F7','#063B42','#0C4E57','#02252A','rgba(8,126,155,.3)'],
   emerald:['#16835D','#106445','#39B98B','#E4F7ED','#093D31','#115244','#05271F','rgba(22,131,93,.3)'],
@@ -67,7 +68,20 @@ APP.pages.settings[2]=function(){
  wrap.innerHTML='<div class="card"><h3>Giao diện & Sidebar Menu</h3><p class="muted">Tùy chỉnh riêng trên trình duyệt này; không ảnh hưởng dữ liệu báo cáo.</p><h4>Theme màu sắc</h4><div class="enterprise-themes" id="enterprise-themes"></div><button class="btn pri" id="enterprise-edit-menu">Chỉnh sửa menu sidebar và footer</button></div>';
  target.prepend(wrap);
  const palette=document.querySelector('#enterprise-themes');
- Object.keys(themes).forEach(name=>{const b=document.createElement('button');b.type='button';b.className='btn';b.style.borderLeft='8px solid '+themes[name][0];b.textContent=name[0].toUpperCase()+name.slice(1);b.setAttribute('aria-pressed',String(document.documentElement.dataset.enterpriseTheme===name));b.onclick=()=>{applyTheme(name);write('theme_v1',name);palette.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))};palette.append(b)});
+ Object.keys(themes).forEach(name=>{
+  const b=document.createElement('button');b.type='button';b.className='enterprise-theme-option';
+  b.setAttribute('aria-label','Chọn giao diện '+(name==='original'?'Màu gốc':name));
+  b.setAttribute('aria-pressed',String(document.documentElement.dataset.enterpriseTheme===name));
+  const swatch=document.createElement('span');swatch.className='enterprise-theme-swatch';
+  swatch.style.setProperty('--preview-dark',themes[name][4]);
+  swatch.style.setProperty('--preview-light',themes[name][0]);
+  swatch.setAttribute('aria-hidden','true');
+  const label=document.createElement('span');label.className='enterprise-theme-name';
+  label.textContent=name==='original'?'Màu gốc':name[0].toUpperCase()+name.slice(1);
+  b.append(swatch,label);
+  b.onclick=()=>{applyTheme(name);write('theme_v1',name);palette.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)))};
+  palette.append(b);
+ });
  document.querySelector('#enterprise-edit-menu').onclick=openEditor;
 };
 
