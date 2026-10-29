@@ -1,0 +1,6 @@
+{{-- The equipment app creates sidebar/nav/header and all screens at runtime.
+     Preserve DOM IDs and do not server-render nav: JS owns the entire dynamic sidebar. --}}
+<div class="app"><aside class="sb" id="sb"></aside><div class="mask" id="mask"></div><main class="main"><header class="top" id="top"></header><div class="content" id="content"></div></main></div>
+<div class="ov" id="ov"><div class="modal" id="modal"></div></div>
+<div id="toasts"></div><div id="tip"></div><div id="printArea"></div>
+<script id="du-lieu" type="application/json">null</script>
