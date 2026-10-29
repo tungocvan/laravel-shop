@@ -61,3 +61,11 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Existing business localStorage `bccv_phongexcel_v1|daily-work-report`, IndexedDB, JSON/Excel/offline HTML export and DOM/inline event handlers are preserved. Offline HTML source remains byte-identical and is served through a strict module asset allowlist at its original URL.
 - Theme selection now uses five responsive preview cards (Màu gốc, Ruby, Ocean, Emerald, Indigo) with existing `daily_work_report_theme_v1` key; original palette matches the initial `MAU` and CSS tokens.
 - No business server JSON library was added. No migrations or production data changes. Focused/impacted/UI tests pending.
+
+## Phase 06 — Enterprise Management Report (pending acceptance)
+
+- Canonical UI `/demo/bao-cao-quan-tri-doanh-nghiep`, controller, Blade, CSS, business JS, preferences JS and original offline HTML template migrated into `Modules/Demo`.
+- Original DOM IDs and dynamic JS sidebar remain unchanged; the original `preferences.js` continues to own menu editing, server preset JSON and guarded menu API. No duplicate menu persistence was introduced.
+- Browser localStorage and business reports remain unchanged. Offline HTML export uses the byte-preserved original template, served through an allowlisted module asset route at its existing browser URL.
+- Five responsive theme preview cards including Màu gốc; existing `enterprise_management_report_theme_v1` key retained, and previously selected themes remain compatible.
+- Legacy tracked public sources retired. No DB migrations or production/runtime data changes. Focused/impacted/UI regression pending.
