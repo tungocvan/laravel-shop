@@ -76,3 +76,9 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Keep the existing HR sidebar bridge because it reconstructs dynamic department/status navigation. Adopt module-owned shared menu editor without duplicating shared server menu persistence.
 - Add the original light palette alongside Ruby/Ocean/Emerald/Indigo; existing theme selections remain compatible.
 - Asset URLs remain stable through a strict allowlisted module route. No database migration or production/runtime data modifications. Acceptance pending.
+
+## Phase 09 — Debt Management
+
+- Canonical debt UI, debt dataset API and debt-specific menu/preset API are rehomed to `Modules/Demo`, retaining all original `/demo/quan-ly-cong-no` route names, paths and operator-code authorization.
+- Original dynamic JS shell, finance calculations, JSON/Excel/print exports, browser storage and five existing theme palettes are retained without business logic rewrites. The debt-specific menu bridge connects the shared module editor; server menu controller remains a distinct domain API, not duplicated by shared sidebar controller.
+- CSS/JS assets are module-owned and served at original browser URLs by an explicit allowlist. Tracked legacy source copies retired; runtime data and untracked files are untouched. No DB migration or production changes. Focused/impacted/UI validation pending.
