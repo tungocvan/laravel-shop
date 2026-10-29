@@ -53,3 +53,11 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - User explicitly authorized merging PR #345 into main after review.
 - These are user-reported local test/UI results; GitHub connector did not execute the local test suite or browser UI.
 - Preserve untracked local files and do not deploy production. After merge, synchronize local main and verify HEAD equals origin/main.
+
+## Phase 02 — Hotel Uniform implementation checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-hotel-uniform-20261029`, based on `main` commit `e7bb8f3a3adfbe5f95452554a0046adaeff36a62`.
+- REHOME: Hotel Uniform UI/dataset controllers, Blade, CSS and JS to `Modules/Demo`; KEEP: original URL, dataset storage directory, browser keys, five original Hotel Uniform themes, shared menu endpoints; DEFER: theme-selector palette generalization; QUARANTINE: runtime snapshots, untracked files and production.
+- Shared Blade layout, sidebar shell and module menu editor are reused. Hotel-specific nav/brand/card/footer remain in demo partials. Browser asset URLs are preserved via allowlisted controller; tracked public CSS/JS removed.
+- Test gate: `HotelUniformDemoTest.php` + `DemoModuleHotelUniformOwnershipTest.php` focused, then `SharedDemoSidebarMenuTest.php` + `DemoModuleRentalRoomOwnershipTest.php` regression. No local tests or browser UI were executed by GitHub connector. Both TEST and UI remain PENDING.
+- Validate all 13 screens, CRUD, Excel, print, localStorage, JSON backup/restore, server snapshots, five themes, menu editor and mobile drawer. Check browser console, HTTP 403/419/422/503, CSS/JS URLs and Nginx static fallback. No merge or deploy without explicit authorization.
