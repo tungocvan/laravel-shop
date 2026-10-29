@@ -29,14 +29,15 @@ final class RentalRoomManagementTest extends TestCase
             $this->assertFileDoesNotExist(public_path('demo-assets/quan-ly-phong-tro/'.$asset));
             $response = $this->get('/demo-assets/quan-ly-phong-tro/'.$asset);
             $response->assertOk()
-                ->assertHeader('X-Content-Type-Options', 'nosniff')
-                ->assertHeader('Cache-Control', function (string $value): bool {
-                    $directives = array_map('trim', explode(',', $value));
-
-                    return count($directives) === 3
-                        && count(array_unique($directives)) === 3
-                        && count(array_intersect($directives, ['public', 'max-age=300', 'must-revalidate'])) === 3;
-                });
+                ->assertHeader('X-Content-Type-Options', 'nosniff');
+            $cacheControl = $response->headers->get('Cache-Control');
+            $this->assertNotNull($cacheControl);
+            $directives = array_map('trim', explode(',', $cacheControl));
+            $this->assertCount(3, $directives);
+            $this->assertCount(3, array_unique($directives));
+            foreach (['public', 'max-age=300', 'must-revalidate'] as $directive) {
+                $this->assertContains($directive, $directives);
+            }
             $this->assertSame(
                 realpath(base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset)),
                 realpath($response->baseResponse->getFile()->getPathname())
