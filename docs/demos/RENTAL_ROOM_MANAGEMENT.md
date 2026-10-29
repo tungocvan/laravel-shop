@@ -34,3 +34,14 @@ Không merge/deploy production trước khi có đủ test, UI PASS và phê duy
 - So sánh GitHub: feature branch ahead 31 commits, behind 0 so với main tại thời điểm kiểm tra.
 - Chưa xác nhận module/impacted regression riêng hoặc tracked working tree trên máy người dùng; cần kiểm tra trước merge.
 - PR chỉ để review, chưa được phép merge/deploy.
+
+## Refactor Modules/Demo — Phase 01 (2026-10-29)
+
+- Branch: `refactor/demo-module-rental-room-20261029`.
+- Canonical UI/dataset controllers: `Modules/Demo/Http/Controllers/Projects/RentalRoom`.
+- Canonical views: `Modules/Demo/resources/views/projects/rental-room` (namespace `demo::`).
+- Source assets: `Modules/Demo/resources/assets/projects/rental-room`; published assets stay at existing public URLs.
+- Canonical UI and dataset routes: `Modules/Demo/routes/web.php`.
+- Shared sidebar routes/controller remain in legacy application paths until other 11 demos are migrated.
+- Existing localStorage and private JSON dataset paths are preserved; no data migration.
+- Tests and UI must be rerun after refactor; prior PASS is not transferable.
