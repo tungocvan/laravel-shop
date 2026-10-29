@@ -29,3 +29,11 @@
 - The selected preset is labeled `(Mặc định)`; deletion of the active default returns HTTP 409. No automatic deletion of other presets.
 - Browser override is cleared when setting default; existing other demo menu behavior remains unchanged.
 - Test/UI: pending Admin pull, focused tests, impacted shared-menu tests, and user UI confirmation.
+
+## Selected JSON editing — 2026-10-29
+- Selecting a menu preset populates the name input with its saved display name; the name is informational for an existing file (no rename).
+- **Lưu file** updates the selected JSON using PUT after confirmation; with no selection it creates a new JSON file.
+- **Lưu lên server** writes active sidebar config and also updates the selected JSON (two separately authorized writes). Partial failure must be reported and retried; no silent claim of full success.
+- Both writes serialize the full `config`, including `header`, `footer`, and `groups`.
+- **Mặc định** reloads the server's selected default config into the editing draft for this demo, or original menu if no server default exists; **Cập nhật giao diện** applies it.
+- Tests and UI for these changes are **NOT YET RUN**; verify selected file name, save/update, header/footer persistence and reload, default behavior, and unaffected other demos.
