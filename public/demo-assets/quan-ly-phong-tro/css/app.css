@@ -414,3 +414,22 @@ td.bl{border-left:1px solid #ece8f1}
 .vt h4{margin:10px 0 2px;font-size:15px}
 .vt .sign{display:grid;grid-template-columns:1fr 1fr;text-align:center;margin-top:18px;padding-bottom:90px}
 .vt .sign b{display:block}
+
+
+/* Rental settings: compact sidebar editor and product-costing-style theme selector. */
+.rental-menu-panel,.rental-themes{margin-bottom:14px}
+.rental-menu-panel>h3,.rental-themes>h3{font-size:15px;margin-bottom:6px}
+.rental-menu-panel>.muted,.rental-themes>.muted{font-size:12px}
+.rental-menu-panel>div:not([hidden]){max-width:100%}
+.rental-menu-toggle{background:var(--chu-dao);border-color:var(--chu-dao);color:#fff;font-weight:700}
+.rental-menu-toggle:hover{filter:brightness(.92)}
+.rental-theme-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:14px}
+.rental-theme-choice{display:flex;flex-direction:column;gap:7px;padding:7px;border:2px solid var(--line);border-radius:11px;background:var(--card);cursor:pointer;min-width:0;transition:transform .15s,border-color .15s}
+.rental-theme-choice:hover{transform:translateY(-2px);border-color:var(--choice-color)}
+.rental-theme-choice:focus-visible{outline:3px solid var(--choice-color);outline-offset:2px}
+.rental-theme-choice[aria-pressed="true"]{border-color:var(--choice-color);box-shadow:0 0 0 1px var(--choice-color)}
+.rental-theme-swatch{height:40px;border-radius:6px;background:linear-gradient(125deg,var(--choice-dark) 0 43%,var(--choice-color) 43% 100%)}
+.rental-theme-label{text-align:center;font-weight:700;font-size:12px}
+.rental-theme-choice[aria-pressed="true"] .rental-theme-label:before{content:'✓ ';color:var(--choice-color)}
+@media(max-width:700px){.rental-theme-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:380px){.rental-theme-options{grid-template-columns:1fr}}
