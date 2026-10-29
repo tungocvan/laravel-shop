@@ -4,14 +4,14 @@
 
 Áp dụng khi người dùng cung cấp file HTML, URL HTML, link GitHub chứa HTML, hoặc yêu cầu chuyển HTML thành demo Laravel 12. **Việc gửi link chỉ kích hoạt tiếp nhận/audit, không mặc nhiên cấp quyền sửa code.** Xác định rõ yêu cầu tham khảo hay triển khai; nếu không rõ, hỏi trước khi thay đổi.
 
-Tài liệu này bổ sung, không thay thế, `docs/GITHUB_COLLABORATION_WORKFLOW.md`. Khi có mâu thuẫn, đối chiếu workflow mới nhất và xin ý kiến người dùng. Công việc liên quan production phải đọc thêm `docs/PRODUCTION_DEBUG_PROMPT.md` từ `main` trước mọi phân tích/thao tác production.
+Tài liệu này là quy trình thao tác; **`docs/HTML_DEMO_STANDARD.md` là tiêu chuẩn kỹ thuật chi tiết bắt buộc**. Đọc cả hai từ `main` mới nhất trước khi audit, cùng `docs/GITHUB_COLLABORATION_WORKFLOW.md`. Khi có mâu thuẫn, đối chiếu workflow mới nhất và xin ý kiến người dùng. Công việc liên quan production phải đọc thêm `docs/PRODUCTION_DEBUG_PROMPT.md` từ `main` trước mọi phân tích/thao tác production.
 
 ## 2. Kiến trúc mặc định
 
 - Laravel 12, PHP 8.3; demo độc lập, **không tạo Module** trừ khi được yêu cầu.
-- **Một GET route duy nhất cho mỗi demo**, một Controller riêng, không thêm route API hoặc POST nếu chưa được phê duyệt.
+- **Một GET route chính cho giao diện mỗi demo**, một Controller riêng; API GET/POST phụ trợ cho JSON server/menu được phép **khi đã phê duyệt**, không coi là route UI bổ sung.
 - Layout Blade riêng; mỗi chức năng/màn hình có Blade riêng; sidebar, header, modal tách thành partial.
-- CSS/JS là file riêng trong `public/demo/<demo-slug>/`; giữ nguyên DOM ID, CSS class, event handler, thứ tự tải script và dependency.
+- CSS/JS là file riêng trong **`public/demo-assets/<demo-slug>/`** (không đặt trong `public/demo/<demo-slug>/` trùng route UI, tránh Nginx 301/403); giữ nguyên DOM ID, CSS class, event handler, thứ tự tải script và dependency.
 - Mặc định không dùng database/backend persistence; lưu demo vào localStorage với key riêng theo demo, tránh xung đột.
 - Sao lưu/khôi phục JSON khi phù hợp, có xác nhận trước khi ghi đè; dữ liệu sao lưu phải tương thích với cấu trúc state thực tế.
 - Không ảnh hưởng Module, demo hoặc route đang hoạt động; mobile-first, responsive desktop/tablet/iPhone.
@@ -25,7 +25,7 @@ resources/views/demo/{demo-slug}/
   layouts/app.blade.php
   pages/*.blade.php
   partials/*.blade.php
-public/demo/{demo-slug}/
+public/demo-assets/{demo-slug}/
   css/app.css
   js/app.js
 docs/demos/{DEMO_NAME}.md
@@ -45,11 +45,11 @@ tests/Feature/{DemoName}Test.php
 ## 4. Phase 2 — Implementation
 
 1. Tạo feature branch từ `main` mới nhất; không sử dụng Git worktree. Nếu demo nền chưa nằm trên `main`, báo rõ dependency và thống nhất cách xử lý trước khi tạo branch phụ thuộc.
-2. Tạo đúng một route GET và Controller tương ứng, không thay đổi route demo khác.
+2. Tạo đúng một route GET giao diện và Controller tương ứng; API phụ trợ chỉ theo phạm vi duyệt. Kiểm tra `<?php` đầu `routes/web.php`, `php -l`, và toàn bộ `where('demo', ...)` khi tích hợp shared sidebar; không thay đổi route demo khác.
 3. Tách layout, pages, partials, CSS, JS; bảo toàn hành vi hiện tại. Với màn hình tạo động bằng JS, có thể dùng Blade mount point riêng nhưng phải ghi rõ trong handoff.
 4. Giữ localStorage key/schema khi nâng cấp demo hiện có, hoặc cung cấp migration dữ liệu có kiểm soát; không làm mất dữ liệu trình duyệt.
 5. Đảm bảo các tài nguyên chạy với đường dẫn Laravel; kiểm tra trình tự tải JS và dữ liệu JSON nhúng.
-6. Viết focused tests cho route, controller, view, các section và assets; thêm kiểm tra chức năng liên quan khi có thể.
+6. Viết focused tests cho route, controller, view, các section và assets; với shared menu phải test `/menu` và `/menu/presets`, với JSON server phải test xác thực/validation/path traversal/CSRF/throttle; thêm kiểm tra chức năng liên quan khi có thể.
 7. Cập nhật `docs/demos/{DEMO_NAME}.md` với branch, scope, architecture, tests, UI gate, known issues, rollback/next steps.
 8. Commit từng batch có kiểm soát lên GitHub; không xóa file untracked, sửa `.env`, database hoặc production.
 
@@ -61,12 +61,14 @@ Dừng để người dùng đồng bộ branch và chạy focused tests. Cung c
 git fetch origin
 git switch --track origin/<feature-branch>   # hoặc git switch nếu đã tồn tại
 git pull --ff-only
+php -l routes/web.php
+php artisan route:list --path=demo/<demo-slug>
 php artisan test tests/Feature/<DemoName>Test.php
 git status --short
 ```
 
 - **Không tuyên bố TEST PASS khi chưa có output thực tế.**
-- Focused tests PASS trước module/impacted regression khi cần.
+- Focused tests PASS trước module/impacted regression khi cần. Nếu thay đổi shared sidebar, chạy `SharedDemoSidebarMenuTest.php` và regression demo cũ liên quan; không chạy full suite theo mặc định.
 - Khi FAIL, dừng, phân tích root cause, sửa đúng phạm vi rồi yêu cầu chạy lại.
 
 ## 6. Phase 4 — UI Regression
@@ -100,4 +102,4 @@ Người dùng kiểm tra và xác nhận UI PASS trên desktop, tablet và iPho
 
 ## 9. Mẫu yêu cầu ngắn cho chat mới
 
-> Áp dụng `docs/HTML_DEMO_BLADE_WORKFLOW.md` cho file hoặc URL HTML tôi gửi. Audit read-only trước, trình bày kiến trúc và kế hoạch, chỉ triển khai sau khi tôi phê duyệt. Dừng tại checkpoint Git Pull / Test. Không merge hoặc deploy nếu chưa được phép.
+> Áp dụng `docs/HTML_DEMO_STANDARD.md`, `docs/HTML_DEMO_BLADE_WORKFLOW.md` và `docs/GITHUB_COLLABORATION_WORKFLOW.md` từ `main` mới nhất cho file hoặc URL HTML tôi gửi. Audit read-only trước, trình bày kiến trúc và kế hoạch, chỉ triển khai sau khi tôi phê duyệt. Dừng tại checkpoint Git Pull / Test. Không merge hoặc deploy nếu chưa được phép.

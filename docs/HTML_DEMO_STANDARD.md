@@ -185,6 +185,26 @@ Lưu **cả header, footer và groups** trong một cấu hình versioned, ví d
 
 Tham khảo triển khai hiện có: demo `/demo/quan-ly-cong-no#caidat` trên feature branch `feat/debt-management-blade-20261027`. **Đọc lại source và trạng thái merge mới nhất** trước khi reuse; không giả định branch này đã nằm trên `main`.
 
+## 6.1. Route integration gate — bài học từ Hotel Uniform (2026-10-29)
+
+Khi thêm route UI/API cho Demo, **phải audit file PHP thực tế sau khi ghi**, không chỉ xem diff hoặc chạy test giao diện:
+
+1. `routes/web.php` phải bắt đầu bằng `<?php` (cho phép BOM/whitespace nếu source đã có nhưng không được chèn text route trước PHP). Không thêm route bằng cách prepend text trước opening tag. Dùng import/controller và vị trí nhóm route nhất quán.
+2. Khi tích hợp `SharedSidebarMenuController`, kiểm tra **cả hai lớp allowlist**: controller `DEMOS`/mapping và toàn bộ route `->where('demo', ...)` của nhóm `/demo/{demo}/menu`. Đối chiếu GET/POST/PUT/DELETE, presets và default-preset; không chỉ thêm `GET /demo/{slug}`.
+3. Chạy `php -l routes/web.php`, `php artisan route:list --path=demo/{demo-slug}`, rồi focused tests. Nếu route khai báo bị in ra stdout hoặc GET trả 404, dừng kiểm tra PHP opening tag, route constraint, route cache, middleware và thứ tự khai báo; không tự ý xóa route cache trên production.
+4. Focused tests cần assert `GET /demo/{slug}` và tối thiểu `GET /demo/{slug}/menu`, `GET /demo/{slug}/menu/presets` nếu có editor; bổ sung contract cho các thao tác ghi được duyệt và xác thực mã quản trị. Test route-list và HTTP đều cần thiết; không thay thế lẫn nhau.
+5. Khi sửa JS dùng chung, kiểm tra demo mới **và** demo cũ đang dùng chung builder. Không sửa UI chỉ để làm test PASS.
+
+**Sự cố tham chiếu:** Hotel Uniform từng có route đặt trước `<?php` gây in source/404; sau đó menu 404 vì `where('demo', ...)` thiếu slug mới. Focused test sau sửa: 2 PASS/15 assertions; impacted regression sidebar: 22 PASS/114 assertions theo output máy Admin. Các kết quả này chỉ áp dụng cho phiên bản được kiểm thử, không phải chứng nhận tự động cho demo tiếp theo.
+
+### Gate bảo mật và UX tích hợp
+
+- JSON server: không chỉ test route UI. Kiểm tra unauthorized POST, mã sai/thiếu/chưa cấu hình, CSRF, throttle, validation schema, giới hạn file, path traversal, dữ liệu lỗi và xác nhận trước khi thay localStorage. Nếu chưa có các test này, đánh dấu **security tests pending**, không coi route smoke test là bằng chứng đủ.
+- Theme: kiểm tra CSS variables thật trong `app.css`, palette JS/biểu đồ, lựa chọn 4 màu và mặc định, reload, localStorage key riêng, trạng thái focus/aria và không reset khi import JSON.
+- Menu: dùng adapter của shared builder đã audit, không nhân bản editor; test cả cấu hình header/footer/groups, lưu/nạp JSON, active nav, badges, modal, keyboard/mobile và trạng thái sau F5.
+- Các hàm HTML gốc như `saveToFile()`, `TEMPLATE=document.documentElement.outerHTML`, inline `onclick`, script nhúng và DOM động cần đối chiếu sau khi tách asset; không giả định `window.fn = ...` sẽ thay thế mọi binding. Phải kiểm tra runtime bằng browser.
+- Trước PR: focused PASS → impacted regression PASS khi sửa shared component → UI PASS do người dùng xác nhận → tracked tree sạch → review PR → chỉ merge khi người dùng đồng ý.
+
 ## 6. Phase 2 — Implementation
 
 1. Feature branch từ `main` mới nhất, không dùng worktree.
@@ -218,7 +238,7 @@ Riêng theme: đổi cả bốn, refresh, sidebar/nút/biểu đồ, khôi phụ
 
 Kiểm tra focused + impacted tests, `git diff --check`, tracked tree sạch, handoff; tạo/review PR. Nếu `main` tiến lên, đánh giá đồng bộ branch và test lại phần ảnh hưởng. **Chỉ merge khi các gate đạt và người dùng đồng ý**. Xác minh merge SHA và cung cấp lệnh đồng bộ `main`. Không tự deploy Production.
 
-## 11. Tài liệu tham chiếu
+## 10. Tài liệu tham chiếu
 
 - `docs/demos/SALES_EMPLOYEES.md`: `/demo/doanh-so-nhan-vien#settings` — JSON library, protected server backup, Ruby/Ocean/Emerald/Indigo.
 - `docs/demos/WAREHOUSE_INVENTORY.md`: `/demo/quan-ly-xuat-nhap-ton#settings` — JSON library, protected server backup, Indigo/Ruby/Ocean/Emerald.
