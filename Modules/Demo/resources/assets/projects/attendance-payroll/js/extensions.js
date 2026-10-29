@@ -3,8 +3,8 @@
   'use strict';
   const slug = 'cham-cong-tinh-luong';
   const themeKey = 'attendance_payroll_theme_v1';
-  const themeNames = ['ruby', 'ocean', 'emerald', 'indigo'];
-  const colors = ['#c62828', '#087e9b', '#16835d', '#4f46e5'];
+  const themeNames = ['original', 'ruby', 'ocean', 'emerald', 'indigo'];
+  const colors = [['#0284c7','#082f49'], ['#c62828','#451a1a'], ['#087e9b','#082f49'], ['#16835d','#073d32'], ['#4f46e5','#24204c']];
   const datasetBase = document.body.dataset.datasetBase;
   const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
   const status = (message) => { const node = document.querySelector('#payroll-status'); if (node) node.textContent = message; };
@@ -69,8 +69,8 @@
       demoSection.id = 'payroll-demo-settings';
       demoSection.setAttribute('aria-label', 'Giao diện và dữ liệu demo');
       demoSection.innerHTML = `<h2 class="payroll-section-title">Giao diện &amp; dữ liệu demo</h2><div class="payroll-grid">
-        <div class="card"><h3>4 theme màu sắc</h3><div class="payroll-theme-grid">
-        ${themeNames.map((name,i)=>`<button type="button" data-payroll-theme="${name}" aria-pressed="false"><i style="background:${colors[i]}"></i>${name[0].toUpperCase()+name.slice(1)}</button>`).join('')}
+        <div class="card"><h3>5 theme màu sắc</h3><div class="payroll-theme-grid">
+        ${themeNames.map((name,i)=>`<button type="button" data-payroll-theme="${name}" aria-pressed="false"><span class="payroll-palette"><i style="background:${colors[i][0]}"></i><i style="background:${colors[i][1]}"></i></span><span>${name === "original" ? "Màu gốc" : name[0].toUpperCase()+name.slice(1)}</span><span class="payroll-theme-check" aria-hidden="true">✓</span></button>`).join('')}
         </div><p class="muted">Theme được lưu riêng, không ảnh hưởng dữ liệu lương.</p></div>
         <div class="card"><h3>Sidebar menu</h3><p>Chỉnh sửa header, footer, nhóm menu và thư viện preset.</p><button type="button" class="btn pri" data-open-menu>Chỉnh sửa menu</button></div>
         <div class="card" style="grid-column:1/-1"><h3>Thư viện JSON server</h3><p class="muted">Dữ liệu làm việc vẫn lưu trong trình duyệt. Chỉ mã quản trị hợp lệ mới được lưu bộ JSON lên server.</p>
