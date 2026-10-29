@@ -60,3 +60,14 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets/{dataset}', [CoffeeShopSalesDatasetController::class, 'show'])->middleware('throttle:20,1')->where('dataset', '[a-z0-9-]{1,80}')->name('demo.coffee-shop-sales.datasets.show');
     Route::post('/demo/quan-ly-ban-hang-ca-phe/datasets', [CoffeeShopSalesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.coffee-shop-sales.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\DailyWorkReport\DailyWorkReportController;
+use Modules\Demo\Http\Controllers\Projects\DailyWorkReport\DailyWorkReportAssetController;
+
+Route::get('/demo-assets/bao-cao-cong-viec-hang-ngay/{asset}', DailyWorkReportAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|original\\.html')
+    ->name('demo.daily-work-report.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/bao-cao-cong-viec-hang-ngay', DailyWorkReportController::class)->name('demo.daily-work-report');
+});
