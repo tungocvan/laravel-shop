@@ -204,3 +204,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/DemoModuleDebtManagementOwnershipTest.php`.
 - UI PENDING: desktop/tablet/iPhone, sales journal CRUD, employee/product lists, dashboards/reports, import/export, server snapshots, shared menu editor, five themes, browser refresh, console/network.
 - No PHP/Node/browser tests run by GitHub connector; do not declare PASS or merge/deploy.
+
+## Phase 11 — Warehouse Inventory checkpoint (2026-10-29)
+
+- User confirmed Demo 10 TEST + UI PASS. Branch `refactor/demo-module-warehouse-inventory-20261029` inherits accepted Demo 10; main remains unmerged until 12/12 acceptance.
+- Warehouse inventory UI and dataset controllers, Blade layout/pages/partials, CSS/JS and routes moved to Modules/Demo. Preserve stock in/out, product CRUD, history, inventory report, browser/server JSON, menu API, operator-code authorization, exports and persistence.
+- Add Original theme as fifth palette while retaining Indigo default. Module asset allowlist serves original browser URLs via Laravel; web-server fallback must be validated before any future deployment.
+- Focused PENDING: `php artisan test tests/Feature/DemoModuleWarehouseInventoryOwnershipTest.php`; syntax `node --check Modules/Demo/resources/assets/projects/warehouse-inventory/js/app.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, stock in/out, CRUD products, history, inventory reports, JSON import/export and server library, menu editor, five themes and refresh persistence, console/network.
+- No local PHP/Node/browser tests run by GitHub connector; no TEST/UI PASS claim and no merge/deploy.
