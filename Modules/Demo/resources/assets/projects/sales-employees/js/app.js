@@ -4,6 +4,7 @@ const TEMPLATE=document.documentElement.outerHTML;
 const MAU={"chu":"#c62828","dam":"#9a1f1f","sang":"#da5b5b","nhat":"#fceeee","nhat2":"#eec8c8","sb":"#391313","sb0":"#260d0d","sb2":"#4b2020","sbtext":"#e4c8c8","sbmuted":"#be9393","heroT":"#f9dcdc","heroT2":"#eab8b8"};
 const SALES_THEME_STORAGE_KEY='sales_employees_theme_v1';
 const SALES_THEMES={
+  original:{label:'Màu gốc',main:'#c62828',dark:'#391313',colors:{...MAU}},
   ruby:{label:'Đỏ Ruby',main:'#c62828',dark:'#391313',colors:{chu:'#c62828',dam:'#9a1f1f',sang:'#da5b5b',nhat:'#fceeee',nhat2:'#eec8c8',sb:'#391313',sb0:'#260d0d',sb2:'#4b2020',sbtext:'#e4c8c8',sbmuted:'#be9393',heroT:'#f9dcdc',heroT2:'#eab8b8'}},
   ocean:{label:'Xanh Ocean',main:'#087e9b',dark:'#123b52',colors:{chu:'#087e9b',dam:'#07637c',sang:'#289eb6',nhat:'#e6f5f9',nhat2:'#c2e8f0',sb:'#123b52',sb0:'#0b2839',sb2:'#1c5067',sbtext:'#d7edf5',sbmuted:'#a6cbd9',heroT:'#e3f6fc',heroT2:'#bde5f0'}},
   emerald:{label:'Xanh Emerald',main:'#16835d',dark:'#164537',colors:{chu:'#16835d',dam:'#116a4b',sang:'#2ca57b',nhat:'#e6f6ef',nhat2:'#c4e9d8',sb:'#164537',sb0:'#0d2e25',sb2:'#225846',sbtext:'#d8f2e6',sbmuted:'#acd4c1',heroT:'#e5f9ef',heroT2:'#c0e9d6'}},
@@ -881,7 +882,7 @@ function renderSettings(){
   const el=$('#page-settings'),c=co(),size=JSON.stringify(S).length;
   el.innerHTML=`<div class="card" style="padding:20px;margin-bottom:16px">
    <h4>Giao diện &amp; màu sắc</h4>
-   <p>Chọn một trong 4 theme. Màu được áp dụng ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu doanh số.</p>
+   <p>Chọn một trong 5 theme. Màu được áp dụng ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu doanh số.</p>
    <div class="sales-theme-grid" role="group" aria-label="Chọn theme màu">${salesThemeChoices()}</div>
   </div><div class="card" style="padding:20px;margin-bottom:16px">
    <h4>Thư viện dữ liệu Demo doanh số nhân viên</h4>
