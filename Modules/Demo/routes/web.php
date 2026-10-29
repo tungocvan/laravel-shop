@@ -152,3 +152,18 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/doanh-so-nhan-vien/datasets/{dataset}', [SalesDemoDatasetController::class, 'show'])->name('demo.sales-employees.datasets.show');
     Route::post('/demo/doanh-so-nhan-vien/datasets', [SalesDemoDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.sales-employees.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\WarehouseInventory\WarehouseInventoryController;
+use Modules\Demo\Http\Controllers\Projects\WarehouseInventory\WarehouseDemoDatasetController;
+use Modules\Demo\Http\Controllers\Projects\WarehouseInventory\WarehouseInventoryAssetController;
+
+Route::get('/demo-assets/quan-ly-xuat-nhap-ton/{asset}', WarehouseInventoryAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.warehouse-inventory.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/quan-ly-xuat-nhap-ton', WarehouseInventoryController::class)->name('demo.warehouse-inventory');
+    Route::get('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'index'])->name('demo.warehouse-inventory.datasets');
+    Route::get('/demo/quan-ly-xuat-nhap-ton/datasets/{dataset}', [WarehouseDemoDatasetController::class, 'show'])->name('demo.warehouse-inventory.datasets.show');
+    Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.warehouse-inventory.datasets.store');
+});
