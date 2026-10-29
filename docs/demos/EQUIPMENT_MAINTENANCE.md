@@ -1,10 +1,23 @@
-# Quản lý thiết bị và bảo trì — standalone Blade demo
+# Quản lý thiết bị và bảo trì — standalone Laravel Blade
 
+## Scope and architecture
 - Branch: `feat/equipment-maintenance-blade-20261029`.
-- GET route: `/demo/quan-ly-thiet-bi-bao-tri`.
-- Original browser key: `thietbi_baotri_phongexcel_v1`; dynamic JS DOM remains the application renderer.
-- Original HTML offline export is embedded in external JS to preserve self-contained file output.
-- Asset upload pending: original ~137 KB JS and ~29 KB CSS have been converted into a local ZIP patch; they are not yet committed to GitHub.
-- Shared menu, five themes and server JSON snapshot integration: pending.
-- Focused tests and UI acceptance: NOT RUN. No merge/deploy authorized.
-- Rollback: revert feature branch commits; preserve browser localStorage and private server datasets.
+- GET: `/demo/quan-ly-thiet-bi-bao-tri`, controller `EquipmentMaintenanceController`.
+- Views: `resources/views/demo/quan-ly-thiet-bi-bao-tri/`; public assets: `public/demo-assets/quan-ly-thiet-bi-bao-tri/`.
+- Original HTML dynamic shell, business JS, DOM IDs, Excel, JSON backup/restore, printing, offline HTML export retained.
+- Browser data key: `thietbi_baotri_phongexcel_v1|<pathname>`; browser state is authoritative until user confirms restoration.
+- Shared sidebar editor: `x-demo.sidebar-menu-builder`, existing server menu endpoints and private preset library. Shared allowlist expanded only for this demo.
+- Themes: original, Ruby, Ocean, Emerald, Indigo; localStorage key `equipment_maintenance_theme_v1`. Preview tiles appear in Settings.
+- Private server snapshots: GET/POST `/demo/quan-ly-thiet-bi-bao-tri/datasets`, GET `/datasets/{dataset}`; authenticated via `warehouse_demo.backup_code` (16+ characters), header `X-Demo-Backup-Code`, CSRF on writes, 10 MB limit, 100 files, rate-limited. Stored under `storage/app/demo-datasets/equipment-maintenance`, not public; no database.
+- No automatic server restore, overwrite, or delete. Explicit confirmation required before restoring a selected snapshot. Browser JSON backup is retained.
+
+## Collaboration handoff — 2026-10-29
+- Source assets committed by user: `732248c9a`.
+- Subsequent GitHub commits: menu allowlist, menu component, script order/CSRF, themes, server snapshots, CSS and tests.
+- Focused tests: **NOT RUN**. Run `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php`.
+- Impacted regression only after focused PASS: `php artisan test tests/Feature/ProductCostingDemoTest.php tests/Feature/CoffeeShopSalesDemoTest.php` and shared menu focused tests if present.
+- JS syntax: user ran `node --check` on original asset before integrations; integrations pending local check.
+- UI: **PENDING**, user must verify desktop/tablet/iPhone, all 10 pages, CRUD, calendar, Excel, JSON, print, offline HTML export, menu editor, 5 themes, server snapshots and browser reload.
+- Tracked working tree: verify locally. Existing unrelated untracked files and safety stash must be preserved.
+- Rollback: revert feature branch commits/PR; preserve browser localStorage, server snapshot files, and unrelated untracked files.
+- Next: pull feature branch, run focused test and syntax checks; stop and debug on FAIL; only then impacted regression; user confirms UI PASS; create/review PR and merge only after explicit approval.
