@@ -35,7 +35,8 @@ class DailyWorkReportMenuTest extends TestCase
         $script = file_get_contents(base_path('Modules/Demo/resources/assets/projects/daily-work-report/js/app.js'));
         $css = file_get_contents(base_path('Modules/Demo/resources/assets/projects/daily-work-report/css/app.css'));
         $this->assertStringContainsString('data-open-menu>Chỉnh sửa menu', $script);
-        $this->assertStringContainsString('daily-theme-swatch--original', $script);
+        $this->assertStringContainsString('daily-theme-swatch--', $script);
+        $this->assertStringContainsString("original:['#283593'", $script);
         $this->assertStringContainsString('grid-template-columns:repeat(5,minmax(0,1fr))', $css);
     }
 
