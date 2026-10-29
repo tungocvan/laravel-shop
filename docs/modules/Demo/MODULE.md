@@ -45,3 +45,11 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Existing offline HTML export/template, Excel, print, browser storage `thietbi_baotri_phongexcel_v1|<pathname>`, five themes and `equipment_maintenance_theme_v1` remain unchanged.
 - Asset requests keep the existing browser paths through a strict module allowlist. Legacy tracked public copies are removed; deployment must audit web-server fallback and stale untracked files.
 - No migrations or changes to production/runtime data. Tests and UI acceptance are pending.
+
+## Phase 04 — Coffee Shop Sales (pending acceptance)
+
+- Coffee Shop Sales UI/dataset controllers, routes, views, CSS and JS are module-owned. Canonical `/demo/quan-ly-ban-hang-ca-phe` and private snapshot directory `demo-datasets/coffee-shop-sales` remain unchanged.
+- The original ~369 KB JS contains an embedded standalone HTML export template and builds the navigation at runtime. Keep the original dynamic `#sb` DOM contract, defer static shared Blade sidebar until a separate UI audit.
+- Shared module layout and module-owned menu editor are adopted; browser keys, IndexedDB, theme palettes and export functions are retained without modifying the original JS. Module allowlisted asset route preserves original browser URLs.
+- Legacy tracked files are retired, but never delete runtime/untracked files. Validate web-server fallback and stale public copies before production deployment.
+- No DB migration. Focused, impacted and UI regression pending.
