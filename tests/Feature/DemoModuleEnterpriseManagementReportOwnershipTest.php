@@ -40,4 +40,22 @@ final class DemoModuleEnterpriseManagementReportOwnershipTest extends TestCase
         $this->assertStringContainsString('/demo/bao-cao-quan-tri-doanh-nghiep/menu', $script);
         $this->assertStringContainsString('Lưu lên server', $script);
     }
+    public function test_editor_uses_shared_demo_tab_layout_without_removing_menu_persistence(): void
+    {
+        $script=file_get_contents(base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/js/preferences.js'));
+        $css=file_get_contents(base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/css/app.css'));
+        foreach (['Menu', 'Header', 'Footer', 'Thư viện JSON'] as $label) {
+            $this->assertStringContainsString($label, $script);
+        }
+        foreach (['enterprise-editor-tabs', 'enterprise-editor-pane', 'aria-selected', 'selectTab(activeTab)', 'enterprise-server-library'] as $token) {
+            $this->assertStringContainsString($token, $script);
+        }
+        foreach (['enterprise-editor-heading', 'enterprise-editor-tabs', '.enterprise-editor-pane[hidden]'] as $token) {
+            $this->assertStringContainsString($token, $css);
+        }
+        foreach (['sidebar_v1', 'protectedMenu(', 'downloadMenu(', 'normalizeMenu(draft)'] as $token) {
+            $this->assertStringContainsString($token, $script);
+        }
+    }
+
 }
