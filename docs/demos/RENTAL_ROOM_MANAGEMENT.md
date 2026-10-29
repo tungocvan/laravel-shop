@@ -26,3 +26,11 @@
 Branch: `feat/rental-room-management-blade-20261029`.
 Chưa chạy PHPUnit trong môi trường GitHub; cần kết quả test thực tế từ máy người dùng.
 Không merge/deploy production trước khi có đủ test, UI PASS và phê duyệt.
+
+## Xác nhận checkpoint (29/10/2026)
+
+- Người dùng xác nhận **test + UI PASS** trong cuộc trò chuyện. Chưa có log PHPUnit chi tiết để đối chiếu số lượng assertion.
+- UI đã kiểm tra sau các lần sửa menu modal và đồng bộ header/footer; người dùng xác nhận PASS.
+- So sánh GitHub: feature branch ahead 31 commits, behind 0 so với main tại thời điểm kiểm tra.
+- Chưa xác nhận module/impacted regression riêng hoặc tracked working tree trên máy người dùng; cần kiểm tra trước merge.
+- PR chỉ để review, chưa được phép merge/deploy.
