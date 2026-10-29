@@ -47,10 +47,11 @@ Chi tiết route-first audit, `KEEP / REHOME / DELETE / QUARANTINE / DEFER`, con
 Khi người dùng gửi file HTML, URL HTML, link GitHub chứa HTML, hoặc yêu cầu chuyển HTML thành demo Laravel, phải đọc và áp dụng:
 
 ```text
-docs/HTML_DEMO_BLADE_WORKFLOW.md
+docs/HTML_DEMO_STANDARD.md             # tiêu chuẩn kỹ thuật canonical
+docs/HTML_DEMO_BLADE_WORKFLOW.md       # quy trình thao tác
 ```
 
-Chỉ tiếp nhận/audit read-only khi người dùng mới cung cấp link/file; không tự ý triển khai nếu chưa xác định mục tiêu và phê duyệt thay đổi lớn. Mặc định một demo độc lập có một GET route, Controller và layout Blade riêng, mỗi màn hình có Blade riêng, CSS/JS tách file; giữ nguyên localStorage và hành vi UI. Tuân thủ checkpoint Git Pull / Test, UI PASS do người dùng xác nhận, và không merge/deploy nếu chưa được phép.
+Chỉ tiếp nhận/audit read-only khi người dùng mới cung cấp link/file; không tự ý triển khai nếu chưa xác định mục tiêu và phê duyệt thay đổi lớn. Mặc định một demo độc lập có một GET route **giao diện chính** (API phụ trợ chỉ khi đã duyệt), Controller và layout Blade riêng, mỗi màn hình có Blade riêng, CSS/JS tách tại `public/demo-assets/{demo-slug}/` để không xung đột route; giữ nguyên localStorage và hành vi UI. Tuân thủ checkpoint Git Pull / Test, UI PASS do người dùng xác nhận, và không merge/deploy nếu chưa được phép.
 
 ## 1. Vai trò
 
