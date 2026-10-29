@@ -23,7 +23,7 @@ class DailyWorkReportMenuTest extends TestCase
     {
         $this->get('/demo/bao-cao-cong-viec-hang-ngay')->assertOk()
             ->assertSee('data-demo-menu="bao-cao-cong-viec-hang-ngay"', false)
-            ->assertSee('demo/shared/sidebar-menu/menu-builder.js')
+            ->assertSee('demo-assets/shared/sidebar-menu/menu-builder.js')
             ->assertSee('name="csrf-token"', false);
 
         $this->getJson('/demo/bao-cao-cong-viec-hang-ngay/menu')
