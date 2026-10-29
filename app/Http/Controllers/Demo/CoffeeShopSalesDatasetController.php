@@ -15,8 +15,9 @@ final class CoffeeShopSalesDatasetController extends Controller
     private const LIMIT = 10485760;
     private const MAX_FILES = 100;
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
+        $this->authorizeDataset($request);
         $disk = Storage::disk('local');
         $items = [];
         foreach ($disk->files(self::DIR) as $file) {
@@ -29,8 +30,9 @@ final class CoffeeShopSalesDatasetController extends Controller
         return response()->json(['datasets' => $items])->header('Cache-Control', 'no-store');
     }
 
-    public function show(string $dataset): JsonResponse
+    public function show(Request $request, string $dataset): JsonResponse
     {
+        $this->authorizeDataset($request);
         abort_unless(preg_match('/^[a-z0-9-]{1,80}$/', $dataset), 404);
         $payload = $this->read(self::DIR.'/'.$dataset.'.json');
         abort_if($payload === null, 404);
@@ -39,10 +41,7 @@ final class CoffeeShopSalesDatasetController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $secret = config('warehouse_demo.backup_code');
-        abort_unless(is_string($secret) && strlen($secret) >= 16, 503);
-        $given = $request->header('X-Demo-Backup-Code', '');
-        abort_unless(is_string($given) && hash_equals($secret, $given), 403);
+        $this->authorizeDataset($request);
         abort_if(strlen($request->getContent()) > self::LIMIT, 413);
         $validated = Validator::make($request->all(), [
             'name' => ['required', 'string', 'min:2', 'max:100'],
@@ -58,6 +57,14 @@ final class CoffeeShopSalesDatasetController extends Controller
         $id = substr(Str::slug($payload['name']) ?: 'ca-phe', 0, 40).'-'.Str::lower(Str::random(12));
         abort_unless($disk->put(self::DIR.'/'.$id.'.json', $json), 500);
         return response()->json(['id' => $id, 'name' => $payload['name']], 201)->header('Cache-Control', 'no-store');
+    }
+
+    private function authorizeDataset(Request $request): void
+    {
+        $secret = config('warehouse_demo.backup_code');
+        abort_unless(is_string($secret) && strlen($secret) >= 16, 503);
+        $given = $request->header('X-Demo-Backup-Code', '');
+        abort_unless(is_string($given) && hash_equals($secret, $given), 403);
     }
 
     private function read(string $path): ?array
