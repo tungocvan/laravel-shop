@@ -21,3 +21,11 @@
 - Tracked working tree: verify locally. Existing unrelated untracked files and safety stash must be preserved.
 - Rollback: revert feature branch commits/PR; preserve browser localStorage, server snapshot files, and unrelated untracked files.
 - Next: pull feature branch, run focused test and syntax checks; stop and debug on FAIL; only then impacted regression; user confirms UI PASS; create/review PR and merge only after explicit approval.
+
+## Default sidebar menu JSON — 2026-10-29
+- In Menu editor → Thư viện JSON, select a saved JSON file and choose **Đặt làm mặc định**.
+- Server pointer: `storage/app/demo-settings/equipment-maintenance/default-preset.json` (private). The selected preset remains in `presets/`; GET menu resolves it dynamically.
+- Authorization: existing `warehouse_demo.backup_code` and CSRF, with throttled PUT endpoint. Only equipment demo exposes this operation.
+- The selected preset is labeled `(Mặc định)`; deletion of the active default returns HTTP 409. No automatic deletion of other presets.
+- Browser override is cleared when setting default; existing other demo menu behavior remains unchanged.
+- Test/UI: pending Admin pull, focused tests, impacted shared-menu tests, and user UI confirmation.
