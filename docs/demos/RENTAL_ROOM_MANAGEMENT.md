@@ -1,0 +1,28 @@
+# Quản lý phòng trọ — HTML → Laravel Blade
+
+## Nguồn và kiến trúc
+
+- Nguồn: file đính kèm `Quản lý phòng trọ.html`, 202 KB; bảo toàn CSS, JavaScript nghiệp vụ và DOM ID.
+- Route UI duy nhất: `GET /demo/quan-ly-phong-tro`.
+- Controller: `app/Http/Controllers/Demo/RentalRoomManagementController.php`.
+- View: `resources/views/demo/quan-ly-phong-tro/`, layout riêng, sidebar/header partial, 9 pages.
+- Assets: `public/demo-assets/quan-ly-phong-tro/`; tránh xung đột Nginx 301/403.
+- Dữ liệu nghiệp vụ giữ localStorage của HTML gốc, khóa có hậu tố `location.pathname`.
+- Thêm 4 themes Ruby, Ocean, Emerald, Indigo bên cạnh màu nguyên bản; lưu riêng `rental_room_theme_v1`.
+- Chỉnh sửa menu, nhóm, thứ tự, link, preset và mặc định bằng SharedSidebarMenuController; namespace `rental-room`.
+- JSON backup/restore trình duyệt; server snapshots lưu private tại `storage/app/private/demo-datasets/rental-room` qua Storage local.
+- API ghi menu/snapshot dùng mã quản trị hiện hữu `config('warehouse_demo.backup_code')` (không hardcode secret), CSRF, throttle, xác nhận ghi đè/khôi phục.
+- Tách source theo Blade mà không thêm Module, migration hay DB.
+
+## Regression gates
+
+1. `php artisan test tests/Feature/RentalRoomManagementTest.php`
+2. Sau focused PASS, chạy shared menu regression và regression demo đồng phục khách sạn.
+3. Kiểm tra desktop/tablet/iPhone, 9 màn hình, CRUD, ghi điện nước, lập hóa đơn, thu tiền, báo cáo, xuất Excel, in, localStorage, JSON restore, 5 themes, chỉnh sửa menu, server presets, HTTP 301/403 và console JS.
+4. Chỉ ghi UI PASS sau khi người dùng xác nhận.
+
+## Checkpoint / handoff
+
+Branch: `feat/rental-room-management-blade-20261029`.
+Chưa chạy PHPUnit trong môi trường GitHub; cần kết quả test thực tế từ máy người dùng.
+Không merge/deploy production trước khi có đủ test, UI PASS và phê duyệt.
