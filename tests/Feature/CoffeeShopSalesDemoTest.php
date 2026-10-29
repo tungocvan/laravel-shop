@@ -20,8 +20,10 @@ class CoffeeShopSalesDemoTest extends TestCase
 
     public function test_dataset_library_starts_empty(): void
     {
+        config()->set('warehouse_demo.backup_code', 'coffee-test-secret-12345');
         \Illuminate\Support\Facades\Storage::fake('local');
-        $this->getJson('/demo/quan-ly-ban-hang-ca-phe/datasets')
+        $this->withHeader('X-Demo-Backup-Code', 'coffee-test-secret-12345')
+            ->getJson('/demo/quan-ly-ban-hang-ca-phe/datasets')
             ->assertOk()->assertExactJson(['datasets' => []]);
     }
 
@@ -46,6 +48,23 @@ class CoffeeShopSalesDemoTest extends TestCase
         $id = $result->json('id');
         $this->getJson('/demo/quan-ly-ban-hang-ca-phe/datasets/'.$id)
             ->assertOk()->assertJsonPath('data.ver', 1);
+    }
+
+    public function test_dataset_reads_require_valid_backup_code(): void
+    {
+        \\Illuminate\\Support\\Facades\\Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'coffee-test-secret-12345');
+        $url = '/demo/quan-ly-ban-hang-ca-phe/datasets';
+        $this->getJson($url)->assertForbidden();
+        $this->getJson($url.'/example')->assertForbidden();
+        $this->withHeader('X-Demo-Backup-Code', 'wrong-code')
+            ->getJson($url)->assertForbidden();
+    }
+
+    public function test_dataset_reads_are_disabled_without_server_secret(): void
+    {
+        config()->set('warehouse_demo.backup_code', null);
+        $this->getJson('/demo/quan-ly-ban-hang-ca-phe/datasets')->assertStatus(503);
     }
 
     public function test_assets_do_not_shadow_route(): void
