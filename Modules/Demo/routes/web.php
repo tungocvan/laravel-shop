@@ -83,3 +83,19 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/bao-cao-quan-tri-doanh-nghiep', EnterpriseManagementReportController::class)
         ->name('demo.enterprise-management-report');
 });
+
+
+use Modules\Demo\Http\Controllers\Projects\AttendancePayroll\AttendancePayrollController;
+use Modules\Demo\Http\Controllers\Projects\AttendancePayroll\AttendancePayrollDatasetController;
+use Modules\Demo\Http\Controllers\Projects\AttendancePayroll\AttendancePayrollAssetController;
+
+Route::get('/demo-assets/cham-cong-tinh-luong/{asset}', AttendancePayrollAssetController::class)
+    ->where('asset', 'css/app\\.css|css/extensions\\.css|js/core\\.js|js/payroll\\.js|js/extensions\\.js')
+    ->name('demo.attendance-payroll.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/cham-cong-tinh-luong', AttendancePayrollController::class)->name('demo.attendance-payroll');
+    Route::get('/demo/cham-cong-tinh-luong/datasets', [AttendancePayrollDatasetController::class, 'index'])->name('demo.attendance-payroll.datasets');
+    Route::get('/demo/cham-cong-tinh-luong/datasets/{dataset}', [AttendancePayrollDatasetController::class, 'show'])->name('demo.attendance-payroll.datasets.show');
+    Route::post('/demo/cham-cong-tinh-luong/datasets', [AttendancePayrollDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.attendance-payroll.datasets.store');
+});
