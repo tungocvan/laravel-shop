@@ -78,6 +78,16 @@ final class RentalRoomManagementTest extends TestCase
         $this->assertStringContainsString('id="sbValue"', file_get_contents(base_path('Modules/Demo/resources/views/projects/rental-room/partials/sidebar-card.blade.php')));
     }
 
+    public function test_dataset_integration_defines_its_own_form_and_api_helpers(): void
+    {
+        $source = file_get_contents(base_path('Modules/Demo/resources/assets/projects/rental-room/js/integrations.js'));
+        $this->assertStringContainsString('const input=', $source);
+        $this->assertStringContainsString('async function api(', $source);
+        $this->assertStringContainsString("'X-Demo-Backup-Code':code", $source);
+        $this->assertStringContainsString("'X-CSRF-TOKEN':csrf", $source);
+        $this->assertStringContainsString('if(result)notify(', $source);
+    }
+
     public function test_asset_route_rejects_unknown_files_and_traversal(): void
     {
         $this->get('/demo-assets/quan-ly-phong-tro/js/unknown.js')->assertNotFound();

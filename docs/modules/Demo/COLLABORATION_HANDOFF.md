@@ -31,3 +31,10 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Preserved sidebar navigation IDs, live badges, occupancy widget, menu editor, theme storage key and five color palettes. Browser verification still required after this batch.
 - Added focused structural and asset tests. Rerun focused tests, shared menu regression, then desktop/mobile UI. No tests executed remotely.
 - Do not merge/deploy without approval; 11 other demos unchanged.
+
+## Runtime JavaScript regression hotfix
+
+- Browser console showed `integrations.js: input is not defined` after theme extraction despite previous test/UI PASS.
+- Reintroduced locally scoped input factory and authenticated dataset fetch helper in Rental Room integrations; prompt secret per operation, never store it. Cancelled prompt returns null and must not report a successful save.
+- Added focused source contract assertions. New focused, shared menu regression and browser smoke are pending; prior UI PASS is superseded for this hotfix.
+- Browser-extension `runtime.lastError` messages are separate from the confirmed first-party ReferenceError.
