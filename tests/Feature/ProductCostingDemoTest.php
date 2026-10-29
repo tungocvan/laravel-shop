@@ -40,4 +40,26 @@ final class ProductCostingDemoTest extends TestCase
         $this->withHeader('X-Demo-Backup-Code','product-cost-test-secret-123')
             ->postJson('/demo/tinh-gia-thanh-san-pham/datasets',['name'=>'Không hợp lệ','data'=>['products'=>[]]])->assertUnprocessable();
     }
+    public function test_company_information_restores_browser_state_on_http_pages(): void
+    {
+        $script = file_get_contents(public_path('demo-assets/tinh-gia-thanh-san-pham/js/app.js'));
+        $this->assertStringContainsString('if(ONLINE){S=d;DIRTY=true}', $script);
+        $this->assertStringContainsString('function saveCompany()', $script);
+        $this->assertStringContainsString('JSON.stringify(stored.company)', $script);
+        $this->assertStringContainsString('localStorage.getItem(LS)', $script);
+    }
+
+    public function test_theme_choices_have_color_previews_without_duplicate_server_snapshot_ui(): void
+    {
+        $script = file_get_contents(public_path('demo-assets/tinh-gia-thanh-san-pham/js/integrations.js'));
+        $css = file_get_contents(public_path('demo-assets/tinh-gia-thanh-san-pham/css/app.css'));
+        $this->assertStringContainsString('cost-theme-swatch', $script);
+        $this->assertStringContainsString('aria-pressed', $script);
+        $this->assertStringContainsString('cost-theme-choice[aria-pressed="true"]', $css);
+        $this->assertStringNotContainsString('cost-dataset-name', $script);
+        $this->assertStringNotContainsString('cost-dataset-code', $script);
+        $this->assertStringNotContainsString('Lưu lên server', $script);
+        $this->assertStringNotContainsString('Tải danh sách', $script);
+    }
+
 }
