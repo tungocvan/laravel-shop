@@ -10,8 +10,6 @@
 
 
 
-use App\Http\Controllers\Demo\AttendancePayrollController;
-use App\Http\Controllers\Demo\AttendancePayrollDatasetController;
 
 use App\Http\Controllers\Demo\HumanResourcesController;
 use App\Http\Controllers\Demo\HumanResourcesDatasetController;
@@ -27,10 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Modules\System\Services\ApplicationRootRedirectService;
 
-Route::get('/demo/cham-cong-tinh-luong', AttendancePayrollController::class)->name('demo.attendance-payroll');
-Route::get('/demo/cham-cong-tinh-luong/datasets', [AttendancePayrollDatasetController::class, 'index'])->name('demo.attendance-payroll.datasets');
-Route::get('/demo/cham-cong-tinh-luong/datasets/{dataset}', [AttendancePayrollDatasetController::class, 'show'])->name('demo.attendance-payroll.datasets.show');
-Route::post('/demo/cham-cong-tinh-luong/datasets', [AttendancePayrollDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.attendance-payroll.datasets.store');
+// Attendance Payroll routes moved to Modules/Demo/routes/web.php.
 
 Route::get('/demo/quan-ly-nhan-su', HumanResourcesController::class)->name('demo.human-resources');
 Route::get('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'index'])->name('demo.human-resources.datasets');
