@@ -18,8 +18,8 @@ final class EquipmentMaintenanceDemoTest extends TestCase
 
     public function test_assets_contain_business_logic_and_five_themes(): void
     {
-        $js=file_get_contents(public_path('demo-assets/quan-ly-thiet-bi-bao-tri/js/app.js'));
-        $integration=file_get_contents(public_path('demo-assets/quan-ly-thiet-bi-bao-tri/js/integrations.js'));
+        $js=file_get_contents(base_path('Modules/Demo/resources/assets/projects/equipment-maintenance/js/app.js'));
+        $integration=file_get_contents(base_path('Modules/Demo/resources/assets/projects/equipment-maintenance/js/integrations.js'));
         $this->assertStringContainsString('function buildShell()', $js);
         $this->assertStringContainsString('function renderSettings()', $js);
         foreach (['original','ruby','ocean','emerald','indigo'] as $theme) {
