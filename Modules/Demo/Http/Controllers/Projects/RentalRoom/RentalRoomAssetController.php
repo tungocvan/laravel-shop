@@ -13,6 +13,7 @@ final class RentalRoomAssetController extends Controller
         'js/integrations.js' => 'text/javascript; charset=UTF-8',
         'shared/menu-editor.css' => 'text/css; charset=UTF-8',
         'shared/menu-editor.js' => 'text/javascript; charset=UTF-8',
+        'shared/theme-selector.js' => 'text/javascript; charset=UTF-8',
     ];
 
     public function __invoke(string $asset): BinaryFileResponse

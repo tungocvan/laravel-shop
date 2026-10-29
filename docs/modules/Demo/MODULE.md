@@ -22,3 +22,10 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Rental Room is first consumer; remaining 11 demos keep their existing implementations until individually migrated and regression-tested.
 - Menu API still belongs to existing `SharedSidebarMenuController` during transition; no duplicate persistence implementation.
 - Theme palettes remain demo-specific for now; shared theme selector API is a future opt-in contract, not a claim of 12-demo parity.
+
+## Shared layout/sidebar/theme pilot (Phase 01)
+
+- Module-owned `demo::layouts.app` defines shared HTML document shell with Blade stacks for demo-specific styles, data and scripts.
+- Module-owned `demo::components.sidebar` renders configurable brand, nav, card and footer partials. Rental Room retains original DOM IDs and badge elements in its own partials.
+- Module-owned `resources/assets/shared/theme-selector.js` owns the selector and five Rental Room palettes; other demos can opt in with their own theme configuration in later phases.
+- Other 11 demos remain untouched; do not infer full shared layout adoption. No route/persistence/API contract changes.

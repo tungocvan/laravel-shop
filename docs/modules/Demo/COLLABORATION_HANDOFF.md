@@ -23,3 +23,11 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Server file operations use existing shared menu API and `X-Demo-Backup-Code`. Secret must be configured and valid; do not log/store it in browser storage.
 - Verify UI interactions, menu icons/badges, 5 themes, JSON save/load/delete, default preset and server response statuses. No tests executed on GitHub; user must confirm.
 - Other 11 demos untouched; broader migration deferred to independent batches.
+
+## Shared layout/sidebar/theme pilot (2026-10-29)
+
+- User confirmed previous Menu Editor batch: focused + shared-menu regression PASS, UI PASS.
+- Introduced module shared layout, configurable sidebar shell and theme selector; Rental Room only consumer.
+- Preserved sidebar navigation IDs, live badges, occupancy widget, menu editor, theme storage key and five color palettes. Browser verification still required after this batch.
+- Added focused structural and asset tests. Rerun focused tests, shared menu regression, then desktop/mobile UI. No tests executed remotely.
+- Do not merge/deploy without approval; 11 other demos unchanged.
