@@ -114,3 +114,26 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-nhan-su/datasets/{dataset}', [HumanResourcesDatasetController::class, 'show'])->name('demo.human-resources.datasets.show');
     Route::post('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.human-resources.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\DebtManagement\DebtManagementController;
+use Modules\Demo\Http\Controllers\Projects\DebtManagement\DebtManagementDatasetController;
+use Modules\Demo\Http\Controllers\Projects\DebtManagement\DebtManagementMenuController;
+use Modules\Demo\Http\Controllers\Projects\DebtManagement\DebtManagementAssetController;
+
+Route::get('/demo-assets/quan-ly-cong-no/{asset}', DebtManagementAssetController::class)
+    ->where('asset', 'css/app\\.css|js/core\\.js|js/menu-builder\\.js|js/app\\.js|js/server-datasets\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.debt-management.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/quan-ly-cong-no', DebtManagementController::class)->name('demo.debt-management');
+    Route::get('/demo/quan-ly-cong-no/menu/presets', [DebtManagementMenuController::class, 'presets'])->name('demo.debt-management.menu.presets');
+    Route::get('/demo/quan-ly-cong-no/menu/presets/{preset}', [DebtManagementMenuController::class, 'preset'])->name('demo.debt-management.menu.presets.show');
+    Route::delete('/demo/quan-ly-cong-no/menu/presets/{preset}', [DebtManagementMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->name('demo.debt-management.menu.presets.delete');
+    Route::put('/demo/quan-ly-cong-no/menu/presets/{preset}', [DebtManagementMenuController::class, 'updatePreset'])->middleware('throttle:5,1')->name('demo.debt-management.menu.presets.update');
+    Route::post('/demo/quan-ly-cong-no/menu/presets', [DebtManagementMenuController::class, 'savePreset'])->middleware('throttle:5,1')->name('demo.debt-management.menu.presets.store');
+    Route::get('/demo/quan-ly-cong-no/menu', [DebtManagementMenuController::class, 'show'])->name('demo.debt-management.menu');
+    Route::post('/demo/quan-ly-cong-no/menu', [DebtManagementMenuController::class, 'store'])->middleware('throttle:5,1')->name('demo.debt-management.menu.store');
+    Route::get('/demo/quan-ly-cong-no/datasets', [DebtManagementDatasetController::class, 'index'])->name('demo.debt-management.datasets');
+    Route::get('/demo/quan-ly-cong-no/datasets/{dataset}', [DebtManagementDatasetController::class, 'show'])->name('demo.debt-management.datasets.show');
+    Route::post('/demo/quan-ly-cong-no/datasets', [DebtManagementDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.debt-management.datasets.store');
+});
