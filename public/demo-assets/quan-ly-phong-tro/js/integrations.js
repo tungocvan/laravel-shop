@@ -46,16 +46,45 @@ function persistMenu(){localStorage.setItem(menuKey,JSON.stringify(menu));render
 renderMenu();
 const menuPanel=panel('Sidebar menu'),editButton=el('button','Chỉnh sửa menu'),menuRow=row(),editor=document.createElement('div');
 menuPanel.classList.add('rental-menu-panel');const menuHint=document.createElement('p');menuHint.className='muted';menuHint.textContent='Chỉnh sửa nhóm, mục, header/footer và thư viện JSON riêng cho demo này.';menuPanel.append(menuHint);editButton.classList.add('rental-menu-toggle');
-menuPanel.append(menuRow,editor);menuRow.append(editButton);
+menuPanel.append(menuRow);menuRow.append(editButton);
+const overlay=document.createElement('div');overlay.className='rental-menu-overlay';overlay.hidden=true;
+const dialog=document.createElement('section');dialog.className='rental-menu-dialog';dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');dialog.setAttribute('aria-labelledby','rental-menu-title');dialog.tabIndex=-1;
+const dialogHeader=document.createElement('div');dialogHeader.className='rental-menu-head';
+const headText=document.createElement('div'),headTitle=document.createElement('h3');headTitle.id='rental-menu-title';headTitle.textContent='Chỉnh sửa menu';
+const headSub=document.createElement('p');headSub.textContent='Thiết lập sidebar cho demo';headText.append(headTitle,headSub);
+const closeButton=el('button','×');closeButton.className='rental-menu-close';closeButton.setAttribute('aria-label','Đóng chỉnh sửa menu');
+dialogHeader.append(headText,closeButton);
+const tabs=document.createElement('div');tabs.className='rental-menu-tabs';tabs.setAttribute('role','tablist');
+const tabNames={menu:'Menu',header:'Header',footer:'Footer',json:'Thư viện JSON'};
+const panes={},tabButtons={};let activeTab='menu';
+const tabArea=document.createElement('div');tabArea.className='rental-menu-content';
+for(const [id,label] of Object.entries(tabNames)){const b=el('button',label);b.className='rental-menu-tab';b.setAttribute('role','tab');b.onclick=()=>activateTab(id);tabs.append(b);tabButtons[id]=b;const pane=document.createElement('div');pane.className='rental-menu-pane';pane.setAttribute('role','tabpanel');pane.hidden=id!=='menu';tabArea.append(pane);panes[id]=pane}
+panes.menu.append(editor);
+const footerActions=document.createElement('div');footerActions.className='rental-menu-actions';
+dialog.append(dialogHeader,tabs,tabArea,footerActions);overlay.append(dialog);document.body.append(overlay);
+let returnFocus=null;
+function activateTab(id){activeTab=id;for(const key of Object.keys(panes)){panes[key].hidden=key!==id;tabButtons[key].setAttribute('aria-selected',String(key===id))}}
+activateTab('menu');
+function closeEditor(){overlay.hidden=true;document.body.classList.remove('rental-menu-open');returnFocus?.focus()}
+function openEditor(){returnFocus=document.activeElement;buildEditor();overlay.hidden=false;document.body.classList.add('rental-menu-open');activateTab('menu');closeButton.focus()}
+closeButton.onclick=closeEditor;
+overlay.addEventListener('click',e=>{if(e.target===overlay)closeEditor()});
+overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeEditor()}if(e.key==='Tab'){const focusable=[...dialog.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')].filter(x=>x.getClientRects().length);if(!focusable.length)return;const first=focusable[0],last=focusable.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+
 function input(value,placeholder){const i=el('input');i.className='inp';i.value=value||'';i.placeholder=placeholder;i.style.cssText='max-width:240px;flex:1;min-width:110px';return i}
-function buildEditor(){editor.replaceChildren();const h=row(),title=input(menu.header.title,'Tiêu đề'),sub=input(menu.header.subtitle,'Mô tả');title.onchange=()=>{menu.header.title=title.value;persistMenu()};sub.onchange=()=>{menu.header.subtitle=sub.value;persistMenu()};h.append(title,sub);editor.append(h);
+function buildEditor(){editor.replaceChildren();panes.header.replaceChildren();panes.footer.replaceChildren();
+const h=row(),title=input(menu.header.title,'Tiêu đề'),sub=input(menu.header.subtitle,'Mô tả'),icon=input(menu.header.icon,'Icon'),headerHref=input(menu.header.href,'Liên kết header');
+title.onchange=()=>{menu.header.title=title.value;persistMenu()};sub.onchange=()=>{menu.header.subtitle=sub.value;persistMenu()};icon.onchange=()=>{menu.header.icon=icon.value;persistMenu()};headerHref.onchange=()=>{menu.header.href=headerHref.value;persistMenu()};
+h.append(title,sub,icon,headerHref);panes.header.append(h);
+const fr=row(),credit=input(menu.footer.credit,'Thông tin footer'),footerHref=input(menu.footer.href,'Liên kết footer'),showSave=el('input');showSave.type='checkbox';showSave.checked=menu.footer.showSave;const saveLabel=el('label','Hiển thị nút lưu');saveLabel.prepend(showSave);
+credit.onchange=()=>{menu.footer.credit=credit.value;persistMenu()};footerHref.onchange=()=>{menu.footer.href=footerHref.value;persistMenu()};showSave.onchange=()=>{menu.footer.showSave=showSave.checked;persistMenu()};fr.append(credit,footerHref,saveLabel);panes.footer.append(fr);
 menu.groups.forEach((group,gi)=>{const wrap=document.createElement('div');wrap.style.cssText='border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px';const gr=row(),gt=input(group.title,'Tên nhóm');gt.onchange=()=>{group.title=gt.value;persistMenu()};const up=el('button','↑ Nhóm'),down=el('button','↓ Nhóm'),del=el('button','Xóa nhóm');up.onclick=()=>move(menu.groups,gi,-1);down.onclick=()=>move(menu.groups,gi,1);del.onclick=()=>{if(confirm('Xóa nhóm và các mục bên trong?')){menu.groups.splice(gi,1);changed()}};gr.append(gt,up,down,del);wrap.append(gr);
 group.items.forEach((item,ii)=>{const ir=row(),name=input(item.label,'Tên mục'),href=input(item.href,'#dashboard hoặc https://...'),iu=el('button','↑'),id=el('button','↓'),remove=el('button','Xóa');name.onchange=()=>{item.label=name.value;persistMenu()};href.onchange=()=>{if(!/^(#[a-z0-9_-]{1,64}|https:\/\/[a-z0-9.-]+\/?.*)$/i.test(href.value)){notify('Liên kết không hợp lệ');href.value=item.href;return}item.href=href.value;persistMenu()};iu.onclick=()=>move(group.items,ii,-1);id.onclick=()=>move(group.items,ii,1);remove.onclick=()=>{group.items.splice(ii,1);changed()};ir.append(name,href,iu,id,remove);wrap.append(ir)});
 const add=el('button','+ Thêm mục');add.onclick=()=>{const id='link_'+Date.now();group.items.push({id,label:'Mục mới',icon:'menu',href:'#dashboard'});changed()};wrap.append(add);editor.append(wrap)});
 const actions=row(),addGroup=el('button','+ Thêm nhóm'),reset=el('button','Khôi phục mặc định');addGroup.onclick=()=>{menu.groups.push({title:'Nhóm mới',items:[]});changed()};reset.onclick=()=>{if(confirm('Khôi phục menu nguyên bản?')){menu=JSON.parse(JSON.stringify(defaults));changed()}};actions.append(addGroup,reset);editor.append(actions);}
 function move(items,i,d){const j=i+d;if(j<0||j>=items.length)return;[items[i],items[j]]=[items[j],items[i]];changed()}
 function changed(){persistMenu();buildEditor()}
-editButton.onclick=()=>{editor.hidden=!editor.hidden;if(!editor.hidden)buildEditor()};editor.hidden=true;
+editButton.onclick=openEditor;
 let adminCode='';
 function code(){const v=prompt('Mã quản trị server (không lưu vào trình duyệt):',adminCode);if(v===null)return null;adminCode=v;return v}
 async function api(url,method='GET',data){const secret=code();if(secret===null)return null;const response=await fetch(url,{method,cache:'no-store',headers:{Accept:'application/json','Content-Type':'application/json','X-CSRF-TOKEN':csrf,'X-Demo-Backup-Code':secret},body:data?JSON.stringify(data):undefined});const json=await response.json().catch(()=>({}));if(!response.ok)throw Error(json.message||'HTTP '+response.status);return json}
@@ -68,7 +97,7 @@ applyPreset.onclick=async()=>{try{if(!selectPreset.value)return;const r=await ap
 updatePreset.onclick=async()=>{try{if(!selectPreset.value||!confirm('Ghi đè preset đã chọn?'))return;await api(base+'/menu/presets/'+encodeURIComponent(selectPreset.value),'PUT',{config:menu});notify('Đã cập nhật preset')}catch(e){notify(e.message)}};
 deletePreset.onclick=async()=>{try{if(!selectPreset.value||!confirm('Xóa preset đã chọn?'))return;await api(base+'/menu/presets/'+encodeURIComponent(selectPreset.value),'DELETE');notify('Đã xóa preset')}catch(e){notify(e.message)}};
 defaultPreset.onclick=async()=>{try{if(!selectPreset.value||!confirm('Đặt preset làm menu mặc định trên server?'))return;await api(base+'/menu/presets/'+encodeURIComponent(selectPreset.value)+'/default','PUT');notify('Đã đặt mặc định')}catch(e){notify(e.message)}};
-serverRow.append(saveMenu,loadMenu,presetName,savePreset,listPreset,selectPreset,applyPreset,updatePreset,deletePreset,defaultPreset);editor.append(serverRow);
+serverRow.append(saveMenu,loadMenu,presetName,savePreset,listPreset,selectPreset,applyPreset,updatePreset,deletePreset,defaultPreset);panes.json.append(serverRow);const actionHint=document.createElement('span');actionHint.textContent='Thay đổi menu được lưu trong trình duyệt';footerActions.append(actionHint);const closeFooter=el('button','Đóng');closeFooter.onclick=closeEditor;footerActions.append(closeFooter);
 const dataPanel=panel('Sao lưu JSON và dữ liệu mẫu trên server'),dataRow=row(),backupButton=el('button','Tải bản sao lưu JSON'),restoreInput=el('input');restoreInput.type='file';restoreInput.accept='.json,application/json';restoreInput.className='inp';const datasetName=input('','Tên bản dữ liệu'),saveData=el('button','Lưu dữ liệu lên server'),listData=el('button','Danh sách server'),selectData=el('select'),restoreData=el('button','Khôi phục server');selectData.className='inp';
 backupButton.onclick=()=>{const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='quan-ly-phong-tro-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
 window.saveToFile=backupButton.onclick;
