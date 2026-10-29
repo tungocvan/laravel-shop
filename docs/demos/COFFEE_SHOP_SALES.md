@@ -15,3 +15,13 @@
 ## Checkpoint
 
 Run focused tests first, then impacted shared-menu regression. Verify manually: four themes persist after refresh; menu editor can open/save/preset and navigate; server save/list/restore; restore confirmation; sales/order/stock deduction; print, Excel, offline HTML export; desktop/tablet/iPhone. No UI PASS until user confirms.
+
+## Phase 04 — Demo module ownership migration (2026-10-29)
+
+- Branch `refactor/demo-module-coffee-shop-sales-20261029` builds on accepted Phase 03; no merge into main.
+- Controllers: `Modules/Demo/Http/Controllers/Projects/CoffeeShopSales/`; Blade: `Modules/Demo/resources/views/projects/coffee-shop-sales/`; CSS/JS: `Modules/Demo/resources/assets/projects/coffee-shop-sales/`.
+- Shared module layout and module-owned shared menu editor are used; dynamic sidebar remains JS-owned to preserve existing behavior.
+- The original JS with embedded offline HTML template is unchanged; browser storage, private server snapshots, theme selection and original asset URLs are retained.
+- Focused: `php artisan test tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php`.
+- Impacted regression: Equipment Maintenance, Hotel Uniform, Rental Room ownership and SharedDemoSidebarMenu tests after focused PASS.
+- TEST/UI PENDING. Do not merge or deploy.
