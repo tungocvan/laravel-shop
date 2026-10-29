@@ -135,3 +135,9 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted after focused PASS PENDING: `php artisan test tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
 - UI PENDING: desktop/tablet/iPhone, all pages, CRUD, badge and menu editor/presets, five themes and reload, browser persistence, Excel/JSON/offline HTML export, browser console/network errors.
 - No tests or UI checks executed by GitHub connector. No merge, no deploy. Stop at Git Pull/Test until user confirms TEST + UI PASS.
+
+## Phase 05 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** for Daily Work Report after the Phase 05 Git Pull/Test checkpoint; CLI logs and browser screenshots were not attached.
+- Demo 05 accepted for sequential progression to Demo 06, without merging main or deploying.
+- Demo 06 must branch from this accepted tip and preserve all accepted Demo 01–05 changes.
