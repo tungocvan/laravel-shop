@@ -38,3 +38,11 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Reintroduced locally scoped input factory and authenticated dataset fetch helper in Rental Room integrations; prompt secret per operation, never store it. Cancelled prompt returns null and must not report a successful save.
 - Added focused source contract assertions. New focused, shared menu regression and browser smoke are pending; prior UI PASS is superseded for this hotfix.
 - Browser-extension `runtime.lastError` messages are separate from the confirmed first-party ReferenceError.
+
+## Validation checkpoint — user-confirmed (2026-10-29)
+
+- User reported focused tests PASS and second-level shared-menu regression PASS for the shared layout/sidebar/theme batch.
+- Subsequent browser report identified `ReferenceError: input is not defined` in Rental Room integrations. Commit `3c7674e3650e2768c16078c813958a8115730b70` restores the form input factory and authenticated dataset API helper, and adds a focused regression contract test.
+- User reported that Chrome Incognito Console has no errors after the hotfix; repeated `runtime.lastError` and `pdf_content.js` errors in normal Chrome are consistent with browser extension messaging rather than app code.
+- **Gate qualification:** prior two-layer test PASS predates the hotfix; fresh focused/regression test results for the hotfix have not yet been supplied. Incognito Console clean is not a complete UI functional regression confirmation for all server JSON actions. Require new test outputs and functional UI PASS before merge.
+- PR review is authorized, but merge and production deployment remain blocked pending explicit user consent and all gates.
