@@ -1,1 +1,0 @@
-<aside class="sb" id="sb"></aside>
