@@ -30,7 +30,13 @@ final class RentalRoomManagementTest extends TestCase
             $response = $this->get('/demo-assets/quan-ly-phong-tro/'.$asset);
             $response->assertOk()
                 ->assertHeader('X-Content-Type-Options', 'nosniff')
-                ->assertHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+                ->assertHeader('Cache-Control', function (string $value): bool {
+                    $directives = array_map('trim', explode(',', $value));
+
+                    return count($directives) === 3
+                        && count(array_unique($directives)) === 3
+                        && count(array_intersect($directives, ['public', 'max-age=300', 'must-revalidate'])) === 3;
+                });
             $this->assertSame(
                 realpath(base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset)),
                 realpath($response->baseResponse->getFile()->getPathname())
