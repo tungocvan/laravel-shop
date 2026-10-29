@@ -15,3 +15,10 @@ DEFER: other demo migrations and shared-menu relocation.
 QUARANTINE: runtime data and untracked files.
 
 Regression: focused route, dataset, shared-menu and UI checks. Rollback through Git without deleting runtime data.
+
+## Shared UI foundation — staged adoption
+
+- Canonical module-owned shared menu editor CSS/JS: `Modules/Demo/resources/assets/shared/menu-editor.{css,js}`, served by allowlisted Rental Room Asset Route.
+- Rental Room is first consumer; remaining 11 demos keep their existing implementations until individually migrated and regression-tested.
+- Menu API still belongs to existing `SharedSidebarMenuController` during transition; no duplicate persistence implementation.
+- Theme palettes remain demo-specific for now; shared theme selector API is a future opt-in contract, not a claim of 12-demo parity.

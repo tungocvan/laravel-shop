@@ -1,0 +1,33 @@
+/* Shared menu editor: centered dialog, tabbed panels and persistent actions. */
+.shared-menu-dialog{z-index:9999;box-sizing:border-box;position:fixed;inset:0;margin:auto;padding:0;border:0;border-radius:14px;width:min(1080px,calc(100vw - 40px));max-width:none;height:min(780px,calc(100dvh - 48px));max-height:none;color:var(--text,#222);background:var(--surface,#fff);box-shadow:0 24px 80px #0005;overflow:hidden}
+.shared-menu-dialog::backdrop{background:#0009}
+.shared-menu-dialog,.shared-menu-dialog *{box-sizing:border-box}
+.shared-menu-shell{height:100%;min-height:0;display:flex;flex-direction:column}
+.shared-menu-shell>header{flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;border-bottom:1px solid #ddd}
+.shared-menu-shell>header h3{margin:0;font-size:18px}
+.shared-menu-shell>header p{margin:4px 0 0;font-size:12px;opacity:.65}
+.shared-menu-shell button,.shared-menu-shell label{border:1px solid #ccc;background:var(--bg,#fff);color:inherit;border-radius:7px;padding:8px 12px;cursor:pointer}
+.shared-menu-shell button:focus-visible,.shared-menu-shell input:focus-visible,.shared-menu-shell select:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.shared-menu-tabs{flex:none;display:flex;gap:6px;padding:10px 22px 0;border-bottom:1px solid #ddd;overflow-x:auto}
+.shared-menu-tabs button{border-radius:8px 8px 0 0;border-bottom:3px solid transparent;white-space:nowrap;padding:10px 18px}
+.shared-menu-tabs button[aria-selected="true"]{border-bottom-color:#2563eb;font-weight:700;background:var(--surface,#fff)}
+.shared-menu-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:18px 22px}
+.shared-menu-body [data-panel][hidden],.shared-menu-shell [hidden]{display:none!important}
+.shared-menu-body section{padding:14px;border:1px solid #ddd;border-radius:9px;min-width:0}
+.shared-menu-body label{display:flex;flex-direction:column;gap:5px;min-width:0;font-size:12px}
+.shared-menu-body input,.shared-menu-body select{width:100%;min-width:0;padding:9px;border:1px solid #ccc;border-radius:7px;background:var(--bg,#fff);color:inherit}
+.shared-menu-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:800px}
+.shared-menu-body [data-groups]{display:grid;gap:12px}
+.shared-menu-group>label{max-width:360px;margin-bottom:10px}
+.shared-menu-group>button{margin:0 8px 10px 0}
+.shared-menu-item{display:grid;grid-template-columns:minmax(160px,2fr) minmax(110px,1fr) minmax(160px,2fr) auto auto;gap:8px;align-items:end;padding:10px 0;border-top:1px dashed #ddd;cursor:grab}
+.shared-menu-item button{white-space:nowrap}
+.shared-menu-library{display:grid;grid-template-columns:minmax(180px,2fr) minmax(180px,2fr) repeat(4,auto);align-items:end;gap:10px}
+.shared-menu-library h4{grid-column:1/-1;margin:0 0 8px}
+.shared-menu-shell>footer{flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 22px;border-top:1px solid #ddd;background:var(--surface,#fff)}
+.shared-menu-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.shared-menu-shell>footer [data-status]{margin:0;text-align:center;min-height:16px;font-size:12px}
+.shared-menu-entry{padding:16px;margin:14px 0;border:1px solid #ddd;border-radius:10px;background:var(--surface,#fff)}
+.shared-menu-entry h4{margin:0 0 8px}
+@media(max-width:950px){.shared-menu-item{grid-template-columns:repeat(3,minmax(0,1fr))}.shared-menu-library{grid-template-columns:repeat(2,minmax(0,1fr))}.shared-menu-library button{justify-self:start}}
+@media(max-width:600px){.shared-menu-dialog{width:100vw;height:100dvh;border-radius:0}.shared-menu-shell>header,.shared-menu-shell>footer{padding:10px 12px}.shared-menu-tabs{padding:6px 12px 0}.shared-menu-tabs button{padding:9px 12px}.shared-menu-body{padding:12px}.shared-menu-fields{grid-template-columns:1fr}.shared-menu-item{grid-template-columns:repeat(2,minmax(0,1fr))}.shared-menu-item label:first-child,.shared-menu-item label:nth-child(3){grid-column:1/-1}.shared-menu-library{grid-template-columns:1fr}.shared-menu-actions{gap:5px}.shared-menu-actions button,.shared-menu-actions label{font-size:12px;padding:7px}}

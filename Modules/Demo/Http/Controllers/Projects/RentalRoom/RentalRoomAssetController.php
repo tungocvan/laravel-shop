@@ -11,13 +11,17 @@ final class RentalRoomAssetController extends Controller
         'css/app.css' => 'text/css; charset=UTF-8',
         'js/app.js' => 'text/javascript; charset=UTF-8',
         'js/integrations.js' => 'text/javascript; charset=UTF-8',
+        'shared/menu-editor.css' => 'text/css; charset=UTF-8',
+        'shared/menu-editor.js' => 'text/javascript; charset=UTF-8',
     ];
 
     public function __invoke(string $asset): BinaryFileResponse
     {
         abort_unless(array_key_exists($asset, self::ASSETS), 404);
 
-        $path = base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset);
+        $path = str_starts_with($asset, 'shared/')
+            ? base_path('Modules/Demo/resources/assets/shared/'.substr($asset, strlen('shared/')))
+            : base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset);
         abort_unless(is_file($path), 404);
 
         return response()->file($path, [

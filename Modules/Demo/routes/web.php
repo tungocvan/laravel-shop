@@ -6,7 +6,7 @@ use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomDatasetControlle
 use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomManagementController;
 
 Route::get('/demo-assets/quan-ly-phong-tro/{asset}', RentalRoomAssetController::class)
-    ->where('asset', 'css/app\\.css|js/app\\.js|js/integrations\\.js')
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/integrations\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
     ->name('demo.rental-room-management.asset');
 
 Route::middleware('web')->group(function (): void {
