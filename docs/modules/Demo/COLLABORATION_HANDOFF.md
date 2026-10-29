@@ -104,3 +104,9 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted regression after focused PASS PENDING: `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
 - UI PENDING: all coffee screens, CRUD/orders, inventory deduction, browser data persistence, IndexedDB, JSON server snapshots, menu editor/presets, themes, Excel/print/offline HTML export, responsive and console errors.
 - GitHub connector did not run local PHPUnit or browser checks. No PR merge, no production deploy; next Demo only after user confirms TEST + UI PASS.
+
+## Phase 04 — Focused test failure: obsolete public asset assertion (2026-10-29)
+
+- User reported `CoffeeShopSalesDemoTest::test_assets_do_not_shadow_route` failed: old assertion expected `public/demo-assets/quan-ly-ban-hang-ca-phe/js/app.js` after intentional move to module-owned assets. Focused run: 1 failed, 9 passed (42 assertions); regression not yet run.
+- Root cause: stale test contract, not proof of broken browser JS. Updated test to assert module source exists, old public copy is absent, and allowlisted browser asset URL returns 200 with `nosniff`.
+- Focused and impacted regression must be rerun. UI PASS must be confirmed after correction. No merge or deployment.
