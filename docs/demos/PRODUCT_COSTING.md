@@ -26,4 +26,15 @@
 - UI smoke: PENDING — desktop, tablet, iPhone, menu editor, five themes, CRUD, BOM, reports, Excel, HTML export, backup/restore.
 - Known issues: No automated test failures observed; manual UI behavior not yet verified.
 - Rollback: Revert the feature commit or PR if needed; preserve existing browser localStorage and private snapshot data.
-- Next step: Commit/push feature branch, review PR, complete UI acceptance, request explicit approval before merge.
+- Next step: Pull latest feature branch; run focused and impacted regression; repeat manual UI acceptance; review PR #340; request explicit approval before merge.
+
+## UI remediation — 2026-10-29 (PR #340)
+
+- User reported UI FAIL: unit/company information appeared not to persist, theme choices lacked visual previews, and the dedicated JSON server snapshot settings panel duplicated the shared menu workflow.
+- Root cause investigated: browser data was written to localStorage, but the HTTP/Blade startup flow treated it as an optional offline HTML draft instead of immediately hydrating the active state. The UI could therefore appear to lose company changes on reload.
+- Fix: on HTTP pages, hydrate valid newer browser state at startup; retain the offline HTML draft-confirmation behavior for file URLs. Verify company data persisted before showing a success notification.
+- Theme UI: five accessible color-preview tiles with selected state, keyboard focus and mobile-responsive layout; existing theme localStorage key preserved.
+- Removed only the duplicate server JSON settings panel and its browser-side integration controls. Dataset endpoints, controller and previously stored private JSON snapshots remain intact; no destructive data operations.
+- Automated checks added for startup state handling, company persistence markers, and removal of duplicate snapshot UI. These are source-level regression checks, not a substitute for browser testing.
+- Gate: focused tests and impacted regression must be rerun on updated branch. UI remains **FAIL / PENDING RECHECK** until the user verifies the repaired behavior on desktop, tablet and iPhone.
+- Rollback: revert the remediation commits on the feature branch if needed. Preserve localStorage and server snapshots; no production changes.
