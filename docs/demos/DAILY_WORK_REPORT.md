@@ -6,7 +6,16 @@
 - HTML gốc lưu tại `public/demo-assets/bao-cao-cong-viec-hang-ngay/original.html` để xuất file HTML offline. Cần kiểm tra an toàn nội dung trước khi publish.
 - Phần tử DOM, inline handlers và JS nghiệp vụ giữ nguyên; sections tách Blade.
 - Nút Lưu trong Laravel chỉ lưu localStorage, không ghi file server; sao lưu JSON và xuất Excel giữ nguyên.
-- Thư viện JSON server và Sidebar Menu Builder cần audit riêng, không triển khai trong batch này.
-- Test chưa chạy trên môi trường Laravel; UI chưa xác nhận. Không merge/deploy.
+- Thư viện JSON nghiệp vụ server chưa triển khai; Sidebar Menu Builder sử dụng component chuẩn `x-demo.sidebar-menu-builder` và `SharedSidebarMenuController` (không nhân bản editor).
+- Focused test Blade trước đó được người dùng xác nhận 2 PASS; thay đổi sidebar mới chưa được kiểm thử. UI sidebar chưa xác nhận. Không merge/deploy.
 
 - Bốn theme Ruby/Ocean/Emerald/Indigo được lưu độc lập trong `daily_work_report_theme_v1`.
+
+## Shared Sidebar Menu Builder
+
+- Settings `#settings` tự hiển thị thẻ **Sidebar menu / Chỉnh sửa menu** qua component dùng chung.
+- Source of truth: `resources/views/components/demo/sidebar-menu-builder.blade.php`, `public/demo/shared/sidebar-menu/menu-builder.{js,css}`.
+- API namespace riêng `/demo/bao-cao-cong-viec-hang-ngay/menu` và `/presets`; private storage `demo-settings/daily-work-report/`, localStorage `shared_demo_sidebar_menu_v1_bao-cao-cong-viec-hang-ngay`.
+- Schema version 1 header/footer/groups, `footer.showSave` tương thích, badge động phải kiểm tra trên UI. POST/PUT/DELETE dùng CSRF, mã quản trị `config('warehouse_demo.backup_code')`, throttle.
+- Không sửa dữ liệu báo cáo `S` hoặc khóa localStorage nghiệp vụ. Kiểm tra F5, modal Menu/Header/Footer/Thư viện JSON, link, CRUD menu, badge và responsive.
+- Focused: `php artisan test tests/Feature/DailyWorkReportMenuTest.php tests/Feature/DailyWorkReportDemoTest.php`; sau PASS chạy `tests/Feature/SharedDemoSidebarMenuTest.php` và regression các demo liên quan.
