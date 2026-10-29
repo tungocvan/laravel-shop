@@ -30,3 +30,18 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets/{dataset}', [HotelUniformDatasetController::class, 'show'])->middleware('throttle:20,1')->where('dataset', '[a-z0-9-]{1,80}')->name('demo.hotel-uniform.datasets.show');
     Route::post('/demo/quan-ly-dong-phuc-khach-san/datasets', [HotelUniformDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.hotel-uniform.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\EquipmentMaintenance\EquipmentMaintenanceController;
+use Modules\Demo\Http\Controllers\Projects\EquipmentMaintenance\EquipmentMaintenanceDatasetController;
+use Modules\Demo\Http\Controllers\Projects\EquipmentMaintenance\EquipmentMaintenanceAssetController;
+
+Route::get('/demo-assets/quan-ly-thiet-bi-bao-tri/{asset}', EquipmentMaintenanceAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/integrations\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.equipment-maintenance.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/quan-ly-thiet-bi-bao-tri', EquipmentMaintenanceController::class)->name('demo.equipment-maintenance');
+    Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets', [EquipmentMaintenanceDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets');
+    Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets/{dataset}', [EquipmentMaintenanceDatasetController::class, 'show'])->middleware('throttle:20,1')->where('dataset', '[a-z0-9-]{1,80}')->name('demo.equipment-maintenance.datasets.show');
+    Route::post('/demo/quan-ly-thiet-bi-bao-tri/datasets', [EquipmentMaintenanceDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.equipment-maintenance.datasets.store');
+});
