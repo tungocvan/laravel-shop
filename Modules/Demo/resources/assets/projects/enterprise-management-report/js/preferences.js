@@ -191,6 +191,7 @@ function openEditor(){
    button.setAttribute('role','tab');buttons[name]=button;tabs.append(button);
   });
   panes.header.append(field('Tên ứng dụng',draft.header.title,v=>draft.header.title=v),field('Mô tả',draft.header.subtitle,v=>draft.header.subtitle=v),field('Icon header',draft.header.icon,v=>draft.header.icon=v),field('Liên kết header',draft.header.href,v=>draft.header.href=v));
+  const footerTitle=document.createElement('h4');footerTitle.textContent='Footer Sidebar';panes.footer.append(footerTitle);
   panes.footer.append(field('Ghi chú footer',draft.footer.credit,v=>draft.footer.credit=v),field('Liên kết footer (HTTPS)',draft.footer.href,v=>draft.footer.href=v));
   draft.groups.forEach((g,gi)=>{
    const group=document.createElement('div');group.className='enterprise-group';panes.menu.append(group);
