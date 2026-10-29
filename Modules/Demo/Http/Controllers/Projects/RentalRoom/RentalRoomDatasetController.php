@@ -1,5 +1,5 @@
 <?php
-namespace App\Http\Controllers\Demo;
+namespace Modules\Demo\Http\Controllers\Projects\RentalRoom;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;

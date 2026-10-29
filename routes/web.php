@@ -99,11 +99,7 @@ Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetControl
     ->name('demo.warehouse-inventory.datasets.store');
 
 
-// Standalone rental-room demo; browser state, private snapshots, and shared menu.
-Route::get('/demo/quan-ly-phong-tro', \App\Http\Controllers\Demo\RentalRoomManagementController::class)->name('demo.rental-room-management');
-Route::get('/demo/quan-ly-phong-tro/datasets', [\App\Http\Controllers\Demo\RentalRoomDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.rental-room-management.datasets');
-Route::get('/demo/quan-ly-phong-tro/datasets/{dataset}', [\App\Http\Controllers\Demo\RentalRoomDatasetController::class, 'show'])->middleware('throttle:20,1')->where('dataset', '[a-z0-9-]{1,80}')->name('demo.rental-room-management.datasets.show');
-Route::post('/demo/quan-ly-phong-tro/datasets', [\App\Http\Controllers\Demo\RentalRoomDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.rental-room-management.datasets.store');
+// Rental-room routes moved to Modules/Demo/routes/web.php.
 
 // Route-cache-safe shared sidebar endpoints for two standalone demos.
 Route::prefix('/demo/{demo}/menu')->group(function () {
