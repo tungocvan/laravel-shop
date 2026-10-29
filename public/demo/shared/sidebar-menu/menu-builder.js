@@ -35,7 +35,7 @@
   const migrate = config => slug === 'cham-cong-tinh-luong' ? bridge.normalize(clone(config)) : config;
   const defaults = debtMode ? bridge.defaults() : defaultConfig();
   let applied = clone(defaults), working = null;
-  const equipmentMode = slug === 'quan-ly-thiet-bi-bao-tri';
+  const equipmentMode = slug === 'quan-ly-thiet-bi-bao-tri' || slug === 'quan-ly-dong-phuc-khach-san';
   let selectedPresetName = '';
   const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
   function validate(c) {

@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class SharedSidebarMenuController extends Controller
 {
-    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report', 'bao-cao-cong-viec-hang-ngay' => 'daily-work-report', 'quan-ly-ban-hang-ca-phe' => 'coffee-shop-sales', 'tinh-gia-thanh-san-pham' => 'product-costing', 'quan-ly-thiet-bi-bao-tri' => 'equipment-maintenance'];
+    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report', 'bao-cao-cong-viec-hang-ngay' => 'daily-work-report', 'quan-ly-ban-hang-ca-phe' => 'coffee-shop-sales', 'tinh-gia-thanh-san-pham' => 'product-costing', 'quan-ly-thiet-bi-bao-tri' => 'equipment-maintenance', 'quan-ly-dong-phuc-khach-san' => 'hotel-uniform'];
 
     private function path(string $demo): string
     {
@@ -34,7 +34,7 @@ class SharedSidebarMenuController extends Controller
     {
         $path = $this->path($demo);
         $disk = Storage::disk('local');
-        if ($demo === 'quan-ly-thiet-bi-bao-tri') {
+        if (in_array($demo, ['quan-ly-thiet-bi-bao-tri', 'quan-ly-dong-phuc-khach-san'], true)) {
             $default = $this->selectedDefault($demo);
             if ($default !== null) return response()->json(['config' => $default['config']]);
         }
@@ -66,7 +66,7 @@ class SharedSidebarMenuController extends Controller
             if (! is_array($data) || ! $this->validConfig($data['config'] ?? null)) continue;
             $items[] = ['id' => basename($file, '.json'), 'name' => $data['name'] ?? basename($file, '.json')];
         }
-        $selected = $demo === 'quan-ly-thiet-bi-bao-tri' ? $this->selectedDefault($demo) : null;
+        $selected = in_array($demo, ['quan-ly-thiet-bi-bao-tri', 'quan-ly-dong-phuc-khach-san'], true) ? $this->selectedDefault($demo) : null;
         return response()->json(['presets' => $items, 'defaultId' => $selected['id'] ?? null]);
     }
 
@@ -134,7 +134,7 @@ class SharedSidebarMenuController extends Controller
         $file = $dir.'/'.$preset.'.json';
         abort_unless(Storage::disk('local')->exists($file), 404);
         $disk = Storage::disk('local');
-        if ($demo === 'quan-ly-thiet-bi-bao-tri') {
+        if (in_array($demo, ['quan-ly-thiet-bi-bao-tri', 'quan-ly-dong-phuc-khach-san'], true)) {
             $default = $this->selectedDefault($demo);
             if (($default['id'] ?? null) === $preset) return response()->json(['message' => 'Không thể xóa file mặc định. Hãy đổi mặc định trước.'], 409);
         }
@@ -159,7 +159,7 @@ class SharedSidebarMenuController extends Controller
 
     public function setDefaultPreset(Request $request, string $demo, string $preset): JsonResponse
     {
-        abort_unless($demo === 'quan-ly-thiet-bi-bao-tri', 404);
+        abort_unless(in_array($demo, ['quan-ly-thiet-bi-bao-tri', 'quan-ly-dong-phuc-khach-san'], true), 404);
         if ($error = $this->authorizeWrite($request)) return $error;
         abort_unless((bool) preg_match('/^[a-z0-9-]{1,80}$/', $preset), 404);
         $disk = Storage::disk('local');

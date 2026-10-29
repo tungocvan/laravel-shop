@@ -1,5 +1,14 @@
 <?php
 
+// Private hotel uniform JSON snapshots (no database)
+\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.hotel-uniform.datasets');
+\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets/{dataset}', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.hotel-uniform.datasets.show');
+\Illuminate\Support\Facades\Route::post('/demo/quan-ly-dong-phuc-khach-san/datasets', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.hotel-uniform.datasets.store');
+
+// Standalone hotel uniform demo
+\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san', \App\Http\Controllers\Demo\HotelUniformController::class)->name('demo.hotel-uniform');
+
+
 // Equipment maintenance standalone demo
 Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets');
 Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets/{dataset}', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets.show');
@@ -92,14 +101,14 @@ Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetControl
 
 // Route-cache-safe shared sidebar endpoints for two standalone demos.
 Route::prefix('/demo/{demo}/menu')->group(function () {
-    Route::put('/presets/{preset}/default', [SharedSidebarMenuController::class, 'setDefaultPreset'])->middleware('throttle:5,1')->where('demo', 'quan-ly-thiet-bi-bao-tri')->where('preset', '[a-z0-9-]{1,80}');
-    Route::get('/', [SharedSidebarMenuController::class, 'show'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
-    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
-    Route::get('/presets', [SharedSidebarMenuController::class, 'index'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
-    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
-    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
-    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
-    Route::put('/presets/{preset}', [SharedSidebarMenuController::class, 'updatePreset'])->middleware('throttle:5,1')->where('demo', 'bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri');
+    Route::put('/presets/{preset}/default', [SharedSidebarMenuController::class, 'setDefaultPreset'])->middleware('throttle:5,1')->where('demo', 'quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san')->where('preset', '[a-z0-9-]{1,80}');
+    Route::get('/', [SharedSidebarMenuController::class, 'show'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
+    Route::post('/', [SharedSidebarMenuController::class, 'store'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
+    Route::get('/presets', [SharedSidebarMenuController::class, 'index'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
+    Route::get('/presets/{preset}', [SharedSidebarMenuController::class, 'preset'])->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
+    Route::post('/presets', [SharedSidebarMenuController::class, 'savePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
+    Route::delete('/presets/{preset}', [SharedSidebarMenuController::class, 'deletePreset'])->middleware('throttle:5,1')->where('demo', 'doanh-so-nhan-vien|quan-ly-xuat-nhap-ton|quan-ly-nhan-su|cham-cong-tinh-luong|bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
+    Route::put('/presets/{preset}', [SharedSidebarMenuController::class, 'updatePreset'])->middleware('throttle:5,1')->where('demo', 'bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san');
 });
 
 // Product costing standalone demo; browser state and protected server snapshots.
