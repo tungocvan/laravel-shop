@@ -42,10 +42,10 @@
     if (!page.querySelector('#uniformJsonRestore')) {
       const card=document.createElement('div');card.className='card noprint';card.id='uniformJsonRestore';card.style.cssText='padding:18px;margin-bottom:16px';
       card.innerHTML='<h3>Sao lưu / khôi phục JSON</h3><p class="muted" style="margin:8px 0">Sao lưu độc lập, không ghi đè file Blade hoặc dữ liệu của demo khác.</p>';
-      const save=document.createElement('button');save.className='btn pri';save.textContent='Tải bản sao lưu JSON';save.onclick=downloadJSON;
+      const exportButton=document.createElement('button');exportButton.className='btn pri';exportButton.textContent='Tải bản sao lưu JSON';exportButton.onclick=downloadJSON;
       const input=document.createElement('input');input.type='file';input.accept='.json,application/json';input.className='inp';input.style.cssText='margin-top:10px';
       input.onchange=async()=>{const f=input.files?.[0];if(!f)return;try{if(f.size>10*1024*1024)throw Error('File vượt 10 MB');const data=JSON.parse(await f.text());if(!APP.valid(data))throw Error('JSON không đúng cấu trúc dữ liệu đồng phục');if(!confirm('Khôi phục JSON sẽ thay thế dữ liệu đồng phục hiện tại trong trình duyệt. Tiếp tục?'))return;S=data;APP.fix?.(S);save();rerender();toast('Đã khôi phục dữ liệu JSON.');}catch(e){toast(e.message,'err')}finally{input.value=''}};
-      card.append(save,input);page.prepend(card);
+      card.append(exportButton,input);page.prepend(card);
     }
     document.querySelectorAll('#saveBtn span.t').forEach(x=>x.textContent='Sao lưu JSON');
     document.querySelectorAll('#saveBtn').forEach(x=>x.title='Tải bản sao lưu JSON; dữ liệu làm việc tự lưu trong trình duyệt');
