@@ -45,3 +45,18 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets/{dataset}', [EquipmentMaintenanceDatasetController::class, 'show'])->middleware('throttle:20,1')->where('dataset', '[a-z0-9-]{1,80}')->name('demo.equipment-maintenance.datasets.show');
     Route::post('/demo/quan-ly-thiet-bi-bao-tri/datasets', [EquipmentMaintenanceDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.equipment-maintenance.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\CoffeeShopSales\CoffeeShopSalesController;
+use Modules\Demo\Http\Controllers\Projects\CoffeeShopSales\CoffeeShopSalesDatasetController;
+use Modules\Demo\Http\Controllers\Projects\CoffeeShopSales\CoffeeShopSalesAssetController;
+
+Route::get('/demo-assets/quan-ly-ban-hang-ca-phe/{asset}', CoffeeShopSalesAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/integrations\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.coffee-shop-sales.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/quan-ly-ban-hang-ca-phe', CoffeeShopSalesController::class)->name('demo.coffee-shop-sales');
+    Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets', [CoffeeShopSalesDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.coffee-shop-sales.datasets');
+    Route::get('/demo/quan-ly-ban-hang-ca-phe/datasets/{dataset}', [CoffeeShopSalesDatasetController::class, 'show'])->middleware('throttle:20,1')->where('dataset', '[a-z0-9-]{1,80}')->name('demo.coffee-shop-sales.datasets.show');
+    Route::post('/demo/quan-ly-ban-hang-ca-phe/datasets', [CoffeeShopSalesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.coffee-shop-sales.datasets.store');
+});
