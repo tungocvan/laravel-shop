@@ -35,6 +35,8 @@
   const migrate = config => slug === 'cham-cong-tinh-luong' ? bridge.normalize(clone(config)) : config;
   const defaults = debtMode ? bridge.defaults() : defaultConfig();
   let applied = clone(defaults), working = null;
+  const equipmentMode = slug === 'quan-ly-thiet-bi-bao-tri';
+  let selectedPresetName = '';
   const validHref = (s, empty=false) => typeof s === 'string' && ((empty && !s) || /^#[a-z0-9-]{1,64}$/.test(s) || /^https:\/\/[a-z0-9][a-z0-9.-]+(?:\/[^\s]*)?$/i.test(s) && s.length <= 250);
   function validate(c) {
     if (!c || c.version !== 1 || !Array.isArray(c.groups) || c.groups.length > 20) throw Error('Nhóm menu không hợp lệ.');
@@ -168,8 +170,8 @@
       groups.append(box);
     });
   }
-  async function refresh() {
-    try {const r=await fetch(url+'/presets');if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();const select=$('[data-presets]');select.replaceChildren(new Option('Chọn file',''));for(const p of data.presets||[])select.add(new Option(p.name+(p.id===data.defaultId?' (Mặc định)':''),p.id));}
+  async function refresh(preferredId) {
+    try {const previous = preferredId ?? $('[data-presets]').value;const r=await fetch(url+'/presets');if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();const select=$('[data-presets]');select.replaceChildren(new Option('Chọn file',''));for(const p of data.presets||[])select.add(new Option(p.name+(p.id===data.defaultId?' (Mặc định)':''),p.id));if(previous && Array.from(select.options).some(o=>o.value===previous))select.value=previous;}
     catch(e){status('Không tải được thư viện: '+e.message);}
   }
   async function authorized(method,path,body) {
@@ -196,12 +198,13 @@
   }
   $('[data-close]').onclick=()=>dlg.close();
   $('[data-add-group]').onclick=()=>{working.groups.push({title:'Nhóm mới',items:[]});render();};
-  $('[data-reset]').onclick=()=>{if(confirm('Khôi phục menu mặc định?')){working=clone(defaults);render();}};
+  $('[data-reset]').onclick=async()=>{try{if(!confirm('Khôi phục menu mặc định?'))return;if(equipmentMode){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();working=clone(validate(migrate(data.config||defaults)));}else working=clone(defaults);render();status('Đã nạp cấu hình mặc định vào bản chỉnh sửa. Nhấn Cập nhật giao diện để áp dụng.');}catch(e){status(e.message);}};
   $('[data-preview]').onclick=()=>{try{validate(working);localStorage.setItem(key,JSON.stringify(working));apply(working);status('Đã cập nhật và lưu trong trình duyệt.');}catch(e){status(e.message);}};
-  $('[data-save]').onclick=async()=>{try{validate(working);const r=await authorized('POST',url,{config:working});if(!r)return;localStorage.removeItem(key);apply(working);status('Đã lưu menu lên server.');}catch(e){status(e.message);}};
-  $('[data-refresh]').onclick=refresh;
-  $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(migrate(data.config));if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=migrate(data.config);render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
-  $('[data-store-preset]').onclick=async()=>{try{validate(working);const name=$('[data-name]').value.trim();if(!name)throw Error('Nhập tên file.');const r=await authorized('POST',url+'/presets',{name,config:working});if(r){await refresh();status('Đã lưu file JSON.');}}catch(e){status(e.message);}};
+  $('[data-save]').onclick=async()=>{try{validate(working);const id=equipmentMode?$('[data-presets]').value:'';if(id&&!confirm('Lưu cấu hình vào file JSON đang chọn và cập nhật menu trên server?'))return;const r=await authorized('POST',url,{config:working});if(!r)return;if(id){const updated=await authorized('PUT',url+'/presets/'+encodeURIComponent(id),{config:working});if(!updated){status('Đã lưu menu server, nhưng chưa cập nhật file JSON (đã hủy).');return;}}localStorage.removeItem(key);apply(working);if(id)await refresh(id);status(id?'Đã lưu menu và cập nhật file JSON đã chọn (bao gồm Header/Footer).':'Đã lưu menu lên server.');}catch(e){status(e.message);}};
+  $('[data-refresh]').onclick=()=>refresh();
+  if(equipmentMode)$('[data-presets]').addEventListener('change',()=>{const select=$('[data-presets]');const option=select.selectedOptions[0];selectedPresetName=option&&select.value?option.textContent.replace(/ \\(Mặc định\\)$/,''):'';$('[data-name]').value=selectedPresetName;});
+  $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(migrate(data.config));if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=migrate(data.config);if(equipmentMode){selectedPresetName=data.name||selectedPresetName;$('[data-name]').value=selectedPresetName;}render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
+  $('[data-store-preset]').onclick=async()=>{try{validate(working);const name=$('[data-name]').value.trim();if(!name)throw Error('Nhập tên file.');const id=equipmentMode?$('[data-presets]').value:'';if(id){if(!confirm('Ghi đè nội dung file JSON đã chọn?'))return;const r=await authorized('PUT',url+'/presets/'+encodeURIComponent(id),{config:working});if(r){await refresh(id);status('Đã cập nhật file JSON đã chọn, bao gồm Header/Footer.');}}else{const r=await authorized('POST',url+'/presets',{name,config:working});if(r){const data=await r.json();await refresh(data.id);status('Đã lưu file JSON mới.');}}}catch(e){status(e.message);}};
   const defaultButton=$('[data-make-default]');
   if(defaultButton)defaultButton.onclick=async()=>{
     try {
