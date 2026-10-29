@@ -1,3 +1,5 @@
+<?php
+
 // Private hotel uniform JSON snapshots (no database)
 \Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.hotel-uniform.datasets');
 \Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san/datasets/{dataset}', [\App\Http\Controllers\Demo\HotelUniformDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.hotel-uniform.datasets.show');
@@ -6,7 +8,6 @@
 // Standalone hotel uniform demo
 \Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san', \App\Http\Controllers\Demo\HotelUniformController::class)->name('demo.hotel-uniform');
 
-<?php
 
 // Equipment maintenance standalone demo
 Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets');
