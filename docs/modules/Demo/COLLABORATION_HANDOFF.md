@@ -77,3 +77,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Evidence: user confirmation in collaboration chat; raw local PHPUnit logs and browser automation reports were not attached.
 - GitHub comparison against `main` showed feature branch ahead with no divergence at acceptance check.
 - Next gate: PR review and tracked working-tree check on Admin. Do not merge until explicit user approval; no production deployment.
+
+## Phase 03 — Equipment Maintenance Git Pull/Test checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-equipment-maintenance-20261029` created from Phase 02 accepted commit `7303e9ccfa645f3f5be2ea98cb0af1870a0bf56b`. PR #346 remains OPEN and unmerged.
+- REHOME: equipment UI/dataset controllers, Blade, CSS and JS to `Modules/Demo`; KEEP: route names/URLs, original business JS, offline HTML template, browser keys, five themes, menu API and server snapshot directory; DEFER: shared Blade sidebar markup because JS owns the dynamic sidebar; QUARANTINE: private snapshots, untracked files and production.
+- Module layout and module-owned shared menu editor are adopted. Module asset controller retains browser asset URLs using a strict allowlist. Legacy tracked files retired.
+- Focused tests (PENDING): `php artisan test tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php`.
+- Impacted regression only after focused PASS (PENDING): `php artisan test tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: desktop/tablet/iPhone, dynamic sidebar, menu editor/presets/default preset, all screens and CRUD, JSON import/export and server snapshots, Excel, print, offline HTML export, five themes and persistence after reload, console/network errors.
+- No local tests have been executed by the GitHub connector. Do not merge main, close PR #346 or deploy production; proceed to Demo 04 only after user confirms TEST + UI PASS.
