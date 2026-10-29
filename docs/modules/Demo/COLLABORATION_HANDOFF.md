@@ -236,3 +236,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - New GET `/demo` named `demo.hub` uses `DemoHubController` and Blade `demo::hub.index`, linking exactly 12 named Demo UI routes, responsive and without DB or new dependencies.
 - Focused PENDING: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`. Then module/impacted regression for all 12 demos, plus `php artisan route:list --path=demo` and `php artisan route:cache` (test environment only).
 - UI PENDING: hub on desktop/tablet/iPhone, all 12 links, menu editing/presets on relevant demos, route and asset loading, browser console. No TEST/UI PASS claimed for Batch 13; no PR merge or deploy.
+
+
+## Batch 14 — Shared sidebar assets rehome (2026-10-29)
+
+- User approved moving the remaining tracked `public/demo/shared/sidebar-menu/menu-builder.{js,css}` into `Modules/Demo/resources/assets/shared/sidebar-menu/` without modifying Nginx.
+- A strict allowlisted `GET /demo-assets/shared/sidebar-menu/{asset}` route and `SharedSidebarAssetController` serve the two files. The existing Blade component uses the new named route and module source modification time for cache busting; editor JavaScript behavior and menu APIs are unchanged.
+- Retired the two tracked public assets. Git should remove empty `public/demo` directories when no untracked files remain. Never remove untracked files; if `public/demo` persists, inspect read-only before any action.
+- Focused PENDING: `php artisan test tests/Feature/DemoSharedSidebarAssetOwnershipTest.php tests/Feature/DailyWorkReportMenuTest.php`.
+- Impacted after focused PASS: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: `/demo` Hub, Daily Work Report menu editor, CSS/JS network responses, desktop/mobile, browser console. No tests executed by GitHub connector. No merge/deploy.
