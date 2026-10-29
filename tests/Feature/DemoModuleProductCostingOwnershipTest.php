@@ -34,7 +34,11 @@ final class DemoModuleProductCostingOwnershipTest extends TestCase
     public function test_datasets_and_five_theme_choices_are_preserved(): void
     {
         Storage::fake('local');
-        $this->getJson('/demo/tinh-gia-thanh-san-pham/datasets')->assertOk();
+        $secret = str_repeat('C', 20);
+        config()->set('warehouse_demo.backup_code', $secret);
+        $this->getJson('/demo/tinh-gia-thanh-san-pham/datasets', ['X-Demo-Backup-Code' => $secret])
+            ->assertOk()
+            ->assertJsonStructure(['datasets']);
         $js = file_get_contents(base_path('Modules/Demo/resources/assets/projects/product-costing/js/integrations.js'));
         foreach (['original:', 'ruby:', 'ocean:', 'emerald:', 'indigo:', 'product_costing_theme_v1'] as $marker) {
             $this->assertStringContainsString($marker, $js);
