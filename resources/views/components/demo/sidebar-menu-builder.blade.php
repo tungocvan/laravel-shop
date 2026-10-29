@@ -1,3 +1,6 @@
+@php
+    $sharedMenuAssets = base_path('Modules/Demo/resources/assets/shared/sidebar-menu');
+@endphp
 <div data-demo-menu="{{ $slug }}" hidden></div>
-<link rel="stylesheet" href="{{ asset('demo/shared/sidebar-menu/menu-builder.css') }}?v={{ filemtime(public_path('demo/shared/sidebar-menu/menu-builder.css')) }}">
-<script defer src="{{ asset('demo/shared/sidebar-menu/menu-builder.js') }}?v={{ filemtime(public_path('demo/shared/sidebar-menu/menu-builder.js')) }}"></script>
+<link rel="stylesheet" href="{{ route('demo.shared-sidebar.asset', ['asset' => 'menu-builder.css']) }}?v={{ filemtime($sharedMenuAssets.'/menu-builder.css') }}">
+<script defer src="{{ route('demo.shared-sidebar.asset', ['asset' => 'menu-builder.js']) }}?v={{ filemtime($sharedMenuAssets.'/menu-builder.js') }}"></script>
