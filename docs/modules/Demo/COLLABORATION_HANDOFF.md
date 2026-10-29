@@ -181,3 +181,14 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted regression after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/AttendancePayrollDemoTest.php tests/Feature/DemoModuleAttendancePayrollOwnershipTest.php`.
 - UI pending: desktop/tablet/iPhone, dashboard, employee CRUD, filters/pagination, menu editor and server presets, five themes, JSON import/export/server snapshots, print and console/network errors.
 - No local tests or browser UI were run through GitHub connector. No main merge or production deployment.
+
+## Phase 09 — Debt Management Git Pull/Test checkpoint (2026-10-29)
+
+- User confirmed Demo 08 **TEST + UI PASS** before Phase 09. Branch `refactor/demo-module-debt-management-20261029` inherits the accepted Demo 08 branch; no merge to main until all 12 demos are accepted.
+- REHOME: Debt Management UI, menu, dataset controllers, module views and original business CSS/JS. KEEP: canonical `/demo/quan-ly-cong-no`, menu/preset/dataset API, existing names, operator-code security, JSON storage, dynamic `#app` shell, business behavior, localStorage, five themes and exports.
+- Shared module menu editor consumes the existing `DebtDemoMenuBridge`; debt-specific server menu API is not replaced or duplicated. Original menu adapter is loaded before business app initialization; shared editor loads after app initialization.
+- Module asset allowlist retains existing URLs, removes tracked legacy copies only. Web-server fallback to Laravel must be checked before any eventual deployment; do not delete stale untracked files.
+- Focused PENDING: `php artisan test tests/Feature/DemoModuleDebtManagementOwnershipTest.php` and any existing debt-specific feature tests. JS syntax checks: `node --check Modules/Demo/resources/assets/projects/debt-management/js/core.js`, `menu-builder.js`, `app.js`, `server-datasets.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/HumanResourcesDemoRouteTest.php tests/Feature/DemoModuleHumanResourcesOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, debt dashboard, partners, vouchers, ledgers, age reports, calculations, JSON/Excel/print, browser/server datasets, menu tabs and server presets, all five themes and refresh persistence, console/network.
+- GitHub connector has not run local PHP/Node/browser tests. No merge, production deploy, runtime or environment modifications.
