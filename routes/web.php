@@ -1,5 +1,10 @@
 <?php
 
+// Coffee Shop Sales standalone demo (UI route; assets in public/demo-assets).
+Route::get('/demo/quan-ly-ban-hang-ca-phe', \App\Http\Controllers\Demo\CoffeeShopSalesController::class)
+    ->name('demo.coffee-shop-sales');
+
+
 // Daily Work Report standalone demo
 Route::get(
     '/demo/bao-cao-cong-viec-hang-ngay',
