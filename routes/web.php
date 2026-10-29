@@ -1,3 +1,6 @@
+// Standalone hotel uniform demo
+\Illuminate\Support\Facades\Route::get('/demo/quan-ly-dong-phuc-khach-san', \App\Http\Controllers\Demo\HotelUniformController::class)->name('demo.hotel-uniform');
+
 <?php
 
 // Equipment maintenance standalone demo
