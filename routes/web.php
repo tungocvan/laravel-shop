@@ -1,5 +1,9 @@
 <?php
 
+// Equipment maintenance standalone demo
+Route::get('/demo/quan-ly-thiet-bi-bao-tri', \App\Http\Controllers\Demo\EquipmentMaintenanceController::class)->name('demo.equipment-maintenance');
+
+
 // Coffee Shop Sales standalone demo (UI route; assets in public/demo-assets).
 Route::get('/demo/quan-ly-ban-hang-ca-phe', \App\Http\Controllers\Demo\CoffeeShopSalesController::class)
     ->name('demo.coffee-shop-sales');
