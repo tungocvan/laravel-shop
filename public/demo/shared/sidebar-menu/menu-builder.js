@@ -111,6 +111,10 @@
   }
   const dlg = document.createElement('dialog'); dlg.className='shared-menu-dialog';
   dlg.innerHTML='<div class="shared-menu-shell"><header><div><h3>Chỉnh sửa menu</h3><p>Thiết lập sidebar cho demo</p></div><button type="button" data-close aria-label="Đóng">×</button></header><nav class="shared-menu-tabs" role="tablist" aria-label="Các phần cấu hình"><button type="button" role="tab" data-tab="menu">Menu</button><button type="button" role="tab" data-tab="header">Header</button><button type="button" role="tab" data-tab="footer">Footer</button><button type="button" role="tab" data-tab="library">Thư viện JSON</button></nav><div class="shared-menu-body"><div data-panel="menu" role="tabpanel"><div data-groups></div></div><div data-panel="header" role="tabpanel" hidden><div data-header-fields class="shared-menu-fields"></div></div><div data-panel="footer" role="tabpanel" hidden><div data-footer-fields class="shared-menu-fields"></div></div><div data-panel="library" role="tabpanel" hidden><section class="shared-menu-library"><h4>Thư viện JSON server</h4><input data-name placeholder="Tên cấu hình" aria-label="Tên cấu hình"><select data-presets aria-label="Cấu hình đã lưu"><option value="">Chọn file</option></select><button data-refresh>Làm mới</button><button data-load>Nạp JSON</button><button data-store-preset>Lưu file</button><button data-delete-preset>Xóa file</button></section></div></div><footer><div class="shared-menu-actions"><button data-add-group>+ Nhóm</button><button data-reset>Mặc định</button><button data-export>Xuất JSON</button><label>Nhập JSON<input type="file" accept=".json,application/json" data-import hidden></label><button data-preview>Cập nhật giao diện</button><button data-save>Lưu lên server</button></div><p role="status" aria-live="polite" data-status></p></footer></div>';
+  if (slug === 'quan-ly-thiet-bi-bao-tri') {
+    const button=document.createElement('button');button.type='button';button.dataset.makeDefault='';button.textContent='Đặt làm mặc định';
+    dlg.querySelector('[data-delete-preset]').after(button);
+  }
   document.body.append(dlg);
   const $ = s => dlg.querySelector(s);
   const status = (s) => { $('[data-status]').textContent=s; };
@@ -165,7 +169,7 @@
     });
   }
   async function refresh() {
-    try {const r=await fetch(url+'/presets');if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();const select=$('[data-presets]');select.replaceChildren(new Option('Chọn file',''));for(const p of data.presets||[])select.add(new Option(p.name,p.id));}
+    try {const r=await fetch(url+'/presets');if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();const select=$('[data-presets]');select.replaceChildren(new Option('Chọn file',''));for(const p of data.presets||[])select.add(new Option(p.name+(p.id===data.defaultId?' (Mặc định)':''),p.id));}
     catch(e){status('Không tải được thư viện: '+e.message);}
   }
   async function authorized(method,path,body) {
@@ -198,6 +202,24 @@
   $('[data-refresh]').onclick=refresh;
   $('[data-load]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id)return;const r=await fetch(url+'/presets/'+encodeURIComponent(id));if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();validate(migrate(data.config));if(confirm('Thay bản chỉnh sửa bằng JSON trên server?')){working=migrate(data.config);render();status('Đã nhập vào bản chỉnh sửa.');}}catch(e){status(e.message);}};
   $('[data-store-preset]').onclick=async()=>{try{validate(working);const name=$('[data-name]').value.trim();if(!name)throw Error('Nhập tên file.');const r=await authorized('POST',url+'/presets',{name,config:working});if(r){await refresh();status('Đã lưu file JSON.');}}catch(e){status(e.message);}};
+  const defaultButton=$('[data-make-default]');
+  if(defaultButton)defaultButton.onclick=async()=>{
+    try {
+      const id=$('[data-presets]').value;
+      if(!id)throw Error('Chọn file JSON trước.');
+      if(!confirm('Đặt file đã chọn làm menu mặc định trên server?'))return;
+      const r=await authorized('PUT',url+'/presets/'+encodeURIComponent(id)+'/default');
+      if(!r)return;
+      localStorage.removeItem(key);
+      const response=await fetch(url,{cache:'no-store'});
+      if(!response.ok)throw Error('Không tải được menu mặc định.');
+      const data=await response.json();
+      apply(validate(migrate(data.config)));
+      working=clone(applied);render();
+      await refresh();$('[data-presets]').value=id;
+      status('Đã đặt làm mặc định và áp dụng menu trên server.');
+    }catch(e){status(e.message);}
+  };
   $('[data-delete-preset]').onclick=async()=>{try{const id=$('[data-presets]').value;if(!id||!confirm('Xóa file JSON này?'))return;const r=await authorized('DELETE',url+'/presets/'+encodeURIComponent(id));if(r){await refresh();status('Đã xóa file.');}}catch(e){status(e.message);}};
   $('[data-export]').onclick=()=>{try{validate(working);const blob=new Blob([JSON.stringify(working,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=slug+'-menu.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}catch(e){status(e.message);}};
   $('[data-import]').onchange=async e=>{const file=e.target.files[0];if(!file)return;try{if(file.size>65536)throw Error('File quá 64 KiB.');const c=validate(migrate(JSON.parse(await file.text())));if(confirm('Nhập menu JSON?')){working=clone(c);render();}}catch(err){status(err.message);}e.target.value='';};
