@@ -109,3 +109,11 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - New GET `/demo` named `demo.hub` uses `DemoHubController` and Blade `demo::hub.index`, linking exactly 12 named Demo UI routes, responsive and without DB or new dependencies.
 - Focused PENDING: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`. Then module/impacted regression for all 12 demos, plus `php artisan route:list --path=demo` and `php artisan route:cache` (test environment only).
 - UI PENDING: hub on desktop/tablet/iPhone, all 12 links, menu editing/presets on relevant demos, route and asset loading, browser console. No TEST/UI PASS claimed for Batch 13; no PR merge or deploy.
+
+
+## Shared sidebar editor asset ownership — Batch 14
+
+- Canonical legacy menu-builder JS/CSS moved from `public/demo/shared/sidebar-menu/` into `Modules/Demo/resources/assets/shared/sidebar-menu/`.
+- `SharedSidebarAssetController` exposes only the two allowlisted assets via `/demo-assets/shared/sidebar-menu/{asset}`; Blade component uses the named route. Existing menu JSON storage and API URLs remain unchanged.
+- The `/demo` Hub remains module-owned. Tracked `public/demo` files are retired to avoid a physical-directory URL conflict; inspect untracked files if the directory persists locally.
+- Regression gate: asset ownership and Daily Work Report focused tests, then Hub and shared menu tests, plus manual UI acceptance.
