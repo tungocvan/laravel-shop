@@ -47,3 +47,10 @@
 - Theme UI now offers five responsive palette preview cards including original, retaining the previous localStorage key.
 - Focused tests: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php tests/Feature/DemoModuleEnterpriseManagementReportOwnershipTest.php`. Impacted and manual UI pending.
 - No production deployment or main merge.
+
+## Phase 06 — Sidebar editor UI alignment
+
+- Updated the existing enterprise menu editor to match Demo 05's tabbed organization: Menu, Header, Footer, Thư viện JSON.
+- Preserved module-specific menu implementation, localStorage, guarded server presets, JSON import/export and drag/drop. No duplicate server API, no data migration.
+- Responsive modal with fixed action bar and independent scroll region; pending manual desktop/tablet/iPhone verification.
+- TEST/UI PENDING after UI correction.
