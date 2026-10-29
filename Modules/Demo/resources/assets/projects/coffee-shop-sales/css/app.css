@@ -427,7 +427,61 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 :root[data-coffee-theme="ocean"]{--coffee-accent:#087E9B}
 :root[data-coffee-theme="emerald"]{--coffee-accent:#16835D}
 :root[data-coffee-theme="indigo"]{--coffee-accent:#4F46E5}
-.coffee-theme-options{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.coffee-theme-options button{border:2px solid transparent;padding:9px 14px;border-radius:9px;background:var(--swatch);color:white;cursor:pointer;text-transform:capitalize}.coffee-theme-options button[aria-pressed="true"]{outline:3px solid var(--coffee-accent);outline-offset:3px}.coffee-theme-options button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+/* Coffee Shop theme preview cards, consistent with Hotel Uniform and Rental Room. */
+#coffeeThemePanel { grid-column: 1 / -1; }
+#coffeeThemePanel .coffee-theme-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+#coffeeThemePanel .coffee-theme-option {
+  appearance: none;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 7px;
+  transition: border-color .15s, box-shadow .15s;
+}
+#coffeeThemePanel .coffee-theme-option:hover { border-color: var(--chu-dao); }
+#coffeeThemePanel .coffee-theme-option[aria-pressed="true"] {
+  border: 2px solid var(--chu-dao);
+  padding: 5px;
+  box-shadow: 0 0 0 1px var(--cd-nhat);
+}
+#coffeeThemePanel .coffee-theme-option:focus-visible { outline: 3px solid var(--chu-dao); outline-offset: 3px; }
+#coffeeThemePanel .coffee-theme-swatch {
+  display: block;
+  height: 31px;
+  width: 100%;
+  border-radius: 5px;
+  background: linear-gradient(125deg, var(--theme-dark) 0 37%, var(--theme-light) 37% 100%);
+}
+#coffeeThemePanel .coffee-theme-name {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+#coffeeThemePanel .coffee-theme-option[aria-pressed="true"] .coffee-theme-name::before {
+  content: '✓ ';
+  color: var(--chu-dao);
+}
+@media (max-width: 650px) {
+  #coffeeThemePanel .coffee-theme-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 380px) {
+  #coffeeThemePanel .coffee-theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 
 /* Four complete palettes for the existing CSS variable-based UI. */
 :root[data-coffee-theme="ruby"]{--chu-dao:#C62828;--cd-dam:#8E1B1B;--cd-sang:#EF5350;--cd-nhat:#FDECEC;--cd-toi:#591B22;--cd-toi2:#7D2931;--cd-toi3:#350F18;--cd-bong:rgba(198,40,40,.30);--hero-a:rgba(239,83,80,.55);--hero-b:rgba(255,130,110,.28)}
