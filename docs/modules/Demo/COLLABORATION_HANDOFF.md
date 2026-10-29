@@ -46,3 +46,10 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - User reported that Chrome Incognito Console has no errors after the hotfix; repeated `runtime.lastError` and `pdf_content.js` errors in normal Chrome are consistent with browser extension messaging rather than app code.
 - **Gate qualification:** prior two-layer test PASS predates the hotfix; fresh focused/regression test results for the hotfix have not yet been supplied. Incognito Console clean is not a complete UI functional regression confirmation for all server JSON actions. Require new test outputs and functional UI PASS before merge.
 - PR review is authorized, but merge and production deployment remain blocked pending explicit user consent and all gates.
+
+## Final validation confirmation (2026-10-29)
+
+- After hotfix and checkpoint, user explicitly confirmed: **focused tests PASS, shared-menu regression PASS, UI PASS**.
+- User explicitly authorized merging PR #345 into main after review.
+- These are user-reported local test/UI results; GitHub connector did not execute the local test suite or browser UI.
+- Preserve untracked local files and do not deploy production. After merge, synchronize local main and verify HEAD equals origin/main.
