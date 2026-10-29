@@ -37,3 +37,11 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Existing browser storage keys, private `demo-datasets/hotel-uniform` snapshots and shared menu API remain unchanged. No database migration.
 - Tracked legacy controller, view and public asset copies are retired. Allowlisted module asset route retains existing browser asset URLs. Check web-server static fallback and stale untracked public files before deployment.
 - Eleven other demo ownership boundaries are unchanged except Hotel Uniform, leaving ten legacy demos.
+
+## Phase 03 — Equipment Maintenance (pending acceptance)
+
+- Canonical UI, dataset API, Blade and CSS/JS moved to `Modules/Demo`; original `/demo/quan-ly-thiet-bi-bao-tri` URLs, menu API and snapshot storage are retained.
+- This demo's 308 KB business script builds the entire sidebar/navigation and all screens dynamically. Shared module layout and menu editor are reused; the empty sidebar DOM node stays JS-owned. Adopting the shared Blade sidebar partial would conflict with the dynamic renderer, so sidebar component convergence is explicitly DEFERRED until UI-contract audit.
+- Existing offline HTML export/template, Excel, print, browser storage `thietbi_baotri_phongexcel_v1|<pathname>`, five themes and `equipment_maintenance_theme_v1` remain unchanged.
+- Asset requests keep the existing browser paths through a strict module allowlist. Legacy tracked public copies are removed; deployment must audit web-server fallback and stale untracked files.
+- No migrations or changes to production/runtime data. Tests and UI acceptance are pending.
