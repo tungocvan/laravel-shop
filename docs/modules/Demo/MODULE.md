@@ -94,3 +94,9 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Canonical warehouse UI and JSON dataset API moved to Modules/Demo. All original /demo/quan-ly-xuat-nhap-ton routes, dataset operator-code security, localStorage, stock calculations and exports preserved.
 - Module-owned CSS/JS are served by an allowlisted asset route at /demo-assets/quan-ly-xuat-nhap-ton. Shared menu editor remains integrated through the existing shared menu API.
 - Five selectable palettes: Original, Indigo (unchanged default), Ruby, Ocean, Emerald. Tracked legacy copies retired after migration. No DB or production changes.
+
+## Phase 12 — Product Costing
+
+- Product costing controllers, dataset API, 11 Blade page/partial files, business JS, integrations/theme JS, CSS and route registrations moved to Modules/Demo.
+- Canonical URL /demo/tinh-gia-thanh-san-pham and existing dataset API, backup-code protection, localStorage/JSON, product cost/BOM calculations, Excel/print, five existing themes (Original/Ruby/Ocean/Emerald/Indigo), shared menu endpoints preserved.
+- Assets served via allowlisted Laravel endpoint /demo-assets/tinh-gia-thanh-san-pham/{asset}. Shared editor loaded after business scripts. No database, production or environment changes.
