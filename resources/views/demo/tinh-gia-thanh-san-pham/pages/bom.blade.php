@@ -1,0 +1,1 @@
+<section class="page" id="page-bom"></section>
