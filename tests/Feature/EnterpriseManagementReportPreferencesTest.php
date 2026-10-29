@@ -18,12 +18,12 @@ class EnterpriseManagementReportPreferencesTest extends TestCase
         );
     }
 
-    public function test_sidebar_editor_is_browser_local_and_has_four_themes(): void
+    public function test_sidebar_editor_is_browser_local_and_has_five_themes(): void
     {
-        $path = public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/preferences.js');
+        $path = base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/js/preferences.js');
         $this->assertFileExists($path);
         $script = file_get_contents($path);
-        foreach (['ruby', 'ocean', 'emerald', 'indigo', 'sidebar_v1', 'theme_v1', 'Footer Sidebar', 'Cập nhật giao diện'] as $token) {
+        foreach (['original', 'ruby', 'ocean', 'emerald', 'indigo', 'sidebar_v1', 'theme_v1', 'Footer Sidebar', 'Cập nhật giao diện'] as $token) {
             $this->assertStringContainsString($token, $script);
         }
         $this->assertStringContainsString('https:', $script);
@@ -31,7 +31,7 @@ class EnterpriseManagementReportPreferencesTest extends TestCase
     }
     public function test_blade_save_does_not_export_standalone_html(): void
     {
-        $script = file_get_contents(public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/app.js'));
+        $script = file_get_contents(base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/js/app.js'));
         $this->assertStringContainsString('if(ONLINE){', $script);
         $this->assertStringContainsString('Không lưu lên server', $script);
         $this->assertStringContainsString('Lưu trong trình duyệt', $script);
@@ -42,7 +42,7 @@ class EnterpriseManagementReportPreferencesTest extends TestCase
         $this->get('/demo/bao-cao-quan-tri-doanh-nghiep')->assertOk()
             ->assertSee('name="csrf-token"', false);
 
-        $script = file_get_contents(public_path('demo-assets/bao-cao-quan-tri-doanh-nghiep/js/preferences.js'));
+        $script = file_get_contents(base_path('Modules/Demo/resources/assets/projects/enterprise-management-report/js/preferences.js'));
         foreach ([
             '/demo/bao-cao-quan-tri-doanh-nghiep/menu',
             'application/x-enterprise-menu',
