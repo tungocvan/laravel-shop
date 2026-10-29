@@ -69,7 +69,14 @@
           // Preserve the demo's SVG icons and live badge nodes.
           const textNode = Array.from(a.childNodes).find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
           if (textNode) textNode.textContent = item.label;
-          else a.append(document.createTextNode(item.label));
+          else {
+            // Some demos wrap their label in a span beside the SVG and badge.
+            // Update that span rather than adding a duplicate text node.
+            const labelSpan = Array.from(a.children).find(el =>
+              el.tagName === 'SPAN' && !el.classList.contains('badge'));
+            if (labelSpan) labelSpan.textContent = item.label;
+            else a.append(document.createTextNode(item.label));
+          }
         } else a.textContent = item.label;
         if (existing) {
           a.dataset.page = page;
