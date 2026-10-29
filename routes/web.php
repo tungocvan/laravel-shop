@@ -6,10 +6,6 @@
 
 
 // Equipment maintenance standalone demo
-Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets');
-Route::get('/demo/quan-ly-thiet-bi-bao-tri/datasets/{dataset}', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.equipment-maintenance.datasets.show');
-Route::post('/demo/quan-ly-thiet-bi-bao-tri/datasets', [\App\Http\Controllers\Demo\EquipmentMaintenanceDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.equipment-maintenance.datasets.store');
-Route::get('/demo/quan-ly-thiet-bi-bao-tri', \App\Http\Controllers\Demo\EquipmentMaintenanceController::class)->name('demo.equipment-maintenance');
 
 
 // Coffee Shop Sales standalone demo (UI route; assets in public/demo-assets).
