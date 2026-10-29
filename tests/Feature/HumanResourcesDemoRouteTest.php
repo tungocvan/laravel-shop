@@ -19,7 +19,7 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $html = $this->get('/demo/quan-ly-nhan-su')->assertOk()->getContent();
         $this->assertLessThan(strpos($html, 'demo-assets/quan-ly-nhan-su/js/app.js'), strpos($html, 'id="savedData"'));
         $this->assertLessThan(strpos($html, 'demo-assets/quan-ly-nhan-su/js/app.js'), strpos($html, 'id="stats"'));
-        $js = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/app.js'));
+        $js = file_get_contents(base_path('Modules/Demo/resources/assets/projects/human-resources/js/app.js'));
         $this->assertStringNotContainsString('\\\\nconst KEY', substr($js, 0, 180));
     }
 
@@ -28,22 +28,23 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $this->get('/demo/quan-ly-nhan-su')->assertOk()
             ->assertSee('id="page-settings"', false)
             ->assertSee('Cài đặt & dữ liệu', false)
+            ->assertSee('data-hr-theme-choice="original"', false)
             ->assertSee('data-hr-theme-choice="ruby"', false)
             ->assertSee('data-hr-theme-choice="ocean"', false)
             ->assertSee('data-hr-theme-choice="emerald"', false)
             ->assertSee('data-hr-theme-choice="indigo"', false)
             ->assertSee('data-open-menu', false)
             ->assertSee('hrSettingsCount');
-        $adapter = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/menu-adapter.js'));
+        $adapter = file_get_contents(base_path('Modules/Demo/resources/assets/projects/human-resources/js/menu-adapter.js'));
         $this->assertStringContainsString("href:'#settings'", $adapter);
         $this->assertStringContainsString("goPage('settings')", $adapter);
     }
 
     public function test_sidebar_palette_follows_all_four_themes(): void
     {
-        $js = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/app.js'));
-        $css = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/css/app.css'));
-        foreach (['ruby','ocean','emerald','indigo'] as $theme) {
+        $js = file_get_contents(base_path('Modules/Demo/resources/assets/projects/human-resources/js/app.js'));
+        $css = file_get_contents(base_path('Modules/Demo/resources/assets/projects/human-resources/css/app.css'));
+        foreach (['original','ruby','ocean','emerald','indigo'] as $theme) {
             $this->assertStringContainsString($theme.':{primary:', $js);
         }
         foreach (['--side-end','--side-muted','--side-text','linear-gradient(180deg,var(--side),var(--side-end))'] as $token) {
@@ -58,7 +59,7 @@ final class HumanResourcesDemoRouteTest extends TestCase
         $this->assertStringContainsString('id="page-settings"', $html);
         $this->assertStringContainsString('Cài đặt & dữ liệu', $html);
         $this->assertStringNotContainsString('<div class="sec">Tiện ích</div>', $html);
-        $adapter=file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/menu-adapter.js'));
+        $adapter=file_get_contents(base_path('Modules/Demo/resources/assets/projects/human-resources/js/menu-adapter.js'));
         $this->assertStringContainsString('iconSvg(item.icon)', $adapter);
         $this->assertStringContainsString("['backup-json','library']", $adapter);
         $this->assertStringContainsString("nav.append(system)", $adapter);
@@ -69,7 +70,7 @@ final class HumanResourcesDemoRouteTest extends TestCase
     public function test_assets_exist(): void
     {
         foreach (['js/app.js','js/menu-adapter.js','css/app.css'] as $path) {
-            $this->assertFileExists(public_path('demo-assets/quan-ly-nhan-su/'.$path));
+            $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/human-resources/'.$path));
         }
     }
 
@@ -126,8 +127,8 @@ final class HumanResourcesDemoRouteTest extends TestCase
 
     public function test_hr_assets_include_four_themes_and_json_import_export(): void
     {
-        $js = file_get_contents(public_path('demo-assets/quan-ly-nhan-su/js/app.js'));
-        foreach (['ruby','ocean','emerald','indigo','hrImportFile','hrStoreLibrary','hrSetTheme','hrRestore'] as $marker) {
+        $js = file_get_contents(base_path('Modules/Demo/resources/assets/projects/human-resources/js/app.js'));
+        foreach (['original','ruby','ocean','emerald','indigo','hrImportFile','hrStoreLibrary','hrSetTheme','hrRestore'] as $marker) {
             $this->assertStringContainsString($marker, $js);
         }
     }

@@ -69,3 +69,51 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Browser localStorage and business reports remain unchanged. Offline HTML export uses the byte-preserved original template, served through an allowlisted module asset route at its existing browser URL.
 - Five responsive theme preview cards including Màu gốc; existing `enterprise_management_report_theme_v1` key retained, and previously selected themes remain compatible.
 - Legacy tracked public sources retired. No DB migrations or production/runtime data changes. Focused/impacted/UI regression pending.
+
+## Phase 08 — Human Resources
+
+- Rehome Human Resources UI/dataset controllers, Blade, CSS/JS and routes into Modules/Demo. Preserve /demo/quan-ly-nhan-su, dataset API, localStorage keys and private JSON snapshot storage.
+- Keep the existing HR sidebar bridge because it reconstructs dynamic department/status navigation. Adopt module-owned shared menu editor without duplicating shared server menu persistence.
+- Add the original light palette alongside Ruby/Ocean/Emerald/Indigo; existing theme selections remain compatible.
+- Asset URLs remain stable through a strict allowlisted module route. No database migration or production/runtime data modifications. Acceptance pending.
+
+## Phase 09 — Debt Management
+
+- Canonical debt UI, debt dataset API and debt-specific menu/preset API are rehomed to `Modules/Demo`, retaining all original `/demo/quan-ly-cong-no` route names, paths and operator-code authorization.
+- Original dynamic JS shell, finance calculations, JSON/Excel/print exports, browser storage and five existing theme palettes are retained without business logic rewrites. The debt-specific menu bridge connects the shared module editor; server menu controller remains a distinct domain API, not duplicated by shared sidebar controller.
+- CSS/JS assets are module-owned and served at original browser URLs by an explicit allowlist. Tracked legacy source copies retired; runtime data and untracked files are untouched. No DB migration or production changes. Focused/impacted/UI validation pending.
+
+## Phase 10 — Sales Employees
+
+- Sales employees UI/dataset controllers, modular Blade pages, CSS/JS and route ownership moved to Modules/Demo. Preserve GET /demo/doanh-so-nhan-vien and dataset endpoints, browser storage keys and operator-code protection.
+- Shared menu editor uses the existing per-demo menu API, no duplicated server persistence. Five palettes include Original plus Ruby, Ocean, Emerald and Indigo, retaining Ruby as the default.
+- Allowlisted asset route retains browser-accessible paths under /demo-assets/doanh-so-nhan-vien/. Legacy tracked source retired after copy; no database/runtime data changes.
+
+## Phase 11 — Warehouse Inventory
+
+- Canonical warehouse UI and JSON dataset API moved to Modules/Demo. All original /demo/quan-ly-xuat-nhap-ton routes, dataset operator-code security, localStorage, stock calculations and exports preserved.
+- Module-owned CSS/JS are served by an allowlisted asset route at /demo-assets/quan-ly-xuat-nhap-ton. Shared menu editor remains integrated through the existing shared menu API.
+- Five selectable palettes: Original, Indigo (unchanged default), Ruby, Ocean, Emerald. Tracked legacy copies retired after migration. No DB or production changes.
+
+## Phase 12 — Product Costing
+
+- Product costing controllers, dataset API, 11 Blade page/partial files, business JS, integrations/theme JS, CSS and route registrations moved to Modules/Demo.
+- Canonical URL /demo/tinh-gia-thanh-san-pham and existing dataset API, backup-code protection, localStorage/JSON, product cost/BOM calculations, Excel/print, five existing themes (Original/Ruby/Ocean/Emerald/Indigo), shared menu endpoints preserved.
+- Assets served via allowlisted Laravel endpoint /demo-assets/tinh-gia-thanh-san-pham/{asset}. Shared editor loaded after business scripts. No database, production or environment changes.
+
+## Batch 13 — Final Demo route cleanup + /demo hub (2026-10-29)
+
+- User confirmed Demo 12 TEST + UI PASS and approved final route cleanup and a central /demo hub.
+- New branch `refactor/demo-module-final-route-hub-20261029` stacked on accepted Demo 12. The existing 11-slug shared menu controller was moved to `Modules/Demo/Http/Controllers/Shared` with its validation, storage mapping, operator-code authorization and preset semantics unchanged. All original shared menu routes, method constraints, throttle limits and regex conditions moved verbatim from `routes/web.php` to `Modules/Demo/routes/web.php`.
+- Application `routes/web.php` now retains only system root redirect fallback; Demo routes are module-owned. Legacy shared controller removed only after rehome.
+- New GET `/demo` named `demo.hub` uses `DemoHubController` and Blade `demo::hub.index`, linking exactly 12 named Demo UI routes, responsive and without DB or new dependencies.
+- Focused PENDING: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`. Then module/impacted regression for all 12 demos, plus `php artisan route:list --path=demo` and `php artisan route:cache` (test environment only).
+- UI PENDING: hub on desktop/tablet/iPhone, all 12 links, menu editing/presets on relevant demos, route and asset loading, browser console. No TEST/UI PASS claimed for Batch 13; no PR merge or deploy.
+
+
+## Shared sidebar editor asset ownership — Batch 14
+
+- Canonical legacy menu-builder JS/CSS moved from `public/demo/shared/sidebar-menu/` into `Modules/Demo/resources/assets/shared/sidebar-menu/`.
+- `SharedSidebarAssetController` exposes only the two allowlisted assets via `/demo-assets/shared/sidebar-menu/{asset}`; Blade component uses the named route. Existing menu JSON storage and API URLs remain unchanged.
+- The `/demo` Hub remains module-owned. Tracked `public/demo` files are retired to avoid a physical-directory URL conflict; inspect untracked files if the directory persists locally.
+- Regression gate: asset ownership and Daily Work Report focused tests, then Hub and shared menu tests, plus manual UI acceptance.

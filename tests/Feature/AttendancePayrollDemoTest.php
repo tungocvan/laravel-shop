@@ -14,15 +14,15 @@ final class AttendancePayrollDemoTest extends TestCase
         $response->assertSee('demo-assets/cham-cong-tinh-luong/js/core.js', false);
         $response->assertSee('demo-assets/cham-cong-tinh-luong/js/payroll.js', false);
         $response->assertSee('demo-assets/cham-cong-tinh-luong/js/extensions.js', false);
-        $this->assertFileExists(public_path('demo-assets/cham-cong-tinh-luong/js/core.js'));
-        $this->assertFileExists(public_path('demo-assets/cham-cong-tinh-luong/js/payroll.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/attendance-payroll/js/core.js'));
+        $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/attendance-payroll/js/payroll.js'));
         $this->assertDirectoryDoesNotExist(public_path('demo/cham-cong-tinh-luong'));
     }
     public function test_sidebar_restores_icons_and_unifies_settings_without_changing_payroll_engine(): void
     {
-        $adapter = file_get_contents(public_path('demo-assets/cham-cong-tinh-luong/js/extensions.js'));
-        $sharedMenu = file_get_contents(public_path('demo/shared/sidebar-menu/menu-builder.js'));
-        $engine = file_get_contents(public_path('demo-assets/cham-cong-tinh-luong/js/payroll.js'));
+        $adapter = file_get_contents(base_path('Modules/Demo/resources/assets/projects/attendance-payroll/js/extensions.js'));
+        $sharedMenu = file_get_contents(base_path('Modules/Demo/resources/assets/shared/menu-editor.js'));
+        $engine = file_get_contents(base_path('Modules/Demo/resources/assets/projects/attendance-payroll/js/payroll.js'));
         $this->assertIsString($adapter);
         $this->assertIsString($sharedMenu);
         $this->assertIsString($engine);
@@ -42,7 +42,7 @@ final class AttendancePayrollDemoTest extends TestCase
 
     public function test_sidebar_footer_hides_sample_status_and_manual_save_but_keeps_autosave(): void
     {
-        $core = file_get_contents(public_path('demo-assets/cham-cong-tinh-luong/js/core.js'));
+        $core = file_get_contents(base_path('Modules/Demo/resources/assets/projects/attendance-payroll/js/core.js'));
         $this->assertIsString($core);
         $this->assertStringNotContainsString('class="save-state" id="saveState"', $core);
         $this->assertStringNotContainsString('class="btn-save" data-act="saveFile"', $core);

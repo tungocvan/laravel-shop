@@ -158,3 +158,91 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Root cause: Demo 06 still uses its legacy standalone preferences editor even after migrating to the Demo module; merely moving assets did not unify its modal UX.
 - Refactored the existing Demo 06 editor presentation to the shared Demo tabbed UX (heading, tabs, scrollable content, fixed actions). Existing menu normalization, localStorage key, operator-code authorization, server preset API, drag/drop, JSON import/export and theme selection remain in their current module-specific adapter. This is **visual/interaction alignment**, not a claim that both demos now share the same editor implementation; a true shared component migration needs a separate adapter and regression plan.
 - Added source-level focused test for tab structure and persistence hooks. No local PHP/Node/browser execution available via GitHub connector; focused, impacted and UI gates must be rerun and user-confirmed before Demo 07.
+
+## Phase 07 — Attendance Payroll Git Pull/Test checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-attendance-payroll-20261029`, from verified `main` merge commit `3e61998f8e499b7b1be1e9d050405c8d5a6ca346` (PR #347).
+- REHOME: attendance/payroll UI and dataset controllers, Blade layout/app partial, CSS and JS under `Modules/Demo`; remove only their tracked legacy counterparts and route declarations. KEEP: `/demo/cham-cong-tinh-luong` and all dataset names, existing browser asset URLs, salary calculation engine, localStorage key, server JSON directory, auth header, CSRF and throttling.
+- Existing `SharedSidebarMenuController` endpoints remain canonical. Module shared menu editor CSS/JS is served through the new allowlisted payroll asset controller, using the existing payroll bridge. The old standalone Blade menu component is replaced; no duplicate menu persistence.
+- Five theme preview cards (Màu gốc, Ruby, Ocean, Emerald, Indigo); preserve the existing `attendance_payroll_theme_v1` key and previous selected values, with the previous default `ocean` unchanged.
+- Focused TEST PENDING: `php artisan test tests/Feature/AttendancePayrollDemoTest.php tests/Feature/DemoModuleAttendancePayrollOwnershipTest.php`; JS syntax checks for `core.js`, `payroll.js`, `extensions.js`.
+- Impacted regression only after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/DemoModuleEnterpriseManagementReportOwnershipTest.php`. Review test names if files differ.
+- UI PENDING: desktop/tablet/iPhone, all attendance/payroll screens, employee CRUD, attendance edits, payroll/tax calculations, save/reload, Excel/print, browser JSON import/export, server dataset index/load/save and authorization failures, shared menu tabs/presets, all five themes and persistence, console/network. UI PASS requires user confirmation.
+- No local PHP/Node/browser tests executed through GitHub. No PR merge, production deploy, database migration, `.env` changes or runtime snapshot changes. Static web server must fall back to Laravel for removed public asset paths; stale untracked public copies must not be deleted without permission.
+
+- **2026-10-29 acceptance:** User explicitly confirmed **TEST + UI PASS** for Demo 07 at checkpoint. Both focused and impacted test commands were provided; individual terminal output was not attached to this turn. Await PR review and explicit merge authorization; no production deployment.
+
+## Phase 08 — Human Resources checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-human-resources-20261029` inherits accepted Demo 07 changes; PR #348 remains OPEN and unmerged. No main merge until all 12 demos accepted.
+- Rehome HR controllers, Blade, CSS/JS, routes; preserve dataset storage `demo-datasets/human-resources`, browser key `qlns_data_v2`, theme key `qlns_theme_v1`, menu API and HR dynamic department/status navigation.
+- Shared module menu editor and HR-specific bridge remain responsible for sidebar customization; added fifth theme Màu gốc without changing default Emerald or saved selections.
+- Focused test checkpoint: `php artisan test tests/Feature/HumanResourcesDemoRouteTest.php tests/Feature/DemoModuleHumanResourcesOwnershipTest.php`.
+- Impacted regression after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/AttendancePayrollDemoTest.php tests/Feature/DemoModuleAttendancePayrollOwnershipTest.php`.
+- UI pending: desktop/tablet/iPhone, dashboard, employee CRUD, filters/pagination, menu editor and server presets, five themes, JSON import/export/server snapshots, print and console/network errors.
+- No local tests or browser UI were run through GitHub connector. No main merge or production deployment.
+
+## Phase 09 — Debt Management Git Pull/Test checkpoint (2026-10-29)
+
+- User confirmed Demo 08 **TEST + UI PASS** before Phase 09. Branch `refactor/demo-module-debt-management-20261029` inherits the accepted Demo 08 branch; no merge to main until all 12 demos are accepted.
+- REHOME: Debt Management UI, menu, dataset controllers, module views and original business CSS/JS. KEEP: canonical `/demo/quan-ly-cong-no`, menu/preset/dataset API, existing names, operator-code security, JSON storage, dynamic `#app` shell, business behavior, localStorage, five themes and exports.
+- Shared module menu editor consumes the existing `DebtDemoMenuBridge`; debt-specific server menu API is not replaced or duplicated. Original menu adapter is loaded before business app initialization; shared editor loads after app initialization.
+- Module asset allowlist retains existing URLs, removes tracked legacy copies only. Web-server fallback to Laravel must be checked before any eventual deployment; do not delete stale untracked files.
+- Focused PENDING: `php artisan test tests/Feature/DemoModuleDebtManagementOwnershipTest.php` and any existing debt-specific feature tests. JS syntax checks: `node --check Modules/Demo/resources/assets/projects/debt-management/js/core.js`, `menu-builder.js`, `app.js`, `server-datasets.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/HumanResourcesDemoRouteTest.php tests/Feature/DemoModuleHumanResourcesOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, debt dashboard, partners, vouchers, ledgers, age reports, calculations, JSON/Excel/print, browser/server datasets, menu tabs and server presets, all five themes and refresh persistence, console/network.
+- GitHub connector has not run local PHP/Node/browser tests. No merge, production deploy, runtime or environment modifications.
+
+- Phase 09 impacted regression reported by user: 21 PASS, 1 FAIL in `SharedDemoSidebarMenuTest::test_debt_demo_mounts_shared_editor_without_replacing_legacy_api` due to outdated legacy script URL assertion. Read-only audit confirmed module layout loads module shared editor URL and retains debt-specific bridge and menu API. Updated only that assertion to the module-owned shared editor URL in commit `e2084b35c8c537dbda46f30dab73cb1007d88214`. Focused/impacted rerun and manual menu UI verification PENDING; no PASS claim for this fix.
+
+## Phase 10 — Sales Employees checkpoint (2026-10-29)
+
+- User confirmed Demo 09 TEST + UI PASS. Branch `refactor/demo-module-sales-employees-20261029` inherits accepted Demo 09; no main merge before all 12 demos pass.
+- Rehome sales UI, datasets, 12 Blade partials/pages, JS/CSS, routes to Modules/Demo. Keep original business calculations, localStorage, JSON server snapshots and menu API; shared menu editor is module-owned.
+- Add fifth Original palette while retaining Ruby default and saved theme preferences. Asset allowlist uses /demo-assets/doanh-so-nhan-vien; check server fallback before any future deployment.
+- Focused PENDING: `php artisan test tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`. Syntax PENDING: `node --check Modules/Demo/resources/assets/projects/sales-employees/js/app.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/DemoModuleDebtManagementOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, sales journal CRUD, employee/product lists, dashboards/reports, import/export, server snapshots, shared menu editor, five themes, browser refresh, console/network.
+- No PHP/Node/browser tests run by GitHub connector; do not declare PASS or merge/deploy.
+
+## Phase 11 — Warehouse Inventory checkpoint (2026-10-29)
+
+- User confirmed Demo 10 TEST + UI PASS. Branch `refactor/demo-module-warehouse-inventory-20261029` inherits accepted Demo 10; main remains unmerged until 12/12 acceptance.
+- Warehouse inventory UI and dataset controllers, Blade layout/pages/partials, CSS/JS and routes moved to Modules/Demo. Preserve stock in/out, product CRUD, history, inventory report, browser/server JSON, menu API, operator-code authorization, exports and persistence.
+- Add Original theme as fifth palette while retaining Indigo default. Module asset allowlist serves original browser URLs via Laravel; web-server fallback must be validated before any future deployment.
+- Focused PENDING: `php artisan test tests/Feature/DemoModuleWarehouseInventoryOwnershipTest.php`; syntax `node --check Modules/Demo/resources/assets/projects/warehouse-inventory/js/app.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/StandaloneSalesDemoRouteTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, stock in/out, CRUD products, history, inventory reports, JSON import/export and server library, menu editor, five themes and refresh persistence, console/network.
+- No local PHP/Node/browser tests run by GitHub connector; no TEST/UI PASS claim and no merge/deploy.
+
+- Phase 11 impacted regression user report: 10 PASS / 1 FAIL (`SharedDemoSidebarMenuTest::test_shared_assets_are_mounted_in_both_demo_views`): outdated assertion expected legacy `demo/shared/sidebar-menu/menu-builder.js`. Audited Sales/Warehouse module Blade: both load their own module-owned shared menu editor asset, with preserved data-demo-menu markers. Updated only assertion to `demo-assets/{demo}/shared/menu-editor.js` in `d6e9da94014bd21ccca011e6209104ab5f24ae14`. Re-run focused + impacted regression and verify menu UI before PASS. No application code or API changed.
+
+## Phase 12 — Product Costing checkpoint (2026-10-29)
+
+- User confirmed Demo 11 TEST + UI PASS. Branch `refactor/demo-module-product-costing-20261029` inherits accepted Demo 11. No main merge or production deploy.
+- Product costing UI, JSON datasets, Blade pages/partials, CSS, business JS and integrations JS moved into Modules/Demo. Original routes and storage keys preserved. Five themes already present; no theme behavior rewrite.
+- Focused PENDING: `php artisan test tests/Feature/DemoModuleProductCostingOwnershipTest.php`. JS syntax PENDING: `node --check Modules/Demo/resources/assets/projects/product-costing/js/app.js` and `node --check Modules/Demo/resources/assets/projects/product-costing/js/integrations.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/DemoModuleWarehouseInventoryOwnershipTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, BOM, cost periods, products/materials CRUD, reports, trends, Excel/print, browser/server JSON, shared menu editor, five themes, refresh persistence, console/network.
+- Module asset allowlist preserves original URLs; web-server Laravel fallback must be checked before future deployment. No local PHP/Node/browser tests executed via GitHub connector. No TEST/UI PASS claim.
+
+- Phase 12 focused test user report: 2 PASS / 1 FAIL, dataset list returned 503 because new test omitted required `warehouse_demo.backup_code` and `X-Demo-Backup-Code`. Read-only audit confirmed existing ProductCostingDatasetController::authorizeDataset requires both, including for GET. Commit `f6d1127d58cd688650c56e6ab89e7d100440324f` updates test setup/header and asserts JSON datasets; production authorization unchanged. Rerun focused and impacted regression; TEST/UI remain pending after fix.
+
+## Batch 13 — Final Demo route cleanup + /demo hub (2026-10-29)
+
+- User confirmed Demo 12 TEST + UI PASS and approved final route cleanup and a central /demo hub.
+- New branch `refactor/demo-module-final-route-hub-20261029` stacked on accepted Demo 12. The existing 11-slug shared menu controller was moved to `Modules/Demo/Http/Controllers/Shared` with its validation, storage mapping, operator-code authorization and preset semantics unchanged. All original shared menu routes, method constraints, throttle limits and regex conditions moved verbatim from `routes/web.php` to `Modules/Demo/routes/web.php`.
+- Application `routes/web.php` now retains only system root redirect fallback; Demo routes are module-owned. Legacy shared controller removed only after rehome.
+- New GET `/demo` named `demo.hub` uses `DemoHubController` and Blade `demo::hub.index`, linking exactly 12 named Demo UI routes, responsive and without DB or new dependencies.
+- Focused PENDING: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`. Then module/impacted regression for all 12 demos, plus `php artisan route:list --path=demo` and `php artisan route:cache` (test environment only).
+- UI PENDING: hub on desktop/tablet/iPhone, all 12 links, menu editing/presets on relevant demos, route and asset loading, browser console. No TEST/UI PASS claimed for Batch 13; no PR merge or deploy.
+
+
+## Batch 14 — Shared sidebar assets rehome (2026-10-29)
+
+- User approved moving the remaining tracked `public/demo/shared/sidebar-menu/menu-builder.{js,css}` into `Modules/Demo/resources/assets/shared/sidebar-menu/` without modifying Nginx.
+- A strict allowlisted `GET /demo-assets/shared/sidebar-menu/{asset}` route and `SharedSidebarAssetController` serve the two files. The existing Blade component uses the new named route and module source modification time for cache busting; editor JavaScript behavior and menu APIs are unchanged.
+- Retired the two tracked public assets. Git should remove empty `public/demo` directories when no untracked files remain. Never remove untracked files; if `public/demo` persists, inspect read-only before any action.
+- Focused PENDING: `php artisan test tests/Feature/DemoSharedSidebarAssetOwnershipTest.php tests/Feature/DailyWorkReportMenuTest.php`.
+- Impacted after focused PASS: `php artisan test tests/Feature/DemoHubAndRouteOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: `/demo` Hub, Daily Work Report menu editor, CSS/JS network responses, desktop/mobile, browser console. No tests executed by GitHub connector. No merge/deploy.
