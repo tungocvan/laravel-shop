@@ -82,3 +82,9 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Canonical debt UI, debt dataset API and debt-specific menu/preset API are rehomed to `Modules/Demo`, retaining all original `/demo/quan-ly-cong-no` route names, paths and operator-code authorization.
 - Original dynamic JS shell, finance calculations, JSON/Excel/print exports, browser storage and five existing theme palettes are retained without business logic rewrites. The debt-specific menu bridge connects the shared module editor; server menu controller remains a distinct domain API, not duplicated by shared sidebar controller.
 - CSS/JS assets are module-owned and served at original browser URLs by an explicit allowlist. Tracked legacy source copies retired; runtime data and untracked files are untouched. No DB migration or production changes. Focused/impacted/UI validation pending.
+
+## Phase 10 — Sales Employees
+
+- Sales employees UI/dataset controllers, modular Blade pages, CSS/JS and route ownership moved to Modules/Demo. Preserve GET /demo/doanh-so-nhan-vien and dataset endpoints, browser storage keys and operator-code protection.
+- Shared menu editor uses the existing per-demo menu API, no duplicated server persistence. Five palettes include Original plus Ruby, Ocean, Emerald and Indigo, retaining Ruby as the default.
+- Allowlisted asset route retains browser-accessible paths under /demo-assets/doanh-so-nhan-vien/. Legacy tracked source retired after copy; no database/runtime data changes.
