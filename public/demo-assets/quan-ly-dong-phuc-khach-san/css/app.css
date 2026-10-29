@@ -365,4 +365,3 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 .cin.sel{padding:6px 6px;text-align:left;font-weight:600}
 @media (min-width:1700px){#heat{display:grid;grid-template-columns:1fr 1fr;column-gap:34px}#heat .hm-row{grid-template-columns:190px 1fr 90px}#heat .hm-row:nth-last-child(2){border-bottom:0}}
 @media (max-width:760px){.hm-row{grid-template-columns:1fr}.hm-v{text-align:left}}
-
