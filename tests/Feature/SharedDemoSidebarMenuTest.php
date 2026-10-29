@@ -39,7 +39,7 @@ class SharedDemoSidebarMenuTest extends TestCase
     {
         $this->get('/demo/quan-ly-cong-no')->assertOk()
             ->assertSee('data-demo-menu="quan-ly-cong-no"', false)
-            ->assertSee('demo/shared/sidebar-menu/menu-builder.js')
+            ->assertSee('demo-assets/quan-ly-cong-no/shared/menu-editor.js')
             ->assertSee('demo-assets/quan-ly-cong-no/js/menu-builder.js');
 
         $this->getJson('/demo/quan-ly-cong-no/menu')->assertOk()->assertJsonStructure(['config']);
