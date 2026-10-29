@@ -167,3 +167,18 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-xuat-nhap-ton/datasets/{dataset}', [WarehouseDemoDatasetController::class, 'show'])->name('demo.warehouse-inventory.datasets.show');
     Route::post('/demo/quan-ly-xuat-nhap-ton/datasets', [WarehouseDemoDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.warehouse-inventory.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\ProductCosting\ProductCostingController;
+use Modules\Demo\Http\Controllers\Projects\ProductCosting\ProductCostingDatasetController;
+use Modules\Demo\Http\Controllers\Projects\ProductCosting\ProductCostingAssetController;
+
+Route::get('/demo-assets/tinh-gia-thanh-san-pham/{asset}', ProductCostingAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/integrations\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.product-costing.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/tinh-gia-thanh-san-pham', ProductCostingController::class)->name('demo.product-costing');
+    Route::get('/demo/tinh-gia-thanh-san-pham/datasets', [ProductCostingDatasetController::class, 'index'])->middleware('throttle:20,1')->name('demo.product-costing.datasets');
+    Route::get('/demo/tinh-gia-thanh-san-pham/datasets/{dataset}', [ProductCostingDatasetController::class, 'show'])->middleware('throttle:20,1')->name('demo.product-costing.datasets.show');
+    Route::post('/demo/tinh-gia-thanh-san-pham/datasets', [ProductCostingDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.product-costing.datasets.store');
+});
