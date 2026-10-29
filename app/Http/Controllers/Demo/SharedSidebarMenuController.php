@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 
 class SharedSidebarMenuController extends Controller
 {
-    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report', 'bao-cao-cong-viec-hang-ngay' => 'daily-work-report', 'quan-ly-ban-hang-ca-phe' => 'coffee-shop-sales', 'tinh-gia-thanh-san-pham' => 'product-costing'];
+    private const DEMOS = ['doanh-so-nhan-vien' => 'sales-employees', 'quan-ly-xuat-nhap-ton' => 'warehouse-inventory', 'quan-ly-nhan-su' => 'human-resources', 'cham-cong-tinh-luong' => 'attendance-payroll', 'bao-cao-quan-tri-doanh-nghiep' => 'enterprise-management-report', 'bao-cao-cong-viec-hang-ngay' => 'daily-work-report', 'quan-ly-ban-hang-ca-phe' => 'coffee-shop-sales', 'tinh-gia-thanh-san-pham' => 'product-costing', 'quan-ly-thiet-bi-bao-tri' => 'equipment-maintenance'];
 
     private function path(string $demo): string
     {
