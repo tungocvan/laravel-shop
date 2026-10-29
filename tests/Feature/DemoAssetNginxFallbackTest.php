@@ -12,7 +12,7 @@ class DemoAssetNginxFallbackTest extends TestCase
 
         $this->assertIsString($config);
         $this->assertMatchesRegularExpression(
-            '~location\s+\^~\s+/demo-assets/\s*\{\s*try_files\s+\$uri\s+\$uri/\s+/index\.php\?\$query_string;\s*\}~',
+            '#location\s+\^~\s+/demo-assets/\s*\{\s*try_files\s+\$uri\s+\$uri/\s+/index\.php\?\$query_string;\s*\}#',
             $config
         );
 
