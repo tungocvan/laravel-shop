@@ -141,3 +141,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - User explicitly confirmed **TEST + UI PASS** for Daily Work Report after the Phase 05 Git Pull/Test checkpoint; CLI logs and browser screenshots were not attached.
 - Demo 05 accepted for sequential progression to Demo 06, without merging main or deploying.
 - Demo 06 must branch from this accepted tip and preserve all accepted Demo 01–05 changes.
+
+## Phase 06 — Enterprise Management Report Git Pull/Test checkpoint (2026-10-29)
+
+- User confirmed Demo 05 TEST + UI PASS; acceptance recorded on Demo 05 branch before creating `refactor/demo-module-enterprise-management-report-20261029` from its tip. Demo 01–05 accepted code remains inherited; main unmerged.
+- REHOME: enterprise report controller/route, Blade, CSS/JS/preferences and original offline HTML into `Modules/Demo`. KEEP: browser route/asset URLs, business JS, DOM IDs, browser state, Excel/JSON/print/offline export, menu API/presets and operator-code authorization. DEFER: static Blade sidebar refactor because JS owns the sidebar DOM. QUARANTINE: runtime data, untracked files and production.
+- Five responsive theme preview cards (Màu gốc/Ruby/Ocean/Emerald/Indigo), existing theme storage key preserved. No new business server JSON library.
+- Focused PENDING: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php tests/Feature/DemoModuleEnterpriseManagementReportOwnershipTest.php`; `node --check` for both module-owned JS files.
+- Impacted regression after focused PASS PENDING: `php artisan test tests/Feature/DailyWorkReportDemoTest.php tests/Feature/DailyWorkReportMenuTest.php tests/Feature/DemoModuleDailyWorkReportOwnershipTest.php tests/Feature/CoffeeShopSalesDemoTest.php tests/Feature/DemoModuleCoffeeShopSalesOwnershipTest.php tests/Feature/EquipmentMaintenanceDemoTest.php tests/Feature/DemoModuleEquipmentMaintenanceOwnershipTest.php tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
+- UI PENDING: desktop/tablet/iPhone; reports, forms, CRUD, browser state, sidebar/menu editor/presets, five themes and persistence after F5, JSON/Excel/print, offline HTML opening with data, console/network errors.
+- GitHub connector has not run local PHP tests or browser checks. Stop at checkpoint; no merge or deploy. Keep PR #346 open/unmerged until user explicitly authorizes final merge.
