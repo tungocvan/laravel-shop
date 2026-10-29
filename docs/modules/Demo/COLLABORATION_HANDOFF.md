@@ -216,3 +216,12 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - No local PHP/Node/browser tests run by GitHub connector; no TEST/UI PASS claim and no merge/deploy.
 
 - Phase 11 impacted regression user report: 10 PASS / 1 FAIL (`SharedDemoSidebarMenuTest::test_shared_assets_are_mounted_in_both_demo_views`): outdated assertion expected legacy `demo/shared/sidebar-menu/menu-builder.js`. Audited Sales/Warehouse module Blade: both load their own module-owned shared menu editor asset, with preserved data-demo-menu markers. Updated only assertion to `demo-assets/{demo}/shared/menu-editor.js` in `d6e9da94014bd21ccca011e6209104ab5f24ae14`. Re-run focused + impacted regression and verify menu UI before PASS. No application code or API changed.
+
+## Phase 12 — Product Costing checkpoint (2026-10-29)
+
+- User confirmed Demo 11 TEST + UI PASS. Branch `refactor/demo-module-product-costing-20261029` inherits accepted Demo 11. No main merge or production deploy.
+- Product costing UI, JSON datasets, Blade pages/partials, CSS, business JS and integrations JS moved into Modules/Demo. Original routes and storage keys preserved. Five themes already present; no theme behavior rewrite.
+- Focused PENDING: `php artisan test tests/Feature/DemoModuleProductCostingOwnershipTest.php`. JS syntax PENDING: `node --check Modules/Demo/resources/assets/projects/product-costing/js/app.js` and `node --check Modules/Demo/resources/assets/projects/product-costing/js/integrations.js`.
+- Impacted after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/DemoModuleWarehouseInventoryOwnershipTest.php tests/Feature/DemoModuleSalesEmployeesOwnershipTest.php`.
+- UI PENDING: desktop/tablet/iPhone, BOM, cost periods, products/materials CRUD, reports, trends, Excel/print, browser/server JSON, shared menu editor, five themes, refresh persistence, console/network.
+- Module asset allowlist preserves original URLs; web-server Laravel fallback must be checked before future deployment. No local PHP/Node/browser tests executed via GitHub connector. No TEST/UI PASS claim.
