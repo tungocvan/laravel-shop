@@ -70,3 +70,10 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Cards preview each demo's existing two palette colors, retain `hotel_uniform_theme_v1`, the existing `setTheme()` function, all five palette values and all business logic. Selected card uses `aria-pressed` and a checkmark; keyboard focus and mobile responsive grid included.
 - This new UI change has NOT been retested; focused TEST PENDING and UI PENDING for the updated commit. Run `node --check Modules/Demo/resources/assets/projects/hotel-uniform/js/integrations.js`, focused Hotel Uniform tests, then impacted regression. Check five themes on desktop/tablet/iPhone, persistence after reload, menu editor, browser console.
 - No PR, merge, production deployment or changes to other demo assets.
+
+## Phase 02 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** after the Hotel Uniform five-theme card UI update, including the previously reported two test tiers.
+- Evidence: user confirmation in collaboration chat; raw local PHPUnit logs and browser automation reports were not attached.
+- GitHub comparison against `main` showed feature branch ahead with no divergence at acceptance check.
+- Next gate: PR review and tracked working-tree check on Admin. Do not merge until explicit user approval; no production deployment.
