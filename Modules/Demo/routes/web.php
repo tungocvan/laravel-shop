@@ -137,3 +137,18 @@ Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-cong-no/datasets/{dataset}', [DebtManagementDatasetController::class, 'show'])->name('demo.debt-management.datasets.show');
     Route::post('/demo/quan-ly-cong-no/datasets', [DebtManagementDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.debt-management.datasets.store');
 });
+
+use Modules\Demo\Http\Controllers\Projects\SalesEmployees\SalesEmployeesController;
+use Modules\Demo\Http\Controllers\Projects\SalesEmployees\SalesDemoDatasetController;
+use Modules\Demo\Http\Controllers\Projects\SalesEmployees\SalesEmployeesAssetController;
+
+Route::get('/demo-assets/doanh-so-nhan-vien/{asset}', SalesEmployeesAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|shared/menu-editor\\.css|shared/menu-editor\\.js')
+    ->name('demo.sales-employees.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/doanh-so-nhan-vien', SalesEmployeesController::class)->name('demo.sales-employees');
+    Route::get('/demo/doanh-so-nhan-vien/datasets', [SalesDemoDatasetController::class, 'index'])->name('demo.sales-employees.datasets');
+    Route::get('/demo/doanh-so-nhan-vien/datasets/{dataset}', [SalesDemoDatasetController::class, 'show'])->name('demo.sales-employees.datasets.show');
+    Route::post('/demo/doanh-so-nhan-vien/datasets', [SalesDemoDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.sales-employees.datasets.store');
+});
