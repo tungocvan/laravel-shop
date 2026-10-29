@@ -32,8 +32,8 @@ final class RentalRoomManagementTest extends TestCase
                 ->assertHeader('X-Content-Type-Options', 'nosniff')
                 ->assertHeader('Cache-Control', 'public, max-age=300, must-revalidate');
             $this->assertSame(
-                file_get_contents(base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset)),
-                $response->streamedContent()
+                realpath(base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset)),
+                realpath($response->baseResponse->getFile()->getPathname())
             );
         }
         $this->assertDirectoryDoesNotExist(public_path('demo/quan-ly-phong-tro'));
