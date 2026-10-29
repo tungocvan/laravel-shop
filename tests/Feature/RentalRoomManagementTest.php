@@ -25,9 +25,25 @@ final class RentalRoomManagementTest extends TestCase
             ->assertSee('demo-assets/quan-ly-phong-tro/js/app.js')
             ->assertSee('demo-assets/quan-ly-phong-tro/js/integrations.js');
         foreach (['css/app.css','js/app.js','js/integrations.js'] as $asset) {
-            $this->assertFileExists(public_path('demo-assets/quan-ly-phong-tro/'.$asset));
+            $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset));
+            $this->assertFileDoesNotExist(public_path('demo-assets/quan-ly-phong-tro/'.$asset));
+            $response = $this->get('/demo-assets/quan-ly-phong-tro/'.$asset);
+            $response->assertOk()
+                ->assertHeader('X-Content-Type-Options', 'nosniff')
+                ->assertHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+            $this->assertSame(
+                file_get_contents(base_path('Modules/Demo/resources/assets/projects/rental-room/'.$asset)),
+                $response->streamedContent()
+            );
         }
         $this->assertDirectoryDoesNotExist(public_path('demo/quan-ly-phong-tro'));
+    }
+
+    public function test_asset_route_rejects_unknown_files_and_traversal(): void
+    {
+        $this->get('/demo-assets/quan-ly-phong-tro/js/unknown.js')->assertNotFound();
+        $this->get('/demo-assets/quan-ly-phong-tro/css/other.css')->assertNotFound();
+        $this->get('/demo-assets/quan-ly-phong-tro/config.php')->assertNotFound();
     }
 
     public function test_sidebar_menu_uses_isolated_namespace(): void

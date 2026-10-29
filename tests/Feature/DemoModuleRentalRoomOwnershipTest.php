@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Route;
+use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomAssetController;
 use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomDatasetController;
 use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomManagementController;
 use Tests\TestCase;
@@ -32,6 +33,9 @@ final class DemoModuleRentalRoomOwnershipTest extends TestCase
     {
         $this->assertTrue(view()->exists('demo::projects.rental-room.index'));
         $this->assertFileExists(base_path('Modules/Demo/resources/assets/projects/rental-room/js/app.js'));
-        $this->assertFileExists(public_path('demo-assets/quan-ly-phong-tro/js/app.js'));
+        $this->assertFileDoesNotExist(public_path('demo-assets/quan-ly-phong-tro/js/app.js'));
+        $asset = Route::getRoutes()->getByName('demo.rental-room-management.asset');
+        $this->assertNotNull($asset);
+        $this->assertSame(RentalRoomAssetController::class, $asset->getActionName());
     }
 }

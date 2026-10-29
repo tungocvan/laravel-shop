@@ -1,8 +1,13 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomAssetController;
 use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomDatasetController;
 use Modules\Demo\Http\Controllers\Projects\RentalRoom\RentalRoomManagementController;
+
+Route::get('/demo-assets/quan-ly-phong-tro/{asset}', RentalRoomAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/integrations\\.js')
+    ->name('demo.rental-room-management.asset');
 
 Route::middleware('web')->group(function (): void {
     Route::get('/demo/quan-ly-phong-tro', RentalRoomManagementController::class)->name('demo.rental-room-management');
