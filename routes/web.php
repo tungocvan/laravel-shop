@@ -11,8 +11,6 @@
 
 
 
-use App\Http\Controllers\Demo\HumanResourcesController;
-use App\Http\Controllers\Demo\HumanResourcesDatasetController;
 use App\Http\Controllers\Demo\SalesEmployeesController;
 use App\Http\Controllers\Demo\DebtManagementController;
 use App\Http\Controllers\Demo\DebtManagementDatasetController;
@@ -27,10 +25,7 @@ use Modules\System\Services\ApplicationRootRedirectService;
 
 // Attendance Payroll routes moved to Modules/Demo/routes/web.php.
 
-Route::get('/demo/quan-ly-nhan-su', HumanResourcesController::class)->name('demo.human-resources');
-Route::get('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'index'])->name('demo.human-resources.datasets');
-Route::get('/demo/quan-ly-nhan-su/datasets/{dataset}', [HumanResourcesDatasetController::class, 'show'])->name('demo.human-resources.datasets.show');
-Route::post('/demo/quan-ly-nhan-su/datasets', [HumanResourcesDatasetController::class, 'store'])->middleware('throttle:5,1')->name('demo.human-resources.datasets.store');
+// HR routes are owned by Modules/Demo.
 
 // Standalone debt management demo (one GET route, browser-only persistence).
 Route::get('/demo/quan-ly-cong-no', DebtManagementController::class)
