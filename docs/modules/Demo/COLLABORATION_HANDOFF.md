@@ -87,3 +87,10 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted regression only after focused PASS (PENDING): `php artisan test tests/Feature/HotelUniformDemoTest.php tests/Feature/DemoModuleHotelUniformOwnershipTest.php tests/Feature/DemoModuleRentalRoomOwnershipTest.php tests/Feature/SharedDemoSidebarMenuTest.php`.
 - UI PENDING: desktop/tablet/iPhone, dynamic sidebar, menu editor/presets/default preset, all screens and CRUD, JSON import/export and server snapshots, Excel, print, offline HTML export, five themes and persistence after reload, console/network errors.
 - No local tests have been executed by the GitHub connector. Do not merge main, close PR #346 or deploy production; proceed to Demo 04 only after user confirms TEST + UI PASS.
+
+## Phase 03 — User acceptance (2026-10-29)
+
+- User explicitly confirmed **TEST + UI PASS** for Equipment Maintenance after the Phase 03 Git Pull/Test checkpoint.
+- Focused, impacted regression and manual UI gates are recorded as user-confirmed PASS; raw CLI output/browser artifacts were not attached in this conversation.
+- Phase 03 is accepted for continuation, **not merged into main**. PR #346 for Phase 02 remains open and unmerged.
+- Next: audit Phase 04 demo from this accepted feature branch, preserve prior accepted changes, seek architecture approval before major changes, then stop at Git Pull/Test checkpoint.
