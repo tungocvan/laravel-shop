@@ -161,6 +161,7 @@ function openEditor(){
  overlay.append(panel);document.body.append(overlay);
  const close=()=>overlay.remove();
  let presetSelect=null;
+ let activeTab='menu';
  function field(label,value,change){
   const box=document.createElement('label');box.className='enterprise-field';box.textContent=label;
   const input=document.createElement('input');input.className='inp';input.value=value||'';input.oninput=()=>change(input.value);box.append(input);return box;
@@ -168,13 +169,31 @@ function openEditor(){
  function action(label,fn){const b=document.createElement('button');b.type='button';b.className='btn sm';b.textContent=label;b.onclick=fn;return b}
  function draw(){
   panel.replaceChildren();
-  const h=document.createElement('h3');h.textContent='Chỉnh sửa Sidebar Menu';panel.append(h);
-  const body=document.createElement('div');body.className='enterprise-editor-body';panel.append(body);
-  body.append(field('Tên ứng dụng',draft.header.title,v=>draft.header.title=v),field('Mô tả',draft.header.subtitle,v=>draft.header.subtitle=v),field('Icon header',draft.header.icon,v=>draft.header.icon=v),field('Liên kết header',draft.header.href,v=>draft.header.href=v));
-  const ft=document.createElement('h4');ft.textContent='Footer Sidebar';body.append(ft);
-  body.append(field('Ghi chú footer',draft.footer.credit,v=>draft.footer.credit=v),field('Liên kết footer (HTTPS)',draft.footer.href,v=>draft.footer.href=v));
+  const header=document.createElement('div');header.className='enterprise-editor-heading';
+  const h=document.createElement('h3');h.textContent='Chỉnh sửa menu';
+  const sub=document.createElement('p');sub.textContent='Thiết lập sidebar cho demo';
+  const closeButton=action('×',close);closeButton.setAttribute('aria-label','Đóng chỉnh sửa menu');
+  header.append(h,sub,closeButton);panel.append(header);
+  const tabs=document.createElement('div');tabs.className='enterprise-editor-tabs';tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Mục chỉnh sửa menu');panel.append(tabs);
+  const body=document.createElement('div');body.className='enterprise-editor-body';body.setAttribute('role','tabpanel');panel.append(body);
+  const panes={menu:document.createElement('div'),header:document.createElement('div'),footer:document.createElement('div'),library:document.createElement('div')};
+  Object.entries(panes).forEach(([name,pane])=>{pane.className='enterprise-editor-pane enterprise-pane-'+name;body.append(pane)});
+  const labels={menu:'Menu',header:'Header',footer:'Footer',library:'Thư viện JSON'};
+  const buttons={};
+  const selectTab=name=>{
+   activeTab=name;
+   Object.entries(panes).forEach(([id,pane])=>{pane.hidden=id!==name});
+   Object.entries(buttons).forEach(([id,button])=>{button.setAttribute('aria-selected',String(id===name));button.tabIndex=id===name?0:-1});
+   body.scrollTop=0;
+  };
+  Object.entries(labels).forEach(([name,label])=>{
+   const button=action(label,()=>selectTab(name));button.classList.add('enterprise-tab');
+   button.setAttribute('role','tab');buttons[name]=button;tabs.append(button);
+  });
+  panes.header.append(field('Tên ứng dụng',draft.header.title,v=>draft.header.title=v),field('Mô tả',draft.header.subtitle,v=>draft.header.subtitle=v),field('Icon header',draft.header.icon,v=>draft.header.icon=v),field('Liên kết header',draft.header.href,v=>draft.header.href=v));
+  panes.footer.append(field('Ghi chú footer',draft.footer.credit,v=>draft.footer.credit=v),field('Liên kết footer (HTTPS)',draft.footer.href,v=>draft.footer.href=v));
   draft.groups.forEach((g,gi)=>{
-   const group=document.createElement('div');group.className='enterprise-group';body.append(group);
+   const group=document.createElement('div');group.className='enterprise-group';panes.menu.append(group);
    group.append(field('Tên nhóm',g.title,v=>g.title=v));
    group.append(action('Nhóm lên',()=>{if(gi){[draft.groups[gi-1],draft.groups[gi]]=[draft.groups[gi],draft.groups[gi-1]];draw()}}),action('Nhóm xuống',()=>{if(gi<draft.groups.length-1){[draft.groups[gi+1],draft.groups[gi]]=[draft.groups[gi],draft.groups[gi+1]];draw()}}),action('Xóa nhóm',()=>{if(confirm('Xóa nhóm khỏi sidebar?')){draft.groups.splice(gi,1);draw()}}));
    g.items.forEach((item,ii)=>{
@@ -191,7 +210,7 @@ function openEditor(){
    group.ondrop=e=>{if(e.target.closest('.enterprise-item'))return;e.preventDefault();try{const [fromG,fromI]=JSON.parse(e.dataTransfer.getData('application/x-enterprise-menu'));const [moving]=draft.groups[fromG].items.splice(fromI,1);g.items.push(moving);draw()}catch{}};
    group.append(action('Thêm mục',()=>{g.items.push({id:'new_'+Date.now(),label:'Mục mới',icon:'list',href:'#dashboard'});draw()}));
   });
-  body.append(action('Thêm nhóm',()=>{draft.groups.push({title:'Nhóm mới',items:[]});draw()}));
+  panes.menu.append(action('+ Nhóm',()=>{draft.groups.push({title:'Nhóm mới',items:[]});draw()}));
   const footer=document.createElement('div');footer.className='enterprise-editor-actions';panel.append(footer);
   
   footer.append(action('Đóng',close),action('Khôi phục mặc định',()=>{if(confirm('Khôi phục menu mặc định?')){draft=defaultMenu();draw()}}));
@@ -201,7 +220,7 @@ function openEditor(){
   importFile.onchange=async()=>{try{const file=importFile.files[0];if(!file||file.size>65536)throw Error('File không hợp lệ hoặc vượt 64 KiB');const next=normalizeMenu(JSON.parse(await file.text()));if(confirm('Nhập JSON vào bản chỉnh sửa? Chưa ghi lên server.')){draft=next;draw()}}catch(e){messageDialog('Lỗi nhập JSON',e.message)}};
   importLabel.append(importFile);footer.append(importLabel);
   footer.append(action('Lưu lên server',async()=>{try{const config=normalizeMenu(draft);const result=await protectedMenu('','POST',{config});if(result?.ok)messageDialog('Đã lưu trên server','Sidebar dùng chung đã được lưu. Các trình duyệt khác có thể tải cấu hình này.')}catch(e){messageDialog('Không thể lưu',e.message)}}));
-  const server=document.createElement('div');server.className='enterprise-server-library';body.append(server);
+  const server=document.createElement('div');server.className='enterprise-server-library';panes.library.append(server);
   const heading=document.createElement('h4');heading.textContent='Thư viện JSON trên server';server.append(heading);
   const select=document.createElement('select');select.className='inp';server.append(select);presetSelect=select;
   const refresh=async()=>{try{const data=await requestMenu('/presets');select.replaceChildren(new Option('Chọn file JSON',''));data.presets.forEach(p=>select.add(new Option(p.name,p.id)))}catch(e){messageDialog('Không tải được thư viện',e.message)}};
@@ -211,6 +230,7 @@ function openEditor(){
   server.append(action('Ghi đè preset',async()=>{if(!select.value)return messageDialog('Chưa chọn preset','Hãy chọn file cần cập nhật.');if(!confirm('Ghi đè đúng file preset đang chọn?'))return;try{const config=normalizeMenu(draft);const result=await protectedMenu('/presets/'+encodeURIComponent(select.value),'PUT',{config});if(result?.updated)messageDialog('Đã cập nhật','Đã ghi đè đúng file preset được chọn.')}catch(e){messageDialog('Lỗi cập nhật',e.message)}}));
   server.append(action('Xóa preset',async()=>{if(!select.value)return;if(!confirm('Xóa file preset đã chọn? Menu đang áp dụng sẽ được giữ nguyên.'))return;try{const result=await protectedMenu('/presets/'+encodeURIComponent(select.value),'DELETE',{});if(result?.ok){await refresh();messageDialog('Đã xóa preset','Menu đang áp dụng không bị ảnh hưởng.')}}catch(e){messageDialog('Lỗi xóa',e.message)}}));
   refresh();
+  selectTab(activeTab);
 
   const save=action('Cập nhật giao diện',()=>{try{const next=normalizeMenu(draft);menu=next;write('sidebar_v1',JSON.stringify(next));renderMenu();close();toast('Đã cập nhật Sidebar Menu')}catch(e){alert(e.message)}});save.classList.add('pri');footer.append(save);
  }
