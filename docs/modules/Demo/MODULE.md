@@ -53,3 +53,11 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Shared module layout and module-owned menu editor are adopted; browser keys, IndexedDB, theme palettes and export functions are retained without modifying the original JS. Module allowlisted asset route preserves original browser URLs.
 - Legacy tracked files are retired, but never delete runtime/untracked files. Validate web-server fallback and stale public copies before production deployment.
 - No DB migration. Focused, impacted and UI regression pending.
+
+## Phase 05 — Daily Work Report (pending acceptance)
+
+- Canonical UI route `/demo/bao-cao-cong-viec-hang-ngay` and controller/Blade/CSS/JS/offline original HTML template moved into `Modules/Demo`; shared module layout is used.
+- Original Blade sidebar and all eight page partials remain unchanged except namespace paths. The existing shared `x-demo.sidebar-menu-builder` component and protected menu preset endpoints are reused without duplication.
+- Existing business localStorage `bccv_phongexcel_v1|daily-work-report`, IndexedDB, JSON/Excel/offline HTML export and DOM/inline event handlers are preserved. Offline HTML source remains byte-identical and is served through a strict module asset allowlist at its original URL.
+- Theme selection now uses five responsive preview cards (Màu gốc, Ruby, Ocean, Emerald, Indigo) with existing `daily_work_report_theme_v1` key; original palette matches the initial `MAU` and CSS tokens.
+- No business server JSON library was added. No migrations or production data changes. Focused/impacted/UI tests pending.
