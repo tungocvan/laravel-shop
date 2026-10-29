@@ -8,7 +8,6 @@
 // Equipment maintenance standalone demo
 
 
-use App\Http\Controllers\Demo\EnterpriseManagementReportController;
 
 
 use App\Http\Controllers\Demo\AttendancePayrollController;
@@ -107,6 +106,5 @@ Route::fallback(function (Request $request) {
     abort(404);
 });
 
-Route::get('/demo/bao-cao-quan-tri-doanh-nghiep', EnterpriseManagementReportController::class)
-    ->name('demo.enterprise-management-report');
+
 
