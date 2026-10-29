@@ -431,3 +431,30 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 .enterprise-theme-option[aria-pressed="true"] .enterprise-theme-name::before{content:'✓ ';color:var(--chu-dao)}
 @media(max-width:650px){.enterprise-themes{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:380px){.enterprise-themes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Shared-demo editor visual contract: header, tabs, scrollable panel and fixed actions. */
+.enterprise-editor:not(.enterprise-dialog){padding:0;gap:0;width:min(835px,100%);max-height:min(90dvh,760px);overflow:hidden}
+.enterprise-editor-heading{position:relative;padding:15px 48px 12px 16px;border-bottom:1px solid var(--line)}
+.enterprise-editor-heading h3{margin:0;font-size:17px}
+.enterprise-editor-heading p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.enterprise-editor-heading>.btn{position:absolute;right:15px;top:14px;min-width:30px;min-height:30px}
+.enterprise-editor-tabs{display:flex;gap:4px;align-items:end;overflow-x:auto;padding:9px 16px 0;border-bottom:1px solid var(--line);flex-shrink:0}
+.enterprise-editor-tabs .enterprise-tab{flex-shrink:0;border:1px solid var(--line);border-bottom:0;border-radius:8px 8px 0 0;padding:10px 14px;background:var(--bg);color:var(--text);font-size:13px}
+.enterprise-editor-tabs .enterprise-tab[aria-selected="true"]{background:var(--card);border-bottom:2px solid var(--chu-dao);font-weight:700}
+.enterprise-editor-tabs .enterprise-tab:focus-visible{outline:2px solid var(--chu-dao);outline-offset:-2px}
+.enterprise-editor:not(.enterprise-dialog) .enterprise-editor-body{display:block;overflow:auto;min-height:0;flex:1;padding:14px 16px}
+.enterprise-editor-pane{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px}
+.enterprise-editor-pane[hidden]{display:none!important}
+.enterprise-pane-header>.enterprise-field,.enterprise-pane-footer>.enterprise-field{flex:1 1 280px}
+.enterprise-pane-menu>.enterprise-group{flex:1 1 100%}
+.enterprise-pane-menu>.btn{margin-top:4px}
+.enterprise-pane-library>.enterprise-server-library{width:100%}
+.enterprise-editor:not(.enterprise-dialog)>.enterprise-editor-actions{padding:12px 16px;border-top:1px solid var(--line);background:var(--card);justify-content:flex-end;max-height:135px;overflow-y:auto}
+@media(max-width:700px){
+ .enterprise-editor:not(.enterprise-dialog){width:100%;max-height:95dvh}
+ .enterprise-editor-heading{padding:12px 45px 10px 12px}
+ .enterprise-editor-tabs{padding:7px 10px 0}
+ .enterprise-editor-tabs .enterprise-tab{padding:9px 11px}
+ .enterprise-editor:not(.enterprise-dialog) .enterprise-editor-body{padding:12px}
+ .enterprise-editor:not(.enterprise-dialog)>.enterprise-editor-actions{padding:10px;gap:6px}
+}
