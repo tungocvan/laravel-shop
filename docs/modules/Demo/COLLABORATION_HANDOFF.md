@@ -171,3 +171,13 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - No local PHP/Node/browser tests executed through GitHub. No PR merge, production deploy, database migration, `.env` changes or runtime snapshot changes. Static web server must fall back to Laravel for removed public asset paths; stale untracked public copies must not be deleted without permission.
 
 - **2026-10-29 acceptance:** User explicitly confirmed **TEST + UI PASS** for Demo 07 at checkpoint. Both focused and impacted test commands were provided; individual terminal output was not attached to this turn. Await PR review and explicit merge authorization; no production deployment.
+
+## Phase 08 — Human Resources checkpoint (2026-10-29)
+
+- Branch: `refactor/demo-module-human-resources-20261029` inherits accepted Demo 07 changes; PR #348 remains OPEN and unmerged. No main merge until all 12 demos accepted.
+- Rehome HR controllers, Blade, CSS/JS, routes; preserve dataset storage `demo-datasets/human-resources`, browser key `qlns_data_v2`, theme key `qlns_theme_v1`, menu API and HR dynamic department/status navigation.
+- Shared module menu editor and HR-specific bridge remain responsible for sidebar customization; added fifth theme Màu gốc without changing default Emerald or saved selections.
+- Focused test checkpoint: `php artisan test tests/Feature/HumanResourcesDemoRouteTest.php tests/Feature/DemoModuleHumanResourcesOwnershipTest.php`.
+- Impacted regression after focused PASS: `php artisan test tests/Feature/SharedDemoSidebarMenuTest.php tests/Feature/AttendancePayrollDemoTest.php tests/Feature/DemoModuleAttendancePayrollOwnershipTest.php`.
+- UI pending: desktop/tablet/iPhone, dashboard, employee CRUD, filters/pagination, menu editor and server presets, five themes, JSON import/export/server snapshots, print and console/network errors.
+- No local tests or browser UI were run through GitHub connector. No main merge or production deployment.
