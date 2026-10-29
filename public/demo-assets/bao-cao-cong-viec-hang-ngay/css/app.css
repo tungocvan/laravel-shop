@@ -360,3 +360,25 @@ textarea.cin{resize:vertical;min-height:36px;line-height:1.35}
 .daily-theme-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .daily-theme-picker button{padding:8px 12px;border:1px solid #cbd5e1;border-radius:9px;background:#fff;cursor:pointer}
 .daily-theme-picker button[aria-pressed="true"]{outline:2px solid var(--chu-dao);outline-offset:2px}
+
+/* Daily Work Report settings: match the shared demo UI pattern. */
+#page-settings>.shared-menu-entry{margin:0 0 14px;padding:16px;border:1px solid var(--line,#e2e8f0);border-radius:10px;background:#fff}
+#page-settings>.shared-menu-entry h4{margin:0 0 5px;font-size:14px}
+#page-settings>.shared-menu-entry p{margin:0 0 10px;font-size:13px;color:var(--muted,#64748b)}
+#page-settings>.daily-theme-card{margin:0 0 14px;padding:18px}
+#page-settings>.daily-theme-card h4{font-size:15px;margin:0 0 4px}
+#page-settings>.daily-theme-card p{color:var(--muted,#64748b);font-size:13px;margin:0}
+.daily-theme-picker{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
+.daily-theme-picker button{display:flex;align-items:center;gap:12px;min-height:66px;text-align:left;padding:11px;border:2px solid var(--line,#e2e8f0);border-radius:10px;background:#fff;color:var(--text,#18243a);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.daily-theme-picker button:hover{border-color:var(--chu-dao)}
+.daily-theme-picker button[aria-pressed="true"]{border-color:var(--chu-dao);outline:none;box-shadow:0 0 0 2px var(--chu-dao-nhat)}
+.daily-theme-swatch{flex:0 0 30px;width:30px;height:34px;border-radius:8px}
+.daily-theme-swatch--ruby{background:linear-gradient(135deg,#c62828 50%,#491b22 50%)}
+.daily-theme-swatch--ocean{background:linear-gradient(135deg,#087e9b 50%,#103847 50%)}
+.daily-theme-swatch--emerald{background:linear-gradient(135deg,#16835d 50%,#123c31 50%)}
+.daily-theme-swatch--indigo{background:linear-gradient(135deg,#4f46e5 50%,#1b2146 50%)}
+.daily-theme-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.daily-theme-copy strong{font-size:12px;font-weight:700}
+.daily-theme-copy small{font-size:11px;color:var(--muted,#64748b)}
+@media(max-width:950px){.daily-theme-picker{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.daily-theme-picker{grid-template-columns:1fr}}
