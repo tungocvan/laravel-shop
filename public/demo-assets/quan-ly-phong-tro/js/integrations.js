@@ -25,6 +25,7 @@ themePanel.append(themeRow);try{theme(localStorage.getItem(themeKey)||'original'
 const navItems=[...nav.querySelectorAll('a[data-page]')];
 const originalNodes=new Map(navItems.map(a=>[a.dataset.page,a]));
 const originalBadges=[...nav.querySelectorAll('[id]')].filter(x=>x.classList.contains('badge'));
+originalBadges.forEach(b=>{b.dataset.rentalPage=b.closest('a[data-page]')?.dataset.page||''});
 const badgeParking=document.createElement('div');badgeParking.hidden=true;badgeParking.setAttribute('aria-hidden','true');nav.after(badgeParking);
 const defaults={version:1,header:{title:'Quản Lý Phòng Trọ',subtitle:'Phòng · Hóa đơn · Công nợ',icon:'home',href:''},footer:{credit:'Quản lý phòng trọ',href:'',showSave:true},groups:[]};
 let current=null;
