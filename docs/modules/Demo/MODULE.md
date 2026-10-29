@@ -88,3 +88,9 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Sales employees UI/dataset controllers, modular Blade pages, CSS/JS and route ownership moved to Modules/Demo. Preserve GET /demo/doanh-so-nhan-vien and dataset endpoints, browser storage keys and operator-code protection.
 - Shared menu editor uses the existing per-demo menu API, no duplicated server persistence. Five palettes include Original plus Ruby, Ocean, Emerald and Indigo, retaining Ruby as the default.
 - Allowlisted asset route retains browser-accessible paths under /demo-assets/doanh-so-nhan-vien/. Legacy tracked source retired after copy; no database/runtime data changes.
+
+## Phase 11 — Warehouse Inventory
+
+- Canonical warehouse UI and JSON dataset API moved to Modules/Demo. All original /demo/quan-ly-xuat-nhap-ton routes, dataset operator-code security, localStorage, stock calculations and exports preserved.
+- Module-owned CSS/JS are served by an allowlisted asset route at /demo-assets/quan-ly-xuat-nhap-ton. Shared menu editor remains integrated through the existing shared menu API.
+- Five selectable palettes: Original, Indigo (unchanged default), Ruby, Ocean, Emerald. Tracked legacy copies retired after migration. No DB or production changes.
