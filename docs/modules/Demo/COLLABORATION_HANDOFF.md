@@ -110,3 +110,10 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - User reported `CoffeeShopSalesDemoTest::test_assets_do_not_shadow_route` failed: old assertion expected `public/demo-assets/quan-ly-ban-hang-ca-phe/js/app.js` after intentional move to module-owned assets. Focused run: 1 failed, 9 passed (42 assertions); regression not yet run.
 - Root cause: stale test contract, not proof of broken browser JS. Updated test to assert module source exists, old public copy is absent, and allowlisted browser asset URL returns 200 with `nosniff`.
 - Focused and impacted regression must be rerun. UI PASS must be confirmed after correction. No merge or deployment.
+
+## Phase 04 — Coffee Shop theme UI adjustment (2026-10-29)
+
+- User supplied screenshot of Coffee Shop Settings and requested theme preview cards matching previous demos and removal of the separate `Giao diện & thư viện JSON server` card.
+- Replaced the Coffee Shop theme selector with five responsive palette preview cards (Màu gốc, Ruby, Ocean, Emerald, Indigo), `aria-pressed`, keyboard focus and persistent existing `coffee_shop_sales_theme_v1` key. Existing four nondefault CSS palettes remain unchanged; original uses base CSS variables.
+- Removed only the redundant Coffee Shop Settings server JSON library UI from `integrations.js`. Existing server dataset API/controller and private saved files are preserved for backward compatibility and data safety. Shared menu editor/preset JSON remains untouched; menu preset JSON and business dataset JSON have different meanings.
+- Added focused source contract test. Previous tests/UI (if any) are superseded for changed assets: syntax, focused, impacted regression and user-confirmed UI PENDING. No merge or production changes.
