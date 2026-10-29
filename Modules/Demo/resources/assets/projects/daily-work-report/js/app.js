@@ -1014,6 +1014,7 @@ function boot(){
 
 /* Optional appearance: separate localStorage key, no business-data changes. */
 const DAILY_THEMES={
+ original:['#283593','#1f2973','#3d4dc6','#eff0fb','#161a37'],
  ruby:['#c62828','#941e1e','#e04b4b','#fff0f0','#491b22'],
  ocean:['#087e9b','#075f75','#25a4c1','#e7f7fa','#103847'],
  emerald:['#16835d','#106446','#32a77d','#e8f8f0','#123c31'],
@@ -1021,8 +1022,8 @@ const DAILY_THEMES={
 };
 const DAILY_THEME_KEY='daily_work_report_theme_v1';
 function dailyApplyTheme(theme){
- const v=DAILY_THEMES[theme]||DAILY_THEMES.indigo;
- const r=document.documentElement.style;
+ if(!Object.prototype.hasOwnProperty.call(DAILY_THEMES,theme))theme='original';
+ const v=DAILY_THEMES[theme],r=document.documentElement.style;
  [['--chu-dao',v[0]],['--chu-dao-dam',v[1]],['--chu-dao-sang',v[2]],['--chu-dao-nhat',v[3]],['--sb',v[4]]].forEach(([k,x])=>r.setProperty(k,x));
  MAU.chu=v[0];MAU.dam=v[1];MAU.sang=v[2];MAU.nhat=v[3];MAU.sb=v[4];
  try{localStorage.setItem(DAILY_THEME_KEY,theme)}catch(e){}
@@ -1034,13 +1035,13 @@ renderSettings=function(){
  originalDailyRenderSettings();
  const page=document.querySelector('#page-settings');if(!page)return;
  const box=document.createElement('div');box.className='card daily-theme-card';
- box.innerHTML='<h4>Giao diện & màu sắc</h4><p>Chọn một trong 4 theme. Màu được áp dụng ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu báo cáo.</p><div class="daily-theme-picker" role="group" aria-label="Chọn theme">'+
- Object.keys(DAILY_THEMES).map(k=>'<button type="button" data-daily-theme="'+k+'" aria-pressed="false"><span class="daily-theme-swatch daily-theme-swatch--'+k+'" aria-hidden="true"></span><span class="daily-theme-copy"><strong>'+({ruby:'Đỏ Ruby',ocean:'Xanh Ocean',emerald:'Xanh Emerald',indigo:'Tím Indigo'}[k])+'</strong><small>'+(k==='indigo'?'Mặc định':'Đổi màu giao diện')+'</small></span></button>').join('')+'</div>';
+ box.innerHTML='<h4>Màu sắc giao diện</h4><p>Chọn một trong 5 giao diện. Lựa chọn được lưu trên trình duyệt.</p><div class="daily-theme-picker" role="group" aria-label="Chọn theme">'+
+ Object.keys(DAILY_THEMES).map(k=>'<button type="button" data-daily-theme="'+k+'" aria-pressed="false"><span class="daily-theme-swatch daily-theme-swatch--'+k+'" aria-hidden="true"></span><span class="daily-theme-copy"><strong>'+({original:'Màu gốc',ruby:'Ruby',ocean:'Ocean',emerald:'Emerald',indigo:'Indigo'}[k])+'</strong></span></button>').join('')+'</div>';
  page.querySelector('.shared-menu-entry')?.insertAdjacentElement('afterend',box);
  box.querySelectorAll('[data-daily-theme]').forEach(b=>b.addEventListener('click',()=>dailyApplyTheme(b.dataset.dailyTheme)));
- let selected='indigo';try{selected=localStorage.getItem(DAILY_THEME_KEY)||selected}catch(e){}
- box.querySelectorAll('[data-daily-theme]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dailyTheme===selected)));
+ let selected='original';try{selected=localStorage.getItem(DAILY_THEME_KEY)||selected}catch(e){}
+ dailyApplyTheme(selected);
 };
-try{dailyApplyTheme(localStorage.getItem(DAILY_THEME_KEY)||'indigo')}catch(e){dailyApplyTheme('indigo')}
+try{dailyApplyTheme(localStorage.getItem(DAILY_THEME_KEY)||'original')}catch(e){dailyApplyTheme('original')}
 
 boot();
