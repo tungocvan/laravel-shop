@@ -199,3 +199,6 @@ Route::prefix('/demo/{demo}/menu')->group(function () {
     Route::put('/presets/{preset}', [SharedSidebarMenuController::class, 'updatePreset'])->middleware('throttle:5,1')->where('demo', 'bao-cao-quan-tri-doanh-nghiep|bao-cao-cong-viec-hang-ngay|quan-ly-ban-hang-ca-phe|tinh-gia-thanh-san-pham|quan-ly-thiet-bi-bao-tri|quan-ly-dong-phuc-khach-san|quan-ly-phong-tro');
 });
 });
+
+// Central navigation hub for all Demo applications.
+Route::get('/demo', \Modules\Demo\Http\Controllers\DemoHubController::class)->middleware('web')->name('demo.hub');
