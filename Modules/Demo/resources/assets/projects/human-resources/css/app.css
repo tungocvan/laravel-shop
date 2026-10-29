@@ -273,3 +273,17 @@
 .sidebar .side-foot b{color:#fff}
 .sidebar .side-foot small{color:var(--side-muted)}
 .sidebar nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25)}
+
+/* Original palette reproduces the pre-theme light sidebar. */
+.hr-original-theme .sidebar{background:var(--side);border-right:1px solid var(--line)}
+.hr-original-theme .sidebar .brand b,.hr-original-theme .sidebar .side-foot b{color:var(--text)}
+.hr-original-theme .sidebar .brand small,.hr-original-theme .sidebar .side-foot small{color:var(--muted)}
+.hr-original-theme .sidebar .item{color:var(--side-text)}
+.hr-original-theme .sidebar .item:hover{background:var(--side-2);color:var(--text)}
+.hr-original-theme .sidebar .item.active{background:var(--soft);color:var(--primary);box-shadow:none}
+.hr-original-theme .sidebar .sec{color:var(--muted)}
+.hr-original-theme .sidebar .item .cnt{background:#f1f5f9;color:var(--muted)}
+.hr-original-theme .sidebar .side-foot{background:var(--side-2);border-color:transparent}
+.hr-theme-grid button{min-height:74px}
+.hr-theme-grid button i{width:44px;height:28px;border-radius:8px;display:block;border:1px solid rgba(0,0,0,.08)}
+@media(max-width:600px){.hr-theme-grid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}}
