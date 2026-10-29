@@ -38,3 +38,12 @@
 - Cấu hình sidebar version 1, header/footer/groups, localStorage key `enterprise_management_report_sidebar_v1`. Browser-local ưu tiên khi đã tùy chỉnh; GET server áp dụng nếu browser chưa có bản riêng. Import server chỉ áp dụng local, không ghi đè menu active trên server.
 - Handoff test: `tests/Feature/EnterpriseManagementReportMenuTest.php` (auth, 422, 409, private storage, preset isolation). Regression cross-demo cần kiểm tra vì SharedSidebarMenuController được thay đổi.
 - **Chưa xác nhận** PHP tests, JS syntax, browser UI hoặc tương thích các demo khác. Chỉ ghi PASS khi có kết quả thực tế. Không merge/deploy.
+
+## Phase 06 — Demo module migration (2026-10-29)
+
+- Branch `refactor/demo-module-enterprise-management-report-20261029` inherits user-accepted Demo 05 and all prior migrations; main remains unmerged.
+- Controller: `Modules/Demo/Http/Controllers/Projects/EnterpriseManagementReport/`; Blade: `Modules/Demo/resources/views/projects/enterprise-management-report/`; CSS/JS/preferences/original offline HTML: `Modules/Demo/resources/assets/projects/enterprise-management-report/`.
+- UI and browser asset URLs unchanged, using a strict allowlisted asset controller. Offline original HTML is preserved; dynamic sidebar and server-backed menu preset workflow remain unchanged.
+- Theme UI now offers five responsive palette preview cards including original, retaining the previous localStorage key.
+- Focused tests: `php artisan test tests/Feature/EnterpriseManagementReportDemoTest.php tests/Feature/EnterpriseManagementReportPreferencesTest.php tests/Feature/DemoModuleEnterpriseManagementReportOwnershipTest.php`. Impacted and manual UI pending.
+- No production deployment or main merge.
