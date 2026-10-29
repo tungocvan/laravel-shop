@@ -365,3 +365,61 @@ td.amt{font-weight:700;text-align:right;white-space:nowrap}
 .cin.sel{padding:6px 6px;text-align:left;font-weight:600}
 @media (min-width:1700px){#heat{display:grid;grid-template-columns:1fr 1fr;column-gap:34px}#heat .hm-row{grid-template-columns:190px 1fr 90px}#heat .hm-row:nth-last-child(2){border-bottom:0}}
 @media (max-width:760px){.hm-row{grid-template-columns:1fr}.hm-v{text-align:left}}
+
+/* Hotel Uniform theme cards — scoped to settings, preserves existing palette variables. */
+#uniformThemePanel > .muted { margin: 6px 0 0; font-size: 12px; }
+#uniformThemePanel .uniform-theme-options {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+#uniformThemePanel .uniform-theme-option {
+  appearance: none;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: stretch;
+  transition: border-color .15s, box-shadow .15s;
+}
+#uniformThemePanel .uniform-theme-option:hover { border-color: var(--chu-dao); }
+#uniformThemePanel .uniform-theme-option[aria-pressed="true"] {
+  border: 2px solid var(--chu-dao);
+  padding: 5px;
+  box-shadow: 0 0 0 1px var(--chu-dao-nhat, transparent);
+}
+#uniformThemePanel .uniform-theme-option:focus-visible {
+  outline: 3px solid var(--chu-dao);
+  outline-offset: 3px;
+}
+#uniformThemePanel .uniform-theme-swatch {
+  display: block;
+  height: 31px;
+  width: 100%;
+  border-radius: 5px;
+  background: linear-gradient(125deg, var(--theme-dark) 0 37%, var(--theme-light) 37% 100%);
+}
+#uniformThemePanel .uniform-theme-name {
+  display: block;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+#uniformThemePanel .uniform-theme-option[aria-pressed="true"] .uniform-theme-name::before {
+  content: '✓ ';
+  color: var(--chu-dao);
+}
+@media (max-width: 650px) {
+  #uniformThemePanel .uniform-theme-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 380px) {
+  #uniformThemePanel .uniform-theme-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
