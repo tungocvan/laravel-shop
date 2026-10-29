@@ -71,3 +71,15 @@ Route::get('/demo-assets/bao-cao-cong-viec-hang-ngay/{asset}', DailyWorkReportAs
 Route::middleware('web')->group(function (): void {
     Route::get('/demo/bao-cao-cong-viec-hang-ngay', DailyWorkReportController::class)->name('demo.daily-work-report');
 });
+
+use Modules\Demo\Http\Controllers\Projects\EnterpriseManagementReport\EnterpriseManagementReportController;
+use Modules\Demo\Http\Controllers\Projects\EnterpriseManagementReport\EnterpriseManagementReportAssetController;
+
+Route::get('/demo-assets/bao-cao-quan-tri-doanh-nghiep/{asset}', EnterpriseManagementReportAssetController::class)
+    ->where('asset', 'css/app\\.css|js/app\\.js|js/preferences\\.js|original\\.html')
+    ->name('demo.enterprise-management-report.asset');
+
+Route::middleware('web')->group(function (): void {
+    Route::get('/demo/bao-cao-quan-tri-doanh-nghiep', EnterpriseManagementReportController::class)
+        ->name('demo.enterprise-management-report');
+});
