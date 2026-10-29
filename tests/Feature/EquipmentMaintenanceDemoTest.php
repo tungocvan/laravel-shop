@@ -27,6 +27,12 @@ final class EquipmentMaintenanceDemoTest extends TestCase
         }
     }
 
+    public function test_shared_menu_endpoints_are_registered(): void
+    {
+        $this->get('/demo/quan-ly-thiet-bi-bao-tri/menu')->assertOk()->assertJsonStructure(['config']);
+        $this->get('/demo/quan-ly-thiet-bi-bao-tri/menu/presets')->assertOk()->assertJsonStructure(['presets']);
+    }
+
     public function test_snapshot_routes_require_backup_code(): void
     {
         config()->set('warehouse_demo.backup_code', 'testing-equipment-secret-123');
