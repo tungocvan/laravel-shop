@@ -8,12 +8,6 @@
 // Equipment maintenance standalone demo
 
 
-// Daily Work Report standalone demo
-Route::get(
-    '/demo/bao-cao-cong-viec-hang-ngay',
-    \App\Http\Controllers\Demo\DailyWorkReportController::class
-)->name('demo.daily-work-report');
-
 use App\Http\Controllers\Demo\EnterpriseManagementReportController;
 
 
