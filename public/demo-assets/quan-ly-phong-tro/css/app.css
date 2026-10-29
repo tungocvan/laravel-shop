@@ -433,3 +433,25 @@ td.bl{border-left:1px solid #ece8f1}
 .rental-theme-choice[aria-pressed="true"] .rental-theme-label:before{content:'✓ ';color:var(--choice-color)}
 @media(max-width:700px){.rental-theme-options{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:380px){.rental-theme-options{grid-template-columns:1fr}}
+
+
+/* Sidebar editor modal, scoped to rental demo only. */
+body.rental-menu-open{overflow:hidden}
+.rental-menu-overlay[hidden],.rental-menu-pane[hidden]{display:none!important}
+.rental-menu-overlay{position:fixed;inset:0;z-index:9999;background:rgba(16,18,27,.64);display:flex;align-items:center;justify-content:center;padding:20px}
+.rental-menu-dialog{width:min(850px,100%);max-height:min(82vh,850px);display:flex;flex-direction:column;background:var(--card);color:var(--text);border-radius:14px;box-shadow:0 22px 65px rgba(0,0,0,.24);overflow:hidden}
+.rental-menu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line)}
+.rental-menu-head h3{font-size:17px;margin:0}
+.rental-menu-head p{font-size:12px;color:var(--muted);margin:4px 0 0}
+.rental-menu-close{width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:22px;cursor:pointer}
+.rental-menu-tabs{display:flex;gap:5px;padding:8px 16px 0;border-bottom:1px solid var(--line);overflow-x:auto;flex-shrink:0}
+.rental-menu-tab{border:1px solid var(--line);border-bottom:0;background:var(--bg);border-radius:7px 7px 0 0;padding:10px 14px;white-space:nowrap;cursor:pointer}
+.rental-menu-tab[aria-selected="true"]{background:var(--card);border-bottom:2px solid var(--chu-dao);font-weight:700}
+.rental-menu-content{padding:16px;overflow:auto;flex:1;min-height:0}
+.rental-menu-pane{min-height:140px}
+.rental-menu-pane .inp{max-width:100%}
+.rental-menu-pane>div{max-width:100%}
+.rental-menu-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--line);flex-shrink:0}
+.rental-menu-actions span{font-size:12px;color:var(--muted)}
+.rental-menu-actions button{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:9px 18px;cursor:pointer}
+@media(max-width:700px){.rental-menu-overlay{padding:8px}.rental-menu-dialog{max-height:94dvh;border-radius:10px}.rental-menu-content{padding:10px}.rental-menu-tabs{padding-left:8px}.rental-menu-tab{padding:9px 11px}.rental-menu-actions{flex-wrap:wrap}}
