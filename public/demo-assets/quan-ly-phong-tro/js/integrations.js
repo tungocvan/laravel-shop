@@ -41,7 +41,7 @@ let current=null;
 for(const child of nav.children){if(child.tagName==='H6'){current={title:child.textContent.trim(),items:[]};defaults.groups.push(current)}else if(child.matches('a[data-page]')){if(!current){current={title:'Điều hướng',items:[]};defaults.groups.push(current)}const id=child.dataset.page;current.items.push({id,label:child.textContent.trim()||id,icon:'menu',href:'#'+id})}}
 const validMenu=m=>m&&m.version===1&&Array.isArray(m.groups)&&m.groups.length<=20&&m.groups.every(g=>typeof g.title==='string'&&Array.isArray(g.items)&&g.items.every(i=>/^[a-z0-9_-]{1,64}$/.test(i.id)&&typeof i.label==='string'&&/^(#[a-z0-9_-]{1,64}|https:\/\/[a-z0-9.-]+\/?.*)$/i.test(i.href)));
 let menu=defaults;try{const saved=JSON.parse(localStorage.getItem(menuKey));if(validMenu(saved))menu=saved}catch(_){}
-const sidebar=document.getElementById('sb'),brandTitle=sidebar?.querySelector('.brand b'),brandSubtitle=document.getElementById('sbName'),brandIcon=sidebar?.querySelector('.brand .logo'),footerElement=sidebar?.querySelector('.sbfoot'),saveButton=document.querySelector('[onclick*="saveToFile"],[onclick*="saveData"]');
+const sidebar=document.getElementById('sb'),brandTitle=sidebar?.querySelector('.brand b'),brandSubtitle=document.getElementById('sbName'),brandIcon=sidebar?.querySelector('.brand .logo'),footerElement=sidebar?.querySelector('.sbfoot'),saveButton=document.getElementById('saveBtn');
 const originalBrandIcon=brandIcon?.innerHTML||'';
 function applyShell(){
  if(brandTitle)brandTitle.textContent=menu.header.title;
