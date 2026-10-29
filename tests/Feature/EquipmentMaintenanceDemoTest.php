@@ -33,6 +33,27 @@ final class EquipmentMaintenanceDemoTest extends TestCase
         $this->get('/demo/quan-ly-thiet-bi-bao-tri/menu/presets')->assertOk()->assertJsonStructure(['presets']);
     }
 
+
+    public function test_json_menu_preset_can_be_selected_as_server_default(): void
+    {
+        Storage::fake('local');
+        config()->set('warehouse_demo.backup_code', 'testing-equipment-secret-123');
+        $config=[
+            'version'=>1,
+            'header'=>['title'=>'Thiết bị','subtitle'=>'Bảo trì','icon'=>'menu','href'=>'#dashboard'],
+            'footer'=>['credit'=>'','href'=>'','showSave'=>false],
+            'groups'=>[['title'=>'Tổng quan','items'=>[['id'=>'dashboard','label'=>'Dashboard','icon'=>'link','href'=>'#dashboard']]]],
+        ];
+        $path='demo-settings/equipment-maintenance/presets/sample-menu.json';
+        Storage::disk('local')->put($path, json_encode(['name'=>'Sample menu','config'=>$config]));
+        $url='/demo/quan-ly-thiet-bi-bao-tri/menu';
+        $this->putJson($url.'/presets/sample-menu/default')->assertForbidden();
+        $this->putJson($url.'/presets/sample-menu/default', [], ['X-Demo-Backup-Code'=>'testing-equipment-secret-123'])->assertOk()->assertJsonPath('defaultId','sample-menu');
+        $this->getJson($url.'/presets')->assertOk()->assertJsonPath('defaultId','sample-menu');
+        $this->getJson($url)->assertOk()->assertJsonPath('config.header.title','Thiết bị');
+        $this->deleteJson($url.'/presets/sample-menu', [], ['X-Demo-Backup-Code'=>'testing-equipment-secret-123'])->assertStatus(409);
+    }
+
     public function test_snapshot_routes_require_backup_code(): void
     {
         config()->set('warehouse_demo.backup_code', 'testing-equipment-secret-123');
