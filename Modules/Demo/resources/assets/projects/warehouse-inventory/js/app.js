@@ -21,7 +21,7 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const TODAY=new Date(), TODAYS=ymd(TODAY);
 const PALETTE=['#4f46e5','#16a36a','#f0663a','#8b5cf6','#e6a100','#0ea5b7','#e0384a','#64748b'];
 const WAREHOUSE_THEME_KEY='warehouse_inventory_theme_v1';
-const WAREHOUSE_THEME_ACCENTS={indigo:'#4f46e5',ruby:'#c62828',ocean:'#087e9b',emerald:'#16835d'};
+const WAREHOUSE_THEME_ACCENTS={original:'#4f46e5',indigo:'#4f46e5',ruby:'#c62828',ocean:'#087e9b',emerald:'#16835d'};
 let WAREHOUSE_ACTIVE_THEME='indigo';
 function applyWarehouseTheme(theme,persistPreference=false){
   if(!Object.prototype.hasOwnProperty.call(WAREHOUSE_THEME_ACCENTS,theme))theme='indigo';
