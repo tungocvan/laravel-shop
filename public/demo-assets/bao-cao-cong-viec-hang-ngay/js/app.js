@@ -957,7 +957,7 @@ function impTemplate(k){const t=T(k),cols=t.cols.filter(c=>c.type!=='calc');
 const co=()=>S.company||{};
 function renderSettings(){
   const el=$('#page-settings'),c=co(),size=JSON.stringify(S).length;
-  el.innerHTML=`<div class="set-grid">
+  el.innerHTML=`<div class="shared-menu-entry"><h4>Sidebar menu</h4><p>Chỉnh sửa nhóm, mục, header/footer và thư viện JSON riêng cho demo này.</p><button type="button" class="btn pri" data-open-menu>Chỉnh sửa menu</button></div><div class="set-grid">
    <div class="card"><div class="set-ic" style="background:#e9ebf1;color:var(--sb)">${IC.save}</div><h4>Lưu trong trình duyệt</h4><p>Lưu dữ liệu trong trình duyệt. Dùng Sao lưu JSON để chuyển thiết bị. Phím tắt Ctrl + S.</p><button class="btn save" onclick="saveToFile()">Lưu dữ liệu</button> <button class="btn sm" onclick="exportOfflineHtml()">Xuất HTML offline</button></div>
    <div class="card"><div class="set-ic" style="background:var(--chu-dao-nhat);color:var(--chu-dao)">${IC.xls}</div><h4>Xuất toàn bộ ra Excel</h4><p>Tải một file .xlsx, mỗi bảng dữ liệu và báo cáo là một sheet, có tiêu đề màu, số là số.</p><button class="btn pri" onclick="exportAll()">Xuất Excel</button></div>
    <div class="card"><div class="set-ic" style="background:var(--inbg);color:var(--in)">${IC.dl}</div><h4>Sao lưu dữ liệu</h4><p>Tải toàn bộ dữ liệu về một file .json để cất giữ riêng, phòng khi file bị hỏng.</p><button class="btn" onclick="backup()">Tải file sao lưu</button></div>
@@ -1033,10 +1033,10 @@ const originalDailyRenderSettings=renderSettings;
 renderSettings=function(){
  originalDailyRenderSettings();
  const page=document.querySelector('#page-settings');if(!page)return;
- const box=document.createElement('div');box.className='card';box.style.marginTop='16px';
- box.innerHTML='<h4>Giao diện màu sắc</h4><p>Chọn một trong bốn theme. Cài đặt này độc lập với dữ liệu báo cáo.</p><div class="daily-theme-picker" role="group" aria-label="Chọn theme">'+
- Object.keys(DAILY_THEMES).map(k=>'<button type="button" data-daily-theme="'+k+'" aria-pressed="false">'+({ruby:'Ruby',ocean:'Ocean',emerald:'Emerald',indigo:'Indigo'}[k])+'</button>').join('')+'</div>';
- page.appendChild(box);
+ const box=document.createElement('div');box.className='card daily-theme-card';
+ box.innerHTML='<h4>Giao diện & màu sắc</h4><p>Chọn một trong 4 theme. Màu được áp dụng ngay và lưu riêng trên trình duyệt, không ảnh hưởng dữ liệu báo cáo.</p><div class="daily-theme-picker" role="group" aria-label="Chọn theme">'+
+ Object.keys(DAILY_THEMES).map(k=>'<button type="button" data-daily-theme="'+k+'" aria-pressed="false"><span class="daily-theme-swatch daily-theme-swatch--'+k+'" aria-hidden="true"></span><span class="daily-theme-copy"><strong>'+({ruby:'Đỏ Ruby',ocean:'Xanh Ocean',emerald:'Xanh Emerald',indigo:'Tím Indigo'}[k])+'</strong><small>'+(k==='indigo'?'Mặc định':'Đổi màu giao diện')+'</small></span></button>').join('')+'</div>';
+ page.querySelector('.shared-menu-entry')?.insertAdjacentElement('afterend',box);
  box.querySelectorAll('[data-daily-theme]').forEach(b=>b.addEventListener('click',()=>dailyApplyTheme(b.dataset.dailyTheme)));
  let selected='indigo';try{selected=localStorage.getItem(DAILY_THEME_KEY)||selected}catch(e){}
  box.querySelectorAll('[data-daily-theme]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dailyTheme===selected)));
