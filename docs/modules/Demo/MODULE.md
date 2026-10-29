@@ -69,3 +69,10 @@ Regression: focused route, dataset, shared-menu and UI checks. Rollback through 
 - Browser localStorage and business reports remain unchanged. Offline HTML export uses the byte-preserved original template, served through an allowlisted module asset route at its existing browser URL.
 - Five responsive theme preview cards including Màu gốc; existing `enterprise_management_report_theme_v1` key retained, and previously selected themes remain compatible.
 - Legacy tracked public sources retired. No DB migrations or production/runtime data changes. Focused/impacted/UI regression pending.
+
+## Phase 08 — Human Resources
+
+- Rehome Human Resources UI/dataset controllers, Blade, CSS/JS and routes into Modules/Demo. Preserve /demo/quan-ly-nhan-su, dataset API, localStorage keys and private JSON snapshot storage.
+- Keep the existing HR sidebar bridge because it reconstructs dynamic department/status navigation. Adopt module-owned shared menu editor without duplicating shared server menu persistence.
+- Add the original light palette alongside Ruby/Ocean/Emerald/Indigo; existing theme selections remain compatible.
+- Asset URLs remain stable through a strict allowlisted module route. No database migration or production/runtime data modifications. Acceptance pending.
