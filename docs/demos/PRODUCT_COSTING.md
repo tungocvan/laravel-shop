@@ -38,3 +38,12 @@
 - Automated checks added for startup state handling, company persistence markers, and removal of duplicate snapshot UI. These are source-level regression checks, not a substitute for browser testing.
 - Gate: focused tests and impacted regression must be rerun on updated branch. UI remains **FAIL / PENDING RECHECK** until the user verifies the repaired behavior on desktop, tablet and iPhone.
 - Rollback: revert the remediation commits on the feature branch if needed. Preserve localStorage and server snapshots; no production changes.
+
+## Pre-merge closeout — 2026-10-29
+
+- Final UI remediation commit: `02e99c8be3a9e632fdeaf82adbab348ebcfde67f` (embedded HTML literal repaired).
+- User confirmed **TEST + UI PASS** after applying the fix, including the previously blank application screen. This confirmation is manual and does not substitute for a CI run.
+- PR #340 review/merge authorized explicitly by the user. Scope remains standalone Product Costing demo; no production deploy.
+- Local Admin tracked tree was clean at the last reported checkpoint; unrelated untracked backup and Windows metadata files remain untouched.
+- Full suite: NOT APPLICABLE — focused and impacted regression strategy.
+- Next: merge PR #340 if GitHub merge gates pass; then synchronize local main with `git pull --ff-only` and verify merge commit.
