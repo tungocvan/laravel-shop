@@ -649,3 +649,12 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 
 - Draft PR #321 reviewed; discovered that imported Excel candidates were retained in registry results and could be selected in review, improperly upgrading unverified Excel data. Backend review now explicitly rejects candidates whose source is `excel_import`; Excel import/display/export remain unchanged.
 - Focused contract guard added. This is a new code change after prior operator TEST/UI PASS, so rerun focused and impacted tests before merging. PR remains draft, no merge/deploy.
+
+
+## 2026-10-30 — Optional Pharma legal lookup migration boundary
+
+- Root cause: global `database/migrations/2026_10_21_000001_create_pharma_official_source_legal_lookups_table.php` referenced `pharma_official_source_facilities`, whose parent migration belongs to the disabled-by-default Pharma module. Fresh migration on a clone with Pharma disabled failed with MySQL 1824.
+- Fix: move the migration unchanged to `Modules/Pharma/database/migrations/` while preserving its filename and migration-history identity. No schema definition, application logic, or runtime module toggle changed.
+- Focused test: `tests/Feature/PharmaLegalLookupMigrationBoundaryTest.php` asserts module ownership and parent-before-child ordering.
+- Validation evidence from disposable clone `tungocvan/laravel-law`: focused tests 2 passed (5 assertions); operator confirmed `migrate:fresh` and `db:seed` PASS; module bootstrap/catalog/state resolver regression 11 passed (45 assertions). These results are not tests executed on this `laravel-shop` feature branch.
+- Next checkpoint: pull this branch, run focused test, then relevant module regression; verify Git tracked changes and PR. Do not run `migrate:fresh` on production or non-disposable databases; no merge/deploy without explicit approval.
