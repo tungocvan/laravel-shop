@@ -36,3 +36,11 @@ test('Copies only Git-tracked remote main into fresh history and checks destinat
   assert.match(source, /remote_count/);
   assert.doesNotMatch(source, /git push --force/);
 });
+
+test('Allows conventional env example templates without allowing actual env files', () => {
+  assert.match(source, /! -name '\\.env.example'/);
+  assert.match(source, /! -name '\\.env.\\*.example'/);
+  assert.match(source, /-name '\\.env' -o -name '\\.env.\\*'/);
+  assert.match(source, /-name '\\*.pem'/);
+  assert.match(source, /-name 'auth.json'/);
+});
