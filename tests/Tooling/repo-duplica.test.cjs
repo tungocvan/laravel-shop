@@ -111,3 +111,49 @@ test('V3 accepts exactly one owner/name separator for duplicate and delete input
     assert.equal(result.status === 0, valid, name + ': ' + result.stderr);
   }
 });
+
+test('V3 interactive duplication accepts pasted owner/name with terminal artifacts', () => {
+  const os = require('node:os');
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-duplica-v3-'));
+  try {
+    const gh = path.join(temp, 'gh');
+    fs.writeFileSync(gh, '#!/usr/bin/env bash\nif [[ "$1 $2" == "auth status" ]]; then exit 0; fi\nif [[ "$1 $2 $3" == "api user --jq" ]]; then echo tungocvan; exit 0; fi\nexit 1\n', { mode: 0o700 });
+    const env = { ...process.env, PATH: temp + path.delimiter + process.env.PATH };
+    for (const inputName of [
+      'tungocvan/laravel-inafo',
+      'tungocvan/laravel-inafo\r',
+      '  tungocvan/laravel-inafo  ',
+      '\u001b[200~tungocvan/laravel-inafo\u001b[201~',
+    ]) {
+      const input = '2\n' + inputName + '\ntungocvan/ntd\n1\n1\n\n0\n';
+      for (const entry of [script, menuScript]) {
+        const result = spawnSync('bash', [entry], { input, env, encoding: 'utf8', timeout: 5000 });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stdout, /Destination repository \(name or owner\/name\):/, inputName);
+        assert.doesNotMatch(result.stdout, /Invalid source repository/, inputName);
+        assert.match(result.stdout, /Mode \[1=Dry Run/, inputName);
+      }
+    }
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
+
+test('V3 interactive deletion accepts owner/name but never deletes without confirmation', () => {
+  const os = require('node:os');
+  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-duplica-v3-delete-'));
+  try {
+    const gh = path.join(temp, 'gh');
+    fs.writeFileSync(gh, '#!/usr/bin/env bash\nif [[ "$1 $2" == "auth status" ]]; then exit 0; fi\nif [[ "$1" == "api" && "$2" == "repos/tungocvan/laravel-inafo" ]]; then exit 1; fi\nif [[ "$1" == "api" && "$2" == "-X" ]]; then exit 99; fi\nexit 1\n', { mode: 0o700 });
+    const result = spawnSync('bash', [menuScript], {
+      input: '3\ntungocvan/laravel-inafo\r\n\n0\n',
+      env: { ...process.env, PATH: temp + path.delimiter + process.env.PATH },
+      encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Cannot inspect repository; no deletion performed/);
+    assert.doesNotMatch(result.stdout, /Invalid repository name/);
+  } finally {
+    fs.rmSync(temp, { recursive: true, force: true });
+  }
+});
