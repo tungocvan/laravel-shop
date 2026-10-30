@@ -13,8 +13,8 @@ test('Bash syntax is valid', () => {
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('Rejects missing arguments and equal repository names before network calls', () => {
-  for (const args of [[], ['laravel-shop', 'laravel-shop'], ['../unsafe', 'laravel-inafo']]) {
+test('Rejects invalid or equal repository names before network calls', () => {
+  for (const args of [['laravel-shop', 'laravel-shop'], ['../unsafe', 'laravel-inafo'], ['laravel-shop']]) {
     const result = spawnSync('bash', [script, ...args], { encoding: 'utf8' });
     assert.notEqual(result.status, 0, args.join(' '));
   }
@@ -28,7 +28,8 @@ test('Requires explicit confirmation and defaults to private', () => {
 });
 
 test('Copies only Git-tracked remote main into fresh history and checks destination', () => {
-  assert.match(source, /git clone --quiet --depth 1 --single-branch/);
+  assert.match(source, /clone --quiet --depth 1 --single-branch/);
+  assert.ok(source.includes('credential.helper="!gh auth git-credential"'));
   assert.match(source, /git -C "\$tmpdir\/source" archive HEAD/);
   assert.match(source, /git -C "\$tmpdir\/new" init --quiet -b main/);
   assert.match(source, /rev-list --count HEAD/);
