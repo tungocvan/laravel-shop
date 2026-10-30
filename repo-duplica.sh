@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
-# V2: Duplicate a GitHub repository with fresh history and authenticated HTTPS push.
+# V3: Interactive GitHub manager plus V2 fresh-history HTTPS duplication.
 # Usage: bash repo-duplica.sh <source-name> <destination-name> [--dry-run] [--public]
 set -Eeuo pipefail
+
+# Backward-compatible CLI: no arguments launches the interactive V3 menu.
+if [[ $# -eq 0 ]]; then
+  exec bash "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/scripts/repo-duplica-menu.sh"
+fi
 
 usage() {
   printf 'Usage: bash %s <source-name> <destination-name> [--dry-run] [--public]\n' "${0##*/}"
