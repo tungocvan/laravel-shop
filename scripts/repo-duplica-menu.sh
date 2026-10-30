@@ -8,7 +8,7 @@ pause_menu() { printf '\nPress Enter to return to menu... '; IFS= read -r _ || t
 valid_repo() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$ ]]; }
 valid_owner() { [[ "$1" =~ ^[A-Za-z0-9][A-Za-z0-9-]{0,38}$ ]]; }
 valid_full_repo() {
-  [[ "$1" == */* && "$1" != */*/* ]] || return 1
+  [[ "$1" == */* ]] && [[ "${1#*/}" != */* ]] || return 1
   local o="${1%%/*}" n="${1#*/}"
   valid_owner "$o" && valid_repo "$n"
 }
