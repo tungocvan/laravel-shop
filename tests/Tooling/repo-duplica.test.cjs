@@ -91,3 +91,23 @@ test('V3 preserves CLI compatibility and never deletes on duplication failure', 
   assert.ok(menuSource.includes('gh auth switch --hostname github.com'));
   assert.doesNotMatch(source, /gh api -X DELETE/);
 });
+
+test('V3 accepts exactly one owner/name separator for duplicate and delete inputs', () => {
+  const validators = menuSource
+    .replace(/^ROOT_DIR=.*$/m, 'ROOT_DIR=/tmp')
+    .replace(/^main "\\$@"\\s*$/m, '');
+  for (const [name, valid] of [
+    ['tungocvan/laravel-inafo', true],
+    ['vhdtshop-ux/laravel-demo', true],
+    ['tungocvan/laravel-demo', true],
+    ['tungocvan/repo/extra', false],
+    ['/laravel-inafo', false],
+    ['tungocvan/', false],
+    ['tungocvan//repo', false],
+    ['../unsafe', false],
+    ['laravel-inafo', false],
+  ]) {
+    const result = spawnSync('bash', ['-c', validators + '\\nvalid_full_repo "$1"', 'validator', name], { encoding: 'utf8' });
+    assert.equal(result.status === 0, valid, name + ': ' + result.stderr);
+  }
+});
