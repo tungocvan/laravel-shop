@@ -1,4 +1,4 @@
-# Fresh-history GitHub repository duplication
+# Fresh-history GitHub repository duplication (V2)
 
 ## Scope
 
@@ -21,7 +21,7 @@ bash repo-duplica.sh laravel-shop laravel-inafo
 bash repo-duplica.sh laravel-shop laravel-inafo --public
 ```
 
-The source's default branch must be `main`. Destination must not already exist. The script uses a private temporary directory, clones the remote `main` shallowly, exports **tracked** content with `git archive`, initializes a fresh Git repository, creates one commit and calls `gh repo create --source . --remote origin --push`. It verifies the remote `main` SHA and that the destination has one commit.
+The source's default branch must be `main`. Destination must not already exist. The script uses a private temporary directory, clones the remote `main` shallowly, exports **tracked** content with `git archive`, initializes a fresh Git repository, creates one commit and creates the destination with `gh repo create`, then pushes `main` over HTTPS using scoped `gh auth git-credential` authentication. This avoids the SSH identity mismatch seen during the `laravel-inafo` creation and does not change global Git settings. It verifies the remote `main` SHA and that the destination has one commit.
 
 ### Safety and limitations
 
@@ -29,7 +29,7 @@ The source's default branch must be `main`. Destination must not already exist. 
 - The script rejects common tracked secret filenames (`.env`, `.env.*` except conventional `.env.example` / `.env.*.example` templates, private keys, `auth.json`), but this is **not a comprehensive secret scan**. Example templates remain included and their contents must also be reviewed. Inspect the tracked snapshot for embedded tokens, customer information, hard-coded credentials and public assets before creating a new repository.
 - Private is the default. `--public` is an explicit disclosure decision.
 - A destination already present causes a safe abort; no force push, history rewrite or deletion is performed.
-- If GitHub creation succeeds but push or verification fails, the destination may remain partially created. **The script never automatically deletes it.** Inspect it manually before retrying.
+- If GitHub creation succeeds but push or verification fails, the destination may remain partially created. V2 deliberately stops and does not automatically retry into an existing repository; inspect its actual refs and recover manually after review. **The script never automatically deletes it.** Inspect it manually before retrying.
 - Temporary clones are cleaned automatically; the script does not remove existing files from the working repository.
 - After duplication, review project-specific URLs, branding, README, CI secrets, remote environment configuration and licensing before deploying the new project.
 
@@ -47,10 +47,11 @@ For an optional live test, run `--dry-run` first. **Do not run the actual creati
 
 ## Handoff
 
-- Branch: `feat/repo-duplica-fresh-history-20261030`
-- Source base: `main` `582191875828384d599ba2bd353ba0c4d63c357c`
-- Focused test: previous checkpoint 4/4 PASS; updated security regression PENDING re-test
-- Tooling regression: previous checkpoint PASS; updated dry-run PENDING re-test
+- V1 merged in PR #352; `tungocvan/laravel-inafo` recovered successfully over HTTPS with one initial commit.
+- V2 branch: `fix/repo-duplica-v2-https-20261030`
+- Source base: latest GitHub `main` at branch creation.
+- Focused test: V2 PENDING user checkpoint
+- Tooling regression: V2 PENDING user checkpoint
 - UI/module regression: NOT APPLICABLE (standalone CLI tooling)
-- GitHub destination creation: NOT EXECUTED / requires explicit command and confirmation
+- V2 destination creation: NOT EXECUTED / requires explicit command and confirmation
 - Merge/deploy: NOT AUTHORIZED
