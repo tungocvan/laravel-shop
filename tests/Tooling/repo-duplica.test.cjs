@@ -38,9 +38,9 @@ test('Copies only Git-tracked remote main into fresh history and checks destinat
 });
 
 test('Allows conventional env example templates without allowing actual env files', () => {
-  assert.match(source, /! -name '\\.env.example'/);
-  assert.match(source, /! -name '\\.env.\\*.example'/);
-  assert.match(source, /-name '\\.env' -o -name '\\.env.\\*'/);
-  assert.match(source, /-name '\\*.pem'/);
-  assert.match(source, /-name 'auth.json'/);
+  assert.ok(source.includes("! -name '.env.example'"));
+  assert.ok(source.includes("! -name '.env.*.example'"));
+  assert.ok(source.includes("-name '.env' -o -name '.env.*'"));
+  assert.ok(source.includes("-name '*.pem'"));
+  assert.ok(source.includes("-name 'auth.json'"));
 });
