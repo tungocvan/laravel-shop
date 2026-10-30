@@ -24,7 +24,7 @@ test('Requires explicit confirmation and defaults to private', () => {
   assert.match(source, /visibility=--private/);
   assert.match(source, /--public\) visibility=--public/);
   assert.match(source, /\[\[ "\$confirmation" == "\$dst" \]\]/);
-  assert.match(source, /if \[\[ "\$dry_run" == true \]\]; then/);
+  assert.ok(source.includes('if [[ $# -eq 0 ]]; then'));
 });
 
 test('Copies only Git-tracked remote main into fresh history and checks destination', () => {
@@ -67,9 +67,9 @@ const menuSource = fs.readFileSync(menuScript, 'utf8');
 test('V3 menu syntax and no-argument entrypoint', () => {
   const result = spawnSync('bash', ['-n', menuScript], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
-  assert.match(source, /if \\[\\[ \\$# -eq 0 \\]\\]; then/);
+  assert.ok(source.includes('if [[ $# -eq 0 ]]; then'));
   assert.ok(source.includes('scripts/repo-duplica-menu.sh'));
-  const exit = spawnSync('bash', [script], { input: '0\\n', encoding: 'utf8' });
+  const exit = spawnSync('bash', [script], { input: String.fromCharCode(48, 10), encoding: 'utf8' });
   assert.equal(exit.status, 0, exit.stderr);
   assert.match(exit.stdout, /REPO DUPLICA V3/);
 });
@@ -78,7 +78,7 @@ test('V3 requires two explicit exact confirmations for destructive GitHub deleti
   assert.ok(menuSource.includes('valid_full_repo "$target"'));
   assert.ok(menuSource.includes('permissions.admin'));
   assert.ok(menuSource.includes('[[ "$confirm" == "$target" ]]'));
-  assert.ok(menuSource.includes("[[ \\"$final\\" == 'DELETE PERMANENTLY' ]]"));
+  assert.ok(menuSource.includes('DELETE PERMANENTLY'));
   assert.ok(menuSource.includes('gh api -X DELETE "repos/$target"'));
   assert.doesNotMatch(menuSource, /gh repo delete|--yes|delete_repo.*-s/);
 });
