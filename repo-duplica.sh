@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Duplicate a GitHub repository as an independent repository with ONE fresh commit.
+# V2: Duplicate a GitHub repository with fresh history and authenticated HTTPS push.
 # Usage: bash repo-duplica.sh <source-name> <destination-name> [--dry-run] [--public]
 set -Eeuo pipefail
 
@@ -54,7 +54,7 @@ tmpdir=$(mktemp -d)
 cleanup() { rm -f -- "$errfile"; rm -rf -- "$tmpdir"; }
 trap cleanup EXIT
 info "Source: $src ($branch); destination: $dst; visibility: ${visibility#--}; dry-run: $dry_run"
-git clone --quiet --depth 1 --single-branch --branch "$branch" "https://github.com/$src.git" "$tmpdir/source"
+git -c credential.helper= -c credential.helper="!gh auth git-credential" clone --quiet --depth 1 --single-branch --branch "$branch" "https://github.com/$src.git" "$tmpdir/source"
 source_sha=$(git -C "$tmpdir/source" rev-parse HEAD)
 mkdir "$tmpdir/new"
 git -C "$tmpdir/source" archive HEAD | tar -xf - -C "$tmpdir/new"
@@ -88,15 +88,17 @@ printf 'Type the destination name (%s) to create and push: ' "$dst"
 IFS= read -r confirmation || die 'Confirmation cancelled.'
 [[ "$confirmation" == "$dst" ]] || die 'Confirmation did not match. Nothing created.'
 
-# This creates the destination; a later push failure may leave an empty repository.
-# Do not automatically delete it, to avoid destructive cleanup.
+# Create first, then push over HTTPS using the active gh account (never SSH).
+# No global git config or SSH keys are modified.
+# A failure leaves the destination intact for explicit, reviewed recovery.
 info "Creating $dst..."
-(
-  cd "$tmpdir/new"
-  gh repo create "$dst" "$visibility" --source . --remote origin --push
-) || die "Create/push failed. Check GitHub for $dst before retrying; nothing is auto-deleted."
+gh repo create "$dst" "$visibility" || die "Repository creation failed. Check $dst before retrying."
+git -C "$tmpdir/new" remote add origin "https://github.com/$dst.git"
+info "Pushing initial commit via authenticated HTTPS..."
+git -C "$tmpdir/new" -c credential.helper= -c credential.helper="!gh auth git-credential" push -u origin main ||
+  die "Push failed; $dst may be empty. Do not rerun or delete it. Inspect GitHub and recover with a reviewed procedure."
 
-remote_sha=$(git -C "$tmpdir/new" ls-remote origin refs/heads/main | cut -f1)
+remote_sha=$(git -C "$tmpdir/new" -c credential.helper= -c credential.helper="!gh auth git-credential" ls-remote origin refs/heads/main | cut -f1)
 [[ "$remote_sha" == "$commit_sha" ]] || die 'Remote main SHA mismatch. Inspect destination manually.'
 remote_count=$(gh api "repos/$dst/commits?per_page=2" --jq 'length') || die 'Cannot verify destination commit count.'
 [[ "$remote_count" == 1 ]] || die "Destination history check failed: expected 1 commit, found $remote_count."
