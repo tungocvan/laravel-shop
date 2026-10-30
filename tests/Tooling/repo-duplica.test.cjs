@@ -60,3 +60,33 @@ test('V2 does not automatically delete or overwrite partially created destinatio
   assert.ok(source.includes('Do not rerun or delete it'));
   assert.ok(source.includes('remote_count'));
 });
+
+const menuScript = path.resolve(__dirname, '../../scripts/repo-duplica-menu.sh');
+const menuSource = fs.readFileSync(menuScript, 'utf8');
+
+test('V3 menu syntax and no-argument entrypoint', () => {
+  const result = spawnSync('bash', ['-n', menuScript], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(source, /if \\[\\[ \\$# -eq 0 \\]\\]; then/);
+  assert.ok(source.includes('scripts/repo-duplica-menu.sh'));
+  const exit = spawnSync('bash', [script], { input: '0\\n', encoding: 'utf8' });
+  assert.equal(exit.status, 0, exit.stderr);
+  assert.match(exit.stdout, /REPO DUPLICA V3/);
+});
+
+test('V3 requires two explicit exact confirmations for destructive GitHub deletion', () => {
+  assert.ok(menuSource.includes('valid_full_repo "$target"'));
+  assert.ok(menuSource.includes('permissions.admin'));
+  assert.ok(menuSource.includes('[[ "$confirm" == "$target" ]]'));
+  assert.ok(menuSource.includes("[[ \\"$final\\" == 'DELETE PERMANENTLY' ]]"));
+  assert.ok(menuSource.includes('gh api -X DELETE "repos/$target"'));
+  assert.doesNotMatch(menuSource, /gh repo delete|--yes|delete_repo.*-s/);
+});
+
+test('V3 preserves CLI compatibility and never deletes on duplication failure', () => {
+  assert.ok(menuSource.includes('bash "$ROOT_DIR/repo-duplica.sh"'));
+  assert.ok(menuSource.includes('args+=(--dry-run)'));
+  assert.ok(menuSource.includes('gh auth login --hostname github.com'));
+  assert.ok(menuSource.includes('gh auth switch --hostname github.com'));
+  assert.doesNotMatch(source, /gh api -X DELETE/);
+});
