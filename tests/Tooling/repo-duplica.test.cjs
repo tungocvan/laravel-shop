@@ -44,3 +44,19 @@ test('Allows conventional env example templates without allowing actual env file
   assert.ok(source.includes("-name '*.pem'"));
   assert.ok(source.includes("-name 'auth.json'"));
 });
+
+test('V2 uses scoped GitHub CLI HTTPS credentials without SSH or global changes', () => {
+  assert.ok(source.includes('gh repo create "$dst" "$visibility"'));
+  assert.ok(source.includes('remote add origin "https://github.com/$dst.git"'));
+  assert.ok(source.includes('credential.helper="!gh auth git-credential"'));
+  assert.ok(source.includes('push -u origin main'));
+  assert.doesNotMatch(source, /gh repo create[^\\n]*--push/);
+  assert.doesNotMatch(source, /gh auth setup-git/);
+  assert.doesNotMatch(source, /git push --force|push --force/);
+});
+
+test('V2 does not automatically delete or overwrite partially created destinations', () => {
+  assert.ok(source.includes('Destination already exists: $dst'));
+  assert.ok(source.includes('Do not rerun or delete it'));
+  assert.ok(source.includes('remote_count'));
+});
