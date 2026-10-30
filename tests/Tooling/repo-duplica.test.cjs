@@ -134,7 +134,7 @@ test('V3 interactive duplication reaches destination and dry-run without network
     assert.match(result.stdout, /Destination repository \(name or owner\/name\):/, name);
     assert.doesNotMatch(result.stdout, /Invalid source repository/, name);
     assert.match(result.stdout, /Mode \[1=Dry Run/, name);
-    assert.match(result.stdout, /MOCK DUPLICATION: laravel-inafo laravel-ntd --public --dry-run/, name);
+    assert.match(result.stdout, /MOCK DUPLICATION: \\S*repo-duplica\\.sh laravel-inafo laravel-ntd --public --dry-run/, name);
   }
 });
 
