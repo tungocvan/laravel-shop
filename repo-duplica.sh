@@ -28,7 +28,7 @@ done
 valid_name='^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$'
 [[ "$source_name" =~ $valid_name && "$dest_name" =~ $valid_name ]] || die 'Repository names must be simple names, not paths or URLs.'
 [[ "$source_name" != "$dest_name" ]] || die 'Source and destination must differ.'
-for tool in git gh mktemp tar grep; do command -v "$tool" >/dev/null 2>&1 || die "Missing dependency: $tool"; done
+for tool in git gh mktemp tar grep find; do command -v "$tool" >/dev/null 2>&1 || die "Missing dependency: $tool"; done
 gh auth status >/dev/null 2>&1 || die 'Run gh auth login first.'
 owner=$(gh api user --jq .login) || die 'Cannot identify authenticated GitHub user.'
 [[ -n "$owner" ]] || die 'GitHub account name is empty.'
@@ -59,11 +59,12 @@ source_sha=$(git -C "$tmpdir/source" rev-parse HEAD)
 mkdir "$tmpdir/new"
 git -C "$tmpdir/source" archive HEAD | tar -xf - -C "$tmpdir/new"
 
-# Block common credential-bearing files even if they were tracked in source.
-# This is NOT a complete secrets scanner; operator must review source before sharing.
-sensitive=$(find "$tmpdir/new" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'auth.json' -o -name 'id_rsa*' -o -name 'id_ed25519*' -o -name '*.p12' -o -name '*.pfx' \) -print)
+# Reject tracked credentials by filename, but preserve conventional Laravel templates.
+# Templates are still reviewed as code and are NOT proof that contents are secret-free.
+sensitive=$(find "$tmpdir/new" -type f \( -name '.env' -o -name '.env.*' -o -name '*.pem' -o -name '*.key' -o -name 'auth.json' -o -name 'id_rsa*' -o -name 'id_ed25519*' -o -name '*.p12' -o -name '*.pfx' \) \
+  ! -name '.env.example' ! -name '.env.*.example' -print)
 if [[ -n "$sensitive" ]]; then
-  printf 'Potentially sensitive tracked files found; no destination created:\n%s\n' "$sensitive" >&2
+  printf 'Potentially sensitive tracked files found; no destination created:\\n%s\\n' "$sensitive" >&2
   die 'Review source and exclusions before retrying.'
 fi
 
