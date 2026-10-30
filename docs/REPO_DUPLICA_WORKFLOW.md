@@ -33,6 +33,31 @@ The source's default branch must be `main`. Destination must not already exist. 
 - Temporary clones are cleaned automatically; the script does not remove existing files from the working repository.
 - After duplication, review project-specific URLs, branding, README, CI secrets, remote environment configuration and licensing before deploying the new project.
 
+## V3 interactive menu
+
+Run `bash repo-duplica.sh` without arguments to open the menu. Existing two-argument V2 CLI commands remain supported.
+
+1. **Check connection:** `gh auth status`, current API account and Git protocol.
+2. **Duplicate:** prompt for source/destination, Dry Run by default, Private by default, then invoke the V2 HTTPS duplication implementation. Currently source and destination must be owned by the active GitHub account.
+3. **DELETE a real GitHub repository:** requires an exact `owner/repository`, successful metadata inspection, admin permission, typing the exact repository name, then typing `DELETE PERMANENTLY`. Calls `gh api -X DELETE repos/owner/repository` only after all gates. GitHub may additionally require `delete_repo` OAuth scope; the tool does **not** elevate permissions automatically. **This is irreversible for the purposes of this tool.** It deletes the actual GitHub repository, not a local folder.
+4. **Account:** view status, login and switch accounts via interactive GitHub CLI. Never display or store tokens in this script.
+
+No bulk deletion, no `--yes`, no automatic deletion after push failure. **Do not test deletion against a real repository.** Run on an Admin/development machine, never Production.
+
+### V3 checkpoint
+
+```bash
+bash -n repo-duplica.sh
+bash -n scripts/repo-duplica-menu.sh
+node --test tests/Tooling/repo-duplica.test.cjs
+printf '0\\n' | bash repo-duplica.sh
+bash repo-duplica.sh laravel-inafo laravel-demo --dry-run
+git diff --check
+git status --short --branch
+```
+
+V3 is built on the V2 feature branch and must not merge independently before its base is merged or reviewed. The tests are pending user execution; no real repository deletion or creation has been run for V3.
+
 ## Verification gates
 
 ```bash
