@@ -15,8 +15,17 @@ valid_full_repo() {
 # Normalize terminal paste artifacts only at the input boundary. Never normalize
 # destructive confirmation phrases: they must match exactly.
 clean_repo_input() {
-  local value="$1"
-  value="${value#"
+  local value="$1" paste_start paste_end
+  printf -v paste_start '%b' '\033[200~'
+  printf -v paste_end '%b' '\033[201~'
+  value="${value#"$paste_start"}"
+  value="${value%"$paste_end"}"
+  value="${value%$'\r'}"
+  value="${value#"${value%%[![:space:]]*}"}"
+  value="${value%"${value##*[![:space:]]}"}"
+  printf '%s' "$value"
+}
+current_owner() { gh api user --jq .login; }
 require_auth() {
   command -v gh >/dev/null 2>&1 || { say 'Missing GitHub CLI (gh).'; return 1; }
   gh auth status >/dev/null 2>&1 || { say 'Not authenticated. Choose menu 4 to log in.'; return 1; }
