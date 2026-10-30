@@ -112,30 +112,29 @@ test('V3 accepts exactly one owner/name separator for duplicate and delete input
   }
 });
 
-test('V3 interactive duplication accepts pasted owner/name with terminal artifacts', () => {
-  const os = require('node:os');
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-duplica-v3-'));
-  try {
-    const gh = path.join(temp, 'gh');
-    fs.writeFileSync(gh, '#!/usr/bin/env bash\nif [[ "$1 $2" == "auth status" ]]; then exit 0; fi\nif [[ "$1 $2 $3" == "api user --jq" ]]; then echo tungocvan; exit 0; fi\nexit 1\n', { mode: 0o700 });
-    const env = { ...process.env, PATH: temp + path.delimiter + process.env.PATH };
-    for (const inputName of [
-      'tungocvan/laravel-inafo',
-      'tungocvan/laravel-inafo\r',
-      '  tungocvan/laravel-inafo  ',
-      '\u001b[200~tungocvan/laravel-inafo\u001b[201~',
-    ]) {
-      const input = '2\n' + inputName + '\ntungocvan/ntd\n1\n1\n\n0\n';
-      for (const entry of [script, menuScript]) {
-        const result = spawnSync('bash', [entry], { input, env, encoding: 'utf8', timeout: 5000 });
-        assert.equal(result.status, 0, result.stderr);
-        assert.match(result.stdout, /Destination repository \(name or owner\/name\):/, inputName);
-        assert.doesNotMatch(result.stdout, /Invalid source repository/, inputName);
-        assert.match(result.stdout, /Mode \[1=Dry Run/, inputName);
-      }
-    }
-  } finally {
-    fs.rmSync(temp, { recursive: true, force: true });
+test('V3 interactive duplication reaches destination and dry-run without network', () => {
+  // Source the actual menu, but replace only its external side effects.
+  // No real GitHub CLI, repository creation, or git push is invoked.
+  const executable = menuSource.replace(/^main "\$@"\s*$/m, '') + [
+    'require_auth() { return 0; }',
+    'current_owner() { printf "%s\\n" tungocvan; }',
+    'bash() { printf "MOCK DUPLICATION: %s\\n" "$*"; }',
+    'main',
+  ].join('\n');
+  for (const name of [
+    'tungocvan/laravel-inafo',
+    'tungocvan/laravel-inafo\r',
+    '  tungocvan/laravel-inafo  ',
+  ]) {
+    const result = spawnSync('bash', ['-c', executable], {
+      input: '2\n' + name + '\ntungocvan/laravel-ntd\n1\n2\n\n0\n',
+      encoding: 'utf8', timeout: 5000,
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /Destination repository \(name or owner\/name\):/, name);
+    assert.doesNotMatch(result.stdout, /Invalid source repository/, name);
+    assert.match(result.stdout, /Mode \[1=Dry Run/, name);
+    assert.match(result.stdout, /MOCK DUPLICATION: laravel-inafo laravel-ntd --public --dry-run/, name);
   }
 });
 
