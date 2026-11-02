@@ -26,6 +26,16 @@
         </div>
     </header>
 
+    @if($errors->any())
+        <div role="alert" class="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p class="font-semibold">Không thể thực hiện thao tác:</p>
+            <ul class="mt-1 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        </div>
+    @endif
+    @if(session('success'))
+        <div role="status" class="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+    @endif
+
     <form method="GET" id="document-filters" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         @if($type === 'issue')
         <div class="flex flex-wrap items-center gap-3 xl:flex-nowrap">
