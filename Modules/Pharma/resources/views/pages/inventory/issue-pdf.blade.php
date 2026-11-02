@@ -74,7 +74,9 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <p class="small muted">Các mặt hàng dưới đây là nhu cầu đặt hàng, chưa xuất kho và không tính vào tổng giá trị thực xuất.</p>
 <table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc</th><th>ĐVT</th><th>SL đặt</th><th>SL thực xuất</th><th>Lý do / Ngày dự kiến</th>@if($settings->show_total_value)<th>Giá trị chờ</th>@endif</tr></thead><tbody>
 @foreach($deferredItems as $item)
-@php $deferred=$issue->deferredSupplies->first(fn($row)=>(int)$row->medicine_id===(int)$item->medicine_id); @endphp
+@php
+    $deferred = $issue->deferredSupplies->first(fn ($row) => (int) $row->medicine_id === (int) $item->medicine_id);
+@endphp
 <tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine?->medicine_code }}</td><td>{{ $item->medicine?->name }}</td><td>{{ $item->medicine?->unit ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td><td class="right">0</td><td>Chưa có hàng@if(filled($deferred?->note))<br>{{ $deferred->note }}@endif @if($deferred?->expected_supply_date)<br>Dự kiến: {{ $deferred->expected_supply_date->format('d/m/Y') }}@endif</td>@if($settings->show_total_value)<td class="right">{{ number_format((float)$item->quantity*(float)$item->unit_price,0,',','.') }}</td>@endif</tr>
 @endforeach
 </tbody></table>
