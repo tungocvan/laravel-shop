@@ -105,7 +105,7 @@ final class InventoryIssueDocumentService
 
     private function canonicalIssue(InventoryIssue $issue): InventoryIssue
     {
-        return $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
+        return $issue->loadMissing(['items.medicine','deferredSupplies','manager:id,name','priceList.manager']);
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
@@ -114,11 +114,16 @@ final class InventoryIssueDocumentService
             'id'=>$item->id,'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,
             'expiry_date'=>$item->expiry_date?->format('Y-m-d'),'quantity'=>(string)$item->quantity,'unit_price'=>(string)$item->unit_price,
         ])->values()->all();
+        $deferred=$issue->deferredSupplies->map(fn($row)=>[
+            'id'=>$row->id,'medicine_id'=>$row->medicine_id,'quantity'=>(string)$row->quantity,
+            'note'=>$row->note,'status'=>$row->status,
+            'expected_supply_date'=>$row->expected_supply_date?->format('Y-m-d'),
+        ])->values()->all();
         return hash('sha256',json_encode([
             'issue'=>['id'=>$issue->id,'number'=>$issue->number,'issue_date'=>$issue->issue_date?->format('Y-m-d'),
                 'recipient_name'=>$issue->recipient_name,'manager_user_id'=>$issue->manager_user_id,'price_list_id'=>$issue->price_list_id,
                 'issue_source'=>$issue->issue_source,'notes'=>$issue->notes,'status'=>$issue->status],
-            'items'=>$items,'settings'=>$settings->toArray(),
+            'items'=>$items,'deferred_supplies'=>$deferred,'settings'=>$settings->toArray(),
         ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     }
 }
