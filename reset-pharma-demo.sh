@@ -49,6 +49,7 @@ $tables = [
     'pharma_inventory_issue_items',
     'pharma_inventory_receipt_items',
     'pharma_inventory_transactions',
+    'pharma_inventory_cost_adjustments',
     'pharma_inventory_balances',
     'pharma_inventory_issues',
     'pharma_inventory_receipts',
