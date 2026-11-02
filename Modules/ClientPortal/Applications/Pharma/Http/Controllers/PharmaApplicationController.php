@@ -1792,7 +1792,13 @@ final class PharmaApplicationController extends Controller
         $data['lot_balances'] = $lotInput['lot_balances'] ?? [];
         $data['draft_shortage_notes'] = $lotInput['draft_shortage_notes'] ?? [];
         $data['draft_expected_supply_dates'] = $lotInput['draft_expected_supply_dates'] ?? [];
-        $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
+        try {
+            $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return redirect()->back()
+                ->withInput($request->except(['_token']))
+                ->withErrors($exception->errors());
+        }
 
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
     }
