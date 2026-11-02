@@ -13,6 +13,7 @@
     $currentSource = old('source', $editing && ($issue->issue_source ?? 'normal') === 'bid' ? 'bid' : 'price_list');
     $currentByMedicine = $editing ? $issue->items->keyBy('medicine_id') : collect();
     $currentByAllocation = $editing ? $issue->items->whereNotNull('drug_bid_award_allocation_id')->keyBy('drug_bid_award_allocation_id') : collect();
+    $formatQty = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, '.', ''), '0'), '.');
     $money = fn($value) => number_format((float)$value, 0, ',', '.').' đ';
 @endphp
 <div class="min-w-0 max-w-full bg-slate-50 pb-6" data-order-authoring>
@@ -127,25 +128,19 @@
    @foreach($priceLists as $pl) @foreach($pl->items as $item) @php $current=((int)($issue?->price_list_id ?? 0)===(int)$pl->id) ? $currentByMedicine->get($item->medicine_id) : null; @endphp
    <article data-price-item data-item-id="{{ $item->id }}" data-price-list="{{ $pl->id }}" data-search="{{ mb_strtolower(($item->medicine?->name ?? '').' '.($item->medicine?->medicine_code ?? '').' '.($item->medicine?->active_ingredient ?? '')) }}" data-name="{{ $item->medicine?->name }}" data-meta="{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }} · {{ $money($item->company_sale_price) }}" data-price="{{ (float)$item->company_sale_price }}" class="{{ $current && (float)$current->quantity>0 ? '' : 'hidden' }} min-w-0 rounded-2xl border border-slate-200 bg-white px-3 py-3">
     <div class="flex min-w-0 items-center gap-3">
-     <div class="min-w-0 flex-1"><p class="truncate text-sm font-black">{{ $item->medicine?->name }}</p><div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500"><span>{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</span><span class="font-bold text-slate-700">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-xs font-black" placeholder="0"><span class="whitespace-nowrap">Thành tiền: <strong data-line-total class="text-slate-950">0 đ</strong></span></div></div>
+     <div class="min-w-0 flex-1"><p class="truncate text-sm font-black">{{ $item->medicine?->name }}</p><div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500"><span>{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</span><span class="font-bold text-slate-700">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current ? $formatQty($current->quantity) : null) }}" inputmode="decimal" class="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-xs font-black" placeholder="0"><span class="whitespace-nowrap">Thành tiền: <strong data-line-total class="text-slate-950">0 đ</strong></span></div></div>
      <button data-remove-product type="button" class="flex h-8 shrink-0 items-center rounded-lg px-2 text-[11px] font-black text-rose-600 hover:bg-rose-50">Xóa</button>
     </div>
     @if($editing && $currentSource === 'price_list')
      <label class="mt-3 block text-xs font-bold text-slate-600">Lô / hạn dùng (phiếu nháp)
-      <select name="lot_balances[{{ $item->medicine_id }}]" class="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-xs">
+      <select name="lot_balances[{{ $item->medicine_id }}]" data-lot-select class="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-xs">
        <option value="">Chưa phân lô — kiểm tra lại khi duyệt/ghi sổ</option>
        @foreach($availableLots->where('medicine_id', $item->medicine_id) as $lot)
-        <option value="{{ $lot->id }}" @selected((int) old('lot_balances.'.$item->medicine_id, ($current && $current->batch_number === $lot->batch_number && $current->expiry_date?->toDateString() === $lot->expiry_date?->toDateString()) ? $lot->id : 0) === (int) $lot->id)>{{ $lot->batch_number }} · HSD {{ $lot->expiry_date?->format('d/m/Y') }} · Tồn {{ number_format((float) $lot->quantity_on_hand, 3, ',', '.') }}</option>
+        <option value="{{ $lot->id }}" data-stock="{{ (float) $lot->quantity_on_hand }}" @selected((int) old('lot_balances.'.$item->medicine_id, ($current && $current->batch_number === $lot->batch_number && $current->expiry_date?->toDateString() === $lot->expiry_date?->toDateString()) ? $lot->id : 0) === (int) $lot->id)>{{ $lot->batch_number }} · HSD {{ $lot->expiry_date?->format('d/m/Y') }} · Tồn {{ $formatQty($lot->quantity_on_hand) }}</option>
        @endforeach
       </select>
      </label>
-     @php
-      $medicineLots = $availableLots->where('medicine_id', $item->medicine_id);
-      $hasSufficientLot = $medicineLots->contains(fn ($lot) => (float) $lot->quantity_on_hand >= (float) ($current?->quantity ?? 0));
-     @endphp
-     @if($current && !$hasSufficientLot)
-      <p class="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Chưa có lô đủ số lượng yêu cầu và còn hạn dùng. Cần ghi rõ lý do thiếu hàng; ghi chú không thay thế điều kiện xuất kho.</p>
-     @endif
+     <p data-stock-warning role="status" aria-live="polite" class="mt-2 hidden rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900"></p>
      <label class="mt-3 block text-xs font-bold text-slate-600">Ghi chú thiếu hàng / chưa phân lô
       <textarea name="draft_shortage_notes[{{ $item->medicine_id }}]" rows="2" maxlength="2000" placeholder="Ví dụ: Chưa có lô đủ tồn, dự kiến bổ sung ngày..." class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">{{ old('draft_shortage_notes.'.$item->medicine_id, $current?->draft_shortage_note) }}</textarea>
       <span class="mt-1 block text-[11px] font-normal text-slate-500">Bắt buộc khi chưa chọn lô và không có lô đủ tồn. Ghi chú được lưu theo từng thuốc trên phiếu nháp.</span>
@@ -276,6 +271,18 @@ document.addEventListener('DOMContentLoaded',()=>{
  bidProductToggle?.addEventListener('click',()=>{if(bidProductToggle.disabled)return;const open=bidProductPanel.classList.contains('hidden');closeBidPickers();if(open){bidProductPanel.classList.remove('hidden');renderBidProducts();setTimeout(()=>bidSearch.focus(),0);}});bidSearch?.addEventListener('input',renderBidProducts);
  document.addEventListener('click',e=>{if(bidInvestorBox&&!bidInvestorBox.contains(e.target))bidInvestorPanel?.classList.add('hidden');if(bidPartnerBox&&!bidPartnerBox.contains(e.target))bidPartnerPanel?.classList.add('hidden');if(bidProductBox&&!bidProductBox.contains(e.target))bidProductPanel?.classList.add('hidden');});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBidPickers();});
  bidItems.forEach(el=>el.querySelector('[data-quantity]')?.addEventListener('input',()=>{renderBidSelected();summary();}));hydrateBidContext();
+ const formatQty=(v)=>Number(v).toLocaleString('vi-VN',{maximumFractionDigits:3});
+ const refreshStockWarnings=()=>{document.querySelectorAll('[data-price-item]').forEach(card=>{
+  const input=card.querySelector('[data-quantity]'),select=card.querySelector('[data-lot-select]'),warning=card.querySelector('[data-stock-warning]');
+  if(!input||!select||!warning)return;
+  const requested=Number(input.value),stocks=[...select.options].filter(o=>o.value).map(o=>Number(o.dataset.stock)||0);
+  const maxStock=stocks.length?Math.max(...stocks):0,chosen=select.selectedOptions[0],chosenStock=chosen?.value?(Number(chosen.dataset.stock)||0):null;
+  const sufficient=stocks.some(q=>q>=requested),show=Number.isFinite(requested)&&requested>0&&(!sufficient||(chosenStock!==null&&chosenStock<requested));
+  warning.classList.toggle('hidden',!show);
+  if(show){const available=chosenStock!==null?chosenStock:maxStock;warning.textContent='Yêu cầu '+formatQty(requested)+' · Tồn '+(chosenStock!==null?'lô đã chọn ':'lô cao nhất ')+formatQty(available)+' · Thiếu '+formatQty(Math.max(0,requested-available))+'. Ghi rõ lý do thiếu hàng; ghi chú không thay thế điều kiện xuất kho.';}else warning.textContent='';
+ });};
+ document.querySelectorAll('[data-price-item] [data-quantity], [data-lot-select]').forEach(el=>{el.addEventListener('input',refreshStockWarnings);el.addEventListener('change',refreshStockWarnings);});
+ refreshStockWarnings();
  const summary=()=>{let count=0,qty=0,total=0;document.querySelectorAll('[data-quantity]:not(:disabled)').forEach(i=>{const q=parseFloat(i.value)||0;if(q>0){count++;qty+=q;total+=q*(parseFloat(i.closest('[data-price]')?.dataset.price)||0);i.closest('[data-price]')?.classList.add('ring-2','ring-slate-900');}else{i.closest('[data-price]')?.classList.remove('ring-2','ring-slate-900');}});document.getElementById('order-summary').textContent=count+' sản phẩm · '+qty.toLocaleString('vi-VN')+' SL · '+Math.round(total).toLocaleString('vi-VN')+' đ';document.querySelectorAll('[data-price-item]').forEach(card=>{const q=parseFloat(card.querySelector('[data-quantity]')?.value)||0,line=card.querySelector('[data-line-total]');if(line)line.textContent=Math.round(q*(parseFloat(card.dataset.price)||0)).toLocaleString('vi-VN')+' đ';});};
  document.querySelectorAll('[data-quantity]').forEach(i=>i.addEventListener('input',summary));syncSource();syncSelectedProducts();summary();
 });
