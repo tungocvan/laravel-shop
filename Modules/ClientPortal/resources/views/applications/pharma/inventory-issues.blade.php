@@ -106,8 +106,8 @@
                     @endif
                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
                         @if($orderPdfActions[$issue->id]['ready'] ?? false)
-                            <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">↓ PDF</a>
-                            <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">In</a>
+                            <a href="{{ route('client.pharma.orders.pdf',$issue) }}" data-order-pdf-download class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Tải PDF</a>
+                            <a href="{{ route('client.pharma.orders.print',$issue) }}" target="_blank" rel="noopener" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">In PDF</a>
                             @if($orderPdfActions[$issue->id]['share'] ?? null)
                                 <button type="button" data-copy-order-share="{{ $orderPdfActions[$issue->id]['share']['url'] }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Sao chép link</button>
                                 <form method="POST" action="{{ route('client.pharma.orders.share.revoke',[$issue,$orderPdfActions[$issue->id]['share']['id']]) }}">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700 transition active:scale-[0.985] motion-reduce:transform-none">Thu hồi</button></form>
