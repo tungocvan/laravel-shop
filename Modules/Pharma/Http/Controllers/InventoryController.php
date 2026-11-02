@@ -970,21 +970,23 @@ final class InventoryController extends Controller
     public function destroyIssue(InventoryIssue $issue, InventoryService $inventory): RedirectResponse
     {
         $this->guardIssueWarehouse($issue,$inventory);
-        DB::transaction(function()use($issue){
+        $archived=DB::transaction(function()use($issue){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
+            if($locked->archived_at !== null) throw ValidationException::withMessages(['issue'=>'Phiếu đã được lưu trữ.']);
             if(!in_array($locked->status,[InventoryIssue::DRAFT,InventoryIssue::REJECTED],true)) throw ValidationException::withMessages(['issue'=>'Chỉ phiếu xuất nháp hoặc đã từ chối mới được xóa.']);
             if(InventoryIssueCommission::query()->where('issue_id',$locked->id)->exists()){
                 // Keep the original issue, items and immutable commission ledger for audits.
                 $locked->update(['archived_at'=>now(),'archived_by'=>auth('admin')->id()]);
-                return;
+                return true;
             }
             // Delete only draft/rejected issue-owned operational records.
             // Commission history remains protected above; stock transactions are never removed here.
             $locked->deferredSupplies()->delete();
             $locked->items()->delete();
             $locked->delete();
+            return false;
         });
-        return redirect()->route('admin.pharma.inventory.issues.index')->with('success','Đã xóa phiếu xuất chưa ghi sổ.');
+        return redirect()->route('admin.pharma.inventory.issues.index')->with('success',$archived ? 'Đã đưa phiếu ra khỏi danh sách; lịch sử hoa hồng được bảo toàn.' : 'Đã xóa phiếu xuất chưa ghi sổ.');
     }
 
     public function exportIssues(Request $request, InventoryService $inventory): StreamedResponse
