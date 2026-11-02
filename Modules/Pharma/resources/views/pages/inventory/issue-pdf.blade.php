@@ -2,7 +2,11 @@
 @page{margin:16mm 12mm}*{box-sizing:border-box}body{font-family:DejaVu Sans,sans-serif;font-size:10px;color:#111}h1{font-size:21px;text-align:center;margin:16px 0 2px}.center{text-align:center}.right{text-align:right}.muted{color:#555}.header{width:100%;margin-bottom:12px}.header td{vertical-align:top}.meta{width:100%;border-collapse:collapse;margin:14px 0;line-height:1.5}.meta td{border:0;padding:1px 0;vertical-align:top}.meta .label{width:128px;font-weight:bold;white-space:nowrap;padding-right:10px}table.items{width:100%;border-collapse:collapse;margin-top:12px}table.items th,table.items td{border:1px solid #444;padding:6px 5px}table.items th{font-size:8px;background:#f3f4f6;text-transform:uppercase}.name{font-weight:bold}.small{font-size:8px}.totals{margin-top:12px;line-height:1.7}.sign{width:100%;margin-top:28px;text-align:center}.sign td{width:33.33%;vertical-align:top;font-weight:bold}.sign .space{height:70px}.note{margin-top:8px}.title-no{font-size:12px;font-weight:bold}.footer{position:fixed;bottom:-8mm;left:0;right:0;text-align:center;font-size:8px;color:#777}
 </style></head><body>
 @php
-$totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
+$deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
+$postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id))->values();
+$deferredItems=$issue->items->filter(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id))->values();
+$totalValue=$postedItems->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
+$deferredValue=$deferredItems->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
 $signatures=collect([
     ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'show_date'=>false],
     ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'show_date'=>false],
@@ -41,7 +45,7 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @if($settings->show_total_value)
 <th>Thành tiền</th>
 @endif</tr></thead><tbody>
-@foreach($issue->items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number ?: 'Chưa chọn lô' }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
+@foreach($postedItems as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number ?: 'Chưa chọn lô' }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
 @if($settings->show_unit_price)
 <td class="right">{{ number_format((float)$item->unit_price,0,',','.') }}</td>
 @endif
@@ -60,11 +64,22 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @endif
 </tr></tbody></table>
 <div class="totals">
-<b>Tổng số mặt hàng:</b> {{ $issue->items->count() }}
+<b>Số mặt hàng thực xuất:</b> {{ $postedItems->count() }}
 @if($settings->show_total_value)
-<br><b>Tổng giá trị:</b> {{ number_format($totalValue,0,',','.') }} đồng
+<br><b>Tổng giá trị thực xuất:</b> {{ number_format($totalValue,0,',','.') }} đồng
 @endif
 </div>
+@if($deferredItems->isNotEmpty())
+<h3 style="margin:18px 0 5px">HÀNG CHỜ CUNG ỨNG — KHÔNG GHI NHẬN THỰC XUẤT</h3>
+<p class="small muted">Các mặt hàng dưới đây là nhu cầu đặt hàng, chưa xuất kho và không tính vào tổng giá trị thực xuất.</p>
+<table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc</th><th>ĐVT</th><th>SL đặt</th><th>SL thực xuất</th><th>Lý do / Ngày dự kiến</th>@if($settings->show_total_value)<th>Giá trị chờ</th>@endif</tr></thead><tbody>
+@foreach($deferredItems as $item)
+@php $deferred=$issue->deferredSupplies->first(fn($row)=>(int)$row->medicine_id===(int)$item->medicine_id); @endphp
+<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine?->medicine_code }}</td><td>{{ $item->medicine?->name }}</td><td>{{ $item->medicine?->unit ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td><td class="right">0</td><td>Chưa có hàng@if(filled($deferred?->note))<br>{{ $deferred->note }}@endif @if($deferred?->expected_supply_date)<br>Dự kiến: {{ $deferred->expected_supply_date->format('d/m/Y') }}@endif</td>@if($settings->show_total_value)<td class="right">{{ number_format((float)$item->quantity*(float)$item->unit_price,0,',','.') }}</td>@endif</tr>
+@endforeach
+</tbody></table>
+<div class="totals"><b>Số mặt hàng chờ cung ứng:</b> {{ $deferredItems->count() }}@if($settings->show_total_value)<br><b>Giá trị hàng chờ cung ứng (không tính vào thực xuất):</b> {{ number_format($deferredValue,0,',','.') }} đồng<br><b>Tổng giá trị nhu cầu đơn hàng:</b> {{ number_format($totalValue+$deferredValue,0,',','.') }} đồng@endif</div>
+@endif
 @if($settings->show_notes && filled($issue->notes))<div class="note"><b>Ghi chú:</b> {{ $issue->notes }}</div>@endif
 @if($signatures->isNotEmpty())
 <table class="sign"><tr>
