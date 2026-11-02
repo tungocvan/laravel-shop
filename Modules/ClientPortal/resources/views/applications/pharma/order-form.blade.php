@@ -142,11 +142,15 @@
      </label>
      <p data-stock-warning role="status" aria-live="polite" class="mt-2 hidden rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900"></p>
      <label class="mt-3 block text-xs font-bold text-slate-600">Ghi chú thiếu hàng / chưa phân lô
-      <textarea name="draft_shortage_notes[{{ $item->medicine_id }}]" rows="2" maxlength="2000" placeholder="Ví dụ: Chưa có lô đủ tồn, dự kiến bổ sung ngày..." class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">{{ old('draft_shortage_notes.'.$item->medicine_id, $current?->draft_shortage_note) }}</textarea>
+      <textarea name="draft_shortage_notes[{{ $item->medicine_id }}]" rows="2" maxlength="2000" placeholder="Ví dụ: Chưa có lô đủ tồn, dự kiến bổ sung ngày..." class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">{{ old('draft_shortage_notes.'.$item->medicine_id, $current?->draft_shortage_note ?: $issue?->deferredSupplies?->first(fn($s) => (int) $s->medicine_id === (int) $item->medicine_id && $s->status === 'pending')?->note) }}</textarea>
       @error('draft_shortage_notes.'.$item->medicine_id)
        <span role="alert" data-shortage-error class="mt-1 block text-xs font-bold text-rose-700">{{ $message }} ({{ $item->medicine?->name }})</span>
       @enderror
       <span class="mt-1 block text-[11px] font-normal text-slate-500">Bắt buộc khi chưa chọn lô và không có lô đủ tồn. Ghi chú được lưu theo từng thuốc trên phiếu nháp.</span>
+     <label class="mt-3 block text-xs font-bold text-slate-600">Ngày dự kiến bổ sung hàng (không bắt buộc)
+      <input type="date" name="draft_expected_supply_dates[{{ $item->medicine_id }}]" value="{{ old('draft_expected_supply_dates.'.$item->medicine_id, $issue?->deferredSupplies?->first(fn($s) => (int) $s->medicine_id === (int) $item->medicine_id && $s->status === 'pending')?->expected_supply_date?->format('Y-m-d')) }}" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+     </label>
+     @error('draft_expected_supply_dates.'.$item->medicine_id)<span role="alert" class="mt-1 block text-xs font-bold text-rose-700">{{ $message }}</span>@enderror
      </label>
     @endif
    </article>
@@ -221,7 +225,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const setOrderStep=(step)=>{orderStep=Math.max(1,Math.min(3,step));document.querySelector('[data-order-actions]')?.setAttribute('data-step',String(orderStep));stepPanels.forEach(p=>p.classList.toggle('hidden',Number(p.dataset.orderStepPanel)!==orderStep));stepButtons.forEach(b=>{const n=Number(b.dataset.stepTarget),dot=b.querySelector('.order-step-dot');if(!dot)return;dot.textContent=n<orderStep?'✓':String(n);b.classList.toggle('is-active',n===orderStep);b.classList.toggle('is-complete',n<orderStep);});stepBack?.classList.toggle('hidden',orderStep===1);stepBack?.classList.toggle('flex',orderStep!==1);stepNext?.classList.toggle('hidden',orderStep===3);if(orderSubmit)orderSubmit.style.display=orderStep===3?'inline-flex':'none';if(orderStep===3)refreshReview();window.scrollTo({top:0,behavior:'smooth'});};
  stepButtons.forEach(b=>b.addEventListener('click',()=>setOrderStep(Number(b.dataset.stepTarget))));
  stepBack?.addEventListener('click',()=>setOrderStep(orderStep-1));stepNext?.addEventListener('click',()=>setOrderStep(orderStep+1));
- const hasProductValidationErrors=@json($errors->has('draft_shortage_notes.*') || $errors->has('lot_balances') || $errors->has('quantities.*'));
+ const hasProductValidationErrors=@json($errors->has('draft_shortage_notes.*') || $errors->has('draft_expected_supply_dates.*') || $errors->has('lot_balances') || $errors->has('quantities.*'));
  setOrderStep(hasProductValidationErrors ? 2 : 1);
  if(hasProductValidationErrors){
   requestAnimationFrame(()=>{
