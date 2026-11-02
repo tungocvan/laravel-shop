@@ -1757,6 +1757,11 @@ final class PharmaApplicationController extends Controller
             'priceLists' => $authoring->priceLists($managerUserId, $date),
             'customers' => $authoring->customers(),
             'bidRows' => $authoring->bidRows($managerUserId, $date),
+            'availableLots' => \Modules\Pharma\Models\InventoryBalance::query()
+                ->where('warehouse_id', $visible->warehouse_id)
+                ->where('quantity_on_hand', '>', 0)
+                ->whereDate('expiry_date', '>=', now()->toDateString())
+                ->orderBy('expiry_date')->get(),
         ]);
     }
 
@@ -1773,6 +1778,7 @@ final class PharmaApplicationController extends Controller
         $data = $this->validateOrderAuthoring($request);
         $managerUserId = $canCreateForUser ? (int) ($data['manager_user_id'] ?? $visible->manager_user_id) : (int) $user->id;
         abort_if($managerUserId <= 0 || ($canCreateForUser && ! $authoring->orderManagers()->contains('id', $managerUserId)), 403);
+        $data['lot_balances'] = $request->validate(['lot_balances' => ['sometimes', 'array'], 'lot_balances.*' => ['nullable', 'integer', 'min:1']])['lot_balances'] ?? [];
         $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
 
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
