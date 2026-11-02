@@ -95,7 +95,19 @@
 @foreach($customers as $customer)
 <button type="button" data-pwa-select-search-option data-value="{{ $customer->id }}" data-label="{{ $customer->name }}" data-search="{{ mb_strtolower($customer->name.' '.($customer->tax_code ?? '')) }}" class="block w-full rounded-xl px-3 py-3 text-left text-sm hover:bg-slate-100"><strong class="block font-bold text-slate-900">{{ $customer->name }}</strong>@if($customer->tax_code)<small class="mt-0.5 block text-xs text-slate-500">MST {{ $customer->tax_code }}</small>@endif</button>
 @endforeach
-</x-pwa-select-search></div>@endif
+</x-pwa-select-search></div>
+                <label><span class="mb-1.5 block text-xs font-bold text-slate-500">User phụ trách *</span>
+                    @if($canApprove && !$isEditing)
+                        <select name="manager_user_id" required class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm">
+                            @foreach($activeUsers as $assignedUser)
+                                <option value="{{ $assignedUser->id }}" @selected((string) $field('manager_user_id', $currentManager->id) === (string) $assignedUser->id)>{{ $assignedUser->name }}{{ $assignedUser->email ? ' · '.$assignedUser->email : '' }}</option>
+                            @endforeach
+                        </select>
+                    @else
+                        <input type="hidden" name="manager_user_id" value="{{ $isEditing ? $editingPriceList->manager_user_id : $currentManager->id }}">
+                        <div class="flex h-12 items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-700">{{ $isEditing ? ($editingPriceList->manager?->name ?? 'User hiện tại') : $currentManager->name }}</div>
+                    @endif
+                </label>@endif
                 @if(!$isGlobalMode)<label><span class="mb-1.5 block text-xs font-bold text-slate-500">Mục đích *</span><select name="purpose_id" required class="h-12 w-full rounded-2xl border border-slate-300 px-4"><option value="">Chọn mục đích</option>@foreach($purposes as $purpose)<option value="{{ $purpose->id }}" @selected((string)$field('purpose_id') === (string)$purpose->id)>{{ $purpose->name }}</option>@endforeach</select></label>@endif
                 <div class="grid grid-cols-2 gap-3">
                     @foreach([['effective_from','Hiệu lực từ',now()->toDateString()],['effective_to','Đến',now()->addMonth()->toDateString()]] as [$dateName,$dateLabel,$dateDefault])
