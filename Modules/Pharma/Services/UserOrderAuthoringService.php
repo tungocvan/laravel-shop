@@ -166,6 +166,8 @@ final class UserOrderAuthoringService
                     $balanceId = (int) ($selectedLots[$medicineId] ?? 0);
                     $note = trim((string) (($data['draft_shortage_notes'] ?? [])[$medicineId] ?? ''));
                     $row['draft_shortage_note'] = $note !== '' ? $note : null;
+                    $expectedDate = ($data['draft_expected_supply_dates'] ?? [])[$medicineId] ?? null;
+                    $row['draft_expected_supply_date'] = $expectedDate ?: null;
                     if ($balanceId <= 0) {
                         $hasSufficientLot = InventoryBalance::query()
                             ->where('warehouse_id', $issue->warehouse_id)
@@ -204,7 +206,22 @@ final class UserOrderAuthoringService
                 'bid_investor_name' => $items['investor_name'], 'notes' => $data['notes'] ?? null,
             ]);
             $issue->items()->delete();
-            $issue->items()->createMany($items['rows']);
+            $issue->deferredSupplies()->whereNull('drug_bid_award_allocation_id')->delete();
+            foreach ($items['rows'] as $row) {
+                $supplyDate = $row['draft_expected_supply_date'] ?? null;
+                unset($row['draft_expected_supply_date']);
+                $created = $issue->items()->create($row);
+                if ($data['source'] === 'price_list' && ! empty($row['draft_shortage_note'])) {
+                    $issue->deferredSupplies()->create([
+                        'medicine_id' => $created->medicine_id,
+                        'quantity' => $created->quantity,
+                        'expected_supply_date' => $supplyDate,
+                        'note' => $row['draft_shortage_note'],
+                        'status' => \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING,
+                        'created_by' => $actorUserId,
+                    ]);
+                }
+            }
 
             return $issue->refresh();
         });
