@@ -8,6 +8,7 @@ use Modules\Pharma\Livewire\Concerns\AuthorizesPharmaActions;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Services\PriceListManager;
 use Modules\Pharma\Services\PriceListApprovalWorkflow;
+use Modules\Pharma\Services\PriceListDeactivationWorkflow;
 use Throwable;
 
 class Index extends Component
@@ -30,6 +31,7 @@ class Index extends Component
     public ?string $confirmingAction = null;
     public ?string $errorMessage = null;
     public array $selectedIds = [];
+    public string $deactivationReason = '';
 
     protected $queryString = ['search' => ['except' => ''], 'type' => ['except' => 'all'], 'status' => ['except' => 'all'], 'managerUserId' => ['except' => 'all'], 'appliedEffectiveFrom' => ['except' => ''], 'appliedEffectiveTo' => ['except' => ''], 'sortField' => ['except' => 'updated_at'], 'sortDirection' => ['except' => 'desc'], 'perPage' => ['except' => 10]];
 
@@ -107,6 +109,7 @@ class Index extends Component
         $this->confirmingId = $id;
         $this->confirmingAction = $action;
         $this->errorMessage = null;
+        $this->deactivationReason = '';
     }
 
     public function confirmBulkDelete(): void
@@ -129,9 +132,10 @@ class Index extends Component
         $this->confirmingId = null;
         $this->confirmingAction = null;
         $this->errorMessage = null;
+        $this->deactivationReason = '';
     }
 
-    public function executeConfirmed(PriceListManager $manager, PriceListApprovalWorkflow $approval): void
+    public function executeConfirmed(PriceListManager $manager, PriceListApprovalWorkflow $approval, PriceListDeactivationWorkflow $deactivation): void
     {
         try {
             if ($this->confirmingAction === 'bulk-delete') {
@@ -151,7 +155,8 @@ class Index extends Component
             } elseif ($this->confirmingAction === 'activate') {
                 $manager->activate($list, auth('admin')->id());
             } elseif ($this->confirmingAction === 'deactivate') {
-                $manager->deactivate($list);
+                $this->authorizePharmaEdit();
+                $deactivation->deactivateDirectly((int) auth('admin')->id(), (int) $list->id, $this->deactivationReason);
             } elseif ($this->confirmingAction === 'clone') {
                 $manager->clone($list, ['name' => $list->name.' - Bản sao']);
             } elseif ($this->confirmingAction === 'delete') {
@@ -165,7 +170,7 @@ class Index extends Component
             return;
         }
 
-        $message = $this->confirmingAction === 'delete' ? 'Đã xóa bảng giá Draft.' : 'Thao tác bảng giá đã hoàn tất.';
+        $message = $this->confirmingAction === 'delete' ? 'Đã xóa bảng giá.' : 'Thao tác bảng giá đã hoàn tất.';
         $this->cancelConfirm();
         session()->flash('success', $message);
     }

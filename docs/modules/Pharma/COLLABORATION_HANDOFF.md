@@ -662,3 +662,5 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - 2026-11-02: Fix inventory opening template HTTP 500 by importing `Rap2hpoutre\\FastExcel\\FastExcel` in `InventoryController`; composer already requires package. Added `PharmaInventoryFastExcelImportContractTest`. Focused test and manual Excel download pending checkpoint; no DB changes.
 
 - Follow-up 2026-11-02: corrected missing Symfony `StreamedResponse` import affecting five inventory Excel download methods; updated focused contract test. Await local test and UI verification.
+
+- 2026-11-02: Admin price list ACTIVE -> INACTIVE via `PriceListDeactivationWorkflow::deactivateDirectly` with required reason, edit authorization and audit fields. Existing DRAFT/INACTIVE deletion rules retained. Focused contract test added; user reported TEST + UI PASS on original feature branch. Reapplied unchanged code on latest main after handoff merge conflict.
