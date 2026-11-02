@@ -95,7 +95,7 @@ final class UserPriceListWorkflow
             $header = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_CUSTOMER,
                 'customer_source' => PriceList::CUSTOMER_SOURCE_PARTNER,
-                'manager_user_id' => $userId,
+                'manager_user_id' => (int) ($header['manager_user_id'] ?? $userId),
             ]));
 
             $list = PriceList::query()->create(array_merge($header, [
