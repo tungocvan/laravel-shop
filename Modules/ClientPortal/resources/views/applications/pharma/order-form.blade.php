@@ -147,9 +147,9 @@
        <span role="alert" data-shortage-error class="mt-1 block text-xs font-bold text-rose-700">{{ $message }} ({{ $item->medicine?->name }})</span>
       @enderror
       <span class="mt-1 block text-[11px] font-normal text-slate-500">Bắt buộc khi chưa chọn lô và không có lô đủ tồn. Ghi chú được lưu theo từng thuốc trên phiếu nháp.</span>
-     <label class="mt-3 block text-xs font-bold text-slate-600">Ngày dự kiến bổ sung hàng (không bắt buộc)
-      <input type="date" name="draft_expected_supply_dates[{{ $item->medicine_id }}]" value="{{ old('draft_expected_supply_dates.'.$item->medicine_id, $issue?->deferredSupplies?->first(fn($s) => (int) $s->medicine_id === (int) $item->medicine_id && $s->status === 'pending')?->expected_supply_date?->format('Y-m-d')) }}" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
-     </label>
+     <div class="mt-3 text-xs font-bold text-slate-600"><label for="supply-date-{{ $item->medicine_id }}">Ngày dự kiến bổ sung hàng (không bắt buộc)</label>
+      <input id="supply-date-{{ $item->medicine_id }}" type="date" name="draft_expected_supply_dates[{{ $item->medicine_id }}]" value="{{ old('draft_expected_supply_dates.'.$item->medicine_id, $issue?->deferredSupplies?->first(fn($s) => (int) $s->medicine_id === (int) $item->medicine_id && $s->status === 'pending')?->expected_supply_date?->format('Y-m-d')) }}" class="mt-1 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
+     </div>
      @error('draft_expected_supply_dates.'.$item->medicine_id)<span role="alert" class="mt-1 block text-xs font-bold text-rose-700">{{ $message }}</span>@enderror
      </label>
     @endif
