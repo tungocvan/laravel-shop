@@ -114,14 +114,16 @@ if ($mode === '--dry-run') {
     echo "DRY RUN ONLY. No data changed.\n";
     exit(0);
 }
-if (!stream_isatty(STDIN)) {
+$tty = @fopen('/dev/tty', 'r+');
+if (!$tty) {
     fwrite(STDERR, "BLOCKED: reset requires interactive terminal.\n");
     exit(5);
 }
-echo "Confirm an independent verified backup exists. Type BACKUP READY: ";
-if (trim((string)fgets(STDIN)) !== 'BACKUP READY') exit(5);
-echo "Type the exact database name ({$database}) to delete {$total} rows: ";
-if (trim((string)fgets(STDIN)) !== $database) exit(5);
+fwrite($tty, "Confirm an independent verified backup exists. Type BACKUP READY: ");
+if (trim((string)fgets($tty)) !== 'BACKUP READY') exit(5);
+fwrite($tty, "Type the exact database name ({$database}) to delete {$total} rows: ");
+if (trim((string)fgets($tty)) !== $database) exit(5);
+fclose($tty);
 DB::transaction(function () use ($order) {
     foreach ($order as $table) DB::table($table)->delete();
 });
