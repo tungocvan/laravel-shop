@@ -222,7 +222,12 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringNotContainsString('posted_by', $migration);
         $this->assertStringNotContainsString('postIssue(', $service);
         $this->assertStringNotContainsString('InventoryTransaction', $service);
-        $this->assertStringNotContainsString('quantity_on_hand', $service);
+        // Reading canonical stock to validate draft lot selection is allowed;
+        // only stock mutation/posting belongs to the inventory posting workflow.
+        $this->assertStringNotContainsString("->decrement('quantity_on_hand'", $service);
+        $this->assertStringNotContainsString("->increment('quantity_on_hand'", $service);
+        $this->assertStringNotContainsString("->update(['quantity_on_hand'", $service);
+        $this->assertStringNotContainsString("'quantity_on_hand' =>", $service);
     }
     public function test_price_list_orders_revalidate_customer_scope_and_canonical_price_before_submit(): void
     {
