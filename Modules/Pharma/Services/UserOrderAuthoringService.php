@@ -174,7 +174,7 @@ final class UserOrderAuthoringService
                             ->whereDate('expiry_date', '>=', now()->toDateString())
                             ->exists();
                         if (! $hasSufficientLot && $note === '') {
-                            throw ValidationException::withMessages(["draft_shortage_notes.$medicineId" => 'Không có lô đủ tồn và còn hạn dùng. Vui lòng ghi rõ lý do thiếu hàng trước khi lưu nháp.']);
+                            throw ValidationException::withMessages(["draft_shortage_notes.$medicineId" => 'Thuốc '.$row['medicine_id'].': không có lô đủ tồn và còn hạn dùng. Vui lòng ghi rõ lý do thiếu hàng trước khi lưu nháp.']);
                         }
                         continue;
                     }
