@@ -1933,7 +1933,16 @@ final class PharmaApplicationController extends Controller
     public function exportOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): RedirectResponse
     {
         [$user,$visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
+        $intent = $request->validate(['pdf_action' => ['nullable', 'in:download,print']])['pdf_action'] ?? null;
         $documents->generate($visible,(int)$user->id);
+
+        if ($intent === 'download') {
+            return redirect()->route('client.pharma.orders.pdf', $visible);
+        }
+        if ($intent === 'print') {
+            return redirect()->route('client.pharma.orders.print', $visible);
+        }
+
         return back()->with('success',"Đã xuất PDF phiếu {$visible->number}.");
     }
 
