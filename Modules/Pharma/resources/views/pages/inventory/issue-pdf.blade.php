@@ -15,7 +15,8 @@ $signatures=collect([
 ])->where('show',true)->values();
 $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @endphp
-<table class="header"><tr><td><b>{{ $settings->organization_name ?: 'PHIẾU XUẤT KHO DƯỢC PHẨM' }}</b>@if($settings->organization_address)
+<table class="header"><tr><td><b>{{ $settings->organization_name ?: 'PHIẾU XUẤT KHO DƯỢC PHẨM' }}</b>
+@if($settings->organization_address)
 <br><span class="muted">{{ $settings->organization_address }}</span>
 @endif
 @if($settings->tax_code)
@@ -47,8 +48,10 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <th>Thành tiền</th>
 @endif
 </tr></thead><tbody>
-@foreach($postedItems as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)
-<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif
+@foreach($postedItems as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>
+@if($item->medicine->packaging_specification)
+<br><span class="small">{{ $item->medicine->packaging_specification }}</span>
+@endif
 </td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number ?: 'Chưa chọn lô' }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
 @if($settings->show_unit_price)
 <td class="right">{{ number_format((float)$item->unit_price,0,',','.') }}</td>
@@ -76,38 +79,51 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @if($deferredItems->isNotEmpty())
 <h3 style="margin:18px 0 5px">HÀNG CHỜ CUNG ỨNG — KHÔNG GHI NHẬN THỰC XUẤT</h3>
 <p class="small muted">Các mặt hàng dưới đây là nhu cầu đặt hàng, chưa xuất kho và không tính vào tổng giá trị thực xuất.</p>
-<table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc</th><th>ĐVT</th><th>SL đặt</th><th>SL thực xuất</th><th>Lý do / Ngày dự kiến</th>@if($settings->show_total_value)
-<th>Giá trị chờ</th>@endif
+<table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc</th><th>ĐVT</th><th>SL đặt</th><th>SL thực xuất</th><th>Lý do / Ngày dự kiến</th>
+@if($settings->show_total_value)
+<th>Giá trị chờ</th>
+@endif
 </tr></thead><tbody>
 @foreach($deferredItems as $item)
 @php
     $deferred = $issue->deferredSupplies->first(fn ($row) => (int) $row->medicine_id === (int) $item->medicine_id);
 @endphp
-<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine?->medicine_code }}</td><td>{{ $item->medicine?->name }}</td><td>{{ $item->medicine?->unit ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td><td class="right">0</td><td>Chưa có hàng@if(filled($deferred?->note))
-<br>{{ $deferred->note }}@endif
+<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine?->medicine_code }}</td><td>{{ $item->medicine?->name }}</td><td>{{ $item->medicine?->unit ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td><td class="right">0</td><td>Chưa có hàng
+@if(filled($deferred?->note))
+<br>{{ $deferred->note }}
+@endif
 @if($deferred?->expected_supply_date)
-<br>Dự kiến: {{ $deferred->expected_supply_date->format('d/m/Y') }}@endif
-</td>@if($settings->show_total_value)
-<td class="right">{{ number_format((float)$item->quantity*(float)$item->unit_price,0,',','.') }}</td>@endif
+<br>Dự kiến: {{ $deferred->expected_supply_date->format('d/m/Y') }}
+@endif
+</td>
+@if($settings->show_total_value)
+<td class="right">{{ number_format((float)$item->quantity*(float)$item->unit_price,0,',','.') }}</td>
+@endif
 </tr>
 @endforeach
 </tbody></table>
-<div class="totals"><b>Số mặt hàng chờ cung ứng:</b> {{ $deferredItems->count() }}@if($settings->show_total_value)
-<br><b>Giá trị hàng chờ cung ứng (không tính vào thực xuất):</b> {{ number_format($deferredValue,0,',','.') }} đồng<br><b>Tổng giá trị nhu cầu đơn hàng:</b> {{ number_format($totalValue+$deferredValue,0,',','.') }} đồng@endif
+<div class="totals"><b>Số mặt hàng chờ cung ứng:</b> {{ $deferredItems->count() }}
+@if($settings->show_total_value)
+<br><b>Giá trị hàng chờ cung ứng (không tính vào thực xuất):</b> {{ number_format($deferredValue,0,',','.') }} đồng<br><b>Tổng giá trị nhu cầu đơn hàng:</b> {{ number_format($totalValue+$deferredValue,0,',','.') }} đồng
+@endif
 </div>
 @endif
 @if($settings->show_notes && filled($issue->notes))
-<div class="note"><b>Ghi chú:</b> {{ $issue->notes }}</div>@endif
+<div class="note"><b>Ghi chú:</b> {{ $issue->notes }}</div>
+@endif
 @if($signatures->isNotEmpty())
 <table class="sign"><tr>
 @foreach($signatures as $signature)
-<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}@if($signature['show_date'])
-<br><span class="muted small">Ngày ..... tháng ..... năm .....</span>@endif
+<td style="width: {{ $signatureWidth }}%">{{ $signature['label'] }}
+@if($signature['show_date'])
+<br><span class="muted small">Ngày ..... tháng ..... năm .....</span>
+@endif
 <br><span class="muted small">(Ký, ghi rõ họ tên)</span><div class="space"></div></td>
 @endforeach
 </tr></table>
 @endif
 @if($settings->footer_note)
-<div class="note center muted">{{ $settings->footer_note }}</div>@endif
+<div class="note center muted">{{ $settings->footer_note }}</div>
+@endif
 <div class="footer">Phiếu {{ $issue->number }} · Trạng thái: {{ $issue->status==='posted'?'Đã ghi sổ':'Nháp' }}</div>
 </body></html>
