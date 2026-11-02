@@ -122,6 +122,7 @@
                     @if(in_array($issue->status,[\Modules\Pharma\Models\InventoryIssue::DRAFT,\Modules\Pharma\Models\InventoryIssue::REJECTED],true))
                         <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa phiếu xuất này? Thao tác không thể hoàn tác và không làm thay đổi tồn kho.')">@csrf @method('DELETE')<button class="inline-flex min-h-10 items-center rounded-xl border border-rose-200 bg-rose-50 px-3 text-xs font-black text-rose-700 active:scale-[0.985]">Xóa phiếu xuất</button></form>
                     @endif
+                    @if($canEditOrders && $issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT && in_array($currentUserId, [(int) $issue->created_by, (int) $issue->manager_user_id], true))<a href="{{ route('client.pharma.orders.edit', $issue) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-black text-indigo-800">Sửa phiếu / chọn lô</a>@endif
                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="ml-auto inline-flex min-h-10 items-center text-xs font-black text-slate-600">Chi tiết ›</a>
                 </div>
             </article>
@@ -145,6 +146,7 @@
                                 <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                 <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                     @if($canEditOrders && $issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT && in_array($currentUserId, [(int) $issue->created_by, (int) $issue->manager_user_id], true))<a href="{{ route('client.pharma.orders.edit', $issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Sửa phiếu / chọn lô</a>@endif
                                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                                         @if($canApproveOrders)
                                             <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
