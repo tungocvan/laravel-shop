@@ -667,3 +667,12 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Change: render validation and success feedback on inventory documents listing; explicitly delete issue-owned deferred supplies within existing transaction before items/issue; retain commission audit guard and stock safety restrictions.
 - Focused test: `php artisan test tests/Feature/PharmaInventoryIssueDeletionFeedbackTest.php` — NOT YET RUN. Follow with `php artisan test Modules/Pharma/Tests/Unit/InventoryContractTest.php` only after focused PASS. Review UI on desktop/mobile and confirm error messaging; UI NOT YET PASS.
 - Note: This patch does not prove the specific live issue is deletable: an existing commission audit record still legitimately blocks deletion. Inspect the visible validation message before any further change. No migration, production mutation, merge, or deploy.
+
+## 2026-11-02 — Draft/rejected issue archival with historical commissions
+
+- Feature branch: `feat/pharma-archive-issue-with-commission-20261102`, based on the prior issue-delete-feedback branch. Main remains unchanged.
+- Business rule: draft/rejected issues can be removed from the active issue listing. If commission history exists, preserve the original issue, items and append-only ledger by setting `archived_at`/`archived_by`; otherwise delete draft/rejected issue and its operational children normally. Other statuses are still blocked.
+- Migration: `2026_11_02_000001_add_archived_at_to_pharma_inventory_issues.php`. Do NOT run against production without explicit approval and production-debug workflow.
+- Admin issue list/export and client issue list exclude archived rows; existing finance/commission history remains addressable. This is archival, not physical erasure of commission-backed records.
+- Checkpoint tests (not yet executed): `php artisan test tests/Feature/PharmaInventoryIssueDeletionFeedbackTest.php tests/Feature/PharmaInventoryIssueArchiveContractTest.php`; then Pharma inventory contracts and impacted Finance provider regression only after focused PASS. UI PASS requires user confirmation.
+- Known review boundary: audit additional cross-module issue listing consumers and production migration rollout before merge/deploy. No production changes authorized.
