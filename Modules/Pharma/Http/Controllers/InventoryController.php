@@ -39,6 +39,7 @@ use Modules\Pharma\Services\CommissionQueryService;
 use Modules\Pharma\Services\CommissionExportProfileService;
 use Modules\Pharma\Services\CommissionExcelExportService;
 use Modules\Partner\Models\Partner;
+use Rap2hpoutre\FastExcel\FastExcel;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
