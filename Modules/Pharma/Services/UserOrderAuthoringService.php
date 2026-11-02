@@ -10,6 +10,7 @@ use Modules\Partner\Models\Partner;
 use Modules\Pharma\Models\DrugBidAwardAllocation;
 use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 use Modules\Pharma\Models\InventoryIssue;
+use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\PriceList;
 use Modules\Pharma\Models\PriceListItem;
 
