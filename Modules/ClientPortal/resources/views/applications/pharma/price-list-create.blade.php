@@ -14,6 +14,7 @@
     $field = fn (string $name, $fallback = null) => old($name, $isEditing ? data_get($editingPriceList, $name, $fallback) : $fallback);
     $selectedExisting = $isEditing ? $editingPriceList->items->keyBy('medicine_variant_id') : collect();
     $canApprove = $canApprove ?? false;
+    $currentManager = $currentManager ?? auth('web')->user();
     $isGlobalMode = !$isEditing && $canApprove && request('type') === 'global';
 @endphp
 <div class="mx-auto max-w-7xl space-y-4 pb-24 lg:pb-6">
