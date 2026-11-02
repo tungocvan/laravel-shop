@@ -14,7 +14,7 @@ class PharmaDemoResetScriptContractTest extends TestCase
         $this->assertStringContainsString("'127.0.0.1'", $script);
         $this->assertStringContainsString("information_schema.KEY_COLUMN_USAGE", $script);
         $this->assertStringContainsString('external FK', $script);
-        $this->assertStringContainsString('fopen('/dev/tty', 'r+')', $script);
+        $this->assertStringContainsString("fopen('/dev/tty', 'r+')", $script);
         $this->assertStringContainsString('BACKUP READY', $script);
         $this->assertStringContainsString('DB::transaction(', $script);
         $this->assertStringContainsString("if (\$mode === '--dry-run')", $script);
