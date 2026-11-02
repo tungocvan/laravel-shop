@@ -17,6 +17,23 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $priceList->name }}</h1><p class="mt-2 text-sm text-slate-300">{{ $customer }} · {{ $priceList->purpose?->name ?: 'Chưa có mục đích' }}</p></div><span class="w-fit rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{{ $priceList->status }}</span></div>
     </section>
 
+    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL)
+        <section class="rounded-3xl border border-indigo-200 bg-indigo-50 p-5">
+            <h2 class="font-black text-indigo-950">Phạm vi áp dụng bảng giá chung</h2>
+            <p class="mt-2 text-sm text-indigo-800">Khách hàng: Tất cả khách hàng</p>
+            @if($priceList->globalUsers->isEmpty())
+                <p class="mt-2 text-sm font-bold text-emerald-800">User áp dụng: Tất cả User</p>
+            @else
+                <p class="mt-2 text-sm font-bold text-indigo-950">User áp dụng: {{ $priceList->globalUsers->count() }} User được chọn</p>
+                <ul class="mt-2 list-inside list-disc text-sm text-indigo-900">
+                    @foreach($priceList->globalUsers as $assignedUser)
+                        <li>{{ $assignedUser->name }} @if($assignedUser->email)({{ $assignedUser->email }})@endif</li>
+                    @endforeach
+                </ul>
+            @endif
+        </section>
+    @endif
+
     @if($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && ($canSubmit || $canEdit))
         <section class="flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div><p class="font-black text-amber-950">Bảng giá đang ở trạng thái Nháp</p><p class="mt-1 text-sm text-amber-800">Gửi duyệt sẽ khóa bước lập giá và chuyển sang hàng chờ người có quyền phê duyệt.</p></div>
