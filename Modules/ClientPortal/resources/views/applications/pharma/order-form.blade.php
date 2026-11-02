@@ -57,7 +57,7 @@
   </button>
  </div>
 </nav>
-@if($errors->any())<div class="mx-auto mt-4 max-w-7xl rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">{{ $errors->first() }}</div>@endif
+@if($errors->any())<div role="alert" class="mx-auto mt-4 max-w-7xl rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700">Không thể lưu phiếu nháp. Vui lòng kiểm tra các trường được đánh dấu bên dưới. {{ $errors->first() }}</div>@endif
 
 <form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
@@ -143,6 +143,9 @@
      <p data-stock-warning role="status" aria-live="polite" class="mt-2 hidden rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900"></p>
      <label class="mt-3 block text-xs font-bold text-slate-600">Ghi chú thiếu hàng / chưa phân lô
       <textarea name="draft_shortage_notes[{{ $item->medicine_id }}]" rows="2" maxlength="2000" placeholder="Ví dụ: Chưa có lô đủ tồn, dự kiến bổ sung ngày..." class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">{{ old('draft_shortage_notes.'.$item->medicine_id, $current?->draft_shortage_note) }}</textarea>
+      @error('draft_shortage_notes.'.$item->medicine_id)
+       <span role="alert" data-shortage-error class="mt-1 block text-xs font-bold text-rose-700">{{ $message }} ({{ $item->medicine?->name }})</span>
+      @enderror
       <span class="mt-1 block text-[11px] font-normal text-slate-500">Bắt buộc khi chưa chọn lô và không có lô đủ tồn. Ghi chú được lưu theo từng thuốc trên phiếu nháp.</span>
      </label>
     @endif
