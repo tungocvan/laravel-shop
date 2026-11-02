@@ -70,6 +70,7 @@ final class PharmaApplicationController extends Controller
                 : collect(),
             'canApprove' => $canApprove,
             'activeUsers' => $canApprove ? $globalWorkflow->activeUsers() : collect(),
+            'currentManager' => $user,
         ]);
     }
 
@@ -82,7 +83,13 @@ final class PharmaApplicationController extends Controller
         abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
 
+        $canAssignManager = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        $managerId = $canAssignManager ? (int) $request->input('manager_user_id', $user->id) : (int) $user->id;
+        $activeManagers = app(ApproverGlobalPriceListWorkflow::class)->activeUsers();
+        abort_unless($managerId > 0 && ($canAssignManager ? $activeManagers->contains('id', $managerId) : $managerId === (int) $user->id), 403);
+
         [$header, $items] = $this->validatedPriceListPayload($request);
+        $header['manager_user_id'] = $managerId;
         $header['code'] = 'BG-USER-'.now()->format('YmdHis').'-'.Str::upper(Str::random(4));
 
         $list = $workflow->createDraft((int) $user->id, $header, $items);
