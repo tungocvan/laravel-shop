@@ -130,6 +130,16 @@
      <div class="min-w-0 flex-1"><p class="truncate text-sm font-black">{{ $item->medicine?->name }}</p><div class="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500"><span>{{ $item->medicine?->medicine_code }} · {{ $item->medicine?->unit }}</span><span class="font-bold text-slate-700">SL</span><input aria-label="Số lượng" data-quantity name="quantities[{{ $item->id }}]" value="{{ old('quantities.'.$item->id,$current?->quantity) }}" inputmode="decimal" class="h-8 w-16 rounded-lg border border-slate-300 px-2 text-right text-xs font-black" placeholder="0"><span class="whitespace-nowrap">Thành tiền: <strong data-line-total class="text-slate-950">0 đ</strong></span></div></div>
      <button data-remove-product type="button" class="flex h-8 shrink-0 items-center rounded-lg px-2 text-[11px] font-black text-rose-600 hover:bg-rose-50">Xóa</button>
     </div>
+    @if($editing && $currentSource === 'price_list')
+     <label class="mt-3 block text-xs font-bold text-slate-600">Lô / hạn dùng (phiếu nháp)
+      <select name="lot_balances[{{ $item->medicine_id }}]" class="mt-1 h-10 w-full rounded-xl border border-slate-300 bg-white px-2 text-xs">
+       <option value="">Chưa phân lô — kiểm tra lại khi duyệt/ghi sổ</option>
+       @foreach($availableLots->where('medicine_id', $item->medicine_id) as $lot)
+        <option value="{{ $lot->id }}" @selected((int) old('lot_balances.'.$item->medicine_id, ($current && $current->batch_number === $lot->batch_number && $current->expiry_date?->toDateString() === $lot->expiry_date?->toDateString()) ? $lot->id : 0) === (int) $lot->id)>{{ $lot->batch_number }} · HSD {{ $lot->expiry_date?->format('d/m/Y') }} · Tồn {{ number_format((float) $lot->quantity_on_hand, 3, ',', '.') }}</option>
+       @endforeach
+      </select>
+     </label>
+    @endif
    </article>
    @endforeach @endforeach
   </div>
