@@ -24,7 +24,7 @@ final class UserPriceListWorkspace
         $query = $approverScope ? PriceList::query() : $this->managedQuery($userId);
 
         return $query
-            ->with(['partner', 'officialFacility', 'purpose', 'manager'])
+            ->with(['partner', 'officialFacility', 'purpose', 'manager', 'globalUsers'])
             ->withCount('items')
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where(function (Builder $inner) use ($search): void {
@@ -70,6 +70,7 @@ final class UserPriceListWorkspace
                 'officialFacility',
                 'purpose',
                 'manager',
+                'globalUsers',
                 'items.variant.medicine',
                 'items.package',
             ])
