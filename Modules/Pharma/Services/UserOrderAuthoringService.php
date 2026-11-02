@@ -157,6 +157,27 @@ final class UserOrderAuthoringService
             $items = $data['source'] === 'bid'
                 ? $this->resolveBidItems($managerUserId, $data['issue_date'], $data)
                 : $this->resolvePriceListItems($managerUserId, $data['issue_date'], $data);
+            // Draft-only lot assignment: resolve canonical batch/expiry from warehouse balance.
+            if ($data['source'] === 'price_list') {
+                $selectedLots = (array) ($data['lot_balances'] ?? []);
+                foreach ($items['rows'] as &$row) {
+                    $balanceId = (int) ($selectedLots[$row['medicine_id']] ?? 0);
+                    if ($balanceId <= 0) continue;
+                    $balance = InventoryBalance::query()
+                        ->whereKey($balanceId)
+                        ->where('warehouse_id', $issue->warehouse_id)
+                        ->where('medicine_id', $row['medicine_id'])
+                        ->where('quantity_on_hand', '>=', $row['quantity'])
+                        ->whereDate('expiry_date', '>=', now()->toDateString())
+                        ->first();
+                    if (! $balance) {
+                        throw ValidationException::withMessages(['lot_balances' => 'Lô thuốc không hợp lệ, đã hết hạn hoặc không đủ tồn. Vui lòng chọn lại lô.']);
+                    }
+                    $row['batch_number'] = $balance->batch_number;
+                    $row['expiry_date'] = $balance->expiry_date;
+                }
+                unset($row);
+            }
             $partner = Partner::query()->whereKey($items['partner_id'])->where('status', 'active')->firstOrFail();
 
             $issue->update([
