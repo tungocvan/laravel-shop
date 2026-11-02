@@ -1749,6 +1749,7 @@ final class PharmaApplicationController extends Controller
                 && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             403
         );
+        $visible->load('deferredSupplies');
         $date = $visible->issue_date->toDateString();
         $managerUserId = (int) ($visible->manager_user_id ?: $user->id);
 
@@ -1785,9 +1786,12 @@ final class PharmaApplicationController extends Controller
             'lot_balances.*' => ['nullable', 'integer', 'min:1'],
             'draft_shortage_notes' => ['sometimes', 'array'],
             'draft_shortage_notes.*' => ['nullable', 'string', 'max:2000'],
+            'draft_expected_supply_dates' => ['sometimes', 'array'],
+            'draft_expected_supply_dates.*' => ['nullable', 'date'],
         ]);
         $data['lot_balances'] = $lotInput['lot_balances'] ?? [];
         $data['draft_shortage_notes'] = $lotInput['draft_shortage_notes'] ?? [];
+        $data['draft_expected_supply_dates'] = $lotInput['draft_expected_supply_dates'] ?? [];
         $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
 
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
