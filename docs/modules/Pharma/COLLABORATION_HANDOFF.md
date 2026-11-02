@@ -667,3 +667,5 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Preserves medicine catalogs, warehouses, partners, bids, price lists, users, and settings. Does not erase generated export files, commission export artifact records, or external Finance documents. External logical references without FK are not discoverable: manually audit Finance records before reset.
 - The script is intentionally not executable via `./` until permissions are set locally; invoke with `bash`.
 - Focused test: `php artisan test tests/Feature/PharmaDemoResetScriptContractTest.php` (NOT RUN). Perform dry-run review before any real reset. No production execution or merge authorized.
+
+- Follow-up: local schema confirmed `pharma_inventory_cost_adjustments` has FK to inventory balances (CASCADE), FK to users (SET NULL), and zero rows at audit time. Added to child-first reset set; test updated. Dry-run and tests pending user verification.
