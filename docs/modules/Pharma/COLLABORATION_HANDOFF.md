@@ -658,3 +658,12 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Focused test: `tests/Feature/PharmaLegalLookupMigrationBoundaryTest.php` asserts module ownership and parent-before-child ordering.
 - Validation evidence from disposable clone `tungocvan/laravel-law`: focused tests 2 passed (5 assertions); operator confirmed `migrate:fresh` and `db:seed` PASS; module bootstrap/catalog/state resolver regression 11 passed (45 assertions). These results are not tests executed on this `laravel-shop` feature branch.
 - Next checkpoint: pull this branch, run focused test, then relevant module regression; verify Git tracked changes and PR. Do not run `migrate:fresh` on production or non-disposable databases; no merge/deploy without explicit approval.
+
+## 2026-11-02 — Inventory issue delete feedback checkpoint
+
+- Branch: `fix/pharma-issue-delete-feedback-20261102` (based on `main` at `5f6039ca6`).
+- Report: on `admin/pharma/inventory/issues`, deleting a draft bid-sale issue redirects but the record remains, with no visible message.
+- Audit: `destroyIssue()` already rejects non-draft/non-rejected statuses and issues with historical commission ledger entries; dependent deferred supplies use cascade FK, but are now explicitly cleared for permitted draft/rejected deletions. The issue listing previously omitted rendering the validation error bag.
+- Change: render validation and success feedback on inventory documents listing; explicitly delete issue-owned deferred supplies within existing transaction before items/issue; retain commission audit guard and stock safety restrictions.
+- Focused test: `php artisan test tests/Feature/PharmaInventoryIssueDeletionFeedbackTest.php` — NOT YET RUN. Follow with `php artisan test Modules/Pharma/Tests/Unit/InventoryContractTest.php` only after focused PASS. Review UI on desktop/mobile and confirm error messaging; UI NOT YET PASS.
+- Note: This patch does not prove the specific live issue is deletable: an existing commission audit record still legitimately blocks deletion. Inspect the visible validation message before any further change. No migration, production mutation, merge, or deploy.
