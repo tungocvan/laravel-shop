@@ -116,6 +116,8 @@
                             @endif
                         @else
                             <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-950 px-3 text-xs font-black text-white">Xuất PDF</button></form>
+                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<input type="hidden" name="pdf_action" value="download"><button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Xuất và tải PDF</button></form>
+                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}" target="_blank" rel="noopener">@csrf<input type="hidden" name="pdf_action" value="print"><button class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Xuất và in PDF</button></form>
                         @endif
                         @if($canPostOrders)<form method="POST" action="{{ route('client.pharma.orders.revert',$issue) }}" onsubmit="return confirm('Hoàn tác ghi sổ? Hàng sẽ được cộng trả vào tồn kho.')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác ghi sổ</button></form>@endif
                     @endif
@@ -170,6 +172,8 @@
                                             @endif
                                         @else
                                             <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất PDF</button></form>
+                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}">@csrf<input type="hidden" name="pdf_action" value="download"><button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất và tải PDF</button></form>
+                            <form method="POST" action="{{ route('client.pharma.orders.pdf.export',$issue) }}" target="_blank" rel="noopener">@csrf<input type="hidden" name="pdf_action" value="print"><button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50">Xuất và in PDF</button></form>
                                         @endif
                                         @if($canPostOrders)
                                             <div class="my-1 border-t border-slate-100"></div>
