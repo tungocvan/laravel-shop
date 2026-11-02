@@ -972,7 +972,11 @@ final class InventoryController extends Controller
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
             if(!in_array($locked->status,[InventoryIssue::DRAFT,InventoryIssue::REJECTED],true)) throw ValidationException::withMessages(['issue'=>'Chỉ phiếu xuất nháp hoặc đã từ chối mới được xóa.']);
             if(InventoryIssueCommission::query()->where('issue_id',$locked->id)->exists()) throw ValidationException::withMessages(['issue'=>'Phiếu đã từng ghi sổ và phát sinh nhật ký hoa hồng; chỉ được hoàn tác, không được xóa để bảo toàn lịch sử kiểm toán.']);
-            $locked->items()->delete(); $locked->delete();
+            // Delete only draft/rejected issue-owned operational records.
+            // Commission history remains protected above; stock transactions are never removed here.
+            $locked->deferredSupplies()->delete();
+            $locked->items()->delete();
+            $locked->delete();
         });
         return redirect()->route('admin.pharma.inventory.issues.index')->with('success','Đã xóa phiếu xuất chưa ghi sổ.');
     }
