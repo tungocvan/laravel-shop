@@ -1780,7 +1780,14 @@ final class PharmaApplicationController extends Controller
         $data = $this->validateOrderAuthoring($request);
         $managerUserId = $canCreateForUser ? (int) ($data['manager_user_id'] ?? $visible->manager_user_id) : (int) $user->id;
         abort_if($managerUserId <= 0 || ($canCreateForUser && ! $authoring->orderManagers()->contains('id', $managerUserId)), 403);
-        $data['lot_balances'] = $request->validate(['lot_balances' => ['sometimes', 'array'], 'lot_balances.*' => ['nullable', 'integer', 'min:1']])['lot_balances'] ?? [];
+        $lotInput = $request->validate([
+            'lot_balances' => ['sometimes', 'array'],
+            'lot_balances.*' => ['nullable', 'integer', 'min:1'],
+            'draft_shortage_notes' => ['sometimes', 'array'],
+            'draft_shortage_notes.*' => ['nullable', 'string', 'max:2000'],
+        ]);
+        $data['lot_balances'] = $lotInput['lot_balances'] ?? [];
+        $data['draft_shortage_notes'] = $lotInput['draft_shortage_notes'] ?? [];
         $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
 
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
