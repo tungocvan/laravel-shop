@@ -234,7 +234,12 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Giá Bán (VAT) *', $create);
         $this->assertStringContainsString('Bảng giá khách hàng', $create);
         $this->assertStringContainsString('Bảng giá chung', $create);
-        $this->assertStringNotContainsString("name=\"manager_user_id\"", $create);
+        // Customer price lists now support an authorized manager assignment.
+        $this->assertStringContainsString('User phụ trách *', $create);
+        $this->assertStringContainsString('name="manager_user_id"', $create);
+        $this->assertStringContainsString('@if($canApprove && !$isEditing)', $create);
+        $this->assertStringContainsString("activeManagers->contains('id', \$managerId)", $controller);
+        $this->assertStringContainsString("abort_unless(\$managerId > 0", $controller);
         $this->assertStringContainsString('Kích hoạt trực tiếp', $create);
         $this->assertStringNotContainsString('>Giá gốc<', $create);
         $this->assertStringContainsString('data-money-input', $create);
