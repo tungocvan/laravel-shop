@@ -13,6 +13,7 @@ class PharmaGlobalPriceListScopeContractTest extends TestCase
         $workflow = file_get_contents(base_path('Modules/Pharma/Services/ApproverGlobalPriceListWorkflow.php'));
 
         $this->assertStringContainsString('Áp dụng cho tất cả khách hàng', $view);
+        $this->assertStringContainsString('<input type="hidden" name="type" value="global">', $view);
         $this->assertStringContainsString('name="apply_all_users"', $view);
         $this->assertStringContainsString('name="global_user_ids[]"', $view);
         $this->assertStringContainsString("client.pharma.price-lists.approve'), 403", $controller);
