@@ -146,7 +146,7 @@ final class UserInventoryIssueWorkspace
 
     private function visibleQuery(int $userId, bool $includeApprovalScope = false): Builder
     {
-        $query = InventoryIssue::query();
+        $query = InventoryIssue::query()->whereNull('archived_at');
 
         if ($includeApprovalScope) {
             return $query;
