@@ -658,3 +658,7 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Focused test: `tests/Feature/PharmaLegalLookupMigrationBoundaryTest.php` asserts module ownership and parent-before-child ordering.
 - Validation evidence from disposable clone `tungocvan/laravel-law`: focused tests 2 passed (5 assertions); operator confirmed `migrate:fresh` and `db:seed` PASS; module bootstrap/catalog/state resolver regression 11 passed (45 assertions). These results are not tests executed on this `laravel-shop` feature branch.
 - Next checkpoint: pull this branch, run focused test, then relevant module regression; verify Git tracked changes and PR. Do not run `migrate:fresh` on production or non-disposable databases; no merge/deploy without explicit approval.
+
+- 2026-11-02: Fix inventory opening template HTTP 500 by importing `Rap2hpoutre\\FastExcel\\FastExcel` in `InventoryController`; composer already requires package. Added `PharmaInventoryFastExcelImportContractTest`. Focused test and manual Excel download pending checkpoint; no DB changes.
+
+- Follow-up 2026-11-02: corrected missing Symfony `StreamedResponse` import affecting five inventory Excel download methods; updated focused contract test. Await local test and UI verification.

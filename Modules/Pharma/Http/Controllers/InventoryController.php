@@ -39,11 +39,13 @@ use Modules\Pharma\Services\CommissionQueryService;
 use Modules\Pharma\Services\CommissionExportProfileService;
 use Modules\Pharma\Services\CommissionExcelExportService;
 use Modules\Partner\Models\Partner;
+use Rap2hpoutre\FastExcel\FastExcel;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class InventoryController extends Controller
 {
