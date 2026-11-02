@@ -1,3 +1,13 @@
+## Checkpoint — Client Pharma draft shortage notes and expected supply dates — 2026-11-02
+
+- Branch: `fix/client-pharma-shortage-note-date-20261102`, based on unmerged `feat/client-pharma-draft-issue-lot-edit-20261102` (`d73ea6bc`). Do not merge independently without reconciling its base branch with main.
+- Admin `/admin/pharma/inventory/issues/{id}/edit` is the reference for shortage note and expected supply date. Client `/apps/pharma/orders/{id}/edit` retains ClientPortal authorization and wizard layout.
+- Draft edit now validates per-medicine `draft_expected_supply_dates`, stores notes/dates in Pharma-owned `pharma_inventory_issue_deferred_supplies` pending rows, and restores values from those rows on edit; no inventory balance or posting rules are bypassed.
+- Focused contract test updated: `tests/Feature/ClientApps/PharmaDraftShortageValidationRecoveryTest.php`. **TEST NOT RUN**; UI **NOT VERIFIED**. Run focused and impacted regression, then manual UI before PR/merge.
+- No migration, production change, or main merge performed. Existing untracked files and environment are untouched.
+
+---
+
 ## Checkpoint — Pharma stock card + issue fulfillment closeout — 2026-10-05
 
 - Branch: `refactor/clientportal-pharma-inventory-stock-card`; compared with `main` before handoff: ahead 36, behind 0.
