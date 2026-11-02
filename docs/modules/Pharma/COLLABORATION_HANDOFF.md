@@ -664,3 +664,5 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Follow-up 2026-11-02: corrected missing Symfony `StreamedResponse` import affecting five inventory Excel download methods; updated focused contract test. Await local test and UI verification.
 
 - 2026-11-02: Admin price list ACTIVE -> INACTIVE via `PriceListDeactivationWorkflow::deactivateDirectly` with required reason, edit authorization and audit fields. Existing DRAFT/INACTIVE deletion rules retained. Focused contract test added; user reported TEST + UI PASS on original feature branch. Reapplied unchanged code on latest main after handoff merge conflict.
+
+- Client Apps global price list scope: existing approve permission gates creation; global lists cover all customers and can be scoped to all or selected active users. UI clarified; focused contract test added. Requires active global source. Pending local test/UI.
