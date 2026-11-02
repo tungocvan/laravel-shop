@@ -1679,6 +1679,7 @@ final class PharmaApplicationController extends Controller
             'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
             'canPostOrders' => $canPostOrders,
+            'canSubmitOrders' => $registry->userCan($user, 'client.pharma.orders.submit'),
             'currentUserId' => (int) $user->id,
             'canEditOrders' => $registry->userCan($user, 'client.pharma.orders.create') || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
