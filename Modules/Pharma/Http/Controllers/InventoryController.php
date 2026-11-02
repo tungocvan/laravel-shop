@@ -522,6 +522,7 @@ final class InventoryController extends Controller
         $query=InventoryReceipt::query()->withCount('items')
             ->withSum(['items as total_value'=>fn($q)=>$q->select(DB::raw('COALESCE(SUM(quantity * unit_price_ex_vat),0)'))],'unit_price_ex_vat')
             ->where('warehouse_id',$warehouse->id)
+            ->whereNull('archived_at')
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('supplier_name','like','%'.$request->q.'%')))
             ->when(in_array($request->status,[InventoryIssue::DRAFT,InventoryIssue::PENDING_APPROVAL,InventoryIssue::APPROVED,InventoryIssue::REJECTED,InventoryIssue::POSTED,InventoryIssue::CANCELLED],true),fn($q)=>$q->where('status',$request->status))
             ->latest('receipt_date')->latest('id');
@@ -544,6 +545,7 @@ final class InventoryController extends Controller
             ->withSum('items as total_quantity','quantity')
             ->withSum('items as total_value',DB::raw('quantity * unit_price'))
             ->where('warehouse_id',$warehouse->id)
+            ->whereNull('archived_at')
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
             ->when($managerId,function($q)use($managerId){
                 $q->where(function($scope)use($managerId){
@@ -971,7 +973,11 @@ final class InventoryController extends Controller
         DB::transaction(function()use($issue){
             $locked=InventoryIssue::query()->whereKey($issue->id)->lockForUpdate()->firstOrFail();
             if(!in_array($locked->status,[InventoryIssue::DRAFT,InventoryIssue::REJECTED],true)) throw ValidationException::withMessages(['issue'=>'Chỉ phiếu xuất nháp hoặc đã từ chối mới được xóa.']);
-            if(InventoryIssueCommission::query()->where('issue_id',$locked->id)->exists()) throw ValidationException::withMessages(['issue'=>'Phiếu đã từng ghi sổ và phát sinh nhật ký hoa hồng; chỉ được hoàn tác, không được xóa để bảo toàn lịch sử kiểm toán.']);
+            if(InventoryIssueCommission::query()->where('issue_id',$locked->id)->exists()){
+                // Keep the original issue, items and immutable commission ledger for audits.
+                $locked->update(['archived_at'=>now(),'archived_by'=>auth('admin')->id()]);
+                return;
+            }
             // Delete only draft/rejected issue-owned operational records.
             // Commission history remains protected above; stock transactions are never removed here.
             $locked->deferredSupplies()->delete();
@@ -988,7 +994,7 @@ final class InventoryController extends Controller
         $dateFrom=$request->filled('date_from') ? Carbon::parse($request->date_from)->toDateString() : now()->startOfMonth()->toDateString();
         $dateTo=$request->filled('date_to') ? Carbon::parse($request->date_to)->toDateString() : now()->toDateString();
         if($dateFrom>$dateTo) [$dateFrom,$dateTo]=[$dateTo,$dateFrom];
-        $issues=InventoryIssue::query()->with(['items.medicine','deferredSupplies','manager:id,name'])->where('warehouse_id',$warehouse->id)
+        $issues=InventoryIssue::query()->with(['items.medicine','deferredSupplies','manager:id,name'])->where('warehouse_id',$warehouse->id)->whereNull('archived_at')
             ->whereBetween('issue_date',[$dateFrom,$dateTo])
             ->when($selectedIds->isNotEmpty(),fn($q)=>$q->whereIn('id',$selectedIds))
             ->when($request->filled('q'),fn($q)=>$q->where(fn($x)=>$x->where('number','like','%'.$request->q.'%')->orWhere('recipient_name','like','%'.$request->q.'%')))
