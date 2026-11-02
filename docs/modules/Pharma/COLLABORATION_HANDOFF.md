@@ -668,3 +668,5 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Client Apps global price list scope: existing approve permission gates creation; global lists cover all customers and can be scoped to all or selected active users. UI clarified; focused contract test added. Requires active global source. Pending local test/UI.
 
 - 2026-11-02 follow-up: Client Apps global price list index and detail now display selected User names/count or all Users to approvers, distinct from manager. `UserPriceListWorkspace` eager-loads `globalUsers` for browse/findVisible. Empty pivot represents all Users in existing `PriceList::isAvailableToUser` logic. Focused display test added. Verify actual persisted pivot for newly created list; awaiting TEST/UI PASS. No migration, no merge.
+
+- 2026-11-02 Client Apps customer price list create wizard: added required manager selection for approvers, self-only for regular creators; controller validates chosen manager is active and authorized, workflow persists `manager_user_id` in Draft. Edit retains existing manager. Added focused contract test; pending user test/UI verification. No DB migration or merge.
