@@ -162,8 +162,22 @@ final class UserOrderAuthoringService
             if ($data['source'] === 'price_list') {
                 $selectedLots = (array) ($data['lot_balances'] ?? []);
                 foreach ($items['rows'] as &$row) {
-                    $balanceId = (int) ($selectedLots[$row['medicine_id']] ?? 0);
-                    if ($balanceId <= 0) continue;
+                    $medicineId = (int) $row['medicine_id'];
+                    $balanceId = (int) ($selectedLots[$medicineId] ?? 0);
+                    $note = trim((string) (($data['draft_shortage_notes'] ?? [])[$medicineId] ?? ''));
+                    $row['draft_shortage_note'] = $note !== '' ? $note : null;
+                    if ($balanceId <= 0) {
+                        $hasSufficientLot = InventoryBalance::query()
+                            ->where('warehouse_id', $issue->warehouse_id)
+                            ->where('medicine_id', $medicineId)
+                            ->where('quantity_on_hand', '>=', $row['quantity'])
+                            ->whereDate('expiry_date', '>=', now()->toDateString())
+                            ->exists();
+                        if (! $hasSufficientLot && $note === '') {
+                            throw ValidationException::withMessages(["draft_shortage_notes.$medicineId" => 'Không có lô đủ tồn và còn hạn dùng. Vui lòng ghi rõ lý do thiếu hàng trước khi lưu nháp.']);
+                        }
+                        continue;
+                    }
                     $balance = InventoryBalance::query()
                         ->whereKey($balanceId)
                         ->where('warehouse_id', $issue->warehouse_id)
