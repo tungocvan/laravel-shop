@@ -658,3 +658,12 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Focused test: `tests/Feature/PharmaLegalLookupMigrationBoundaryTest.php` asserts module ownership and parent-before-child ordering.
 - Validation evidence from disposable clone `tungocvan/laravel-law`: focused tests 2 passed (5 assertions); operator confirmed `migrate:fresh` and `db:seed` PASS; module bootstrap/catalog/state resolver regression 11 passed (45 assertions). These results are not tests executed on this `laravel-shop` feature branch.
 - Next checkpoint: pull this branch, run focused test, then relevant module regression; verify Git tracked changes and PR. Do not run `migrate:fresh` on production or non-disposable databases; no merge/deploy without explicit approval.
+
+
+## 2026-11-02 — Local demo inventory/commission reset script
+- Branch: `feat/pharma-local-demo-reset-20261102`, based on `main` `5f6039ca6`.
+- `bash reset-pharma-demo.sh --dry-run` enumerates targeted issue/receipt/item/document/deferred/commission/transaction/balance records without modifying data.
+- `bash reset-pharma-demo.sh --reset` requires `APP_ENV=local`, localhost MySQL/MariaDB, an interactive terminal, backup acknowledgement and exact database-name confirmation. FK dependencies are inspected from `information_schema`; any outside FK or cyclic dependency blocks reset. Deletions are child-first and transactional, with FK checks left enabled.
+- Preserves medicine catalogs, warehouses, partners, bids, price lists, users, and settings. Does not erase generated export files, commission export artifact records, or external Finance documents. External logical references without FK are not discoverable: manually audit Finance records before reset.
+- The script is intentionally not executable via `./` until permissions are set locally; invoke with `bash`.
+- Focused test: `php artisan test tests/Feature/PharmaDemoResetScriptContractTest.php` (NOT RUN). Perform dry-run review before any real reset. No production execution or merge authorized.
