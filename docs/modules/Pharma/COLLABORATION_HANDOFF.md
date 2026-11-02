@@ -666,3 +666,5 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - 2026-11-02: Admin price list ACTIVE -> INACTIVE via `PriceListDeactivationWorkflow::deactivateDirectly` with required reason, edit authorization and audit fields. Existing DRAFT/INACTIVE deletion rules retained. Focused contract test added; user reported TEST + UI PASS on original feature branch. Reapplied unchanged code on latest main after handoff merge conflict.
 
 - Client Apps global price list scope: existing approve permission gates creation; global lists cover all customers and can be scoped to all or selected active users. UI clarified; focused contract test added. Requires active global source. Pending local test/UI.
+
+- 2026-11-02 follow-up: Client Apps global price list index and detail now display selected User names/count or all Users to approvers, distinct from manager. `UserPriceListWorkspace` eager-loads `globalUsers` for browse/findVisible. Empty pivot represents all Users in existing `PriceList::isAvailableToUser` logic. Focused display test added. Verify actual persisted pivot for newly created list; awaiting TEST/UI PASS. No migration, no merge.
