@@ -22,6 +22,8 @@ final class PharmaDraftShortageValidationRecoveryTest extends TestCase
         $this->assertStringContainsString('draft_expected_supply_dates[{{ $item->medicine_id }}]', $view);
         $this->assertStringContainsString("'draft_expected_supply_dates.*' => ['nullable', 'date']", $controller);
         $this->assertStringContainsString("'draft_expected_supply_dates'] ?? []", $controller);
+        $this->assertStringContainsString("->withInput(\$request->except(['_token']))", $controller);
+        $this->assertStringContainsString("->withErrors(\$exception->errors())", $controller);
         $this->assertStringContainsString("'expected_supply_date' => \$supplyDate", $service);
         $this->assertStringContainsString("->deferredSupplies()->whereNull('drug_bid_award_allocation_id')->delete()", $service);
     }
