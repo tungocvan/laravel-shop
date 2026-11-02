@@ -1,3 +1,14 @@
+## Checkpoint — Client Pharma order PDF actions — 2026-11-02
+
+- Branch: `feat/pharma-client-order-pdf-actions-20261102`, based on main `9c06aa3b9755cd8fe00728171bd3cbcb9d52815a`.
+- Read-only audit found canonical download/print GET routes, controller authorization via `visibleOrderForDocument`, Pharma-owned `InventoryIssueDocumentService`, and desktop menu actions already existed. No duplicate PDF implementation or new routes were needed.
+- Mobile posted-order action labels are now explicit `Tải PDF` / `In PDF` rather than `↓ PDF` / `In`; desktop remains unchanged.
+- Added focused contract coverage for both responsive action surfaces, existing routes, canonical service reuse and private no-store file responses.
+- File handoff remains subject to `docs/PWA_EXTERNAL_FILE_HANDOFF.md`; installed iOS PWA requires manual UI verification.
+- Automated tests: NOT RUN in GitHub environment. Operator focused test, impacted ClientApps Pharma regression and real UI acceptance remain pending. No schema or production changes.
+
+---
+
 ## Checkpoint — Pharma stock card + issue fulfillment closeout — 2026-10-05
 
 - Branch: `refactor/clientportal-pharma-inventory-stock-card`; compared with `main` before handoff: ahead 36, behind 0.
