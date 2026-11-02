@@ -15,7 +15,7 @@ final class PharmaDraftIssueShortageNoteContractTest extends TestCase
 
         $this->assertStringContainsString("'draft_shortage_notes.*' => ['nullable', 'string', 'max:2000']", $controller);
         $this->assertStringContainsString("['draft_shortage_notes'] ?? []", $controller);
-        $this->assertStringContainsString("'draft_shortage_note' =>", $workflow);
+        $this->assertStringContainsString("\$row['draft_shortage_note'] =", $workflow);
         $this->assertStringContainsString("if (! \$hasSufficientLot && \$note === '')", $workflow);
         $this->assertStringContainsString('ValidationException::withMessages', $workflow);
         $this->assertStringContainsString('draft_shortage_notes[{{ $item->medicine_id }}]', $view);
