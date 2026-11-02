@@ -13,7 +13,7 @@
     $currentSource = old('source', $editing && ($issue->issue_source ?? 'normal') === 'bid' ? 'bid' : 'price_list');
     $currentByMedicine = $editing ? $issue->items->keyBy('medicine_id') : collect();
     $currentByAllocation = $editing ? $issue->items->whereNotNull('drug_bid_award_allocation_id')->keyBy('drug_bid_award_allocation_id') : collect();
-    $formatQty = fn ($value) => rtrim(rtrim(number_format((float) $value, 3, '.', ''), '0'), '.');
+    $formatQty = fn ($value) => (str_contains(number_format((float) $value, 3, '.', ''), '.') ? rtrim(rtrim(number_format((float) $value, 3, '.', ''), '0'), '.') : number_format((float) $value, 0, '.', ''));
     $money = fn($value) => number_format((float)$value, 0, ',', '.').' đ';
 @endphp
 <div class="min-w-0 max-w-full bg-slate-50 pb-6" data-order-authoring>
