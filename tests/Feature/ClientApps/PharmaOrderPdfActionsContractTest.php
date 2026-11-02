@@ -13,8 +13,8 @@ class PharmaOrderPdfActionsContractTest extends TestCase
 
         $this->assertStringContainsString("'pdf_action' => ['nullable', 'in:download,print']", $controller);
         $this->assertStringContainsString('$documents->generate($visible,(int)$user->id);', $controller);
-        $this->assertStringContainsString("redirect()->route('client.pharma.orders.pdf', $visible)", $controller);
-        $this->assertStringContainsString("redirect()->route('client.pharma.orders.print', $visible)", $controller);
+        $this->assertStringContainsString('redirect()->route(\'client.pharma.orders.pdf\', $visible)', $controller);
+        $this->assertStringContainsString('redirect()->route(\'client.pharma.orders.print\', $visible)', $controller);
         $this->assertStringContainsString('$documents->current($visible)', $controller);
         $this->assertSame(2, substr_count($view, 'name="pdf_action" value="download"'));
         $this->assertSame(2, substr_count($view, 'name="pdf_action" value="print"'));
