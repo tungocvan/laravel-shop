@@ -146,6 +146,11 @@
                                 <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                 <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT && ($canSubmitOrders ?? false) && in_array($currentUserId, [(int) $issue->created_by, (int) $issue->manager_user_id], true))
+                                        <form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}" onsubmit="return confirm('Gửi đơn hàng này để phê duyệt? Gửi duyệt không trừ tồn kho.')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Gửi duyệt</button></form>
+                                    @elseif($issue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL)
+                                        <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-amber-800 hover:bg-amber-50">Chờ duyệt · Xem điều kiện</a>
+                                    @endif
                                      @if($canEditOrders && $issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT && in_array($currentUserId, [(int) $issue->created_by, (int) $issue->manager_user_id], true))<a href="{{ route('client.pharma.orders.edit', $issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Sửa phiếu / chọn lô</a>@endif
                                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                                         @if($canApproveOrders)
