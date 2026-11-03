@@ -65,7 +65,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('h-10 min-w-[118px]', $view);
         $this->assertStringNotContainsString('sticky bottom-0 z-20', $view);
         $this->assertStringContainsString('rejectOrder', $controller);
-        $this->assertStringContainsString('Phê duyệt', $view);
+        $this->assertStringContainsString('Điều chỉnh & duyệt', $view);
         $this->assertStringContainsString('Từ chối', $view);
         $this->assertStringContainsString('Lý do từ chối', $view);
         $this->assertStringContainsString('rejection_reason', $view);
@@ -142,7 +142,9 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("client.pharma.orders.post", $controller);
         $this->assertStringContainsString('postOrder(', $controller);
         $this->assertStringContainsString("status !== \\Modules\\Pharma\\Models\\InventoryIssue::APPROVED", $controller);
-        $this->assertStringContainsString("['status' => 'posted']", $controller);
+        $this->assertStringContainsString("return redirect()->route('client.pharma.orders.lots', \$issue);", $controller);
+        $this->assertStringContainsString("Route::post('/orders/{issue}/lots'", $routes);
+        $this->assertStringContainsString('postOrderLots(', $controller);
         $this->assertStringContainsString('can_post_directly', $readiness);
         $this->assertStringContainsString("\$fulfillableRows = \$rows->reject(fn (array \$row): bool => \$row['has_supply_note']);", $readiness);
         $this->assertStringContainsString('$fulfillableRows->every(', $readiness);
@@ -153,12 +155,12 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("\$quantity = min(\$remaining, (float) \$balance->quantity_on_hand);", $inventory);
         $this->assertStringContainsString('$deferredMedicineIds = $issue->deferredSupplies', $inventory);
         $this->assertStringContainsString('$postedItems = $issue->items', $inventory);
-        $this->assertStringContainsString("reject(fn (\$item) => \$deferredMedicineIds->contains((int) \$item->medicine_id))", $inventory);
+        $this->assertStringContainsString("(\$item->batch_number && \$item->expiry_date)", $inventory);
         $this->assertStringContainsString('toàn bộ mặt hàng đang chờ cung ứng', $inventory);
         $this->assertStringContainsString('Ghi sổ chỉ xuất các sản phẩm đủ tồn', $view);
-        $this->assertStringContainsString("route('client.pharma.orders.post',\$issue)", $view);
-        $this->assertStringContainsString('>Ghi sổ</button>', $view);
-        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_post_directly'] ?? false))", $view);
+        $this->assertStringContainsString("route('client.pharma.orders.lots', \$issue)", $view);
+        $this->assertStringContainsString('Chọn lô & ghi sổ</a>', $view);
+        $this->assertStringContainsString('postOrderLots(', $controller);
     }
 
     public function test_approval_schema_is_audit_only_and_does_not_add_stock_fields(): void
@@ -183,7 +185,10 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('$readiness = app(UserOrderStockReadinessService::class)->forIssue($issue);', $service);
         $this->assertStringContainsString("if (! (\$readiness['can_approve'] ?? false))", $service);
         $this->assertStringContainsString('mọi sản phẩm thiếu phải có ngày dự kiến cung cấp và ghi chú', $service);
-        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))>Phê duyệt", $view);
+        $this->assertStringContainsString('Xác nhận số lượng duyệt', $view);
+        $this->assertStringContainsString('function approvePartially(', $service);
+        $this->assertStringContainsString('Cần duyệt ít nhất một sản phẩm có số lượng thực xuất', $service);
+        $this->assertStringContainsString('Phần thiếu cần ngày dự kiến và ghi chú', $service);
         $this->assertStringContainsString('Chưa thể phê duyệt:', $view);
     }
 
