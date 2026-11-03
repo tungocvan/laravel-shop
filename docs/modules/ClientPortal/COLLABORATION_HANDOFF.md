@@ -1,3 +1,13 @@
+## Checkpoint — ClientPortal Pharma configurable Excel templates — 2026-11-04
+
+- Added web-guard-scoped Excel templates using the canonical Pharma `MedicineExcelProfileService`. Migration adds `owner_guard` default `admin` to preserve existing Admin templates and updates uniqueness to guard+user+name. Do not run migration on production without production workflow approval.
+- Added separate `client.pharma.products.excel-config` permission, protected GET/POST/DELETE routes and responsive Blade designer for columns, order, headings, width, alignment, company/title and page settings.
+- Catalog exposes a template selector and configuration button by capability. Export resolves web user's template and uses Pharma `MedicineConfiguredExcelExporter`; server filters supplier cost/name columns without supplier-pricing permission.
+- This is a first shared-profile/shared-field-bank implementation. Admin ExcelController still retains its existing formatter to avoid unverified Admin behavior changes. Review parity and shared renderer extraction in a separate controlled batch.
+- No local runtime tests/UI verification performed by assistant. Run focused tests, inspect migration and verify UI; module regression deferred until pre-merge. No merge/deploy.
+
+---
+
 ## Checkpoint — Detailed Pharma medicine Excel export — 2026-11-04
 
 - Branch: `feat/clientportal-pharma-catalog-filters-20261103`; no merge/deploy.
