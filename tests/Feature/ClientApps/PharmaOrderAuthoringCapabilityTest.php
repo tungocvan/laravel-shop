@@ -143,7 +143,11 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('data-source-card', $view);
         $this->assertStringContainsString('input:checked + [data-source-card]', $view);
         $this->assertStringContainsString('input[value="bid"]:checked + [data-source-card]', $view);
-        $this->assertStringContainsString('min-h-[calc(100dvh-250px)]', $view);
+        $this->assertStringContainsString('data-order-step-panel="1"', $view);
+        $this->assertStringContainsString('data-order-step-panel="2"', $view);
+        $this->assertStringContainsString('data-order-step-panel="3"', $view);
+        $this->assertStringContainsString('data-order-stepper', $view);
+        $this->assertStringContainsString('sticky top-0 z-30', $view);
         $this->assertStringContainsString('data-customer-field', $view);
         $this->assertStringContainsString('max-h-[min(300px,38dvh)]', $view);
         $this->assertStringContainsString('customerField?.classList.toggle(\'is-open\',has)', $view);
