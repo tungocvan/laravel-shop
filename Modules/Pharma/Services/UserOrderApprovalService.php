@@ -119,6 +119,9 @@ final class UserOrderApprovalService
                 throw ValidationException::withMessages(['order' => 'Trạng thái đơn hàng không hợp lệ.']);
             }
             $issue->load('items');
+            if ($issue->items->pluck('medicine_id')->count() !== $issue->items->pluck('medicine_id')->unique()->count()) {
+                throw ValidationException::withMessages(['order' => 'Đơn có nhiều dòng cùng sản phẩm cần được hợp nhất trước khi duyệt một phần.']);
+            }
             $knownIds = $issue->items->pluck('id')->map(fn ($id) => (int) $id)->all();
             foreach (array_keys($quantities) as $id) {
                 if (! in_array((int) $id, $knownIds, true)) {
