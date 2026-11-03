@@ -12,7 +12,7 @@
     <a href="{{ route('client.pharma.orders.show', $issue) }}" class="inline-flex min-h-11 items-center text-sm font-bold text-indigo-700">← Trở về đơn {{ $issue->number }}</a>
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
         <h1 class="text-xl font-black text-slate-950">Chọn lô và hạn dùng</h1>
-        <p class="mt-2 text-sm leading-6 text-slate-600">Phân bổ đúng số lượng đã duyệt cho từng sản phẩm. Lô hết hạn không được sử dụng. Chỉ ghi sổ sau khi kiểm tra toàn bộ phân bổ.</p>
+        <p class="mt-2 text-sm leading-6 text-slate-600">Phân bổ một hoặc nhiều lô cho mỗi sản phẩm theo số lượng đã duyệt. Lô hết hạn không được sử dụng. Chỉ ghi sổ sau khi kiểm tra toàn bộ phân bổ.</p>
     </div>
     @if($errors->any())
         <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800">
