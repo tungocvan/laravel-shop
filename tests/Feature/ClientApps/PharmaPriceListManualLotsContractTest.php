@@ -18,6 +18,8 @@ class PharmaPriceListManualLotsContractTest extends TestCase
         $this->assertStringContainsString('function approvePartially(', $approval);
         $this->assertStringContainsString('InventoryIssueDeferredSupply::updateOrCreate(', $approval);
         $this->assertStringContainsString('function post(', $lots);
+        $this->assertStringContainsString("! in_array(\$visible->issue_source, ['bid', 'price_list'], true)", $controller);
+        $this->assertStringContainsString("route('client.pharma.orders.show', \$issue)", $controller);
         $this->assertStringContainsString('postIssue($locked->fresh(', $lots);
         $this->assertStringContainsString("return redirect()->route('client.pharma.orders.lots', \$issue)", $controller);
         $this->assertStringContainsString("route('client.pharma.orders.lots', \$issue)", $view);
