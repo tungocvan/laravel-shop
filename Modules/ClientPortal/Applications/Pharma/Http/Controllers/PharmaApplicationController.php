@@ -1934,19 +1934,6 @@ final class PharmaApplicationController extends Controller
         abort_if($approved === null || $approved->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED, 404);
 
         return redirect()->route('client.pharma.orders.lots', $issue);
-
-        /* Legacy automatic FEFO path retained for compatibility; manual selection is the UI default. */
-
-        $readiness = $stockReadiness->forIssue($approved);
-        if (! ($readiness['can_post_directly'] ?? false)) {
-            return redirect()->route('client.pharma.orders.show', $issue)
-                ->withErrors(['stock' => 'Đơn chưa đủ điều kiện ghi sổ trực tiếp. Mỗi sản phẩm cần đủ tổng tồn khả dụng qua các lô còn hạn.']);
-        }
-
-        $inventory->postApprovedIssueFromAvailableStock($approved, (int) $user->id);
-
-        return redirect()->route('client.pharma.orders', ['status' => 'posted'])
-            ->with('success', 'Đã ghi sổ đơn hàng và cập nhật tồn kho.');
     }
 
     public function revertPostedOrder(
