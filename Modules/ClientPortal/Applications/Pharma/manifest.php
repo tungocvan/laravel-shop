@@ -39,6 +39,11 @@ return [
             'icon' => 'beaker',
             'sort_order' => 20,
             'actions' => [
+                'export' => [
+                    'name' => 'Xuất danh mục thuốc Excel',
+                    'permission' => 'client.pharma.products.export',
+                    'sort_order' => 20,
+                ],
                 'supplier-pricing' => [
                     'name' => 'Xem giá nhà cung cấp',
                     'permission' => 'client.pharma.products.supplier-pricing',
