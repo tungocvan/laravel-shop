@@ -177,6 +177,20 @@
                                 <label class="text-xs font-semibold">Cỡ chữ dữ liệu<input type="number" min="8" max="20" wire:model="settings.body_font_size" class="{{ $input }}"></label>
                                 <label class="text-xs font-semibold col-span-2">Màu nền header<select wire:model="settings.header_fill" class="{{ $input }}"><option value="EFF4FA">Xanh nhạt</option><option value="F1F5F9">Xám nhạt</option><option value="EDE9FE">Tím nhạt</option><option value="FFFFFF">Trắng</option></select></label>
                                 <label class="col-span-2 inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.body_border"> Viền mảnh giữa các ô dữ liệu</label>
+                                <div class="col-span-2 mt-3 border-t pt-3">
+                                    <h5 class="mb-2 text-sm font-bold">Lề trang in (cm)</h5>
+                                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                                        @foreach(['top' => 'Trên', 'bottom' => 'Dưới', 'left' => 'Trái', 'right' => 'Phải', 'header' => 'Header', 'footer' => 'Footer'] as $side => $label)
+                                            <label class="text-xs font-semibold">{{ $label }}
+                                                <input type="number" min="0" max="5" step="0.1" wire:model="settings.margin_{{ $side }}_cm" class="{{ $input }}">
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                    <div class="mt-3 flex flex-wrap gap-4">
+                                        <label class="inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.center_horizontally"> Căn giữa trang theo chiều ngang</label>
+                                        <label class="inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.center_vertically"> Căn giữa trang theo chiều dọc</label>
+                                    </div>
+                                </div>
                             </div>
                             <p class="mt-2 text-xs text-slate-500">Mặc định: Times New Roman · Header 12pt có nền nhạt, wrap text · Dữ liệu 11pt có viền mảnh.</p>
                         </section>
