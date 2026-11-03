@@ -64,12 +64,8 @@ final class UserOrderApprovalService
                 if ($approved > $original) {
                     throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt không được vượt số lượng đặt.']);
                 }
-                $available = (float) \Modules\Pharma\Models\InventoryBalance::query()
-                    ->where('warehouse_id', $issue->warehouse_id)
-                    ->where('medicine_id', $item->medicine_id)
-                    ->where('quantity_on_hand', '>', 0)
-                    ->whereDate('expiry_date', '>=', now()->toDateString())
-                    ->sum('quantity_on_hand');
+                $available = app(UserOrderStockReadinessService::class)
+                    ->availableForMedicine($issue, (int) $item->medicine_id);
                 if ($approved > $available) {
                     throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt vượt tồn khả dụng.']);
                 }
