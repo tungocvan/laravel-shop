@@ -30,10 +30,14 @@ final class InventoryIssueDocumentService
         if($existing && $existing->source_hash!==$hash) $existing->shares()->delete();
         if($existing && Storage::disk($existing->disk)->exists($existing->storage_path)) Storage::disk($existing->disk)->delete($existing->storage_path);
 
-        return InventoryIssueDocument::query()->updateOrCreate(
+        $document = InventoryIssueDocument::query()->updateOrCreate(
             ['issue_id'=>$issue->id],
             ['disk'=>'local','storage_path'=>$path,'download_name'=>'phieu-xuat-kho-'.$issue->number.'.pdf','source_hash'=>$hash,'generated_by'=>$userId,'generated_at'=>now()]
         );
+        // Never report a successful export unless the same validation used by print/download accepts it.
+        abort_unless($this->current($issue->fresh())?->is($document), 409, 'PDF vừa tạo không hợp lệ; vui lòng thử lại.');
+
+        return $document;
     }
 
     public function current(InventoryIssue $issue): ?InventoryIssueDocument
@@ -105,12 +109,14 @@ final class InventoryIssueDocumentService
 
     private function canonicalIssue(InventoryIssue $issue): InventoryIssue
     {
-        return $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
+        // Always hash the persisted canonical snapshot, not a previously eager-loaded
+        // issue whose item relations or aggregate fields may have been modified for UI.
+        return $issue->fresh(['items.medicine','manager:id,name','priceList.manager']);
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
     {
-        $items=$issue->items->map(fn($item)=>[
+        $items=$issue->items->sortBy('id')->map(fn($item)=>[
             'id'=>$item->id,'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,
             'expiry_date'=>$item->expiry_date?->format('Y-m-d'),'quantity'=>(string)$item->quantity,'unit_price'=>(string)$item->unit_price,
         ])->values()->all();
