@@ -200,7 +200,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $authoring = file_get_contents(base_path('Modules/Pharma/Services/UserOrderAuthoringService.php'));
         $posting = file_get_contents(base_path('Modules/Pharma/Services/BidIssueManualLotPostingService.php'));
 
-        $this->assertStringContainsString("'issue_source' => $source === 'bid' ? 'bid' : 'normal'", $authoring);
+        $this->assertStringContainsString("'issue_source' => \$source === 'bid' ? 'bid' : 'normal'", $authoring);
         $this->assertStringContainsString("! in_array(\$visible->issue_source, ['bid', 'normal', 'price_list'], true)", $controller);
         $this->assertStringContainsString("client.pharma.orders.post", $controller);
         $this->assertStringContainsString("\$visible->posted_at !== null, 404", $controller);
