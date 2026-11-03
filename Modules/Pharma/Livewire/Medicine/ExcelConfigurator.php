@@ -47,7 +47,7 @@ class ExcelConfigurator extends Component
         $user = auth($this->ownerGuard)->user();
         abort_unless($user, 403);
         if ($this->ownerGuard === 'web') {
-            abort_unless(app(\\Modules\\ClientPortal\\Services\\ApplicationRegistry::class)
+            abort_unless(app(\Modules\ClientPortal\Services\ApplicationRegistry::class)
                 ->userCan($user, 'client.pharma.products.excel-config'), 403);
         }
         return (int) $user->id;
@@ -56,7 +56,7 @@ class ExcelConfigurator extends Component
     private function allowedColumns(): array
     {
         $columns = MedicineExcelProfileService::COLUMNS;
-        if ($this->ownerGuard === 'web' && ! app(\\Modules\\ClientPortal\\Services\\ApplicationRegistry::class)
+        if ($this->ownerGuard === 'web' && ! app(\Modules\ClientPortal\Services\ApplicationRegistry::class)
             ->userCan(auth('web')->user(), 'client.pharma.products.supplier-pricing')) {
             unset($columns['cost_price'], $columns['supplier_name']);
         }
