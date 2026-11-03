@@ -1917,6 +1917,10 @@ final class PharmaApplicationController extends Controller
         $approved = $workspace->findVisible((int) $user->id, $issue, true);
         abort_if($approved === null || $approved->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED, 404);
 
+        if ($approved->issue_source === 'bid') {
+            return redirect()->route('client.pharma.orders.lots', $issue);
+        }
+
         $readiness = $stockReadiness->forIssue($approved);
         if (! ($readiness['can_post_directly'] ?? false)) {
             return redirect()->route('client.pharma.orders.show', $issue)
