@@ -11,9 +11,25 @@ use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocument;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
 use Modules\Pharma\Models\InventoryIssueDocumentShare;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 
 final class InventoryIssueDocumentService
 {
+    public function managerNames(InventoryIssue $issue): string
+    {
+        if (($issue->issue_source ?? 'normal') !== 'bid') {
+            return $issue->manager?->name ?: $issue->priceList?->manager?->name ?: '';
+        }
+        $awardIds=$issue->items->pluck('drug_bid_award_id')->filter()->unique()->values();
+        $partnerId=(int) ($issue->bid_partner_id ?? 0);
+        if ($awardIds->isEmpty() || !$partnerId) return $issue->manager?->name ?: '';
+        $names=DrugBidAwardManagementAssignment::query()->with('user:id,name')
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereIn('drug_bid_award_id',$awardIds)->where('partner_id',$partnerId)
+            ->get()->pluck('user.name')->filter()->unique()->sort()->values()->implode(', ');
+        return $names ?: ($issue->manager?->name ?: '');
+    }
+
     public function generate(InventoryIssue $issue, ?int $userId): InventoryIssueDocument
     {
         abort_unless($issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.');
@@ -24,7 +40,8 @@ final class InventoryIssueDocumentService
         if($existing && $existing->source_hash===$hash && Storage::disk($existing->disk)->exists($existing->storage_path)) return $existing;
 
         $path='Pharma/inventory/issues/'.$issue->id.'/issue-'.Str::uuid().'.pdf';
-        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait')->output();
+        $managerNames=$this->managerNames($issue);
+        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings','managerNames'))->setPaper('a4','portrait')->output();
         Storage::disk('local')->put($path,$binary);
 
         if($existing && $existing->source_hash!==$hash) $existing->shares()->delete();
@@ -124,7 +141,7 @@ final class InventoryIssueDocumentService
             'issue'=>['id'=>$issue->id,'number'=>$issue->number,'issue_date'=>$issue->issue_date?->format('Y-m-d'),
                 'recipient_name'=>$issue->recipient_name,'manager_user_id'=>$issue->manager_user_id,'price_list_id'=>$issue->price_list_id,
                 'issue_source'=>$issue->issue_source,'notes'=>$issue->notes,'status'=>$issue->status],
-            'items'=>$items,'settings'=>$settings->toArray(),
+            'items'=>$items,'settings'=>$settings->toArray(),'manager_names'=>$settings->show_manager ? $this->managerNames($issue) : null,
         ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     }
 }
