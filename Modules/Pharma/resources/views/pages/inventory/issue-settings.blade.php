@@ -30,6 +30,7 @@
            'show_unit_price' => 'Đơn giá xuất',
            'show_total_value' => 'Thành tiền / tổng giá trị',
            'show_notes' => 'Ghi chú',
+           'show_deferred_supply' => 'Hàng chờ cung ứng',
            'show_issuer_signature' => 'Chữ ký: Người lập phiếu',
            'show_deliverer_signature' => 'Chữ ký: Người giao hàng',
            'show_receiver_signature' => 'Chữ ký: Người nhận hàng',
