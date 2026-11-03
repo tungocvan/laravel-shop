@@ -39,6 +39,11 @@ return [
             'icon' => 'beaker',
             'sort_order' => 20,
             'actions' => [
+                'import' => [
+                    'name' => 'Nhập Excel vào staging danh mục thuốc',
+                    'permission' => 'client.pharma.products.import',
+                    'sort_order' => 30,
+                ],
                 'export' => [
                     'name' => 'Xuất danh mục thuốc Excel',
                     'permission' => 'client.pharma.products.export',
