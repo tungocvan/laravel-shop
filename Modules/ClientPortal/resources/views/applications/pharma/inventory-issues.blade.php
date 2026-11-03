@@ -111,18 +111,7 @@
                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL && $canApproveOrders)
                         <a href="{{ route('client.pharma.orders.show',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-700 px-3 text-xs font-black text-white">Xem & phê duyệt</a>
                     @endif
-                                        @if($issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT)
-                                        @if($canCreateOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
-                                            <a href="{{ route('client.pharma.orders.edit',$issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn</a>
-                                        @endif
-                                        @if($canSubmitOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
-                                            <form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Gửi duyệt</button></form>
-                                        @endif
-                                    @endif
-                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL && $canApproveOrders)
-                                        <a href="{{ route('client.pharma.orders.show',$issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Xem & phê duyệt</a>
-                                    @endif
-                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
+                                        @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                         @if($canApproveOrders)<form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác duyệt</button></form>@endif
                         @if($canPostOrders && ($issue->issue_source ?? 'normal') === 'bid')<a href="{{ route('client.pharma.orders.lots',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white">Chọn lô & ghi sổ</a>@endif
                         @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')<form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-3 text-xs font-black text-white active:scale-[0.985]">Ghi sổ</button></form>@endif
@@ -168,6 +157,17 @@
                                 <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                 <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
                                     <a href="{{ route('client.pharma.orders.show',$issue->id) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT)
+                                        @if($canCreateOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
+                                            <a href="{{ route('client.pharma.orders.edit',$issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn</a>
+                                        @endif
+                                        @if($canSubmitOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
+                                            <form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Gửi duyệt</button></form>
+                                        @endif
+                                    @endif
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL && $canApproveOrders)
+                                        <a href="{{ route('client.pharma.orders.show',$issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Xem & phê duyệt</a>
+                                    @endif
                                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                                         @if($canApproveOrders)
                                             <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
