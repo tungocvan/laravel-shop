@@ -6,6 +6,30 @@ use Tests\TestCase;
 
 final class PharmaInventoryIssuesCapabilityTest extends TestCase
 {
+    public function test_issue_pdf_metadata_and_lot_action_contracts(): void
+    {
+        $settings=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueDocumentSetting.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_11_03_120000_add_show_manager_to_pharma_issue_document_settings.php'));
+        $admin=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $config=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-settings.blade.php'));
+        $pdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $document=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $list=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php'));
+
+        $this->assertStringContainsString("'show_manager'=>true", $settings);
+        $this->assertStringContainsString("->boolean('show_manager')->default(true)", $migration);
+        $this->assertStringContainsString("'show_manager','show_price_list'", $admin);
+        $this->assertStringContainsString("'show_manager' => 'Người phụ trách'", $config);
+        $this->assertStringContainsString("'show_price_list' => 'Bảng giá áp dụng'", $config);
+        $this->assertStringContainsString('@if($settings->show_manager)', $pdf);
+        $this->assertStringContainsString("Theo kết quả trúng thầu", $pdf);
+        $this->assertStringContainsString('public function managerNames(InventoryIssue $issue): string', $document);
+        $this->assertStringContainsString("whereIn('drug_bid_award_id',\$awardIds)", $document);
+        $this->assertStringContainsString("'manager_names'=>\$settings->show_manager", $document);
+        $this->assertStringContainsString('aria-label="Chọn lô xuất kho cho phiếu', $list);
+        $this->assertStringContainsString("route('client.pharma.orders.lots',\$issue)", $list);
+    }
+
     public function test_order_pdf_export_reopens_detail_and_uses_persisted_stable_document_snapshot(): void
     {
         $root = base_path();
