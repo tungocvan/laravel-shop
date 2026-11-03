@@ -1,6 +1,9 @@
 @extends('ClientPortal::layouts.application')
 
 @section('title', 'Chọn lô thực xuất')
+@section('app-name', $application['name'])
+@section('app-subtitle', 'Workspace Pharma dành cho User')
+@section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
 
