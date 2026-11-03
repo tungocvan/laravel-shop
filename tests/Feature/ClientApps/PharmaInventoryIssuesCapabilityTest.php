@@ -215,7 +215,7 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("Storage::disk('local')->put(\$path,\$binary)",$service);
         $this->assertStringContainsString('private function canonicalIssue(InventoryIssue $issue): InventoryIssue',$service);
         // PDF must use a persisted canonical snapshot, not potentially mutated UI relations.
-        $this->assertStringContainsString("fresh(['items.medicine','manager:id,name','priceList.manager'])",$service);
+        $this->assertStringContainsString("fresh(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine'])",$service);
         $this->assertStringContainsString("items->sortBy('id')",$service);
 
         $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'",$service);
