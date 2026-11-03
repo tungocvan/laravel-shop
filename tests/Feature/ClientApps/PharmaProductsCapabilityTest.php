@@ -82,7 +82,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$catalog->circularGroups()', $controller);
         $this->assertStringContainsString('circularGroup: $circularGroup', $controller);
         $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
-        $this->assertStringContainsString("abort_if(\$filter === 'supplier-priced' && ! \$canViewSupplierPricing, 403)", $controller);
+        $this->assertStringContainsString("abort_if((\$filter === 'supplier-priced' || filled(\$validated['supplier_price'] ?? null)) && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
         $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
         $this->assertStringNotContainsString('name="per_page"', $view);
@@ -94,8 +94,13 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('Đã trúng thầu', $view);
         $this->assertStringContainsString('Có HSSP', $view);
         $this->assertStringContainsString('Có giá NCC', $view);
-        $this->assertStringContainsString('$filterCounts[$value ?? \'all\']', $view);
+        $this->assertStringContainsString('name="bid_award"', $view);
         $this->assertStringContainsString('name="group"', $view);
+        $this->assertStringContainsString('name="hssp"', $view);
+        $this->assertStringContainsString('Chưa có HSSP', $view);
+        $this->assertStringContainsString('Chưa có giá NCC', $view);
+        $this->assertStringContainsString('Chưa trúng thầu', $view);
+        $this->assertStringNotContainsString('aria-label="Bộ lọc danh mục thuốc"', $view);
         $this->assertStringContainsString('Tất cả nhóm', $view);
         $this->assertStringContainsString('@foreach($circularGroups as $group)', $view);
         $this->assertStringContainsString("'group' => \$circularGroup", $view);
@@ -104,7 +109,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$product->circularGroup', $view);
         $this->assertStringContainsString('$product->declaredPrice', $view);
         $this->assertStringContainsString('h-[46px]', $view);
-        $this->assertStringContainsString('lg:grid-cols-[minmax(0,1fr)_11rem_11rem_11rem_auto]', $view);
+        $this->assertStringContainsString('sm:grid-cols-2 xl:grid-cols-4', $view);
         $this->assertStringContainsString('whitespace-nowrap', $view);
         $this->assertStringContainsString('bg-blue-50', $view);
         $this->assertStringContainsString('bg-emerald-50', $view);
@@ -113,7 +118,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$product->hasProfile', $view);
         $this->assertStringContainsString('$canViewSupplierPricing && $product->hasSupplierPricing', $view);
         $this->assertStringContainsString('if ($canViewSupplierPricing)', $view);
-        $this->assertStringContainsString("\$filters['supplier-priced'] = ['label' => 'Có giá NCC'", $view);
+        $this->assertStringContainsString("name="supplier_price"", $view);
         $this->assertStringContainsString('data-pwa-debounced-search="350"', $view);
         $this->assertStringContainsString('data-pwa-search-region="#product-results-region"', $view);
         $this->assertStringContainsString('data-pwa-search-clear="#product-search-clear"', $view);
@@ -151,6 +156,12 @@ class PharmaProductsCapabilityTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
 
         $this->assertStringContainsString('Medicine::productTypeOptions()', $service);
+        $this->assertStringContainsString("whereDoesntHave('medicine.currentProfile')", $service);
+        $this->assertStringContainsString("whereDoesntHave('medicine.drugBidAwards')", $service);
+        $this->assertStringContainsString("whereDoesntHave('medicine.supplierTrackings'", $service);
+        $this->assertStringContainsString("supplierPrice: \$validated['supplier_price'] ?? null", $controller);
+        $this->assertStringContainsString("bidAward: \$validated['bid_award'] ?? null", $controller);
+        $this->assertStringContainsString("hssp: \$validated['hssp'] ?? null", $controller);
         $this->assertStringContainsString("where('product_type', \$productType)", $service);
         $this->assertStringContainsString("where('is_special_control', \$specialControl === 'yes')", $service);
         $this->assertStringContainsString("productType: \$validated['product_type'] ?? null", $controller);
