@@ -145,7 +145,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Admin::', $view);
 
         // JavaScript Set.delete() only clears a local selection; it is not a server mutation.
-        foreach (['create', 'edit', 'destroy', 'verifyMaster', 'import'] as $mutation) {
+        foreach (['create', 'edit', 'destroy', 'verifyMaster'] as $mutation) {
             $this->assertStringNotContainsString($mutation, $view);
         }
         $this->assertStringNotContainsString("@method('DELETE')", $view);
@@ -209,6 +209,14 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$catalog->browse(', $controller);
         $this->assertStringContainsString('while ($result->hasMorePages())', $controller);
         $this->assertStringContainsString('$excel->export(', $controller);
+        $this->assertStringContainsString("name('products.import')", $routes);
+        $this->assertStringContainsString('client.pharma.products.import', $manifest);
+        $this->assertStringContainsString('MedicineCatalogUploadService $upload', $controller);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.products.import')", $controller);
+        $this->assertStringContainsString("['required', 'file', 'mimes:xlsx,csv', 'max:10240']", $controller);
+        $this->assertStringContainsString("['source' => 'clientportal_pharma']", $controller);
+        $this->assertStringNotContainsString('->commit(', $controller);
+        $this->assertStringContainsString('name="file"', $view);
         $this->assertStringContainsString('id="medicine-export-form"', $view);
         $this->assertStringContainsString("data.append('ids[]', id)", $view);
         $this->assertStringContainsString("credentials: 'same-origin'", $view);
