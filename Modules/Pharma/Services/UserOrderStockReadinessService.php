@@ -63,7 +63,7 @@ final class UserOrderStockReadinessService
 
         $deferredSupplies = $issue->deferredSupplies()
             ->where('status', \Modules\Pharma\Models\InventoryIssueDeferredSupply::PENDING)
-            ->get(['medicine_id', 'drug_bid_award_allocation_id', 'expected_supply_date', 'note']);
+            ->get(['medicine_id', 'drug_bid_award_allocation_id', 'quantity', 'expected_supply_date', 'note']);
         $deferredByAllocation = $deferredSupplies->filter(fn ($supply) => $supply->drug_bid_award_allocation_id !== null)
             ->keyBy(fn ($supply) => (int) $supply->drug_bid_award_allocation_id);
         $deferredByMedicine = $deferredSupplies->filter(fn ($supply) => $supply->drug_bid_award_allocation_id === null)
@@ -74,6 +74,11 @@ final class UserOrderStockReadinessService
         $rows = $rows->map(function (array $row) use ($deferredByAllocation, $deferredByMedicine, $itemAllocationIds): array {
             $allocationId = $itemAllocationIds->get($row['item_id']);
             $supply = $allocationId ? $deferredByAllocation->get((int) $allocationId) : $deferredByMedicine->get((int) $row['medicine_id']);
+            // A previously partially approved order stores only the issued quantity on the item.
+            // Restore demand from the pending deferred supply for a repeat approval.
+            $row['requested_quantity'] += (float) ($supply?->quantity ?? 0);
+            $row['shortage_quantity'] = max(0, $row['requested_quantity'] - $row['available_stock']);
+            $row['is_ready'] = $row['available_stock'] + 0.00005 >= $row['requested_quantity'];
             $row['supply_expected_date'] = $supply?->expected_supply_date?->format('Y-m-d');
             $row['supply_note'] = $supply?->note;
             $row['has_supply_note'] = ! $row['is_ready'] && $supply !== null;
