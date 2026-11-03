@@ -30,7 +30,7 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <tr><td class="label">Xuất tại kho:</td><td>{{ $settings->warehouse_name }}</td></tr>
 <tr><td class="label">Khách hàng / Nơi nhận:</td><td>{{ $issue->recipient_name ?: '—' }}</td></tr>
 @if($settings->show_manager)
-<tr><td class="label">Người phụ trách:</td><td>{{ $issue->manager?->name ?: $issue->priceList?->manager?->name ?: '—' }}</td></tr>
+<tr><td class="label">Người phụ trách:</td><td>{{ $managerNames ?: '—' }}</td></tr>
 @endif
 @if($settings->show_price_list)
 <tr><td class="label">Bảng giá áp dụng:</td><td>@if(($issue->issue_source ?? 'normal') === 'bid')Theo kết quả trúng thầu@else{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}@endif</td></tr>
