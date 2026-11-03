@@ -1663,6 +1663,14 @@ final class PharmaApplicationController extends Controller
             source:$validated['source'] ?? null,fromDate:$validated['from_date'] ?? null,toDate:$validated['to_date'] ?? null,
             managerUserId:$managerUserId,perPage:20,page:(int)($validated['page'] ?? 1),includeApprovalScope:$canApproveOrders,
         )->withQueryString();
+        $canEditOrders = $registry->userCan($user, 'client.pharma.orders.create')
+            || $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        $orderEditActions = [];
+        foreach ($issues->getCollection() as $issue) {
+            $orderEditActions[(int) $issue->id] = $canEditOrders
+                && $issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT
+                && in_array((int) $user->id, [(int) $issue->created_by, (int) $issue->manager_user_id], true);
+        }
         $issueDocuments=app(InventoryIssueDocumentService::class);
         $orderPdfActions=[];
         foreach($issues->getCollection() as $issue){
@@ -1682,6 +1690,7 @@ final class PharmaApplicationController extends Controller
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'orderPdfActions' => $orderPdfActions,
+            'orderEditActions' => $orderEditActions,
             'filters' => [
                 'q' => trim((string) ($validated['q'] ?? '')),
                 'status' => $validated['status'] ?? '',
