@@ -1253,3 +1253,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Pharma PWA roadmap P1-P8 is complete with automated and rendered UI acceptance.
 - Merge gate: run focused regression first, then ClientPortal/Pharma module regression because this branch changes shared ClientPortal interaction/components and multiple Pharma PWA capabilities. Full-project regression is NOT APPLICABLE under the repository workflow because no global bootstrap/auth/schema/module-framework boundary changed.
 - Before merge, verify local git status while preserving known local-only ngrok artifacts; do not add/delete `.env.backup-before-ngrok-session` or `public/hot.pharma-mobile`.
+
+## Checkpoint — ClientPortal Pharma draft bid edit action — 2026-11-03
+
+- Branch `feat/client-pharma-bid-draft-edit-action-20261103` from main `9c06aa3b9755cd8fe00728171bd3cbcb9d52815a`.
+- Reuse existing ClientPortal `orders.edit` / `orders.update` routes and Pharma `UserOrderAuthoringService`; no domain duplication or migration.
+- Desktop dropdown and mobile card expose `Sửa đơn hàng thầu` for draft bid orders (and `Sửa đơn hàng` for draft regular orders) only when user has order creation capability and is creator or responsible manager. Existing `editOrder` / `updateOrder` authorization remains enforced server-side.
+- Focused test: `tests/Feature/ClientApps/PharmaBidDraftEditActionContractTest.php`. Follow with `tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php`. Local tests and UI desktop/mobile **PENDING**; no merge or deploy authorized.
