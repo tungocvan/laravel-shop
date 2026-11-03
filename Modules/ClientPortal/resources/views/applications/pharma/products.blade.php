@@ -8,7 +8,27 @@
 @section('hide-mobile-navigation', true)
 
 @section('content')
-<div class="min-w-0 space-y-4 overflow-x-hidden">
+<div class="min-w-0 space-y-4 overflow-x-hidden"
+     x-data="{
+         selected: [],
+         medicineIds() {
+             return [...new Set(Array.from(this.$el.querySelectorAll('[data-medicine-select]')).map(input => Number(input.value)))];
+         },
+         toggleMedicine(id, checked) {
+             this.selected = checked ? [...new Set([...this.selected, id])] : this.selected.filter(value => value !== id);
+         },
+         toggleVisible(checked) {
+             const visible = this.medicineIds();
+             this.selected = checked
+                 ? [...new Set([...this.selected, ...visible])]
+                 : this.selected.filter(id => !visible.includes(id));
+         },
+         allVisibleSelected() {
+             const visible = this.medicineIds();
+             return visible.length > 0 && visible.every(id => this.selected.includes(id));
+         }
+     }"
+     @change="if ($event.target.matches('[data-medicine-select]')) toggleMedicine(Number($event.target.value), $event.target.checked); else if ($event.target.matches('[data-medicine-select-all]')) toggleVisible($event.target.checked)">
     <section class="rounded-[2rem] bg-slate-950 px-5 py-6 text-white shadow-sm sm:px-7">
         <a href="{{ route('client.pharma.dashboard') }}" aria-label="Quay lại Không gian làm việc Pharma" class="inline-flex min-h-10 items-center rounded-xl px-1 text-sm font-bold text-slate-300 transition hover:text-white active:scale-[0.985] motion-reduce:transform-none">← Quay về dashboard</a>
         <p class="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
@@ -51,10 +71,25 @@
         </form>
     </section>
 
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+        <label class="inline-flex min-h-10 cursor-pointer items-center gap-2 font-semibold text-slate-700">
+            <input type="checkbox" data-medicine-select-all :checked="allVisibleSelected()" :disabled="medicineIds().length === 0" class="h-4 w-4 rounded border-slate-300 text-blue-600">
+            Chọn tất cả thuốc đang hiển thị
+        </label>
+        <div class="flex items-center gap-3">
+            <span class="text-slate-600"><strong x-text="selected.length">0</strong> thuốc đã chọn</span>
+            <button type="button" x-show="selected.length > 0" @click="selected = []" class="rounded-xl border border-slate-300 px-3 py-2 font-semibold text-slate-700">Bỏ chọn</button>
+        </div>
+    </div>
+
     <div id="product-results-region" class="space-y-4">
     <section id="product-mobile-results" class="space-y-3 xl:hidden">
         @forelse($products as $product)
             <article data-product-card class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                <label class="mb-3 inline-flex min-h-10 cursor-pointer items-center gap-2 text-xs font-bold text-slate-600">
+                    <input type="checkbox" data-medicine-select value="{{ $product->medicineId }}" :checked="selected.includes({{ $product->medicineId }})" class="h-4 w-4 rounded border-slate-300 text-blue-600">
+                    Chọn thuốc
+                </label>
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <h2 class="mt-1 font-black text-slate-950">{{ $product->brandName }}</h2>
@@ -89,11 +124,12 @@
         <div class="overflow-x-auto">
             <table class="min-w-full text-left text-sm">
                 <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-[17%] px-4 py-3">Tên thuốc</th><th class="w-[9%] px-4 py-3">Nhóm</th><th class="w-[23%] px-4 py-3">Hoạt chất / Hàm lượng</th><th class="w-[13%] px-4 py-3">GPLH</th><th class="w-[7%] px-4 py-3">ĐVT</th><th class="w-[15%] px-4 py-3">Quy cách</th><th class="w-[11%] px-4 py-3 text-right">Giá kê khai</th><th class="w-[5%] px-3 py-3 text-center">Xem</th></tr>
+                    <tr><th class="w-12 px-3 py-3"><span class="sr-only">Chọn thuốc</span></th><th class="w-[17%] px-4 py-3">Tên thuốc</th><th class="w-[9%] px-4 py-3">Nhóm</th><th class="w-[23%] px-4 py-3">Hoạt chất / Hàm lượng</th><th class="w-[13%] px-4 py-3">GPLH</th><th class="w-[7%] px-4 py-3">ĐVT</th><th class="w-[15%] px-4 py-3">Quy cách</th><th class="w-[11%] px-4 py-3 text-right">Giá kê khai</th><th class="w-[5%] px-3 py-3 text-center">Xem</th></tr>
                 </thead>
                 <tbody id="product-desktop-results" class="divide-y divide-slate-100">
                     @forelse($products as $product)
                         <tr data-product-row class="align-top">
+                            <td class="px-3 py-4"><input type="checkbox" data-medicine-select value="{{ $product->medicineId }}" :checked="selected.includes({{ $product->medicineId }})" aria-label="Chọn thuốc {{ $product->brandName }}" class="h-4 w-4 rounded border-slate-300 text-blue-600"></td>
                             <td class="px-5 py-4">
                                 <div class="font-bold text-slate-950">{{ $product->brandName }}</div>
                                 <div class="mt-2 flex flex-wrap gap-1.5">
@@ -115,7 +151,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="8" class="px-5 py-10 text-center text-slate-500">Không tìm thấy thuốc phù hợp.</td></tr>
+                        <tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">Không tìm thấy thuốc phù hợp.</td></tr>
                     @endforelse
                 </tbody>
             </table>
