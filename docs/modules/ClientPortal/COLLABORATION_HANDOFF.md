@@ -1,3 +1,13 @@
+## Checkpoint — Pharma catalog three independent combobox filters — 2026-11-03
+
+- Branch: `feat/clientportal-pharma-catalog-filters-20261103`. Replaces legacy pill filter UI with three independent selectors: HSSP with/without, supplier price with/without (permission-gated), bid award with/without. Default for each is All.
+- ClientPortal validates `hssp`, `supplier_price`, `bid_award` and rejects supplier-price filtering without `client.pharma.products.supplier-pricing`. Canonical `MedicineCatalog::browse()` applies conjunctive `whereHas` / `whereDoesntHave` clauses. Old `filter` parameter remains accepted for compatibility.
+- Existing search, circular group, product type, special control, mobile progressive loading and focused PWA shell remain in place. No schema change, Admin mutation or production operation.
+- Updated focused source contract `tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. Runtime tests NOT RUN; UI NOT VERIFIED. Run focused tests only at this batch checkpoint. Full Pharma module regression deferred to pre-merge gate by operator request.
+- Manual acceptance: all/with/without for each filter, combined AND conditions, reset, mobile/desktop, and supplier-price permission/403 guard. Do not merge without operator approval.
+
+---
+
 ## Checkpoint — Pharma PWA catalog filters (batch 1) — 2026-11-03
 
 - Branch: `feat/clientportal-pharma-catalog-filters-20261103`, based on `main@403de90248662bf56a8608485c19a283939444fc`. No merge/deploy.
