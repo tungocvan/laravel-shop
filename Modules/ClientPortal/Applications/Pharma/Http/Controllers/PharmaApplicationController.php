@@ -1787,7 +1787,7 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders.submit'), 403);
         $canManageOrders = $registry->userCan($user, 'client.pharma.orders.create-for-user');
-        $visible = $workspace->findVisible((int) $user->id, $issue, $canCreateForUser);
+        $visible = $workspace->findVisible((int) $user->id, $issue, $canManageOrders);
         if ($visible === null && $canManageOrders) $visible = $workspace->findVisible((int) $user->id, $issue, true);
         abort_if($visible === null, 404);
         $authoring->submit((int) $user->id, $visible, $canManageOrders);
