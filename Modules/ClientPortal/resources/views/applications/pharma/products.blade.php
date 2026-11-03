@@ -51,6 +51,19 @@
         </form>
     </section>
 
+    @if($canExportMedicines)
+        <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+            @csrf
+            @foreach(request()->only(['q', 'group', 'product_type', 'special_control', 'hssp', 'supplier_price', 'bid_award', 'filter']) as $key => $value)
+                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @endforeach
+            <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-bold text-white">Xuất Excel</button>
+            <span class="text-xs text-slate-500">Có chọn thuốc: xuất thuốc đã chọn. Không chọn: xuất toàn bộ kết quả lọc.</span>
+            <button type="button" data-medicine-share hidden class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold">Mở / Chia sẻ tệp</button>
+            <span data-medicine-export-status role="status" class="text-xs text-slate-600"></span>
+        </form>
+    @endif
+
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
         <label class="inline-flex min-h-10 cursor-pointer items-center gap-2 font-semibold text-slate-700">
             <input type="checkbox" data-medicine-select-all class="h-4 w-4 rounded border-slate-300 text-blue-600">
@@ -191,6 +204,65 @@
         selected.clear();
         sync();
     });
+
+    const exportForm = root.querySelector('#medicine-export-form');
+    if (exportForm) {
+        const status = exportForm.querySelector('[data-medicine-export-status]');
+        const shareButton = exportForm.querySelector('[data-medicine-share]');
+        let preparedFile = null;
+        const standalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+        exportForm.addEventListener('submit', async event => {
+            // Normal browser keeps native file download; installed PWA retains its workspace.
+            if (!standalone()) {
+                for (const old of exportForm.querySelectorAll('[data-selected-export-id]')) old.remove();
+                for (const id of selected) {
+                    const field = document.createElement('input');
+                    field.type = 'hidden';
+                    field.name = 'ids[]';
+                    field.value = id;
+                    field.dataset.selectedExportId = '1';
+                    exportForm.appendChild(field);
+                }
+                return;
+            }
+            event.preventDefault();
+            preparedFile = null;
+            shareButton.hidden = true;
+            status.textContent = 'Đang chuẩn bị Excel...';
+            const data = new FormData(exportForm);
+            for (const id of selected) data.append('ids[]', id);
+            try {
+                const response = await fetch(exportForm.action, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    cache: 'no-store',
+                    body: data,
+                    headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
+                });
+                if (!response.ok) throw new Error('Không thể xuất Excel (' + response.status + ').');
+                const blob = await response.blob();
+                preparedFile = new File([blob], 'danh-muc-thuoc.xlsx', {
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                });
+                const shareData = { files: [preparedFile] };
+                if (!navigator.canShare || !navigator.canShare(shareData)) {
+                    status.textContent = 'Thiết bị không hỗ trợ chia sẻ tệp trực tiếp. Vui lòng xuất trên trình duyệt thường.';
+                    return;
+                }
+                shareButton.hidden = false;
+                status.textContent = 'Excel đã sẵn sàng.';
+            } catch (error) {
+                status.textContent = error.message;
+            }
+        });
+
+        shareButton.addEventListener('click', async () => {
+            if (!preparedFile) return;
+            try { await navigator.share({ files: [preparedFile] }); }
+            catch (error) { if (error.name !== 'AbortError') status.textContent = 'Không thể mở tệp trên thiết bị này.'; }
+        });
+    }
 
     const results = root.querySelector('#product-results-region');
     if (results) new MutationObserver(sync).observe(results, { childList: true, subtree: true });
