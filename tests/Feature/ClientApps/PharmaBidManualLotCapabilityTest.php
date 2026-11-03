@@ -68,6 +68,20 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString('$canManageOrders', $controller);
     }
 
+    public function test_wizard_actions_follow_product_content_without_desktop_viewport_spacers(): void
+    {
+        $form = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/order-form.blade.php'));
+
+        $this->assertStringNotContainsString('min-h-[calc(100dvh-250px)]', $form);
+        $this->assertStringNotContainsString('pb-44', $form);
+        $this->assertStringNotContainsString('pb-52', $form);
+        $this->assertStringContainsString('sticky bottom-2', $form);
+        $this->assertStringContainsString('lg:static', $form);
+        $this->assertStringContainsString('id="order-step-back"', $form);
+        $this->assertStringContainsString('id="order-step-next"', $form);
+        $this->assertStringContainsString('id="order-submit"', $form);
+    }
+
     public function test_manual_lot_ui_keeps_pwa_shell_and_does_not_change_non_bid_fefo(): void
     {
         $root = base_path();
