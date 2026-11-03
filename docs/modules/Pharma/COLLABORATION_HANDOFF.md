@@ -723,3 +723,11 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Focused contract: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Regression: `Modules/Pharma/Tests/Unit/InventoryContractTest.php` and ClientPortal bid lot/approval focused suites. TEST PENDING, UI PENDING, no merge/deploy.
 
 - 2026-11-03 UI feedback fix: issue PDF had literal `@else` after bid price source because inline Blade directive was not parsed; branches now use separate lines. PDF source hash template version bumped to require fresh export of previously cached PDFs. ClientPortal desktop lot action now always reads “Chọn lô” with wider actions column instead of truncated “Lô”. UI still pending user recheck; tests not executed by assistant.
+
+
+### 2026-11-03 — Price-list orders: partial approval and manual lot posting (checkpoint pending)
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`, based on `feat/pharma-issue-document-meta-actions-latest-20261103` because its unmerged ClientPortal Pharma workflows are required.
+- Pharma owns partial approval/deferred supply and transactional multi-lot posting. Price-list orders now share the manual lot selection screen used by bid orders; multiple valid batches per medicine are supported.
+- Deferred quantity for price-list issues is recorded per medicine, approved quantity remains in issue items; duplicate medicine rows in a price-list partial approval are rejected to avoid ambiguous deferred accounting.
+- Pending gates: focused tests, Pharma and ClientPortal impacted regression, real desktop/mobile UI verification, tracked tree verification. No TEST PASS/UI PASS/merge claimed.
