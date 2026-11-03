@@ -26,6 +26,17 @@ class InventoryIssueDeferredSupplyPdfContractTest extends TestCase
         $this->assertStringContainsString("'posted'=>", $documents);
     }
 
+    public function test_pdf_hash_reloads_full_item_projection_after_client_list_preload(): void
+    {
+        $workspace = file_get_contents(base_path('Modules/Pharma/Services/UserInventoryIssueWorkspace.php'));
+        $documents = file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+
+        $this->assertStringContainsString("'items:id,issue_id,medicine_id,quantity,unit_price'", $workspace);
+        $this->assertStringContainsString("\$issue->load('items.medicine')", $documents);
+        $this->assertStringContainsString("'batch_number'=>\$item->batch_number", $documents);
+        $this->assertStringContainsString("'expiry_date'=>\$item->expiry_date?->format('Y-m-d')", $documents);
+    }
+
     public function test_admin_toggle_is_persisted_and_defaults_to_enabled(): void
     {
         $root = base_path('Modules/Pharma/');
