@@ -208,7 +208,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("'ids.*' => ['required', 'integer', 'min:1', 'distinct']", $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
         $this->assertStringContainsString('while ($result->hasMorePages())', $controller);
-        $this->assertStringContainsString('$excel->exportDetailedCatalog($ids, $canPrice)', $controller);
+        $this->assertStringContainsString('$configured->export($ids, $profile, $canPrice)', $controller);
         $this->assertStringContainsString("name('products.import')", $routes);
         $this->assertStringContainsString('client.pharma.products.import', $manifest);
         $this->assertStringContainsString('MedicineCatalogUploadService $upload', $controller);
@@ -238,5 +238,25 @@ class PharmaProductsCapabilityTest extends TestCase
         }
         $this->assertStringContainsString('if ($includeSupplierPricing)', $service);
         $this->assertStringContainsString('public function preview(?Medicine $medicine): array', $related);
+    }
+
+    public function test_client_excel_configuration_uses_web_scoped_profiles_and_shared_writer(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelProfileController.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString("name('products.excel-config')", $routes);
+        $this->assertStringContainsString('client.pharma.products.excel-config', $manifest);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.products.excel-config')", $controller);
+        $this->assertStringContainsString("'web'", $controller);
+        $this->assertStringContainsString("where('owner_guard', \$guard)", $service);
+        $this->assertStringContainsString("string('owner_guard', 16)->default('admin')", file_get_contents(base_path('Modules/Pharma/database/migrations/2026_11_04_000001_scope_medicine_excel_profiles_by_guard.php')));
+        $this->assertStringContainsString("unset(\$allowed['cost_price'], \$allowed['supplier_name'])", $writer);
+        $this->assertStringContainsString('name="profile_id"', $view);
+        $this->assertStringContainsString("route('client.pharma.products.excel-config')", $view);
     }
 }
