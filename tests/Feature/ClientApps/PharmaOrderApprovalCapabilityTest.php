@@ -193,4 +193,22 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
     }
 
 
+
+    public function test_manual_lot_posting_accepts_canonical_normal_price_list_orders_without_weakening_guards(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $authoring = file_get_contents(base_path('Modules/Pharma/Services/UserOrderAuthoringService.php'));
+        $posting = file_get_contents(base_path('Modules/Pharma/Services/BidIssueManualLotPostingService.php'));
+
+        $this->assertStringContainsString("'issue_source' => $source === 'bid' ? 'bid' : 'normal'", $authoring);
+        $this->assertStringContainsString("! in_array(\$visible->issue_source, ['bid', 'normal', 'price_list'], true)", $controller);
+        $this->assertStringContainsString("client.pharma.orders.post", $controller);
+        $this->assertStringContainsString("\$visible->posted_at !== null, 404", $controller);
+        $this->assertStringContainsString("\$lotPosting->post(\$visible, \$data['batches']", $controller);
+        $this->assertStringContainsString("InventoryIssue::APPROVED || \$locked->posted_at !== null", $posting);
+        $this->assertStringContainsString("lockForUpdate()", $posting);
+        $this->assertStringContainsString("\$lotTotals[\$balanceId]", $posting);
+        $this->assertStringContainsString("\$inventory->postIssue(", $posting);
+    }
+
 }
