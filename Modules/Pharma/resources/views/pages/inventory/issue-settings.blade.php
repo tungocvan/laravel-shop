@@ -26,6 +26,7 @@
    <p class="mt-1 text-xs text-slate-500">Bật/tắt các thông tin thương mại trên View, PDF và Print.</p>
    @php
        $displayOptions = [
+           'show_manager' => 'Người phụ trách',
            'show_price_list' => 'Bảng giá áp dụng',
            'show_unit_price' => 'Đơn giá xuất',
            'show_total_value' => 'Thành tiền / tổng giá trị',
