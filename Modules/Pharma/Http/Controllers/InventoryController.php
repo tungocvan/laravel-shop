@@ -417,7 +417,7 @@ final class InventoryController extends Controller
             'cost_document_title'=>'required|string|max:120','cost_document_subtitle'=>'nullable|string|max:255',
             'invoice_document_title'=>'required|string|max:120','invoice_document_subtitle'=>'nullable|string|max:255',
         ]);
-        foreach(['cost_show_invoice','show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
+        foreach(['cost_show_invoice','show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes','show_deferred_supply','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
             $data[$field]=$request->boolean($field);
         }
         InventoryReceiptDocumentSetting::current()->update($data);
