@@ -97,6 +97,23 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString('ctype_digit((string) $rawQuantity)', $service);
     }
 
+    public function test_partial_bid_supply_fields_follow_approved_quantity_without_submitting_stale_values(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php'));
+        $approval = file_get_contents(base_path('Modules/Pharma/Services/UserOrderApprovalService.php'));
+
+        $this->assertStringContainsString('data-partial-bid-product data-requested=', $view);
+        $this->assertStringContainsString('data-partial-approved-quantity', $view);
+        $this->assertStringContainsString('data-partial-supply-fields', $view);
+        $this->assertStringContainsString('data-partial-supply-input', $view);
+        $this->assertStringContainsString("approved.addEventListener('input', update)", $view);
+        $this->assertStringContainsString("field.disabled = !deferred", $view);
+        $this->assertStringContainsString("field.required = deferred", $view);
+        $this->assertStringContainsString("requested - amount", $view);
+        $this->assertStringContainsString("if (\$deferred > 0)", $approval);
+        $this->assertStringContainsString("->where('status', 'pending')->delete()", $approval);
+    }
+
     public function test_partial_bid_approval_uses_pharma_service_and_preserves_multi_lot_posting(): void
     {
         $root = base_path();
