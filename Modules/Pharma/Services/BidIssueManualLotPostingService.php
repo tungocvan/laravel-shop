@@ -33,14 +33,13 @@ final class BidIssueManualLotPostingService
     {
         DB::transaction(function () use ($issue, $batches, $actorUserId, $inventory): void {
             $locked = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
-            if ($locked->status !== InventoryIssue::APPROVED || $locked->posted_at !== null
-                || $locked->issue_source !== 'bid') {
-                throw ValidationException::withMessages(['status' => 'Chỉ đơn hàng thầu đã duyệt và chưa ghi sổ mới được chọn lô.']);
+            if ($locked->status !== InventoryIssue::APPROVED || $locked->posted_at !== null) {
+                throw ValidationException::withMessages(['status' => 'Chỉ đơn hàng đã duyệt và chưa ghi sổ mới được chọn lô.']);
             }
 
             $locked->load(['items', 'deferredSupplies']);
-            $deferredIds = $locked->deferredSupplies->pluck('drug_bid_award_allocation_id')->map(fn ($id) => (int) $id);
-            $postable = $locked->items->filter(fn ($item) => (float) $item->quantity > 0);
+            $deferredMedicineIds = $locked->deferredSupplies->where('status', 'pending')->pluck('medicine_id')->map(fn ($id) => (int) $id)->all();
+            $postable = $locked->items->filter(fn ($item) => (float) $item->quantity > 0 && ! in_array((int) $item->medicine_id, $deferredMedicineIds, true));
             if ($postable->isEmpty()) {
                 throw ValidationException::withMessages(['batches' => 'Không có sản phẩm đủ điều kiện thực xuất.']);
             }
