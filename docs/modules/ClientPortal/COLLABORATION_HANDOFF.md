@@ -1332,3 +1332,5 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - ClientPortal approved bid order list promotes “Chọn lô xuất kho” to a prominent primary action on desktop and mobile, leaving undo approval in secondary menu. Existing multi-lot allocation and posting flow unchanged.
 - Migration required on local/staging before UI verification: `php artisan migrate` only after reviewing pending migrations; no migration or production change performed by assistant.
 - Focused contract: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Regression: `Modules/Pharma/Tests/Unit/InventoryContractTest.php` and ClientPortal bid lot/approval focused suites. TEST PENDING, UI PENDING, no merge/deploy.
+
+- 2026-11-03 UI feedback fix: issue PDF had literal `@else` after bid price source because inline Blade directive was not parsed; branches now use separate lines. PDF source hash template version bumped to require fresh export of previously cached PDFs. ClientPortal desktop lot action now always reads “Chọn lô” with wider actions column instead of truncated “Lô”. UI still pending user recheck; tests not executed by assistant.
