@@ -9,6 +9,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Shared\Drawing;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 final class MedicineConfiguredExcelExporter
@@ -44,7 +45,7 @@ final class MedicineConfiguredExcelExporter
             $cell = Coordinate::stringFromColumnIndex($i + 1).$row;
             $sheet->setCellValue($cell, $profile['headers'][$key] ?? $allowed[$key]);
             $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i + 1))
-                ->setWidth(max(5, min(60, (($profile['widths'][$key] ?? 130) - 5) / 7)));
+                ->setWidth(Drawing::pixelsToCellDimension((int) ($profile['widths'][$key] ?? 130), $spreadsheet->getDefaultStyle()->getFont()));
         }
         $sheet->getStyle("A{$row}:{$last}{$row}")->getFont()->setBold(true)->setSize((int) $settings['header_font_size']);
         $sheet->getStyle("A{$row}:{$last}{$row}")->getAlignment()
@@ -115,6 +116,13 @@ final class MedicineConfiguredExcelExporter
         }
         $sheet->getPageSetup()->setOrientation($settings['orientation'] === 'portrait' ? 'portrait' : 'landscape');
         $sheet->getPageSetup()->setPaperSize($settings['paper_size']);
+        $margins = $sheet->getPageMargins();
+        foreach (['top', 'bottom', 'left', 'right', 'header', 'footer'] as $side) {
+            $setter = 'set'.ucfirst($side);
+            $margins->{$setter}(max(0, min(5, (float) ($settings['margin_'.$side.'_cm'] ?? 0.8))) / 2.54);
+        }
+        $sheet->getPageSetup()->setHorizontalCentered((bool) ($settings['center_horizontally'] ?? true));
+        $sheet->getPageSetup()->setVerticalCentered((bool) ($settings['center_vertically'] ?? false));
         $path = tempnam(sys_get_temp_dir(), 'pharma-configured-excel-');
         (new Xlsx($spreadsheet))->save($path);
         $spreadsheet->disconnectWorksheets();
