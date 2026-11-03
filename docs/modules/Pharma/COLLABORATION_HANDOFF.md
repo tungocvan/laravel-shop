@@ -1,3 +1,15 @@
+## Checkpoint — Repeat approval of lot-split price-list orders — 2026-11-03
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`; no main merge or deployment.
+- Root cause: partial approval previously rejected duplicate medicine IDs after manual lot splitting (issue #24 has two Anvo rows, 98 + 102). Repeated medicine-level pending supply was also counted on every split row in readiness.
+- Fix: readiness assigns medicine-level pending deferred quantity only to the first corresponding row. Partial approval validates item IDs and nonnegative integers, groups lines by medicine, enforces cumulative approved quantity against warehouse stock, preserves split item IDs/batch metadata, and writes one pending deferred supply record per medicine. Existing deferred date/note remain as fallback.
+- Limitations: manual UI regression still required, especially decreasing a split medicine's aggregate approved quantity and entering new supply metadata; this path may require follow-up UI enhancements. Do not approve/repost issue #24 until tests and state checks pass. No automatic stock mutation or data migration.
+- Focused contract test updated in `PharmaOrderApprovalCapabilityTest`; **NOT RUN** on Admin runtime. Run focused tests before impacted regression. UI **PENDING**.
+- Earlier PDF deferred-supply integration remains incomplete; do not run its migration until PDF implementation is finished.
+- Gate: git pull --ff-only, focused test, impacted regression, user UI PASS, tracked working tree check; no main merge without explicit consent.
+
+---
+
 ## Checkpoint — Repeat approval and pending deferred supply — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge/deployment.
