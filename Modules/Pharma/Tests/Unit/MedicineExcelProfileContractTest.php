@@ -153,4 +153,20 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('$letter.($headerRow + 1)', $source);
     }
 
+
+    public function test_configured_export_uses_font_aware_width_and_print_page_settings(): void
+    {
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $profiles = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $designer = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString('Drawing::pixelsToCellDimension(', $writer);
+        $this->assertStringContainsString("margin_'.\$side.'_cm", $writer);
+        $this->assertStringContainsString('setHorizontalCentered', $writer);
+        $this->assertStringContainsString('setVerticalCentered', $writer);
+        $this->assertStringContainsString("'center_horizontally' => true", $profiles);
+        $this->assertStringContainsString("'center_vertically' => false", $profiles);
+        $this->assertStringContainsString('wire:model="settings.margin_{{ $side }}_cm"', $designer);
+        $this->assertStringContainsString('wire:model="settings.center_horizontally"', $designer);
+    }
 }
