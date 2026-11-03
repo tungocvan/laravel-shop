@@ -143,4 +143,21 @@ class PharmaProductsCapabilityTest extends TestCase
             $this->assertStringNotContainsString($mutation, $view);
         }
     }
+
+    public function test_catalog_product_type_and_special_control_filters_use_pharma_owned_query(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalog.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString('Medicine::productTypeOptions()', $service);
+        $this->assertStringContainsString("where('product_type', \$productType)", $service);
+        $this->assertStringContainsString("where('is_special_control', \$specialControl === 'yes')", $service);
+        $this->assertStringContainsString("productType: \$validated['product_type'] ?? null", $controller);
+        $this->assertStringContainsString("specialControl: \$validated['special_control'] ?? null", $controller);
+        $this->assertStringContainsString('name="product_type"', $view);
+        $this->assertStringContainsString('name="special_control"', $view);
+        $this->assertStringContainsString("'product_type' => \$selectedProductType", $view);
+        $this->assertStringContainsString("'special_control' => \$selectedSpecialControl", $view);
+    }
 }
