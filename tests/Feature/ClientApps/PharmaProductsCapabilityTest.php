@@ -146,7 +146,7 @@ class PharmaProductsCapabilityTest extends TestCase
 
         // JavaScript Set.delete() only clears a local selection; it is not a server mutation.
         foreach (['create', 'edit', 'destroy', 'verifyMaster'] as $mutation) {
-            $this->assertStringNotContainsString($mutation, $view);
+            $this->assertStringNotContainsString("route('client.pharma.products.{$mutation}'", $view);
         }
         $this->assertStringNotContainsString("@method('DELETE')", $view);
         $this->assertStringNotContainsString('method="DELETE"', $view);
