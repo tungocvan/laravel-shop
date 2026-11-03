@@ -107,7 +107,9 @@ final class InventoryIssueDocumentService
 
     private function canonicalIssue(InventoryIssue $issue): InventoryIssue
     {
-        return $issue->loadMissing(['items.medicine','deferredSupplies.medicine','manager:id,name','priceList.manager']);
+        // List pages preload a partial items projection; refresh canonical columns before hashing.
+        $issue->load('items.medicine');
+        return $issue->loadMissing(['deferredSupplies.medicine','manager:id,name','priceList.manager']);
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings,array $lines): string
