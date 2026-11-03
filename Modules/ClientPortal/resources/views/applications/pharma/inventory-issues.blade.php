@@ -113,7 +113,7 @@
                     @endif
                                         @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                         @if($canApproveOrders)<form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác duyệt</button></form>@endif
-                        @if($canPostOrders && ($issue->issue_source ?? 'normal') === 'bid')<a href="{{ route('client.pharma.orders.lots',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white">Chọn lô & ghi sổ</a>@endif
+                        @if($canPostOrders && ($issue->issue_source ?? 'normal') === 'bid')<a href="{{ route('client.pharma.orders.lots',$issue) }}" class="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-emerald-700 px-3 py-2 text-xs font-black text-white shadow-sm transition hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 active:scale-[0.985]" aria-label="Chọn lô xuất kho cho phiếu {{ $issue->number }}"><span aria-hidden="true">▦</span> Chọn lô xuất kho</a>@endif
                         @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')<form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-3 text-xs font-black text-white active:scale-[0.985]">Ghi sổ</button></form>@endif
                     @endif
                     @if($issue->status === \Modules\Pharma\Models\InventoryIssue::POSTED)
@@ -152,7 +152,10 @@
             <tbody id="issue-desktop-body" class="divide-y divide-slate-100">
                 @foreach($issues as $issue)
                     <tr data-issue-row class="hover:bg-slate-50"><td class="px-5 py-4"><a class="font-black text-slate-950" href="{{ route('client.pharma.orders.show',$issue->id) }}">{{ $issue->number }}</a></td><td class="px-5 py-4 font-bold text-slate-800">{{ $issue->recipient_name ?: '—' }}</td><td class="px-5 py-4">{{ $sourceLabels[$issue->issue_source ?? 'normal'] ?? 'Theo bảng giá' }}</td><td class="px-5 py-4">{{ $issue->issue_date?->format('d/m/Y') }}</td><td class="px-5 py-4 text-right font-black">{{ $money($issue->total_value ?? 0) }}</td><td class="px-5 py-4 text-center">@if($issue->shortage_note)<button type="button" data-shortage-note="{{ $issue->shortage_note }}" class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-200 bg-amber-50 text-base text-amber-800" aria-label="Xem ghi chú thiếu hàng" title="Xem ghi chú thiếu hàng">📝</button>@else<span class="text-slate-300">—</span>@endif</td><td class="px-5 py-4 font-bold">{{ $statusLabels[$issue->status] ?? $issue->status }}</td><td class="px-5 py-4 text-right">
-                        <div class="flex justify-end">
+                        <div class="flex items-center justify-end gap-2">
+                            @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED && $canPostOrders && ($issue->issue_source ?? 'normal') === 'bid')
+                                <a href="{{ route('client.pharma.orders.lots',$issue) }}" class="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-black text-white shadow-sm transition hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-700" aria-label="Chọn lô xuất kho cho phiếu {{ $issue->number }}">▦ <span class="hidden 2xl:inline">Chọn lô</span><span class="2xl:hidden">Lô</span></a>
+                            @endif
                             <details class="relative" data-order-actions>
                                 <summary class="flex min-h-9 cursor-pointer list-none items-center rounded-lg border border-slate-300 bg-white px-3 text-base font-bold leading-none text-slate-600 hover:bg-slate-50" aria-label="Thao tác khác">⋯</summary>
                                 <div class="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-xl">
@@ -172,7 +175,7 @@
                                         @if($canApproveOrders)
                                             <form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-amber-700 hover:bg-amber-50">Hoàn tác phê duyệt</button></form>
                                         @endif
-                                        @if($canPostOrders && ($issue->issue_source ?? 'normal') === 'bid')<a href="{{ route('client.pharma.orders.lots',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white">Chọn lô & ghi sổ</a>@endif
+
                         @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')
                                             <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-emerald-700 hover:bg-emerald-50">Ghi sổ</button></form>
                                         @endif
