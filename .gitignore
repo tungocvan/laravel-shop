@@ -57,3 +57,8 @@ debug-report-*/
 !/storage/app/public/admission/
 !/storage/app/public/admission/img/
 !/storage/app/public/admission/img/**
+
+# Generated Repomix exports (never commit source snapshots).
+/repomix-output*
+/repomix-*.xml
+/repomix-*.md
