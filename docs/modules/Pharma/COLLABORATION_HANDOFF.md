@@ -688,3 +688,11 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - ClientPortal authoring and manual lot request validation now require integer quantities; no database migration. Fixed an undefined `$canCreateForUser` reference in `submitOrder()` by using the existing authorized `$canManageOrders` capability.
 - Manual lot allocation is still a separate workspace for **APPROVED** bid orders; the Admin's combined edit/approve/post screen has **not** been fully ported. Approved-order editing and in-form lot allocation remain outstanding; do not mark Admin parity or UI PASS.
 - Focused: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php`; run impacted approval/inventory tests only after focused PASS. Test execution pending on local checkout.
+
+### 2026-11-03 — Approved bid manual-lot UI enhancement
+
+- UI PASS reported by user for the draft order wizard spacing and integer quantity display.
+- Compared Admin `bid-sale-edit` with ClientPortal: Admin combines draft edit and approval/posting; ClientPortal deliberately retains draft → pending → approved → manual lot post. The approved bid `order-lots` workspace now suggests FEFO split per available lot, displays expiry/stock, validates live per-product totals, and preserves integer quantity display.
+- Pharma-owned `BidIssueManualLotPostingService` additionally rejects unexpected item IDs and noninteger quantities; existing transaction, stock locks and posting service remain authoritative.
+- Still outstanding: full parity with Admin combined edit/approve/post and deferred stock workflow. No claim of UI PASS for lot posting or runtime tests until local validation.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. After PASS run order approval and inventory regression.
