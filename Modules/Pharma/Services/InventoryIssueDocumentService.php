@@ -19,12 +19,13 @@ final class InventoryIssueDocumentService
         abort_unless($issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.');
         $issue=$this->canonicalIssue($issue);
         $settings=InventoryIssueDocumentSetting::current();
-        $hash=$this->sourceHash($issue,$settings);
+        $lines=app(InventoryIssueDocumentLines::class)->forIssue($issue);
+        $hash=$this->sourceHash($issue,$settings,$lines);
         $existing=InventoryIssueDocument::query()->where('issue_id',$issue->id)->first();
         if($existing && $existing->source_hash===$hash && Storage::disk($existing->disk)->exists($existing->storage_path)) return $existing;
 
         $path='Pharma/inventory/issues/'.$issue->id.'/issue-'.Str::uuid().'.pdf';
-        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait')->output();
+        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings','lines'))->setPaper('a4','portrait')->output();
         Storage::disk('local')->put($path,$binary);
 
         if($existing && $existing->source_hash!==$hash) $existing->shares()->delete();
@@ -42,7 +43,8 @@ final class InventoryIssueDocumentService
         $document=InventoryIssueDocument::query()->where('issue_id',$issue->id)->first();
         if(!$document || !Storage::disk($document->disk)->exists($document->storage_path)) return null;
         $issue=$this->canonicalIssue($issue);
-        return hash_equals($document->source_hash,$this->sourceHash($issue,InventoryIssueDocumentSetting::current())) ? $document : null;
+        $lines=app(InventoryIssueDocumentLines::class)->forIssue($issue);
+        return hash_equals($document->source_hash,$this->sourceHash($issue,InventoryIssueDocumentSetting::current(),$lines)) ? $document : null;
     }
 
     public function statuses(iterable $issues): array
@@ -105,10 +107,10 @@ final class InventoryIssueDocumentService
 
     private function canonicalIssue(InventoryIssue $issue): InventoryIssue
     {
-        return $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
+        return $issue->loadMissing(['items.medicine','deferredSupplies.medicine','manager:id,name','priceList.manager']);
     }
 
-    private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
+    private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings,array $lines): string
     {
         $items=$issue->items->map(fn($item)=>[
             'id'=>$item->id,'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,
@@ -119,6 +121,8 @@ final class InventoryIssueDocumentService
                 'recipient_name'=>$issue->recipient_name,'manager_user_id'=>$issue->manager_user_id,'price_list_id'=>$issue->price_list_id,
                 'issue_source'=>$issue->issue_source,'notes'=>$issue->notes,'status'=>$issue->status],
             'items'=>$items,'settings'=>$settings->toArray(),
+            'posted'=>$lines['posted']->map(fn($row)=>['item_id'=>$row['item']->id,'quantity'=>$row['quantity'],'value'=>$row['value']])->all(),
+            'pending'=>$lines['pending']->map(fn($row)=>['id'=>$row['supply']->id,'medicine_id'=>$row['supply']->medicine_id,'quantity'=>$row['quantity'],'value'=>$row['value'],'note'=>$row['supply']->note,'expected_supply_date'=>$row['supply']->expected_supply_date?->format('Y-m-d')])->all(),
         ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     }
 }
