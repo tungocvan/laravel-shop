@@ -38,6 +38,9 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
         $service = file_get_contents($root.'/Modules/Pharma/Services/UserOrderAuthoringService.php');
 
+        $desktopMenu = substr($index, strpos($index, '<tbody id="issue-desktop-body"'));
+        $this->assertStringContainsString("route('client.pharma.orders.edit',\$issue)", $desktopMenu);
+        $this->assertStringContainsString("route('client.pharma.orders.submit',\$issue)", $desktopMenu);
         $this->assertStringContainsString('Sửa đơn', $index);
         $this->assertStringContainsString('Gửi duyệt', $index);
         $this->assertStringContainsString('Xem & phê duyệt', $index);
