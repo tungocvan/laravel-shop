@@ -417,7 +417,7 @@ final class InventoryController extends Controller
             'cost_document_title'=>'required|string|max:120','cost_document_subtitle'=>'nullable|string|max:255',
             'invoice_document_title'=>'required|string|max:120','invoice_document_subtitle'=>'nullable|string|max:255',
         ]);
-        foreach(['cost_show_invoice','show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
+        foreach(['cost_show_invoice','show_unit_price','show_invoice_unit_price','show_vat','show_total_value','show_notes','show_deferred_supply','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
             $data[$field]=$request->boolean($field);
         }
         InventoryReceiptDocumentSetting::current()->update($data);
@@ -645,7 +645,7 @@ final class InventoryController extends Controller
             'deliverer_label'=>'required|string|max:120','receiver_label'=>'required|string|max:120',
             'keeper_label'=>'required|string|max:120','footer_note'=>'nullable|string|max:1000',
         ]);
-        foreach(['show_price_list','show_unit_price','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
+        foreach(['show_manager','show_price_list','show_unit_price','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
             $data[$field]=$request->boolean($field);
         }
         InventoryIssueDocumentSetting::current()->update($data);
@@ -1459,14 +1459,7 @@ final class InventoryController extends Controller
 
     private function bidIssueManagerNames(InventoryIssue $issue): string
     {
-        if(($issue->issue_source ?? 'normal')!=='bid') return '';
-        $awardIds=$issue->items->pluck('drug_bid_award_id')->filter()->map(fn($id)=>(int)$id)->unique()->values();
-        $partnerId=(int)($issue->bid_partner_id ?? 0);
-        if($awardIds->isEmpty() || !$partnerId) return '';
-        return DrugBidAwardManagementAssignment::query()->with('user:id,name')
-            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
-            ->whereIn('drug_bid_award_id',$awardIds)->where('partner_id',$partnerId)
-            ->get()->pluck('user.name')->filter()->unique()->sort()->values()->implode(', ');
+        return app(InventoryIssueDocumentService::class)->managerNames($issue);
     }
 
     private function normalizeIssueNumericInputs(Request $request): void

@@ -2,7 +2,9 @@
 @page{margin:16mm 12mm}*{box-sizing:border-box}body{font-family:DejaVu Sans,sans-serif;font-size:10px;color:#111}h1{font-size:21px;text-align:center;margin:16px 0 2px}.center{text-align:center}.right{text-align:right}.muted{color:#555}.header{width:100%;margin-bottom:12px}.header td{vertical-align:top}.meta{width:100%;border-collapse:collapse;margin:14px 0;line-height:1.5}.meta td{border:0;padding:1px 0;vertical-align:top}.meta .label{width:128px;font-weight:bold;white-space:nowrap;padding-right:10px}table.items{width:100%;border-collapse:collapse;margin-top:12px}table.items th,table.items td{border:1px solid #444;padding:6px 5px}table.items th{font-size:8px;background:#f3f4f6;text-transform:uppercase}.name{font-weight:bold}.small{font-size:8px}.totals{margin-top:12px;line-height:1.7}.sign{width:100%;margin-top:28px;text-align:center}.sign td{width:33.33%;vertical-align:top;font-weight:bold}.sign .space{height:70px}.note{margin-top:8px}.title-no{font-size:12px;font-weight:bold}.footer{position:fixed;bottom:-8mm;left:0;right:0;text-align:center;font-size:8px;color:#777}
 </style></head><body>
 @php
-$totalValue=$issue->items->sum(fn($i)=>(float)$i->quantity*(float)$i->unit_price);
+$postedLines=$documentLines['posted'];
+$pendingLines=$documentLines['pending'];
+$totalValue=$documentLines['posted_total'];
 $signatures=collect([
     ['show'=>$settings->show_issuer_signature,'label'=>$settings->issuer_label,'show_date'=>false],
     ['show'=>$settings->show_deliverer_signature,'label'=>$settings->deliverer_label,'show_date'=>false],
@@ -29,9 +31,17 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <tr><td class="label">Ngày xuất:</td><td>{{ $issue->issue_date->format('d/m/Y') }}</td></tr>
 <tr><td class="label">Xuất tại kho:</td><td>{{ $settings->warehouse_name }}</td></tr>
 <tr><td class="label">Khách hàng / Nơi nhận:</td><td>{{ $issue->recipient_name ?: '—' }}</td></tr>
-<tr><td class="label">Người phụ trách:</td><td>{{ $issue->priceList?->manager?->name ?: '—' }}</td></tr>
+@if($settings->show_manager)
+<tr><td class="label">Người phụ trách:</td><td>{{ $managerNames ?: '—' }}</td></tr>
+@endif
 @if($settings->show_price_list)
-<tr><td class="label">Bảng giá áp dụng:</td><td>{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}</td></tr>
+<tr><td class="label">Bảng giá áp dụng:</td><td>
+@if(($issue->issue_source ?? 'normal') === 'bid')
+Theo kết quả trúng thầu
+@else
+{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}
+@endif
+</td></tr>
 @endif
 </table>
 <table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc / Quy cách</th><th>ĐVT</th><th>Số lô</th><th>Hạn dùng</th><th>SL</th>
@@ -41,12 +51,14 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 @if($settings->show_total_value)
 <th>Thành tiền</th>
 @endif</tr></thead><tbody>
-@foreach($issue->items as $item)<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number ?: 'Chưa chọn lô' }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$item->quantity,0,',','.') }}</td>
+@foreach($postedLines as $line)
+@php($item=$line['item'])
+<tr><td class="center">{{ $loop->iteration }}</td><td>{{ $item->medicine->medicine_code }}</td><td><span class="name">{{ $item->medicine->name }}</span>@if($item->medicine->packaging_specification)<br><span class="small">{{ $item->medicine->packaging_specification }}</span>@endif</td><td class="center">{{ $item->medicine->unit ?: '—' }}</td><td>{{ $item->batch_number ?: 'Chưa chọn lô' }}</td><td class="center">{{ $item->expiry_date?->format('d/m/Y') ?: '—' }}</td><td class="right">{{ number_format((float)$line['quantity'],0,',','.') }}</td>
 @if($settings->show_unit_price)
 <td class="right">{{ number_format((float)$item->unit_price,0,',','.') }}</td>
 @endif
 @if($settings->show_total_value)
-<td class="right"><b>{{ number_format((float)$item->quantity*(float)$item->unit_price,0,',','.') }}</b></td>
+<td class="right"><b>{{ number_format((float)$line['value'],0,',','.') }}</b></td>
 @endif
 </tr>
 @endforeach
@@ -59,8 +71,26 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <td class="right"><b>{{ number_format($totalValue,0,',','.') }} đ</b></td>
 @endif
 </tr></tbody></table>
+@if($settings->show_deferred_supply && $pendingLines->isNotEmpty())
+<h2 style="font-size:12px;margin:16px 0 5px">Hàng chờ cung ứng (không thuộc số lượng thực xuất)</h2>
+<table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc</th><th>ĐVT</th><th>SL chờ</th><th>Ngày dự kiến</th><th>Ghi chú</th></tr></thead><tbody>
+@foreach($pendingLines as $line)
+@php($supply=$line['supply'])
+@php($medicine=$supply->medicine ?? $line['item']?->medicine)
+<tr>
+<td class="center">{{ $loop->iteration }}</td>
+<td>{{ $medicine?->medicine_code ?: '—' }}</td>
+<td>{{ $medicine?->name ?: '—' }}</td>
+<td class="center">{{ $medicine?->unit ?: '—' }}</td>
+<td class="right">{{ number_format((float)$line['quantity'],0,',','.') }}</td>
+<td class="center">{{ $supply->expected_supply_date?->format('d/m/Y') ?: '—' }}</td>
+<td>{{ $supply->note ?: '—' }}</td>
+</tr>
+@endforeach
+</tbody></table>
+@endif
 <div class="totals">
-<b>Tổng số mặt hàng:</b> {{ $issue->items->count() }}
+<b>Tổng số mặt hàng:</b> {{ $postedLines->count() }}
 @if($settings->show_total_value)
 <br><b>Tổng giá trị:</b> {{ number_format($totalValue,0,',','.') }} đồng
 @endif

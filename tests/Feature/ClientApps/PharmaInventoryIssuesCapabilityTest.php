@@ -6,6 +6,51 @@ use Tests\TestCase;
 
 final class PharmaInventoryIssuesCapabilityTest extends TestCase
 {
+    public function test_issue_pdf_metadata_and_lot_action_contracts(): void
+    {
+        $settings=file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueDocumentSetting.php'));
+        $migration=file_get_contents(base_path('Modules/Pharma/database/migrations/2026_11_03_120000_add_show_manager_to_pharma_issue_document_settings.php'));
+        $admin=file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+        $config=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-settings.blade.php'));
+        $pdf=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $document=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $list=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php'));
+
+        $this->assertStringContainsString("'show_manager'=>true", $settings);
+        $this->assertStringContainsString("->boolean('show_manager')->default(true)", $migration);
+        $this->assertStringContainsString("'show_manager','show_price_list'", $admin);
+        $this->assertStringContainsString("'show_manager' => 'Người phụ trách'", $config);
+        $this->assertStringContainsString("'show_price_list' => 'Bảng giá áp dụng'", $config);
+        $this->assertStringContainsString('@if($settings->show_manager)', $pdf);
+        $this->assertStringContainsString("Theo kết quả trúng thầu", $pdf);
+        $this->assertStringNotContainsString('Theo kết quả trúng thầu@else', $pdf);
+        $this->assertStringContainsString("@else\n", $pdf);
+        $this->assertStringContainsString('public function managerNames(InventoryIssue $issue): string', $document);
+        $this->assertStringContainsString("whereIn('drug_bid_award_id',\$awardIds)", $document);
+        $this->assertStringContainsString("'manager_names'=>\$settings->show_manager", $document);
+        $this->assertStringContainsString('aria-label="Chọn lô xuất kho cho phiếu', $list);
+        $this->assertStringNotContainsString('2xl:hidden', $list);
+        $this->assertStringContainsString("route('client.pharma.orders.lots',\$issue)", $list);
+    }
+
+    public function test_order_pdf_export_reopens_detail_and_uses_persisted_stable_document_snapshot(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $service = file_get_contents($root.'/Modules/Pharma/Services/InventoryIssueDocumentService.php');
+        $list = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+
+        $this->assertStringContainsString("redirect()->route('client.pharma.orders.show', \$visible)", $controller);
+        $this->assertStringContainsString("\$issue->fresh(['items.medicine'", $service);
+        $this->assertStringContainsString("items->sortBy('id')", $service);
+        $this->assertStringContainsString("\$this->current(\$issue->fresh())?->is(\$document)", $service);
+        $this->assertStringContainsString("route('client.pharma.orders.pdf',\$issue)", $detail);
+        $this->assertStringContainsString("route('client.pharma.orders.print',\$issue)", $detail);
+        $this->assertStringContainsString("route('client.pharma.orders.pdf',\$issue)", $list);
+        $this->assertStringContainsString("route('client.pharma.orders.print',\$issue)", $list);
+    }
+
     public function test_inventory_issue_reads_use_canonical_pharma_workspace_and_user_scope(): void
     {
         $root = base_path();
@@ -169,7 +214,9 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("abort_unless(\$issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.')",$service);
         $this->assertStringContainsString("Storage::disk('local')->put(\$path,\$binary)",$service);
         $this->assertStringContainsString('private function canonicalIssue(InventoryIssue $issue): InventoryIssue',$service);
-        $this->assertStringContainsString("loadMissing(['items.medicine','manager:id,name','priceList.manager'])",$service);
+        // PDF must use a persisted canonical snapshot, not potentially mutated UI relations.
+        $this->assertStringContainsString("fresh(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine'])",$service);
+        $this->assertStringContainsString("items->sortBy('id')",$service);
 
         $this->assertStringContainsString("Pdf::loadView('Pharma::pages.inventory.issue-pdf'",$service);
         $this->assertStringContainsString("'token_hash'=>hash('sha256',\$token)",$service);

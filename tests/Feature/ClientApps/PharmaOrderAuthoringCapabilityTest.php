@@ -35,8 +35,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('final class UserOrderAuthoringService', $service);
         // guard locked order draft transitions marker
         $this->assertGreaterThanOrEqual(2, substr_count($service, "InventoryIssue::query()->lockForUpdate()->findOrFail(\$issue->getKey())"));
-        $this->assertStringContainsString('return DB::transaction(function () use ($userId, $issue): InventoryIssue {', $service);
-        $this->assertStringContainsString('return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data): InventoryIssue {', $service);
+        $this->assertStringContainsString('return DB::transaction(function () use ($userId, $issue, $canManageOrders): InventoryIssue {', $service);
+        $this->assertStringContainsString('return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data, $canManageOrders): InventoryIssue {', $service);
         $this->assertStringContainsString("->activeAt(\$date)", $service);
         $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $service);
         $this->assertStringContainsString("->whereDoesntHave('globalUsers')", $service);
@@ -52,7 +52,7 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('UserOrderAuthoringService $authoring', $controller);
         $this->assertStringContainsString('orderManagers()', $service);
         $this->assertStringContainsString('createDraft(int $actorUserId, int $managerUserId', $service);
-        $this->assertStringContainsString('guardSubmittable($userId, $issue)', $service);
+        $this->assertStringContainsString('guardSubmittable($userId, $issue, $canManageOrders)', $service);
         $this->assertStringContainsString('(int) $issue->manager_user_id', $service);
         $this->assertStringContainsString("in_array(\$userId, [(int) \$issue->created_by, (int) \$issue->manager_user_id], true)", $service);
         $this->assertStringContainsString("in_array((int) \$user->id, [(int) \$visibleIssue->created_by, (int) \$visibleIssue->manager_user_id], true)", $controller);
@@ -143,14 +143,21 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('data-source-card', $view);
         $this->assertStringContainsString('input:checked + [data-source-card]', $view);
         $this->assertStringContainsString('input[value="bid"]:checked + [data-source-card]', $view);
-        $this->assertStringContainsString('min-h-[calc(100dvh-250px)]', $view);
+        $this->assertStringContainsString('data-order-step-panel="1"', $view);
+        $this->assertStringContainsString('data-order-step-panel="2"', $view);
+        $this->assertStringContainsString('data-order-step-panel="3"', $view);
+        $this->assertStringContainsString('data-order-stepper', $view);
+        $this->assertStringContainsString('sticky top-0 z-30', $view);
         $this->assertStringContainsString('data-customer-field', $view);
         $this->assertStringContainsString('max-h-[min(300px,38dvh)]', $view);
         $this->assertStringContainsString('customerField?.classList.toggle(\'is-open\',has)', $view);
         $this->assertStringContainsString('data-order-actions', $view);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString("@section('hide-application-header', true)", $view);
-        $this->assertStringContainsString('relative z-20 mx-auto mt-4 max-w-3xl', $view);
+        $this->assertStringContainsString('data-order-actions class="sticky bottom-2 z-20', $view);
+        $this->assertStringContainsString('lg:static lg:mt-4', $view);
+        $this->assertStringContainsString('id="order-step-next"', $view);
+        $this->assertStringContainsString('id="order-submit"', $view);
         $this->assertStringNotContainsString('data-order-actions class="fixed', $view);
         $this->assertStringContainsString('id="order-source-hint"', $view);
         $this->assertStringContainsString("hint.textContent=b?'Giá và số lượng theo phân bổ trúng thầu':'Giá bán theo bảng giá đang hiệu lực'", $view);

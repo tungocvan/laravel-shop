@@ -1,3 +1,14 @@
+## Checkpoint — Price-list manual lot POST 404 fix — 2026-11-03
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge or deployment performed.
+- Root cause: canonical `UserOrderAuthoringService::createDraft()` persists price-list orders with `issue_source = normal`, while ClientPortal `postOrderLots()` allowed only `bid` / `price_list`. GET `orderLots()` accepted the approved order, but POST aborted 404.
+- Fix: include `normal` in the POST source allowlist, retaining status `APPROVED`, `posted_at IS NULL`, capability authorization, validation, and Pharma-owned transactional lot posting safeguards.
+- Regression: added focused source/guard contract test in `PharmaOrderApprovalCapabilityTest`. Tests **NOT RUN** on the user's Laravel runtime; UI **NOT VERIFIED** after patch.
+- Local checkpoint: fetch/switch/pull branch, run focused test, then impacted ClientPortal Pharma regression only after focused PASS. Verify order #24 can POST without 404, transitions to `posted`, and cannot post twice. Do not retry actual posting without checking current order state.
+- Handoff: await local TEST results and user UI PASS; no merge to main without explicit approval.
+
+---
+
 ## Checkpoint — Pharma stock card + issue fulfillment closeout — 2026-10-05
 
 - Branch: `refactor/clientportal-pharma-inventory-stock-card`; compared with `main` before handoff: ahead 36, behind 0.
@@ -1253,3 +1264,92 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Pharma PWA roadmap P1-P8 is complete with automated and rendered UI acceptance.
 - Merge gate: run focused regression first, then ClientPortal/Pharma module regression because this branch changes shared ClientPortal interaction/components and multiple Pharma PWA capabilities. Full-project regression is NOT APPLICABLE under the repository workflow because no global bootstrap/auth/schema/module-framework boundary changed.
 - Before merge, verify local git status while preserving known local-only ngrok artifacts; do not add/delete `.env.backup-before-ngrok-session` or `public/hot.pharma-mobile`.
+
+
+## 2026-11-03 — Approved bid manual lot selection (checkpoint pending)
+
+- Branch: `feat/pharma-client-bid-lot-workflow-20261103`, based on `9c06aa3b9755cd8fe00728171bd3cbcb9d52815a`.
+- Added Pharma-owned `BidIssueManualLotPostingService` for approved bid orders. It validates the requested per-item lot quantities, current warehouse, unexpired balances and aggregate per-lot stock under transaction/row locks; delegates canonical posting/commission to `InventoryService::postIssue`.
+- ClientPortal adds a focused mobile-first lot workspace and GET/POST routes under `/apps/pharma/orders/{issue}/lots`. Existing `client.pharma.orders.post` permission is checked on both endpoints. Bid orders are redirected away from automatic FEFO posting; non-bid flow is unchanged.
+- Safety restriction: mixed deferred and fulfilled allocations for the same medicine are rejected; manual posting currently requires the full approved quantity for each non-deferred item. No mutation occurs on failed validation. This is a deliberately scoped first batch, not full Admin edit parity.
+- Remaining approved scope: canonical editable approved bid workflow, distinct edit/allocate permissions, audit trail and comprehensive runtime tests, Admin parity review. Do not claim completion or UI PASS yet.
+- Focused contract test: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Local execution, UI validation and regression are pending. No migration, production change, PR or merge.
+
+### 2026-11-03 — Draft bid UI actions / delegated manager follow-up
+
+- Added edit/submit actions on both responsive order list and detail; pending approval orders now link to approval detail. Draft remains distinct from pending approval; no direct approval of drafts.
+- `client.pharma.orders.create-for-user` explicitly authorizes cross-user draft edit (alongside create permission) and, together with `client.pharma.orders.submit`, cross-user submission. Pharma `UserOrderAuthoringService` validates draft status and existing business constraints inside transactions; delegation is an explicit parameter, never inferred from UI.
+- Updated `PharmaOrderAuthoringCapabilityTest` contract assertions and added draft action coverage to `PharmaBidManualLotCapabilityTest`.
+- Local focused and impacted regression not executed by GitHub integration. UI previously reported FAIL for missing edit/approval actions; UI must be retested after pulling. Approved bid content editing and reapproval flow remain future work.
+
+### 2026-11-03 — Quantity formatting and ClientPortal checkpoint
+
+- User-reported UI discrepancy: order quantity 500 appeared as 500.000 in ClientPortal, while Admin correctly showed 500. Changed order form draft hydration, detail/stock readiness and manual lot workspace to show whole units with no decimal digits. Unit prices already use zero-decimal VND formatting; unchanged.
+- ClientPortal authoring and manual lot request validation now require integer quantities; no database migration. Fixed an undefined `$canCreateForUser` reference in `submitOrder()` by using the existing authorized `$canManageOrders` capability.
+- Manual lot allocation is still a separate workspace for **APPROVED** bid orders; the Admin's combined edit/approve/post screen has **not** been fully ported. Approved-order editing and in-form lot allocation remain outstanding; do not mark Admin parity or UI PASS.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php`; run impacted approval/inventory tests only after focused PASS. Test execution pending on local checkout.
+
+### 2026-11-03 — Responsive order wizard navigation placement
+
+- User confirmed whole-number quantities display correctly; requested Back/Next controls to appear near product UI rather than far below viewport.
+- Removed viewport-sized minimum heights and excessive bottom padding from order wizard steps 1–3. The existing single action bar now follows visible content on desktop (`lg:static`), with mobile sticky bottom positioning and unchanged control IDs/step JS.
+- Added focused contract assertion in `PharmaBidManualLotCapabilityTest`. Local test and UI confirmation pending; do not claim UI PASS. No Pharma business logic or DB changes.
+
+### 2026-11-03 — Approved bid manual-lot UI enhancement
+
+- UI PASS reported by user for the draft order wizard spacing and integer quantity display.
+- Compared Admin `bid-sale-edit` with ClientPortal: Admin combines draft edit and approval/posting; ClientPortal deliberately retains draft → pending → approved → manual lot post. The approved bid `order-lots` workspace now suggests FEFO split per available lot, displays expiry/stock, validates live per-product totals, and preserves integer quantity display.
+- Pharma-owned `BidIssueManualLotPostingService` additionally rejects unexpected item IDs and noninteger quantities; existing transaction, stock locks and posting service remain authoritative.
+- Still outstanding: full parity with Admin combined edit/approve/post and deferred stock workflow. No claim of UI PASS for lot posting or runtime tests until local validation.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. After PASS run order approval and inventory regression.
+
+### 2026-11-03 — Partial bid approval and multiple-lot posting checkpoint
+
+- User approved partial bid approval: order demand 500, approve actual stock 336, defer remaining 164. ClientPortal pending bid detail now presents whole-number per-item approval inputs and expected-supply notes; approval calls Pharma-owned `UserOrderApprovalService::approveBidPartially` inside a transaction.
+- Each product may be allocated across **multiple** unexpired lots in existing approved-order lot workspace; manual lot posting rechecks warehouse/medicine/expiry, aggregated lot availability, and exact per-product approved totals under transaction locks.
+- Pharma stock posting and bid commission snapshot now retain explicit batch/expiry rows for bid orders even when a deferred supply exists for the same medicine; non-bid paths keep existing deferred-medicine exclusion. This cross-module accounting change requires impacted regression, especially commission snapshots and reversal.
+- Important remaining limitation: partial approval updates issue item quantity and stores remainder in deferred supply. Undo approval currently does not reconstruct original item quantity from deferred; do not approve UI gate until undo/reapproval behaviour is verified and addressed. No automatic migration or production changes.
+- Tests not executed by GitHub integration. Focused: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php tests/Feature/ClientApps/PharmaOrderApprovalCapabilityTest.php`. After PASS, impacted: `php artisan test tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php Modules/Pharma/Tests/Unit/InventoryContractTest.php`; add commission/reversal regression if available. UI PASS for prior wizard only, not for partial approval/multi-lot posting.
+
+### 2026-11-03 — PDF export action visibility follow-up
+
+- User confirmed partial bid approval/stock posting works in local UI, but after generating PDF the list did not expose Print/Download. Existing private PDF routes and hash validation were retained.
+- InventoryIssueDocumentService now hashes freshly persisted issue/item data in deterministic ID order and verifies `current()` immediately after creating the document; a failed verification returns HTTP 409 rather than a false success message.
+- ClientPortal PDF export redirects to canonical order detail after successful generation, where Print and Download are already present when `current()` passes; avoids stale filtered/PWA list state.
+- Regression contract added in `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Test and UI are pending on local environment; if 409 occurs, inspect document settings/hash changes rather than bypassing privacy/integrity checks.
+- Still pending separately: refinement of partial-approval UI and restoration of original demand on undo approval. No production operations, merge, or migrations.
+
+### 2026-11-03 — Client Pharma receipt draft save button
+
+- Route: GET `/apps/pharma/inventory/receipts/create`; POST `/apps/pharma/inventory/receipts`.
+- Root cause: `x-native-touch` defaults to `type="button"`; receipt draft Save had no explicit submit type, so clicking did not submit the form.
+- Fix: explicit `type="submit"` on the Save/Update control in `inventory-receipt-create.blade.php`. No business-service, schema, inventory-posting, or authorization changes.
+- Regression: `tests/Feature/ClientApps/PharmaInventoryReceiptsCapabilityTest.php` now checks the form and submit control contract.
+- Checkpoint: `php artisan test tests/Feature/ClientApps/PharmaInventoryReceiptsCapabilityTest.php`; after PASS, run `php artisan test Modules/Pharma/Tests/Unit/InventoryReceiptDraftContractTest.php`. UI verification of both create and edit draft still required; do not claim TEST/UI PASS until confirmed.
+
+### 2026-11-03 — Conditional partial bid supply UI
+
+- User observed `/apps/pharma/orders/{issue}` displayed "Ngày dự kiến cung ứng phần thiếu" despite demand 500, available 5,000, approved 500.
+- ClientPortal partial bid approval card now computes missing quantity live from original demand minus approved quantity; hides and disables deferred supply date/note when missing=0, shows and requires them when missing>0. Fields are not submitted when disabled. Initial state handles old form input after validation errors. Quantity and prices remain whole-number display.
+- Existing Pharma `UserOrderApprovalService::approveBidPartially` remains canonical: server recomputes deferred amount and deletes pending deferred records for zero remainder. No stock posting or approval authorization changes.
+- Regression contract: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Focused test then impacted `PharmaOrderApprovalCapabilityTest.php` and `Modules/Pharma/Tests/Unit/InventoryContractTest.php`. TEST/UI PENDING. Manual UI check 500/500 (hidden), 336/500 (date/note required), switch back 500/500 (hidden), iPhone, validation errors.
+- Known separate limitation remains: undo approval of partially approved bid does not reconstruct original demand. No merge/deploy/production changes.
+
+### 2026-11-03 — Issue document metadata and primary lot action (checkpoint)
+
+- Branch: `feat/pharma-issue-document-meta-actions-latest-20261103`, based on `fix/client-pharma-conditional-deferred-fields-20261103` (preserves the existing ClientPortal order/lot workflow; `main` is behind this work).
+- Admin issue document settings now have an independent `show_manager` checkbox (default enabled via additive migration); existing `show_price_list` checkbox remains independent. Both apply to Admin issue detail/PDF and PDF consumed by ClientPortal print/download. PDF bid orders label source as “Theo kết quả trúng thầu”.
+- PDF manager name uses the Pharma canonical manager resolver: active bid award management assignments by partner/award, with issue manager fallback. PDF source hash incorporates resolved manager names when displayed so stale artifacts are not reused. Admin bid issue detail uses same resolver.
+- ClientPortal approved bid order list promotes “Chọn lô xuất kho” to a prominent primary action on desktop and mobile, leaving undo approval in secondary menu. Existing multi-lot allocation and posting flow unchanged.
+- Migration required on local/staging before UI verification: `php artisan migrate` only after reviewing pending migrations; no migration or production change performed by assistant.
+- Focused contract: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Regression: `Modules/Pharma/Tests/Unit/InventoryContractTest.php` and ClientPortal bid lot/approval focused suites. TEST PENDING, UI PENDING, no merge/deploy.
+
+- 2026-11-03 UI feedback fix: issue PDF had literal `@else` after bid price source because inline Blade directive was not parsed; branches now use separate lines. PDF source hash template version bumped to require fresh export of previously cached PDFs. ClientPortal desktop lot action now always reads “Chọn lô” with wider actions column instead of truncated “Lô”. UI still pending user recheck; tests not executed by assistant.
+
+
+### 2026-11-03 — Price-list orders: partial approval and manual lot posting (checkpoint pending)
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`, based on `feat/pharma-issue-document-meta-actions-latest-20261103` because its unmerged ClientPortal Pharma workflows are required.
+- Pharma owns partial approval/deferred supply and transactional multi-lot posting. Price-list orders now share the manual lot selection screen used by bid orders; multiple valid batches per medicine are supported.
+- Deferred quantity for price-list issues is recorded per medicine, approved quantity remains in issue items; duplicate medicine rows in a price-list partial approval are rejected to avoid ambiguous deferred accounting.
+- Pending gates: focused tests, Pharma and ClientPortal impacted regression, real desktop/mobile UI verification, tracked tree verification. No TEST PASS/UI PASS/merge claimed.

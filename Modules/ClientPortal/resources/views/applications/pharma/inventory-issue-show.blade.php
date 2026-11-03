@@ -51,7 +51,7 @@
                     <article class="py-4 first:pt-0 last:pb-0">
                         <div class="flex items-start justify-between gap-3"><h3 class="font-black text-slate-950">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</h3>@if($canViewInventory && isset($inventoryBalanceLinks[$item->id]))<a href="{{ route('client.pharma.inventory.balances.show', $inventoryBalanceLinks[$item->id]) }}" class="inline-flex min-h-11 shrink-0 items-center rounded-2xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Xem tồn lô ›</a>@endif</div>
                         <div class="mt-2 grid grid-cols-2 gap-3 text-sm">
-                            <div><p class="text-xs text-slate-500">Số lượng</p><p class="font-bold text-slate-800">{{ rtrim(rtrim(number_format((float)$item->quantity,3,'.',''),'0'),'.') }}</p></div>
+                            <div><p class="text-xs text-slate-500">Số lượng</p><p class="font-bold text-slate-800">{{ number_format((float) $item->quantity, 0, ',', '.') }}</p></div>
                             <div class="text-right"><p class="text-xs text-slate-500">Đơn giá</p><p class="font-bold text-slate-800">{{ $money($item->unit_price) }}</p></div>
                         </div>
                         @if($item->batch_number || $item->expiry_date)
@@ -72,7 +72,7 @@
                     @foreach($deferredItems as $item)
                         @php($supply = $savedSupplyNotes->get($item->drug_bid_award_allocation_id))
                         <article class="rounded-2xl border border-amber-200 bg-white p-4">
-                            <div class="flex items-start justify-between gap-3"><p class="font-black text-slate-900">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</p><p class="text-xs font-black text-amber-800">SL {{ rtrim(rtrim(number_format((float)$item->quantity,3,'.',''),'0'),'.') }}</p></div>
+                            <div class="flex items-start justify-between gap-3"><p class="font-black text-slate-900">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</p><p class="text-xs font-black text-amber-800">SL {{ number_format((float) $item->quantity, 0, ',', '.') }}</p></div>
                             <p class="mt-2 text-xs text-slate-600">Dự kiến cung cấp: <span class="font-black text-slate-800">{{ $supply?->expected_supply_date?->format('d/m/Y') ?: '—' }}</span></p>
                             <p class="mt-1 text-xs leading-5 text-slate-600">{{ $supply?->note }}</p>
                         </article>
@@ -108,11 +108,11 @@
                                     <p class="truncate font-black text-slate-900">{{ $stockRow['medicine_name'] }}</p>
                                     @if($stockRow['medicine_code'])<p class="mt-0.5 text-xs text-slate-500">{{ $stockRow['medicine_code'] }}</p>@endif
                                 </div>
-                                <span class="shrink-0 text-xs font-black {{ $stockRow['is_ready'] ? 'text-emerald-700' : 'text-amber-800' }}">{{ $stockRow['is_ready'] ? 'Đủ hàng' : 'Thiếu '.number_format($stockRow['shortage_quantity'],3,'.','') }}</span>
+                                <span class="shrink-0 text-xs font-black {{ $stockRow['is_ready'] ? 'text-emerald-700' : 'text-amber-800' }}">{{ $stockRow['is_ready'] ? 'Đủ hàng' : 'Thiếu '.number_format($stockRow['shortage_quantity'], 0, ',', '.') }}</span>
                             </div>
                             <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
-                                <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'],3,'.','') }}</p></div>
-                                <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'],3,'.','') }}</p></div>
+                                <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'], 0, ',', '.') }}</p></div>
+                                <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'], 0, ',', '.') }}</p></div>
                             </div>
                             @unless($stockRow['is_ready'])
                                 <form method="POST" action="{{ route('client.pharma.orders.supply-notes', $issue) }}" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -132,7 +132,7 @@
                                     @forelse($stockRow['lots'] as $lot)
                                         <div class="flex items-center justify-between gap-3 border-t border-slate-200 pt-2 text-xs">
                                             <div><span class="font-black text-slate-800">{{ $lot['batch_number'] }}</span><span class="ml-2 text-slate-500">HSD {{ $lot['expiry_date'] }}</span></div>
-                                            <span class="font-black text-slate-900">Còn {{ number_format($lot['quantity_on_hand'],3,'.','') }}</span>
+                                            <span class="font-black text-slate-900">Còn {{ number_format($lot['quantity_on_hand'], 0, ',', '.') }}</span>
                                         </div>
                                     @empty
                                         <p class="text-xs font-bold text-amber-800">Không có lô còn tồn và còn hạn sử dụng.</p>
@@ -179,6 +179,12 @@
     @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false) || ($canPostOrder ?? false))
         <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm" data-order-actions>
             @if($canDeleteOrder ?? false)
+                @if($canEditOrder || $canSubmitOrder)
+                    <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
+                        @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800">Sửa đơn</a>@endif
+                        @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-black text-white">Gửi duyệt</button></form>@endif
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa đơn {{ $issue->number }}? Đơn chưa ghi sổ nên thao tác này không ảnh hưởng tồn kho.');">
                     @csrf @method('DELETE')
                     <button class="h-13 w-full rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Xóa đơn</button>
@@ -191,10 +197,7 @@
                             <button class="h-10 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-900">Hoàn tác</button>
                         </form>
                     @endif
-                    <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}">@csrf
-                        <button class="h-10 min-w-[108px] rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                            @disabled(!($stockReadiness['can_post_directly'] ?? false))>Ghi sổ</button>
-                    </form>
+                    <a href="{{ route('client.pharma.orders.lots', $issue) }}" class="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-black text-white">Chọn lô & ghi sổ</a>
                 </div>
                 @if(!($stockReadiness['can_post_directly'] ?? false))
                     <p class="mt-2 text-xs leading-5 text-amber-800">Chưa có sản phẩm đủ điều kiện ghi sổ. Sản phẩm chờ cung ứng sẽ không bị trừ tồn.</p>
@@ -209,7 +212,34 @@
             @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" aria-controls="order-reject-form" aria-expanded="false" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" @disabled(!($stockReadiness['can_approve'] ?? false))>Phê duyệt</button></form>
+                    <a href="#partial-bid-approval" class="flex h-13 items-center justify-center rounded-2xl bg-slate-950 font-black text-white">Điều chỉnh & duyệt</a>
+                </div>
+                <div>
+                    <form id="partial-bid-approval" method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}" class="mt-4 space-y-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                        @csrf
+                        <h3 class="text-sm font-black text-indigo-950">Duyệt số lượng thực xuất theo tồn kho</h3>
+                        <p class="text-xs text-indigo-900">Số lượng thiếu được lưu chờ cung ứng. Sau khi duyệt, chọn một hoặc nhiều lô/HSD tại bước ghi sổ.</p>
+                        @foreach($stockReadiness['rows'] ?? [] as $row)
+                            @php($recommended = min((int) $row['requested_quantity'], (int) $row['available_stock']))
+                            <div data-partial-bid-product data-requested="{{ (int) $row['requested_quantity'] }}" class="rounded-xl border border-slate-200 bg-white p-3">
+                                <p class="text-sm font-black text-slate-900">{{ $row['medicine_name'] }}</p>
+                                <p class="mt-1 text-xs text-slate-600">Đặt {{ number_format($row['requested_quantity'],0,',','.') }} · Tồn {{ number_format($row['available_stock'],0,',','.') }}</p>
+                                <label class="mt-2 block text-xs font-bold text-slate-800">SL duyệt thực xuất
+                                    <input type="number" min="0" step="1" inputmode="numeric" max="{{ (int) min($row['requested_quantity'], $row['available_stock']) }}" data-partial-approved-quantity name="approved_quantities[{{ $row['item_id'] }}]" value="{{ old('approved_quantities.'.$row['item_id'], $recommended) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base">
+                                </label>
+                                <p data-partial-bid-summary role="status" aria-live="polite" class="mt-2 text-xs font-semibold text-emerald-700"></p>
+                                <div data-partial-supply-fields class="mt-2 grid gap-2 sm:grid-cols-2">
+                                    <label class="text-xs font-bold text-slate-700">Ngày dự kiến cung ứng phần thiếu
+                                        <input type="date" data-partial-supply-input name="partial_supply[{{ $row['item_id'] }}][expected_supply_date]" value="{{ old('partial_supply.'.$row['item_id'].'.expected_supply_date', $row['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d')) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-700">Ghi chú chờ cung ứng
+                                        <input type="text" data-partial-supply-input maxlength="2000" name="partial_supply[{{ $row['item_id'] }}][note]" value="{{ old('partial_supply.'.$row['item_id'].'.note', $row['supply_note'] ?: 'Chờ cung ứng phần số lượng chưa xuất.') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                                    </label>
+                                </div>
+                            </div>
+                        @endforeach
+                        <button type="submit" class="min-h-12 w-full rounded-xl bg-indigo-700 px-4 font-black text-white">Xác nhận số lượng duyệt</button>
+                    </form>
                 </div>
                 @if(!($stockReadiness['can_approve'] ?? false))
                     <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú.</p>
@@ -229,6 +259,33 @@
     @endif
     @if($canApproveOrder)
         <script>
+        // Conditional deferred-supply fields: only submit them when approved < ordered.
+        document.querySelectorAll('[data-partial-bid-product]').forEach((card) => {
+            const approved = card.querySelector('[data-partial-approved-quantity]');
+            const panel = card.querySelector('[data-partial-supply-fields]');
+            const summary = card.querySelector('[data-partial-bid-summary]');
+            if (!approved || !panel || !summary) return;
+            const requested = Number(card.dataset.requested);
+            const update = () => {
+                const amount = Number(approved.value);
+                const valid = approved.value !== '' && Number.isInteger(amount) && amount >= 0 && amount <= requested && approved.validity.valid;
+                const missing = valid ? requested - amount : 0;
+                const deferred = valid && missing > 0;
+                panel.classList.toggle('hidden', !deferred);
+                panel.querySelectorAll('[data-partial-supply-input]').forEach((field) => {
+                    field.disabled = !deferred;
+                    field.required = deferred;
+                });
+                summary.textContent = !valid ? 'Vui lòng nhập số lượng duyệt hợp lệ.' : deferred
+                    ? 'Chờ cung ứng ' + missing.toLocaleString('vi-VN') + ' đơn vị.'
+                    : 'Đủ số lượng được duyệt; không cần thông tin cung ứng phần thiếu.';
+                summary.classList.toggle('text-amber-800', deferred);
+                summary.classList.toggle('text-emerald-700', !deferred);
+            };
+            approved.addEventListener('input', update);
+            approved.addEventListener('change', update);
+            update();
+        });
         document.getElementById('order-reject-toggle')?.addEventListener('click', (event) => {
             const panel = document.getElementById('order-reject-form');
             if (!panel) return;

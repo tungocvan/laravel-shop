@@ -23,7 +23,7 @@ final class DrugBidCommissionService
             $issue=InventoryIssue::query()->lockForUpdate()->findOrFail($issue->id);
             $issue->load(['items','deferredSupplies']);
             $deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
-            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id));
+            $postedItems=$issue->items->reject(fn($item)=>($issue->issue_source === 'bid' && $item->batch_number && $item->expiry_date) ? (float)$item->quantity <= 0 : $deferredMedicineIds->contains((int)$item->medicine_id));
 
             foreach ($postedItems as $item) {
                 if ($this->hasActiveEarnedSnapshot((int)$item->id)) continue;

@@ -11,9 +11,25 @@ use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryIssueDocument;
 use Modules\Pharma\Models\InventoryIssueDocumentSetting;
 use Modules\Pharma\Models\InventoryIssueDocumentShare;
+use Modules\Pharma\Models\DrugBidAwardManagementAssignment;
 
 final class InventoryIssueDocumentService
 {
+    public function managerNames(InventoryIssue $issue): string
+    {
+        if (($issue->issue_source ?? 'normal') !== 'bid') {
+            return $issue->manager?->name ?: $issue->priceList?->manager?->name ?: '';
+        }
+        $awardIds=$issue->items->pluck('drug_bid_award_id')->filter()->unique()->values();
+        $partnerId=(int) ($issue->bid_partner_id ?? 0);
+        if ($awardIds->isEmpty() || !$partnerId) return $issue->manager?->name ?: '';
+        $names=DrugBidAwardManagementAssignment::query()->with('user:id,name')
+            ->where('status',DrugBidAwardManagementAssignment::STATUS_ACTIVE)
+            ->whereIn('drug_bid_award_id',$awardIds)->where('partner_id',$partnerId)
+            ->get()->pluck('user.name')->filter()->unique()->sort()->values()->implode(', ');
+        return $names ?: ($issue->manager?->name ?: '');
+    }
+
     public function generate(InventoryIssue $issue, ?int $userId): InventoryIssueDocument
     {
         abort_unless($issue->status===InventoryIssue::POSTED,409,'Chỉ phiếu xuất đã ghi sổ mới được xuất PDF.');
@@ -24,16 +40,22 @@ final class InventoryIssueDocumentService
         if($existing && $existing->source_hash===$hash && Storage::disk($existing->disk)->exists($existing->storage_path)) return $existing;
 
         $path='Pharma/inventory/issues/'.$issue->id.'/issue-'.Str::uuid().'.pdf';
-        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings'))->setPaper('a4','portrait')->output();
+        $managerNames=$this->managerNames($issue);
+        $documentLines=app(InventoryIssueDocumentLines::class)->forIssue($issue);
+        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings','managerNames','documentLines'))->setPaper('a4','portrait')->output();
         Storage::disk('local')->put($path,$binary);
 
         if($existing && $existing->source_hash!==$hash) $existing->shares()->delete();
         if($existing && Storage::disk($existing->disk)->exists($existing->storage_path)) Storage::disk($existing->disk)->delete($existing->storage_path);
 
-        return InventoryIssueDocument::query()->updateOrCreate(
+        $document = InventoryIssueDocument::query()->updateOrCreate(
             ['issue_id'=>$issue->id],
             ['disk'=>'local','storage_path'=>$path,'download_name'=>'phieu-xuat-kho-'.$issue->number.'.pdf','source_hash'=>$hash,'generated_by'=>$userId,'generated_at'=>now()]
         );
+        // Never report a successful export unless the same validation used by print/download accepts it.
+        abort_unless($this->current($issue->fresh())?->is($document), 409, 'PDF vừa tạo không hợp lệ; vui lòng thử lại.');
+
+        return $document;
     }
 
     public function current(InventoryIssue $issue): ?InventoryIssueDocument
@@ -105,20 +127,28 @@ final class InventoryIssueDocumentService
 
     private function canonicalIssue(InventoryIssue $issue): InventoryIssue
     {
-        return $issue->loadMissing(['items.medicine','manager:id,name','priceList.manager']);
+        // Always hash the persisted canonical snapshot, not a previously eager-loaded
+        // issue whose item relations or aggregate fields may have been modified for UI.
+        return $issue->fresh(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
     {
-        $items=$issue->items->map(fn($item)=>[
+        $items=$issue->items->sortBy('id')->map(fn($item)=>[
             'id'=>$item->id,'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,
             'expiry_date'=>$item->expiry_date?->format('Y-m-d'),'quantity'=>(string)$item->quantity,'unit_price'=>(string)$item->unit_price,
+        ])->values()->all();
+        $deferred=$issue->deferredSupplies->sortBy('id')->map(fn($row)=>[
+            'id'=>$row->id,'medicine_id'=>$row->medicine_id,'allocation_id'=>$row->drug_bid_award_allocation_id,
+            'quantity'=>(string)$row->quantity,'status'=>$row->status,
+            'expected_supply_date'=>$row->expected_supply_date?->format('Y-m-d'),'note'=>$row->note,
         ])->values()->all();
         return hash('sha256',json_encode([
             'issue'=>['id'=>$issue->id,'number'=>$issue->number,'issue_date'=>$issue->issue_date?->format('Y-m-d'),
                 'recipient_name'=>$issue->recipient_name,'manager_user_id'=>$issue->manager_user_id,'price_list_id'=>$issue->price_list_id,
                 'issue_source'=>$issue->issue_source,'notes'=>$issue->notes,'status'=>$issue->status],
-            'items'=>$items,'settings'=>$settings->toArray(),
+            'template_version'=>'issue-pdf-deferred-supply-20261103-v3',
+            'items'=>$items,'deferred'=>$deferred,'settings'=>$settings->toArray(),'manager_names'=>$settings->show_manager ? $this->managerNames($issue) : null,
         ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     }
 }

@@ -442,7 +442,9 @@ class InventoryContractTest extends TestCase
         $show=file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-show.blade.php'));
 
         $issueDocumentService=file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
-        $this->assertStringContainsString("loadMissing(['items.medicine','manager:id,name','priceList.manager'])", $issueDocumentService);
+        // PDF canonical snapshot must refresh persisted data, not reuse stale eager-loaded relations.
+        $this->assertStringContainsString("fresh(['items.medicine','manager:id,name','priceList.manager'])", $issueDocumentService);
+        $this->assertStringContainsString("items->sortBy('id')", $issueDocumentService);
         $this->assertStringContainsString("'items'=>'required|array|min:1'", $controller);
         $this->assertStringContainsString("\$locked->items()->delete()", $controller);
         $this->assertStringContainsString("foreach(\$items as \$item)", $controller);

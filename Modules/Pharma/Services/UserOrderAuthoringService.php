@@ -146,11 +146,11 @@ final class UserOrderAuthoringService
         });
     }
 
-    public function updateDraft(int $actorUserId, int $managerUserId, InventoryIssue $issue, array $data): InventoryIssue
+    public function updateDraft(int $actorUserId, int $managerUserId, InventoryIssue $issue, array $data, bool $canManageOrders = false): InventoryIssue
     {
-        return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data): InventoryIssue {
+        return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data, $canManageOrders): InventoryIssue {
             $issue = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
-            $this->guardEditable($actorUserId, $issue);
+            $this->guardEditable($actorUserId, $issue, $canManageOrders);
             if (($issue->issue_source === 'bid' ? 'bid' : 'price_list') !== $data['source']) {
                 throw ValidationException::withMessages(['source' => 'Nguồn đơn hàng không được thay đổi sau khi tạo nháp.']);
             }
@@ -174,11 +174,11 @@ final class UserOrderAuthoringService
         });
     }
 
-    public function submit(int $userId, InventoryIssue $issue): InventoryIssue
+    public function submit(int $userId, InventoryIssue $issue, bool $canManageOrders = false): InventoryIssue
     {
-        return DB::transaction(function () use ($userId, $issue): InventoryIssue {
+        return DB::transaction(function () use ($userId, $issue, $canManageOrders): InventoryIssue {
             $issue = InventoryIssue::query()->lockForUpdate()->findOrFail($issue->getKey());
-            $this->guardSubmittable($userId, $issue);
+            $this->guardSubmittable($userId, $issue, $canManageOrders);
             if (! $issue->items()->exists()) {
                 throw ValidationException::withMessages(['order' => 'Đơn hàng chưa có sản phẩm để gửi duyệt.']);
             }
@@ -344,18 +344,18 @@ final class UserOrderAuthoringService
         ];
     }
 
-    private function guardSubmittable(int $userId, InventoryIssue $issue): void
+    private function guardSubmittable(int $userId, InventoryIssue $issue, bool $canManageOrders = false): void
     {
         if ($issue->status !== InventoryIssue::DRAFT
-            || ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+            || (! $canManageOrders && ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true))) {
             throw ValidationException::withMessages(['order' => 'Chỉ người tạo hoặc User phụ trách mới được gửi duyệt đơn đang ở trạng thái Nháp.']);
         }
     }
 
-    private function guardEditable(int $userId, InventoryIssue $issue): void
+    private function guardEditable(int $userId, InventoryIssue $issue, bool $canManageOrders = false): void
     {
         if ($issue->status !== InventoryIssue::DRAFT
-            || ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true)) {
+            || (! $canManageOrders && ! in_array($userId, [(int) $issue->created_by, (int) $issue->manager_user_id], true))) {
             throw ValidationException::withMessages(['order' => 'Chỉ người tạo hoặc User phụ trách mới được sửa đơn đang ở trạng thái Nháp.']);
         }
     }
