@@ -219,8 +219,38 @@
             @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" aria-controls="order-reject-form" aria-expanded="false" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" @disabled(!($stockReadiness['can_approve'] ?? false))>Phê duyệt</button></form>
+                    @if($issue->issue_source !== 'bid')
+                        <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" @disabled(!($stockReadiness['can_approve'] ?? false))>Phê duyệt</button></form>
+                    @else
+                        <a href="#partial-bid-approval" class="flex h-13 items-center justify-center rounded-2xl bg-slate-950 font-black text-white">Điều chỉnh & duyệt</a>
+                    @endif
                 </div>
+                @if($issue->issue_source === 'bid')
+                    <form id="partial-bid-approval" method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}" class="mt-4 space-y-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+                        @csrf
+                        <h3 class="text-sm font-black text-indigo-950">Duyệt số lượng thực xuất theo tồn kho</h3>
+                        <p class="text-xs text-indigo-900">Số lượng thiếu được lưu chờ cung ứng. Sau khi duyệt, chọn một hoặc nhiều lô/HSD tại bước ghi sổ.</p>
+                        @foreach($stockReadiness['rows'] ?? [] as $row)
+                            @php($recommended = min((int) $row['requested_quantity'], (int) $row['available_stock']))
+                            <div class="rounded-xl border border-slate-200 bg-white p-3">
+                                <p class="text-sm font-black text-slate-900">{{ $row['medicine_name'] }}</p>
+                                <p class="mt-1 text-xs text-slate-600">Đặt {{ number_format($row['requested_quantity'],0,',','.') }} · Tồn {{ number_format($row['available_stock'],0,',','.') }}</p>
+                                <label class="mt-2 block text-xs font-bold text-slate-800">SL duyệt thực xuất
+                                    <input type="number" min="0" step="1" inputmode="numeric" max="{{ (int) min($row['requested_quantity'], $row['available_stock']) }}" name="approved_quantities[{{ $row['item_id'] }}]" value="{{ old('approved_quantities.'.$row['item_id'], $recommended) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base">
+                                </label>
+                                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                                    <label class="text-xs font-bold text-slate-700">Ngày dự kiến cung ứng phần thiếu
+                                        <input type="date" name="partial_supply[{{ $row['item_id'] }}][expected_supply_date]" value="{{ old('partial_supply.'.$row['item_id'].'.expected_supply_date', $row['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d')) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                                    </label>
+                                    <label class="text-xs font-bold text-slate-700">Ghi chú chờ cung ứng
+                                        <input type="text" maxlength="2000" name="partial_supply[{{ $row['item_id'] }}][note]" value="{{ old('partial_supply.'.$row['item_id'].'.note', $row['supply_note'] ?: 'Chờ cung ứng phần số lượng chưa xuất.') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                                    </label>
+                                </div>
+                            </div>
+                        @endforeach
+                        <button type="submit" class="min-h-12 w-full rounded-xl bg-indigo-700 px-4 font-black text-white">Xác nhận số lượng duyệt</button>
+                    </form>
+                @endif
                 @if(!($stockReadiness['can_approve'] ?? false))
                     <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú.</p>
                 @endif
