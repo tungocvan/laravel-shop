@@ -664,3 +664,11 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Follow-up 2026-11-02: corrected missing Symfony `StreamedResponse` import affecting five inventory Excel download methods; updated focused contract test. Await local test and UI verification.
 
 - 2026-11-02: Admin price list ACTIVE -> INACTIVE via `PriceListDeactivationWorkflow::deactivateDirectly` with required reason, edit authorization and audit fields. Existing DRAFT/INACTIVE deletion rules retained. Focused contract test added; user reported TEST + UI PASS on original feature branch. Reapplied unchanged code on latest main after handoff merge conflict.
+
+## Checkpoint — Issue PDF actual vs deferred supply — 2026-11-03
+
+- Branch: `feat/pharma-issue-pdf-deferred-supply-20261103` from main `9c06aa3b9755cd8fe00728171bd3cbcb9d52815a`.
+- Added `show_deferred_supply` (default true) to issue PDF document settings with migration and Admin checkbox. Toggle controls presentation only; never modifies stock, order or ledger.
+- Canonical Pharma PDF service now separates actual issue movements (negative `issue` transactions matched by medicine/batch/expiry) from recorded `InventoryIssueDeferredSupply::PENDING` entries. Actual total excludes pending quantities; pending value shown separately when enabled. PDF hash tracks both snapshots and settings to invalidate stale files for Admin and ClientPortal.
+- Focused test: `tests/Feature/Pharma/InventoryIssueDeferredSupplyPdfContractTest.php`. Local test, migration and rendered UI verification **PENDING**. Verify multiple batches, partial fulfillment, and no false positive pending rows. Do not declare PASS before operator results.
+- Schema change requires normal approved migration on non-production test environment; no production migration/deploy authorized. No merge until test + UI gates and user approval.
