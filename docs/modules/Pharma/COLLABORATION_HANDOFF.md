@@ -681,3 +681,10 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - `client.pharma.orders.create-for-user` explicitly authorizes cross-user draft edit (alongside create permission) and, together with `client.pharma.orders.submit`, cross-user submission. Pharma `UserOrderAuthoringService` validates draft status and existing business constraints inside transactions; delegation is an explicit parameter, never inferred from UI.
 - Updated `PharmaOrderAuthoringCapabilityTest` contract assertions and added draft action coverage to `PharmaBidManualLotCapabilityTest`.
 - Local focused and impacted regression not executed by GitHub integration. UI previously reported FAIL for missing edit/approval actions; UI must be retested after pulling. Approved bid content editing and reapproval flow remain future work.
+
+### 2026-11-03 — Quantity formatting and ClientPortal checkpoint
+
+- User-reported UI discrepancy: order quantity 500 appeared as 500.000 in ClientPortal, while Admin correctly showed 500. Changed order form draft hydration, detail/stock readiness and manual lot workspace to show whole units with no decimal digits. Unit prices already use zero-decimal VND formatting; unchanged.
+- ClientPortal authoring and manual lot request validation now require integer quantities; no database migration. Fixed an undefined `$canCreateForUser` reference in `submitOrder()` by using the existing authorized `$canManageOrders` capability.
+- Manual lot allocation is still a separate workspace for **APPROVED** bid orders; the Admin's combined edit/approve/post screen has **not** been fully ported. Approved-order editing and in-form lot allocation remain outstanding; do not mark Admin parity or UI PASS.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php`; run impacted approval/inventory tests only after focused PASS. Test execution pending on local checkout.
