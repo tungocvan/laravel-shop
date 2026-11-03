@@ -41,7 +41,8 @@ final class InventoryIssueDocumentService
 
         $path='Pharma/inventory/issues/'.$issue->id.'/issue-'.Str::uuid().'.pdf';
         $managerNames=$this->managerNames($issue);
-        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings','managerNames'))->setPaper('a4','portrait')->output();
+        $documentLines=app(InventoryIssueDocumentLines::class)->forIssue($issue);
+        $binary=Pdf::loadView('Pharma::pages.inventory.issue-pdf',compact('issue','settings','managerNames','documentLines'))->setPaper('a4','portrait')->output();
         Storage::disk('local')->put($path,$binary);
 
         if($existing && $existing->source_hash!==$hash) $existing->shares()->delete();
@@ -128,7 +129,7 @@ final class InventoryIssueDocumentService
     {
         // Always hash the persisted canonical snapshot, not a previously eager-loaded
         // issue whose item relations or aggregate fields may have been modified for UI.
-        return $issue->fresh(['items.medicine','manager:id,name','priceList.manager']);
+        return $issue->fresh(['items.medicine','manager:id,name','priceList.manager','deferredSupplies.medicine']);
     }
 
     private function sourceHash(InventoryIssue $issue,InventoryIssueDocumentSetting $settings): string
@@ -137,12 +138,17 @@ final class InventoryIssueDocumentService
             'id'=>$item->id,'medicine_id'=>$item->medicine_id,'batch_number'=>$item->batch_number,
             'expiry_date'=>$item->expiry_date?->format('Y-m-d'),'quantity'=>(string)$item->quantity,'unit_price'=>(string)$item->unit_price,
         ])->values()->all();
+        $deferred=$issue->deferredSupplies->sortBy('id')->map(fn($row)=>[
+            'id'=>$row->id,'medicine_id'=>$row->medicine_id,'allocation_id'=>$row->drug_bid_award_allocation_id,
+            'quantity'=>(string)$row->quantity,'status'=>$row->status,
+            'expected_supply_date'=>$row->expected_supply_date?->format('Y-m-d'),'note'=>$row->note,
+        ])->values()->all();
         return hash('sha256',json_encode([
             'issue'=>['id'=>$issue->id,'number'=>$issue->number,'issue_date'=>$issue->issue_date?->format('Y-m-d'),
                 'recipient_name'=>$issue->recipient_name,'manager_user_id'=>$issue->manager_user_id,'price_list_id'=>$issue->price_list_id,
                 'issue_source'=>$issue->issue_source,'notes'=>$issue->notes,'status'=>$issue->status],
-            'template_version'=>'issue-pdf-bid-source-20261103-v2',
-            'items'=>$items,'settings'=>$settings->toArray(),'manager_names'=>$settings->show_manager ? $this->managerNames($issue) : null,
+            'template_version'=>'issue-pdf-deferred-supply-20261103-v3',
+            'items'=>$items,'deferred'=>$deferred,'settings'=>$settings->toArray(),'manager_names'=>$settings->show_manager ? $this->managerNames($issue) : null,
         ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     }
 }
