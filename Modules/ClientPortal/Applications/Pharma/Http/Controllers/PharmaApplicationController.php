@@ -1910,7 +1910,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
         $visible = $workspace->findVisible((int) $user->id, $issue, true);
         abort_if($visible === null || $visible->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED
-            || $visible->issue_source !== 'bid' || $visible->posted_at !== null, 404);
+            || ! in_array($visible->issue_source, ['bid', 'price_list'], true) || $visible->posted_at !== null, 404);
         $data = $request->validate([
             'batches' => 'required|array',
             'batches.*' => 'array',
