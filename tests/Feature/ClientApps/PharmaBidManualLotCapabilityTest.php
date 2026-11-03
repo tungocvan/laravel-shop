@@ -82,6 +82,21 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString('id="order-submit"', $form);
     }
 
+    public function test_lot_workspace_suggests_fefo_and_validates_totals_before_posting(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/order-lots.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/BidIssueManualLotPostingService.php'));
+
+        $this->assertStringContainsString('$remainingForFefo', $view);
+        $this->assertStringContainsString('$suggested', $view);
+        $this->assertStringContainsString('data-lot-product', $view);
+        $this->assertStringContainsString('data-lot-quantity', $view);
+        $this->assertStringContainsString('total === required', $view);
+        $this->assertStringContainsString('submit.disabled = !valid', $view);
+        $this->assertStringContainsString('$allowedItemIds', $service);
+        $this->assertStringContainsString('ctype_digit((string) $rawQuantity)', $service);
+    }
+
     public function test_manual_lot_ui_keeps_pwa_shell_and_does_not_change_non_bid_fefo(): void
     {
         $root = base_path();
