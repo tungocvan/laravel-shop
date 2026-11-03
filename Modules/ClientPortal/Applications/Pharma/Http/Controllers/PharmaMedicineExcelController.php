@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\Pharma\Services\MedicineCatalog;
 use Modules\Pharma\Services\MedicineImportExport;
+use Modules\Pharma\Services\MedicineExcelProfileService;
+use Modules\Pharma\Services\MedicineConfiguredExcelExporter;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PharmaMedicineExcelController extends Controller
@@ -42,11 +44,14 @@ final class PharmaMedicineExcelController extends Controller
         ApplicationRegistry $registry,
         MedicineCatalog $catalog,
         MedicineImportExport $excel,
+        MedicineExcelProfileService $profiles,
+        MedicineConfiguredExcelExporter $configured,
     ): BinaryFileResponse {
         $user = $request->user('web');
         abort_unless($user && $registry->userCan($user, 'client.pharma.products.export'), 403);
 
         $data = $request->validate([
+            'profile_id' => ['nullable', 'integer'],
             'ids' => ['nullable', 'array', 'max:10000'],
             'ids.*' => ['required', 'integer', 'min:1', 'distinct'],
             'q' => ['nullable', 'string', 'max:120'],
@@ -95,9 +100,10 @@ final class PharmaMedicineExcelController extends Controller
             throw ValidationException::withMessages(['ids' => 'Không có thuốc phù hợp để xuất Excel.']);
         }
 
-        $path = $excel->exportDetailedCatalog($ids, $canPrice);
+        $profile = $profiles->forUser((int) $user->id, $data['profile_id'] ?? null, 'web');
+        $path = $configured->export($ids, $profile, $canPrice);
 
-        return response()->download($excel->exportAbsolutePath($path), 'danh-muc-thuoc.xlsx')
+        return response()->download($path, 'danh-muc-thuoc-theo-mau.xlsx')
             ->deleteFileAfterSend(true);
     }
 }
