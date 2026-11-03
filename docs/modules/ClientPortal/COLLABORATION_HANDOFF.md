@@ -1,3 +1,12 @@
+## Checkpoint — Excel sample JSON import and column widths — 2026-11-04
+
+- User-supplied XLSX has 14 configured columns, with widths expressed in Excel character units, not UI pixels. Converted sample widths to UI pixel values with `round(excelWidth * 7 + 5)` and changed ClientPortal writer to `(pixels - 5) / 7`. This is an approximation at Excel's default font/96dpi; actual display may differ by font, zoom and Excel renderer.
+- ClientPortal configured export now centers/wraps every column header, vertically centers, and repeats header row on printed pages. Data-cell alignment remains profile-specific.
+- Added versioned JSON import POST under existing Excel configuration permission; validates allowed column keys and settings, creates new web-owned profile, does not overwrite existing profiles. JSON sample is delivered as a conversation artifact, not committed to repository.
+- Added focused source contract; runtime tests/UI NOT RUN. No merge or deploy.
+
+---
+
 ## Checkpoint — Reuse original Pharma Excel Designer V4 — 2026-11-04
 
 - ClientPortal Excel configuration page now mounts the **existing** `pharma.medicine.excel-configurator` Livewire component with `ownerGuard=web` and `openOnMount=true`; includes Livewire styles/scripts only on that page. The Admin component and its Blade remain the canonical V4 designer.
