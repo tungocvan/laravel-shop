@@ -760,6 +760,7 @@ final class PharmaApplicationController extends Controller
             'selectedSupplierPrice' => $validated['supplier_price'] ?? '',
             'selectedBidAward' => $validated['bid_award'] ?? '',
             'canViewSupplierPricing' => $canViewSupplierPricing,
+            'canExportMedicines' => $registry->userCan($user, 'client.pharma.products.export'),
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);
