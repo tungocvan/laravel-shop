@@ -42,4 +42,29 @@ class PharmaPriceListManualLotsContractTest extends TestCase
         $this->assertStringContainsString('lockForUpdate()', $service);
     }
 
+
+    public function test_issue_pdf_separates_posted_and_pending_supply_and_invalidates_cached_document(): void
+    {
+        $pdf = file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-pdf.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentService.php'));
+        $lines = file_get_contents(base_path('Modules/Pharma/Services/InventoryIssueDocumentLines.php'));
+        $setting = file_get_contents(base_path('Modules/Pharma/Models/InventoryIssueDocumentSetting.php'));
+        $settingsView = file_get_contents(base_path('Modules/Pharma/resources/views/pages/inventory/issue-settings.blade.php'));
+        $controller = file_get_contents(base_path('Modules/Pharma/Http/Controllers/InventoryController.php'));
+
+        $this->assertStringContainsString('@foreach($postedLines as $line)', $pdf);
+        $this->assertStringNotContainsString('@foreach($issue->items as $item)', $pdf);
+        $this->assertStringContainsString('$documentLines[\'posted_total\']', $pdf);
+        $this->assertStringContainsString('$settings->show_deferred_supply && $pendingLines->isNotEmpty()', $pdf);
+        $this->assertStringContainsString('Hàng chờ cung ứng', $pdf);
+        $this->assertStringContainsString("['quantity']", $pdf);
+        $this->assertStringContainsString('InventoryIssueDocumentLines::class', $service);
+        $this->assertStringContainsString("'deferred'=>\$deferred", $service);
+        $this->assertStringContainsString('issue-pdf-deferred-supply-20261103-v3', $service);
+        $this->assertStringContainsString("where('quantity_delta', '<', 0)", $lines);
+        $this->assertStringContainsString('show_deferred_supply', $setting);
+        $this->assertStringContainsString('show_deferred_supply', $settingsView);
+        $this->assertStringContainsString('show_deferred_supply', $controller);
+    }
+
 }
