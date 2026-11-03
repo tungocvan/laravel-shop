@@ -179,6 +179,12 @@
     @if($canEditOrder || $canSubmitOrder || $canApproveOrder || ($canUndoApproval ?? false) || ($canDeleteOrder ?? false) || ($canPostOrder ?? false))
         <div class="mx-auto mt-3 max-w-4xl rounded-2xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm" data-order-actions>
             @if($canDeleteOrder ?? false)
+                @if($canEditOrder || $canSubmitOrder)
+                    <div class="mb-3 flex flex-wrap items-center justify-end gap-2">
+                        @if($canEditOrder)<a href="{{ route('client.pharma.orders.edit',$issue) }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-black text-slate-800">Sửa đơn</a>@endif
+                        @if($canSubmitOrder)<form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="min-h-11 rounded-xl bg-slate-950 px-4 text-sm font-black text-white">Gửi duyệt</button></form>@endif
+                    </div>
+                @endif
                 <form method="POST" action="{{ route('client.pharma.orders.delete',$issue) }}" onsubmit="return confirm('Xóa đơn {{ $issue->number }}? Đơn chưa ghi sổ nên thao tác này không ảnh hưởng tồn kho.');">
                     @csrf @method('DELETE')
                     <button class="h-13 w-full rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Xóa đơn</button>
