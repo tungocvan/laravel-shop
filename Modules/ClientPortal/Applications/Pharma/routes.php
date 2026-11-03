@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelProfileController;
 
 if ((bool) config('modules.registry.Pharma.enabled', false)) {
     Route::middleware([
@@ -17,6 +18,15 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::get('/products/excel-config', [PharmaMedicineExcelProfileController::class, 'index'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.excel-config');
+        Route::post('/products/excel-config', [PharmaMedicineExcelProfileController::class, 'save'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.excel-config.save');
+        Route::delete('/products/excel-config/{profile}', [PharmaMedicineExcelProfileController::class, 'delete'])
+            ->whereNumber('profile')->middleware('client.feature:pharma,products')
+            ->name('products.excel-config.delete');
         Route::post('/products/import', [PharmaMedicineExcelController::class, 'import'])
             ->middleware('client.feature:pharma,products')
             ->name('products.import');
