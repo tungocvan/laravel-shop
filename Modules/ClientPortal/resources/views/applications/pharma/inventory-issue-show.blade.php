@@ -51,7 +51,7 @@
                     <article class="py-4 first:pt-0 last:pb-0">
                         <div class="flex items-start justify-between gap-3"><h3 class="font-black text-slate-950">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</h3>@if($canViewInventory && isset($inventoryBalanceLinks[$item->id]))<a href="{{ route('client.pharma.inventory.balances.show', $inventoryBalanceLinks[$item->id]) }}" class="inline-flex min-h-11 shrink-0 items-center rounded-2xl border border-slate-300 bg-white px-3 text-xs font-black text-slate-700">Xem tồn lô ›</a>@endif</div>
                         <div class="mt-2 grid grid-cols-2 gap-3 text-sm">
-                            <div><p class="text-xs text-slate-500">Số lượng</p><p class="font-bold text-slate-800">{{ rtrim(rtrim(number_format((float)$item->quantity,3,'.',''),'0'),'.') }}</p></div>
+                            <div><p class="text-xs text-slate-500">Số lượng</p><p class="font-bold text-slate-800">{{ number_format((float) $item->quantity, 0, ',', '.') }}</p></div>
                             <div class="text-right"><p class="text-xs text-slate-500">Đơn giá</p><p class="font-bold text-slate-800">{{ $money($item->unit_price) }}</p></div>
                         </div>
                         @if($item->batch_number || $item->expiry_date)
@@ -72,7 +72,7 @@
                     @foreach($deferredItems as $item)
                         @php($supply = $savedSupplyNotes->get($item->drug_bid_award_allocation_id))
                         <article class="rounded-2xl border border-amber-200 bg-white p-4">
-                            <div class="flex items-start justify-between gap-3"><p class="font-black text-slate-900">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</p><p class="text-xs font-black text-amber-800">SL {{ rtrim(rtrim(number_format((float)$item->quantity,3,'.',''),'0'),'.') }}</p></div>
+                            <div class="flex items-start justify-between gap-3"><p class="font-black text-slate-900">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</p><p class="text-xs font-black text-amber-800">SL {{ number_format((float) $item->quantity, 0, ',', '.') }}</p></div>
                             <p class="mt-2 text-xs text-slate-600">Dự kiến cung cấp: <span class="font-black text-slate-800">{{ $supply?->expected_supply_date?->format('d/m/Y') ?: '—' }}</span></p>
                             <p class="mt-1 text-xs leading-5 text-slate-600">{{ $supply?->note }}</p>
                         </article>
@@ -108,11 +108,11 @@
                                     <p class="truncate font-black text-slate-900">{{ $stockRow['medicine_name'] }}</p>
                                     @if($stockRow['medicine_code'])<p class="mt-0.5 text-xs text-slate-500">{{ $stockRow['medicine_code'] }}</p>@endif
                                 </div>
-                                <span class="shrink-0 text-xs font-black {{ $stockRow['is_ready'] ? 'text-emerald-700' : 'text-amber-800' }}">{{ $stockRow['is_ready'] ? 'Đủ hàng' : 'Thiếu '.number_format($stockRow['shortage_quantity'],3,'.','') }}</span>
+                                <span class="shrink-0 text-xs font-black {{ $stockRow['is_ready'] ? 'text-emerald-700' : 'text-amber-800' }}">{{ $stockRow['is_ready'] ? 'Đủ hàng' : 'Thiếu '.number_format($stockRow['shortage_quantity'], 0, ',', '.') }}</span>
                             </div>
                             <div class="mt-3 grid grid-cols-2 gap-3 text-sm">
-                                <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'],3,'.','') }}</p></div>
-                                <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'],3,'.','') }}</p></div>
+                                <div><p class="text-xs text-slate-500">SL đơn hàng</p><p class="font-black text-slate-900">{{ number_format($stockRow['requested_quantity'], 0, ',', '.') }}</p></div>
+                                <div><p class="text-xs text-slate-500">Tồn khả dụng</p><p class="font-black text-slate-900">{{ number_format($stockRow['available_stock'], 0, ',', '.') }}</p></div>
                             </div>
                             @unless($stockRow['is_ready'])
                                 <form method="POST" action="{{ route('client.pharma.orders.supply-notes', $issue) }}" class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -132,7 +132,7 @@
                                     @forelse($stockRow['lots'] as $lot)
                                         <div class="flex items-center justify-between gap-3 border-t border-slate-200 pt-2 text-xs">
                                             <div><span class="font-black text-slate-800">{{ $lot['batch_number'] }}</span><span class="ml-2 text-slate-500">HSD {{ $lot['expiry_date'] }}</span></div>
-                                            <span class="font-black text-slate-900">Còn {{ number_format($lot['quantity_on_hand'],3,'.','') }}</span>
+                                            <span class="font-black text-slate-900">Còn {{ number_format($lot['quantity_on_hand'], 0, ',', '.') }}</span>
                                         </div>
                                     @empty
                                         <p class="text-xs font-bold text-amber-800">Không có lô còn tồn và còn hạn sử dụng.</p>
