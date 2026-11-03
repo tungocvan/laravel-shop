@@ -1283,3 +1283,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - User confirmed whole-number quantities display correctly; requested Back/Next controls to appear near product UI rather than far below viewport.
 - Removed viewport-sized minimum heights and excessive bottom padding from order wizard steps 1–3. The existing single action bar now follows visible content on desktop (`lg:static`), with mobile sticky bottom positioning and unchanged control IDs/step JS.
 - Added focused contract assertion in `PharmaBidManualLotCapabilityTest`. Local test and UI confirmation pending; do not claim UI PASS. No Pharma business logic or DB changes.
+
+### 2026-11-03 — Approved bid manual-lot UI enhancement
+
+- UI PASS reported by user for the draft order wizard spacing and integer quantity display.
+- Compared Admin `bid-sale-edit` with ClientPortal: Admin combines draft edit and approval/posting; ClientPortal deliberately retains draft → pending → approved → manual lot post. The approved bid `order-lots` workspace now suggests FEFO split per available lot, displays expiry/stock, validates live per-product totals, and preserves integer quantity display.
+- Pharma-owned `BidIssueManualLotPostingService` additionally rejects unexpected item IDs and noninteger quantities; existing transaction, stock locks and posting service remain authoritative.
+- Still outstanding: full parity with Admin combined edit/approve/post and deferred stock workflow. No claim of UI PASS for lot posting or runtime tests until local validation.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. After PASS run order approval and inventory regression.
