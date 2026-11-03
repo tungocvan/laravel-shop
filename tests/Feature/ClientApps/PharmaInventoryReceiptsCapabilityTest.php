@@ -89,6 +89,17 @@ final class PharmaInventoryReceiptsCapabilityTest extends TestCase
         $this->assertStringContainsString("'invoice_symbol' => \$data['invoice_symbol'] ?? null", $workspace);
     }
 
+    public function test_receipt_draft_save_button_explicitly_submits_the_form(): void
+    {
+        $create = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-receipt-create.blade.php'));
+        $touch = file_get_contents(base_path('Modules/ClientPortal/resources/views/components/native-touch.blade.php'));
+
+        // Native touch defaults to type=button; save must override it to submit.
+        $this->assertStringContainsString("'button'", $touch);
+        $this->assertMatchesRegularExpression('/<form\\b[^>]*id="receipt-draft-form"/s', $create);
+        $this->assertMatchesRegularExpression('/<x-native-touch\\s+type="submit"[^>]*>\\s*\\{\\{\\s*\\$editing\\s*\\?\\s*\\x27Lưu thay đổi\\x27\\s*:\\s*\\x27Lưu nháp\\x27/su', $create);
+    }
+
     public function test_receipt_list_and_detail_expose_workflow_responsively(): void
     {
         $root = base_path();
