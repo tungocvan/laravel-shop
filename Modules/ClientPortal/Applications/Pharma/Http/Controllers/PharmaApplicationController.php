@@ -1844,7 +1844,20 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
         $pending = $workspace->findPendingForApproval($issue);
         abort_if($pending === null, 404);
-        $approval->approve((int) $user->id, $pending);
+        if ($pending->issue_source === 'bid' && $request->has('approved_quantities')) {
+            $data = $request->validate([
+                'approved_quantities' => 'required|array',
+                'approved_quantities.*' => 'required|integer|min:0',
+                'partial_supply' => 'nullable|array',
+                'partial_supply.*.expected_supply_date' => 'nullable|date',
+                'partial_supply.*.note' => 'nullable|string|max:2000',
+            ]);
+            $approval->approveBidPartially(
+                (int) $user->id, $pending, $data['approved_quantities'], $data['partial_supply'] ?? []
+            );
+        } else {
+            $approval->approve((int) $user->id, $pending);
+        }
 
         return redirect()->route('client.pharma.orders', ['status' => 'pending_approval'])
             ->with('success', 'Đã phê duyệt đơn hàng. Đơn sẵn sàng chuyển sang bước xử lý kho.');
