@@ -1,3 +1,11 @@
+## Medicine selection UI fix — 2026-11-03
+
+- User UI reported checked select-all with zero selected. Root cause: ClientPortal application layout does not load Alpine, so x-data/x-on directives were inert.
+- Replaced selection state with page-local native JavaScript via application-scripts stack. Syncs visible desktop/mobile checkboxes, selected count, clear button and select-all. MutationObserver handles PWA load-more appended results.
+- Updated focused source contract; focused runtime tests and UI confirmation pending. Excel import/export and medicine CRUD not yet implemented.
+
+---
+
 ## Pharma catalog selection checkpoint — 2026-11-03
 
 - Added mobile and desktop selection by medicine ID, select-all for loaded records, and clear-selection.
