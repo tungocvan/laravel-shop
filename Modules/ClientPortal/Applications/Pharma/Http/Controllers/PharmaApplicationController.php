@@ -1902,7 +1902,7 @@ final class PharmaApplicationController extends Controller
             'batches' => 'required|array',
             'batches.*' => 'array',
             'batches.*.*.balance_id' => 'required|integer|min:1',
-            'batches.*.*.quantity' => 'nullable|numeric|min:0',
+            'batches.*.*.quantity' => 'nullable|integer|min:0',
         ]);
         $lotPosting->post($visible, $data['batches'], (int) $user->id, $inventory);
         return redirect()->route('client.pharma.orders.show', $issue)
