@@ -60,7 +60,7 @@
 
 <form id="order-form" method="POST" action="{{ $editing ? route('client.pharma.orders.update',$issue) : route('client.pharma.orders.store') }}" class="mx-auto mt-4 max-w-7xl" data-order-wizard>
 @csrf @if($editing) @method('PUT') @endif
-<aside class="mx-auto min-h-[calc(100dvh-250px)] max-w-3xl space-y-0 px-0 pb-4 sm:px-1" data-order-step-panel="1">
+<aside class="mx-auto max-w-3xl space-y-0 px-0 pb-4 sm:px-1" data-order-step-panel="1">
  <section class="rounded-t-3xl border border-b-0 border-slate-200 bg-white p-5 pb-4 shadow-sm">
   <p class="text-xs font-black uppercase tracking-wide text-slate-500">Thiết lập đơn hàng</p>
   <div class="mt-4" data-order-source-picker>
@@ -106,7 +106,7 @@
  </section>
 </aside>
 
-<main class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl min-w-0 space-y-4 px-0 pb-44 sm:px-1" data-order-step-panel="2">
+<main class="mx-auto hidden max-w-3xl min-w-0 space-y-4 px-0 pb-4 sm:px-1" data-order-step-panel="2">
  <section id="price-list-products" class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
   <div class="flex items-end justify-between gap-3"><div><h2 class="text-lg font-black">Sản phẩm theo bảng giá</h2><p class="mt-1 text-sm text-slate-500">Chọn sản phẩm, nhập số lượng rồi thêm vào đơn.</p></div><span id="product-count" class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-black">0 đã thêm</span></div>
   <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3" data-product-picker>
@@ -154,7 +154,7 @@
   </section>
  </section>
 </main>
-<section class="mx-auto hidden min-h-[calc(100dvh-250px)] max-w-3xl space-y-4 px-0 pb-52 sm:px-1" data-order-review data-order-step-panel="3">
+<section class="mx-auto hidden max-w-3xl space-y-4 px-0 pb-4 sm:px-1" data-order-review data-order-step-panel="3">
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
    <div class="flex items-center justify-between gap-3"><div><p class="text-xs font-black uppercase tracking-wide text-slate-500">Xem lại đơn hàng</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trước khi lưu nháp</h2></div><button type="button" data-step-target="1" class="text-xs font-black text-indigo-600">Chỉnh sửa</button></div>
    <dl class="mt-4 divide-y divide-slate-100 text-sm">
@@ -172,7 +172,7 @@
   <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><label><span class="mb-2 block text-sm font-black">Ghi chú</span><textarea name="notes" rows="3" class="w-full rounded-2xl border border-slate-300 px-4 py-3">{{ old('notes',$issue?->notes) }}</textarea></label></section>
  </section>
 
-<div data-order-actions class="relative z-20 mx-auto mt-4 max-w-3xl rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+<div data-order-actions class="sticky bottom-2 z-20 mx-auto mt-3 max-w-3xl rounded-2xl border border-slate-200 bg-white px-3 py-3 shadow-sm sm:bottom-3 lg:static lg:mt-4">
  <div class="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
   <x-native-touch type="button" id="order-step-back" class="hidden h-9 shrink-0 items-center justify-center rounded-xl border border-slate-300 px-3 text-xs font-black">← Quay lại</x-native-touch>
   <div class="min-w-0 flex-1"><div class="flex items-center gap-2"><span class="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-black text-slate-600">Nháp</span><p id="order-summary" class="min-w-0 truncate text-xs font-black sm:text-sm">0 sản phẩm · 0 SL · 0 đ</p></div></div>
