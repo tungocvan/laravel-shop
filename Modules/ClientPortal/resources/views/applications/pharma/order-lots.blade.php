@@ -21,6 +21,7 @@
     @endif
     <form method="POST" action="{{ route('client.pharma.orders.lots.post', $issue) }}" class="space-y-4" onsubmit="return confirm('Xác nhận ghi sổ theo các lô và số lượng đã chọn?')">
         @csrf
+        @php($fefoRemainingByLot = [])
         @forelse($postableItems as $item)
             @php($lots = $balances->get($item->medicine_id, collect()))
             <section data-lot-product data-required="{{ (int) $item->quantity }}" class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
@@ -32,7 +33,9 @@
                 <div class="space-y-3 p-4">
                     @php($remainingForFefo = (int) $item->quantity)
                     @forelse($lots as $lot)
-                        @php($suggested = min($remainingForFefo, (int) $lot->quantity_on_hand))
+                        @php($lotRemaining = $fefoRemainingByLot[$lot->id] ?? (int) $lot->quantity_on_hand)
+                        @php($suggested = min($remainingForFefo, $lotRemaining))
+                        @php($fefoRemainingByLot[$lot->id] = $lotRemaining - $suggested)
                         @php($remainingForFefo -= $suggested)
                         <div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_140px] sm:items-center">
                             <div class="text-sm">
@@ -41,7 +44,7 @@
                             </div>
                             <label class="text-xs font-bold text-slate-700">Số lượng thực xuất
                                 <input type="hidden" name="batches[{{ $item->id }}][{{ $lot->id }}][balance_id]" value="{{ $lot->id }}">
-                                <input type="number" data-lot-quantity inputmode="numeric" min="0" max="{{ (int) $lot->quantity_on_hand }}" step="1" name="batches[{{ $item->id }}][{{ $lot->id }}][quantity]" value="{{ old('batches.'.$item->id.'.'.$lot->id.'.quantity', $suggested) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                <input type="number" data-lot-quantity data-balance-id="{{ $lot->id }}" inputmode="numeric" min="0" max="{{ (int) $lot->quantity_on_hand }}" step="1" name="batches[{{ $item->id }}][{{ $lot->id }}][quantity]" value="{{ old('batches.'.$item->id.'.'.$lot->id.'.quantity', $suggested) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                             </label>
                         </div>
                     @empty
@@ -63,15 +66,21 @@ document.addEventListener('DOMContentLoaded', () => {
  const fmt = n => new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 0}).format(n);
  function refresh() {
   let valid = products.length > 0;
+  const lotTotals = new Map();
+  document.querySelectorAll('[data-lot-quantity]').forEach(input => {
+   const lotId = input.dataset.balanceId;
+   lotTotals.set(lotId, (lotTotals.get(lotId) || 0) + (Number(input.value) || 0));
+  });
   products.forEach(product => {
    const required = Number(product.dataset.required);
    const inputs = [...product.querySelectorAll('[data-lot-quantity]')];
    const quantities = inputs.map(input => Number(input.value));
    const total = quantities.reduce((sum, n) => sum + n, 0);
    const rowsValid = inputs.every((input, i) => input.value.trim() !== '' && Number.isInteger(quantities[i]) && quantities[i] >= 0 && quantities[i] <= Number(input.max));
-   const matched = rowsValid && total === required;
+   const lotsWithinStock = inputs.every(input => (lotTotals.get(input.dataset.balanceId) || 0) <= Number(input.max));
+   const matched = rowsValid && lotsWithinStock && total === required;
    const summary = product.querySelector('[data-lot-summary]');
-   summary.textContent = 'Đã chọn ' + fmt(total) + ' / ' + fmt(required) + (matched ? ' · Đủ số lượng' : ' · Chưa khớp số lượng hoặc tồn lô');
+   summary.textContent = 'Đã chọn ' + fmt(total) + ' / ' + fmt(required) + (matched ? ' · Đủ số lượng' : lotsWithinStock ? ' · Chưa khớp số lượng' : ' · Tổng phân bổ vượt tồn của một lô');
    summary.classList.toggle('text-rose-700', !matched);
    summary.classList.toggle('text-emerald-700', matched);
    valid = valid && matched;
