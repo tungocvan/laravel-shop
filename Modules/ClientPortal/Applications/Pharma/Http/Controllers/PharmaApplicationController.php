@@ -1844,7 +1844,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.orders.approve'), 403);
         $pending = $workspace->findPendingForApproval($issue);
         abort_if($pending === null, 404);
-        if ($pending->issue_source === 'bid' && $request->has('approved_quantities')) {
+        if ($request->has('approved_quantities')) {
             $data = $request->validate([
                 'approved_quantities' => 'required|array',
                 'approved_quantities.*' => 'required|integer|min:0',
@@ -1852,7 +1852,7 @@ final class PharmaApplicationController extends Controller
                 'partial_supply.*.expected_supply_date' => 'nullable|date',
                 'partial_supply.*.note' => 'nullable|string|max:2000',
             ]);
-            $approval->approveBidPartially(
+            $approval->approvePartially(
                 (int) $user->id, $pending, $data['approved_quantities'], $data['partial_supply'] ?? []
             );
         } else {
@@ -1887,7 +1887,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
         $visible = $workspace->findVisible((int) $user->id, $issue, true);
         abort_if($visible === null || $visible->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED
-            || $visible->issue_source !== 'bid' || $visible->posted_at !== null, 404);
+            || $visible->posted_at !== null, 404);
         $visible->load(['items.medicine', 'deferredSupplies']);
         $deferredIds = $visible->deferredSupplies->pluck('drug_bid_award_allocation_id')->map(fn ($id) => (int) $id);
         $postableItems = $visible->items->filter(fn ($item) => (float) $item->quantity > 0);
@@ -1933,9 +1933,9 @@ final class PharmaApplicationController extends Controller
         $approved = $workspace->findVisible((int) $user->id, $issue, true);
         abort_if($approved === null || $approved->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED, 404);
 
-        if ($approved->issue_source === 'bid') {
-            return redirect()->route('client.pharma.orders.lots', $issue);
-        }
+        return redirect()->route('client.pharma.orders.lots', $issue);
+
+        /* Legacy automatic FEFO path retained for compatibility; manual selection is the UI default. */
 
         $readiness = $stockReadiness->forIssue($approved);
         if (! ($readiness['can_post_directly'] ?? false)) {
