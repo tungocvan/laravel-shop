@@ -1,3 +1,13 @@
+## Checkpoint — Detailed Pharma medicine Excel export — 2026-11-04
+
+- Branch: `feat/clientportal-pharma-catalog-filters-20261103`; no merge/deploy.
+- Connected `PharmaMedicineExcelController::export()` to Pharma-owned `MedicineImportExport::exportDetailedCatalog($ids, $canPrice)`. Selected IDs and full filtered results continue to be resolved in the controller.
+- Detailed export reuses canonical medicine columns and adds Medicine code, representative default SKU, KSDB, HSSP yes/no, bid-award yes/no and representative latest active award details (winner, investor, decision number/date, period, winning price and allocated quantity). The existing `MedicineExcelRelatedDataService` selects one active award and one latest supplier: this is NOT a one-row-per-award or one-row-per-supplier report.
+- Supplier name, cost price and import price are appended only when `client.pharma.products.supplier-pricing` is granted. Export permission remains independently required. Import staging and PWA handoff remain unchanged.
+- Updated focused `tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. Runtime tests NOT RUN and UI NOT VERIFIED. Run only focused tests at checkpoint. No full module regression until pre-merge gate.
+
+---
+
 ## Pharma Excel export and import staging checkpoint — 2026-11-03
 
 - Added separate web permissions `client.pharma.products.export` and `client.pharma.products.import` to the Pharma ClientPortal manifest. Both POST endpoints enforce their own permissions server-side.
