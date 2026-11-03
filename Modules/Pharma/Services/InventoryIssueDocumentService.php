@@ -141,6 +141,7 @@ final class InventoryIssueDocumentService
             'issue'=>['id'=>$issue->id,'number'=>$issue->number,'issue_date'=>$issue->issue_date?->format('Y-m-d'),
                 'recipient_name'=>$issue->recipient_name,'manager_user_id'=>$issue->manager_user_id,'price_list_id'=>$issue->price_list_id,
                 'issue_source'=>$issue->issue_source,'notes'=>$issue->notes,'status'=>$issue->status],
+            'template_version'=>'issue-pdf-bid-source-20261103-v2',
             'items'=>$items,'settings'=>$settings->toArray(),'manager_names'=>$settings->show_manager ? $this->managerNames($issue) : null,
         ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES));
     }
