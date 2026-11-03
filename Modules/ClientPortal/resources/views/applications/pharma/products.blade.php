@@ -20,8 +20,8 @@
     </section>
 
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_11rem_11rem_11rem_auto] lg:items-start">
-            <label class="min-w-0 flex-1">
+        <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-start">
+            <label class="min-w-0 flex-1 sm:col-span-2 xl:col-span-4">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
                 <div class="relative"><input id="product-search-input" type="search" name="q" data-pwa-debounced-search="350" data-pwa-search-region="#product-results-region" data-pwa-search-clear="#product-search-clear" value="{{ $search }}" autocomplete="off" placeholder="Tên thuốc, mã thuốc, SKU, hoạt chất, GPLH..." class="w-full rounded-2xl border border-slate-300 px-4 py-3 pr-12 text-sm text-slate-950 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"><x-native-touch id="product-search-clear" type="button" data-pwa-search-clear-button="#product-search-input" class="{{ $search === '' ? 'hidden ' : '' }}absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500" aria-label="Xóa tìm kiếm">×</x-native-touch></div>
                 <span class="mt-1.5 block text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</span>
@@ -37,32 +37,18 @@
             </label>
             <label class="w-full"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Loại sản phẩm</span><select name="product_type" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm" onchange="this.form.submit()"><option value="">Tất cả loại</option>@foreach($productTypeOptions as $value => $label)<option value="{{ $value }}" @selected($selectedProductType === (string) $value)>{{ $label }}</option>@endforeach</select></label>
             <label class="w-full"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Kiểm soát đặc biệt</span><select name="special_control" class="h-[46px] w-full rounded-2xl border border-slate-300 px-3 text-sm" onchange="this.form.submit()"><option value="">Tất cả</option><option value="yes" @selected($selectedSpecialControl === 'yes')>Có</option><option value="no" @selected($selectedSpecialControl === 'no')>Không</option></select></label>
-            @if($search !== '' || $circularGroup !== '' || $filter !== null || $selectedProductType !== '' || $selectedSpecialControl !== '')
+            <label class="w-full"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Hồ sơ sản phẩm (HSSP)</span><select name="hssp" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm text-slate-950" onchange="this.form.submit()"><option value="" @selected($selectedHssp === '')>Tất cả</option><option value="with" @selected($selectedHssp === 'with')>Có HSSP</option><option value="without" @selected($selectedHssp === 'without')>Chưa có HSSP</option></select></label>
+            @if($canViewSupplierPricing)
+            <label class="w-full"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Giá nhà cung cấp</span><select name="supplier_price" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm text-slate-950" onchange="this.form.submit()"><option value="" @selected($selectedSupplierPrice === '')>Tất cả</option><option value="with" @selected($selectedSupplierPrice === 'with')>Có giá NCC</option><option value="without" @selected($selectedSupplierPrice === 'without')>Chưa có giá NCC</option></select></label>
+            @endif
+            <label class="w-full"><span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Trúng thầu</span><select name="bid_award" class="h-[46px] w-full rounded-2xl border border-slate-300 bg-white px-3 text-sm text-slate-950" onchange="this.form.submit()"><option value="" @selected($selectedBidAward === '')>Tất cả</option><option value="with" @selected($selectedBidAward === 'with')>Đã trúng thầu</option><option value="without" @selected($selectedBidAward === 'without')>Chưa trúng thầu</option></select></label>
+            @if($search !== '' || $circularGroup !== '' || $filter !== null || $selectedProductType !== '' || $selectedSpecialControl !== '' || $selectedHssp !== '' || $selectedSupplierPrice !== '' || $selectedBidAward !== '')
                 <div class="flex flex-col">
                     <span class="mb-1.5 block select-none text-xs font-bold uppercase tracking-wide text-transparent" aria-hidden="true">Thao tác</span>
                     <a href="{{ route('client.pharma.products') }}" class="inline-flex h-[46px] w-full items-center justify-center whitespace-nowrap rounded-2xl border border-slate-300 px-4 text-sm font-bold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 lg:w-auto">Xóa bộ lọc</a>
                 </div>
             @endif
         </form>
-        <div class="mt-4 flex flex-wrap gap-2" aria-label="Bộ lọc danh mục thuốc">
-            @php
-                $filters = [
-                    null => ['label' => 'Tất cả', 'active' => 'border-slate-700 bg-slate-700 text-white', 'idle' => 'border-slate-200 bg-white text-slate-600 hover:border-slate-400'],
-                    'awarded' => ['label' => 'Đã trúng thầu', 'active' => 'border-blue-600 bg-blue-600 text-white', 'idle' => 'border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-400'],
-                    'profile' => ['label' => 'Có HSSP', 'active' => 'border-emerald-600 bg-emerald-600 text-white', 'idle' => 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-400'],
-                ];
-                if ($canViewSupplierPricing) {
-                    $filters['supplier-priced'] = ['label' => 'Có giá NCC', 'active' => 'border-amber-500 bg-amber-500 text-white', 'idle' => 'border-amber-200 bg-amber-50 text-amber-800 hover:border-amber-400'];
-                }
-            @endphp
-            @foreach($filters as $value => $meta)
-                <a href="{{ route('client.pharma.products', array_filter(['q' => $search, 'filter' => $value, 'group' => $circularGroup, 'product_type' => $selectedProductType, 'special_control' => $selectedSpecialControl], fn ($item) => $item !== null && $item !== '')) }}"
-                   class="rounded-full border px-3.5 py-2 text-xs font-bold transition {{ $filter === $value ? $meta['active'] : $meta['idle'] }}">
-                    @if($filter === $value)<span aria-hidden="true">✓</span>@endif {{ $meta['label'] }}
-                    <span class="ml-1 opacity-70">{{ number_format($filterCounts[$value ?? 'all'] ?? 0, 0, ',', '.') }}</span>
-                </a>
-            @endforeach
-        </div>
     </section>
 
     <div id="product-results-region" class="space-y-4">
