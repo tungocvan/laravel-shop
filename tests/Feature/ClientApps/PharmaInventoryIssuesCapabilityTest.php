@@ -23,10 +23,13 @@ final class PharmaInventoryIssuesCapabilityTest extends TestCase
         $this->assertStringContainsString("'show_price_list' => 'Bảng giá áp dụng'", $config);
         $this->assertStringContainsString('@if($settings->show_manager)', $pdf);
         $this->assertStringContainsString("Theo kết quả trúng thầu", $pdf);
+        $this->assertStringNotContainsString('Theo kết quả trúng thầu@else', $pdf);
+        $this->assertStringContainsString("@else\n", $pdf);
         $this->assertStringContainsString('public function managerNames(InventoryIssue $issue): string', $document);
         $this->assertStringContainsString("whereIn('drug_bid_award_id',\$awardIds)", $document);
         $this->assertStringContainsString("'manager_names'=>\$settings->show_manager", $document);
         $this->assertStringContainsString('aria-label="Chọn lô xuất kho cho phiếu', $list);
+        $this->assertStringNotContainsString('2xl:hidden', $list);
         $this->assertStringContainsString("route('client.pharma.orders.lots',\$issue)", $list);
     }
 
