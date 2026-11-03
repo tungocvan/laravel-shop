@@ -69,7 +69,7 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString('Từ chối', $view);
         $this->assertStringContainsString('Lý do từ chối', $view);
         $this->assertStringContainsString('rejection_reason', $view);
-        $this->assertStringContainsString("@disabled(!(\$stockReadiness['can_approve'] ?? false))", $view);
+        $this->assertStringContainsString('name="approved_quantities[', $view);
         $this->assertStringContainsString('Hoàn tác phê duyệt', $view);
         $this->assertStringContainsString('Chờ cung cấp', $view);
         $this->assertStringContainsString('Không tính là hàng đã duyệt xuất', $view);
