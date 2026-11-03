@@ -25,4 +25,21 @@ class PharmaPriceListManualLotsContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.orders.lots', \$issue)", $view);
         $this->assertStringContainsString('($item->batch_number && $item->expiry_date)', $inventory);
     }
+
+    public function test_fefo_suggestions_share_lot_capacity_across_split_rows(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/order-lots.blade.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/BidIssueManualLotPostingService.php'));
+
+        $this->assertStringContainsString('$fefoRemainingByLot = []', $view);
+        $this->assertStringContainsString('$lotRemaining = $fefoRemainingByLot[$lot->id]', $view);
+        $this->assertStringContainsString('$fefoRemainingByLot[$lot->id] = $lotRemaining - $suggested', $view);
+        $this->assertStringContainsString('data-balance-id="{{ $lot->id }}"', $view);
+        $this->assertStringContainsString('const lotTotals = new Map()', $view);
+        $this->assertStringContainsString('lotTotals.get(input.dataset.balanceId)', $view);
+        $this->assertStringContainsString('rowsValid && lotsWithinStock && total === required', $view);
+        $this->assertStringContainsString('$lotTotals[$balanceId]', $service);
+        $this->assertStringContainsString('lockForUpdate()', $service);
+    }
+
 }
