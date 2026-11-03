@@ -1890,7 +1890,7 @@ final class PharmaApplicationController extends Controller
             || $visible->issue_source !== 'bid' || $visible->posted_at !== null, 404);
         $visible->load(['items.medicine', 'deferredSupplies']);
         $deferredIds = $visible->deferredSupplies->pluck('drug_bid_award_allocation_id')->map(fn ($id) => (int) $id);
-        $postableItems = $visible->items->reject(fn ($item) => $deferredIds->contains((int) $item->drug_bid_award_allocation_id));
+        $postableItems = $visible->items->filter(fn ($item) => (float) $item->quantity > 0);
         return view('ClientPortal::applications.pharma.order-lots', [
             'application' => $registry->find('pharma'),
             'issue' => $visible,
