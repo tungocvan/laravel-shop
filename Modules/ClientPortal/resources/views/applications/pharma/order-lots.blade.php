@@ -26,18 +26,18 @@
             <section class="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
                 <div class="border-b border-slate-100 p-4">
                     <h2 class="font-black text-slate-950">{{ $item->medicine?->name ?: 'Sản phẩm #'.$item->medicine_id }}</h2>
-                    <p class="mt-1 text-sm text-slate-600">Đã duyệt: <strong>{{ number_format((float) $item->quantity, 3, ',', '.') }}</strong> · {{ $lots->count() }} lô khả dụng</p>
+                    <p class="mt-1 text-sm text-slate-600">Đã duyệt: <strong>{{ number_format((float) $item->quantity, 0, ',', '.') }}</strong> · {{ $lots->count() }} lô khả dụng</p>
                 </div>
                 <div class="space-y-3 p-4">
                     @forelse($lots as $lot)
                         <div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_140px] sm:items-center">
                             <div class="text-sm">
                                 <p class="font-bold text-slate-900">{{ $lot->batch_number }} @if($loop->first)<span class="ml-2 text-xs font-black text-emerald-700">FEFO</span>@endif</p>
-                                <p class="text-slate-600">HSD {{ $lot->expiry_date?->format('d/m/Y') }} · Tồn {{ number_format((float) $lot->quantity_on_hand, 3, ',', '.') }}</p>
+                                <p class="text-slate-600">HSD {{ $lot->expiry_date?->format('d/m/Y') }} · Tồn {{ number_format((float) $lot->quantity_on_hand, 0, ',', '.') }}</p>
                             </div>
                             <label class="text-xs font-bold text-slate-700">Số lượng thực xuất
                                 <input type="hidden" name="batches[{{ $item->id }}][{{ $lot->id }}][balance_id]" value="{{ $lot->id }}">
-                                <input type="number" inputmode="decimal" min="0" max="{{ $lot->quantity_on_hand }}" step="0.001" name="batches[{{ $item->id }}][{{ $lot->id }}][quantity]" value="{{ old('batches.'.$item->id.'.'.$lot->id.'.quantity', 0) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
+                                <input type="number" inputmode="numeric" min="0" max="{{ $lot->quantity_on_hand }}" step="1" name="batches[{{ $item->id }}][{{ $lot->id }}][quantity]" value="{{ old('batches.'.$item->id.'.'.$lot->id.'.quantity', 0) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
                             </label>
                         </div>
                     @empty
