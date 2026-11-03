@@ -1323,3 +1323,12 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Existing Pharma `UserOrderApprovalService::approveBidPartially` remains canonical: server recomputes deferred amount and deletes pending deferred records for zero remainder. No stock posting or approval authorization changes.
 - Regression contract: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Focused test then impacted `PharmaOrderApprovalCapabilityTest.php` and `Modules/Pharma/Tests/Unit/InventoryContractTest.php`. TEST/UI PENDING. Manual UI check 500/500 (hidden), 336/500 (date/note required), switch back 500/500 (hidden), iPhone, validation errors.
 - Known separate limitation remains: undo approval of partially approved bid does not reconstruct original demand. No merge/deploy/production changes.
+
+### 2026-11-03 — Issue document metadata and primary lot action (checkpoint)
+
+- Branch: `feat/pharma-issue-document-meta-actions-latest-20261103`, based on `fix/client-pharma-conditional-deferred-fields-20261103` (preserves the existing ClientPortal order/lot workflow; `main` is behind this work).
+- Admin issue document settings now have an independent `show_manager` checkbox (default enabled via additive migration); existing `show_price_list` checkbox remains independent. Both apply to Admin issue detail/PDF and PDF consumed by ClientPortal print/download. PDF bid orders label source as “Theo kết quả trúng thầu”.
+- PDF manager name uses the Pharma canonical manager resolver: active bid award management assignments by partner/award, with issue manager fallback. PDF source hash incorporates resolved manager names when displayed so stale artifacts are not reused. Admin bid issue detail uses same resolver.
+- ClientPortal approved bid order list promotes “Chọn lô xuất kho” to a prominent primary action on desktop and mobile, leaving undo approval in secondary menu. Existing multi-lot allocation and posting flow unchanged.
+- Migration required on local/staging before UI verification: `php artisan migrate` only after reviewing pending migrations; no migration or production change performed by assistant.
+- Focused contract: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Regression: `Modules/Pharma/Tests/Unit/InventoryContractTest.php` and ClientPortal bid lot/approval focused suites. TEST PENDING, UI PENDING, no merge/deploy.
