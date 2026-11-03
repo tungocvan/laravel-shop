@@ -197,7 +197,7 @@
                             <button class="h-10 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-900">Hoàn tác</button>
                         </form>
                     @endif
-                    @if(($issue->issue_source ?? 'normal') === 'bid')
+                    @if(true)
                         <a href="{{ route('client.pharma.orders.lots', $issue) }}" class="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-black text-white">Chọn lô & ghi sổ</a>
                     @else
                         <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}">@csrf
@@ -219,13 +219,9 @@
             @elseif($canApproveOrder)
                 <div class="grid grid-cols-2 gap-3">
                     <button type="button" id="order-reject-toggle" aria-controls="order-reject-form" aria-expanded="false" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
-                    @if($issue->issue_source !== 'bid')
-                        <form method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}">@csrf<button class="h-13 w-full rounded-2xl bg-slate-950 font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500" @disabled(!($stockReadiness['can_approve'] ?? false))>Phê duyệt</button></form>
-                    @else
-                        <a href="#partial-bid-approval" class="flex h-13 items-center justify-center rounded-2xl bg-slate-950 font-black text-white">Điều chỉnh & duyệt</a>
-                    @endif
+                    <a href="#partial-bid-approval" class="flex h-13 items-center justify-center rounded-2xl bg-slate-950 font-black text-white">Điều chỉnh & duyệt</a>
                 </div>
-                @if($issue->issue_source === 'bid')
+                @if(true)
                     <form id="partial-bid-approval" method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}" class="mt-4 space-y-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
                         @csrf
                         <h3 class="text-sm font-black text-indigo-950">Duyệt số lượng thực xuất theo tồn kho</h3>
