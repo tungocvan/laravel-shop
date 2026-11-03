@@ -44,6 +44,11 @@ return [
                     'permission' => 'client.pharma.products.import',
                     'sort_order' => 30,
                 ],
+                'excel-config' => [
+                    'name' => 'Cấu hình mẫu Excel danh mục thuốc',
+                    'permission' => 'client.pharma.products.excel-config',
+                    'sort_order' => 25,
+                ],
                 'export' => [
                     'name' => 'Xuất danh mục thuốc Excel',
                     'permission' => 'client.pharma.products.export',
