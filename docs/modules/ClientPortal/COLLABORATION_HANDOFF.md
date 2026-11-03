@@ -1,3 +1,13 @@
+## Pharma Excel export and import staging checkpoint — 2026-11-03
+
+- Added separate web permissions `client.pharma.products.export` and `client.pharma.products.import` to the Pharma ClientPortal manifest. Both POST endpoints enforce their own permissions server-side.
+- Export uses Pharma MedicineCatalog browse to collect all matching medicine IDs across pages when none are selected, or uses the selected Medicine IDs. The Excel output uses Pharma-owned MedicineImportExport. Supplier-price filters retain their existing capability guard.
+- Installed PWA export uses authenticated same-origin fetch, temporary File, explicit second-gesture native share; normal browser uses POST download. No public artifact URL or service-worker cache.
+- Import validates XLSX/CSV <=10 MB and invokes Pharma MedicineCatalogUploadService staging only. It labels batches `clientportal_pharma` and displays classification summary. There is intentionally NO ClientPortal commit/review action yet: staged data is not written to Medicine Master. Implement permission-gated review/approval before enabling commit.
+- Focused source contract updated; tests NOT RUN in runtime and UI NOT VERIFIED for this batch. Do not claim full Import workflow PASS. Do not merge/deploy. Full module regression deferred until pre-merge by operator instruction.
+
+---
+
 ## Medicine selection UI fix — 2026-11-03
 
 - User UI reported checked select-all with zero selected. Root cause: ClientPortal application layout does not load Alpine, so x-data/x-on directives were inert.
