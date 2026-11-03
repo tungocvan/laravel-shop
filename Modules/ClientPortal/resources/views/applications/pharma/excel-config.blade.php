@@ -45,7 +45,14 @@
             <h2 class="font-bold">Các cột xuất Excel</h2>
             <p class="text-xs text-slate-500">Chọn cột và kéo thả bằng nút lên/xuống để thay đổi thứ tự.</p>
             <div id="excel-column-list" class="space-y-2">
-                @foreach($availableColumns as $key => $label)
+                @php
+                    $orderedKeys = array_values(array_unique(array_merge(
+                        array_values(array_intersect($profile['columns'], array_keys($availableColumns))),
+                        array_keys($availableColumns)
+                    )));
+                @endphp
+                @foreach($orderedKeys as $key)
+                    @php $label = $availableColumns[$key]; @endphp
                     <div data-excel-column class="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-xl border border-slate-200 p-2">
                         <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="columns[]" value="{{ $key }}" @checked(in_array($key, old('columns', $profile['columns'])))><span>{{ $label }}</span></label>
                         <input aria-label="Tiêu đề {{ $label }}" name="headers[{{ $key }}]" value="{{ $profile['headers'][$key] ?? $label }}" class="min-w-0 rounded-lg border border-slate-300 px-2 py-2 text-sm">
