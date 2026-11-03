@@ -1,3 +1,13 @@
+## Checkpoint — Shared FEFO capacity across split issue rows — 2026-11-03
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`. No main merge, deployment, migration or runtime test performed.
+- Root cause: ClientPortal order-lots Blade initialized FEFO suggestions separately for each issue item, causing duplicate use of the same available lot (issue #24: LC82822 98 + 98 against stock 98).
+- Fix: Blade tracks remaining available units per inventory balance ID across all postable rows; each suggested allocation consumes that shared remainder. Browser-side validation also aggregates quantities per balance ID across rows and disables submit when a lot is oversubscribed. Existing Pharma posting service remains the authoritative transaction/lock/lot-total validator.
+- Focused regression: `tests/Feature/ClientApps/PharmaPriceListManualLotsContractTest.php` expanded to cover shared FEFO and aggregate UI validation. Tests **NOT RUN**; UI **PENDING**. Validate issue #24 expected defaults LC82822:98/0, LC82835:0/102 only if order remains approved and unposted.
+- Earlier PDF deferred-supply integration remains incomplete. Do not run pending migration. Do not merge main without user approval.
+
+---
+
 ## Checkpoint — Repeat approval of lot-split price-list orders — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`; no main merge or deployment.
