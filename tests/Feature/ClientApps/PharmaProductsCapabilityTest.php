@@ -171,4 +171,19 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('@selected($selectedProductType', $view);
         $this->assertStringContainsString('@selected($selectedSpecialControl', $view);
     }
+
+    public function test_catalog_selection_uses_medicine_ids_and_supports_loaded_mobile_and_desktop_rows(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString('data-medicine-select-all', $view);
+        $this->assertStringContainsString('data-medicine-select value="{{ $product->medicineId }}"', $view);
+        $this->assertStringContainsString('selected.includes({{ $product->medicineId }})', $view);
+        $this->assertStringContainsString('new Set(', $view);
+        $this->assertStringContainsString("querySelectorAll('[data-medicine-select]')", $view);
+        $this->assertStringContainsString('toggleVisible(checked)', $view);
+        $this->assertStringContainsString('selected.length', $view);
+        $this->assertStringContainsString('data-pwa-load-more-targets', $view);
+        $this->assertStringNotContainsString('value="{{ $product->variantId }}"', $view);
+    }
 }
