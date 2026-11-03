@@ -1,3 +1,15 @@
+## Checkpoint — Pharma PWA catalog filters (batch 1) — 2026-11-03
+
+- Branch: `feat/clientportal-pharma-catalog-filters-20261103`, based on `main@403de90248662bf56a8608485c19a283939444fc`. No merge/deploy.
+- Implemented: product-type and special-control selectors in `/apps/pharma/products`, validated in the web controller and applied to the canonical Pharma `MedicineCatalog::browse()` query; active filter state survives filter-link navigation.
+- Existing SKU/variant listing, feature guard, supplier pricing permission and PWA browse shell preserved. No database migration.
+- Added focused source contract to `tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`.
+- NOT implemented in this batch: Medicine Master create/edit and Import/Export; those require separate permission/validation/file-handoff implementation and regression.
+- Tests NOT RUN on Laravel runtime; UI NOT VERIFIED. Focused test then impacted Pharma regression and manual responsive/PWA UI acceptance required.
+- Do not merge until all gates and explicit user approval.
+
+---
+
 ## Checkpoint — Price-list manual lot POST 404 fix — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge or deployment performed.
