@@ -74,6 +74,59 @@ final class PharmaMedicineExcelProfileController extends Controller
             ->with('status', 'Đã lưu mẫu Excel.');
     }
 
+    public function importJson(Request $request, ApplicationRegistry $registry, MedicineExcelProfileService $profiles): RedirectResponse
+    {
+        $id = $this->authorizeAccess($request, $registry);
+        $request->validate(['file' => ['required', 'file', 'max:512', 'mimetypes:application/json,text/plain,application/octet-stream']]);
+        $data = json_decode(file_get_contents($request->file('file')->getRealPath()), true);
+        if (! is_array($data) || ($data['schema_version'] ?? null) !== 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['file' => 'Tệp JSON cấu hình không hợp lệ hoặc sai phiên bản.']);
+        }
+        $allowed = MedicineExcelProfileService::COLUMNS;
+        if (! $registry->userCan($request->user('web'), 'client.pharma.products.supplier-pricing')) {
+            unset($allowed['cost_price'], $allowed['supplier_name']);
+        }
+        $columns = $data['columns'] ?? null;
+        if (! is_array($columns) || $columns === [] || count($columns) > count($allowed) ||
+            count(array_unique($columns)) !== count($columns) ||
+            array_diff($columns, array_keys($allowed))) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['file' => 'Danh sách cột không hợp lệ hoặc không có quyền truy cập.']);
+        }
+        $validator = \Illuminate\Support\Facades\Validator::make($data, [
+            'name' => ['required', 'string', 'max:120'],
+            'is_default' => ['nullable', 'boolean'],
+            'headers' => ['required', 'array'],
+            'headers.*' => ['nullable', 'string', 'max:120'],
+            'widths' => ['required', 'array'],
+            'widths.*' => ['required', 'integer', 'between:40,400'],
+            'alignments' => ['required', 'array'],
+            'alignments.*' => ['required', 'in:left,center,right'],
+            'settings' => ['required', 'array'],
+            'settings.title' => ['required', 'string', 'max:200'],
+            'settings.company_name' => ['nullable', 'string', 'max:200'],
+            'settings.paper_size' => ['required', 'in:A4,A3,LETTER'],
+            'settings.orientation' => ['required', 'in:landscape,portrait'],
+            'settings.header_enabled' => ['required', 'boolean'],
+            'settings.font_family' => ['required', 'in:Times New Roman,Arial,Calibri'],
+            'settings.header_font_size' => ['required', 'integer', 'between:8,20'],
+            'settings.body_font_size' => ['required', 'integer', 'between:8,20'],
+            'settings.header_fill' => ['required', 'in:EFF4FA,F1F5F9,FFFFFF,EDE9FE'],
+            'settings.body_border' => ['required', 'boolean'],
+        ]);
+        $validator->validate();
+        foreach (['headers', 'widths', 'alignments'] as $field) {
+            if (array_diff(array_keys($data[$field]), array_keys($allowed))) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['file' => 'Cấu hình chứa cột không được phép.']);
+            }
+        }
+        // Import always creates a new, non-default profile; never overwrites existing templates.
+        $data['is_default'] = false;
+        $data['name'] = mb_substr($data['name'].' - '.now()->format('YmdHis'), 0, 120);
+        $saved = $profiles->save($id, $data, null, 'web');
+        return redirect()->route('client.pharma.products.excel-config', ['profile_id' => $saved['id']])
+            ->with('status', 'Đã nhập mẫu Excel từ JSON. Kiểm tra và lưu lại nếu cần.');
+    }
+
     public function delete(Request $request, ApplicationRegistry $registry, MedicineExcelProfileService $profiles, int $profile): RedirectResponse
     {
         $id = $this->authorizeAccess($request, $registry);
