@@ -1,3 +1,12 @@
+## Pharma catalog selection checkpoint — 2026-11-03
+
+- Added mobile and desktop selection by medicine ID, select-all for loaded records, and clear-selection.
+- Added focused contract coverage in PharmaProductsCapabilityTest.
+- Selection is page-local; export, import and create/edit remain pending.
+- Focused tests and UI review pending. No merge or deploy.
+
+---
+
 ## Checkpoint — Pharma catalog three independent combobox filters — 2026-11-03
 
 - Branch: `feat/clientportal-pharma-catalog-filters-20261103`. Replaces legacy pill filter UI with three independent selectors: HSSP with/without, supplier price with/without (permission-gated), bid award with/without. Default for each is All.
