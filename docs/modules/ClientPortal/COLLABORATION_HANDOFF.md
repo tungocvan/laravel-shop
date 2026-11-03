@@ -1315,3 +1315,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Fix: explicit `type="submit"` on the Save/Update control in `inventory-receipt-create.blade.php`. No business-service, schema, inventory-posting, or authorization changes.
 - Regression: `tests/Feature/ClientApps/PharmaInventoryReceiptsCapabilityTest.php` now checks the form and submit control contract.
 - Checkpoint: `php artisan test tests/Feature/ClientApps/PharmaInventoryReceiptsCapabilityTest.php`; after PASS, run `php artisan test Modules/Pharma/Tests/Unit/InventoryReceiptDraftContractTest.php`. UI verification of both create and edit draft still required; do not claim TEST/UI PASS until confirmed.
+
+### 2026-11-03 — Conditional partial bid supply UI
+
+- User observed `/apps/pharma/orders/{issue}` displayed "Ngày dự kiến cung ứng phần thiếu" despite demand 500, available 5,000, approved 500.
+- ClientPortal partial bid approval card now computes missing quantity live from original demand minus approved quantity; hides and disables deferred supply date/note when missing=0, shows and requires them when missing>0. Fields are not submitted when disabled. Initial state handles old form input after validation errors. Quantity and prices remain whole-number display.
+- Existing Pharma `UserOrderApprovalService::approveBidPartially` remains canonical: server recomputes deferred amount and deletes pending deferred records for zero remainder. No stock posting or approval authorization changes.
+- Regression contract: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Focused test then impacted `PharmaOrderApprovalCapabilityTest.php` and `Modules/Pharma/Tests/Unit/InventoryContractTest.php`. TEST/UI PENDING. Manual UI check 500/500 (hidden), 336/500 (date/note required), switch back 500/500 (hidden), iPhone, validation errors.
+- Known separate limitation remains: undo approval of partially approved bid does not reconstruct original demand. No merge/deploy/production changes.
