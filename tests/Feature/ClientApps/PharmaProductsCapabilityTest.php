@@ -233,7 +233,7 @@ class PharmaProductsCapabilityTest extends TestCase
         foreach (['exportDetailedCatalog', 'Mã thuốc', 'SKU', 'Hoạt chất kiểm soát đặc biệt',
             'Hồ sơ sản phẩm (HSSP)', 'Trúng thầu', 'Công ty trúng thầu',
             'Nơi trúng thầu', 'Số quyết định trúng thầu', 'Giá trúng thầu',
-            'Số lượng phân bổ', 'Nhà cung cấp', 'Giá vốn NCC'] as $field) {
+            'Số lượng phân bổ', 'Nhà cung cấp', 'Giá vốn NCC', 'Giá nhập NCC'] as $field) {
             $this->assertStringContainsString($field, $service);
         }
         $this->assertStringContainsString('if ($includeSupplierPricing)', $service);
