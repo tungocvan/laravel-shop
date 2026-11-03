@@ -191,10 +191,14 @@
                             <button class="h-10 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-900">Hoàn tác</button>
                         </form>
                     @endif
-                    <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}">@csrf
-                        <button class="h-10 min-w-[108px] rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                            @disabled(!($stockReadiness['can_post_directly'] ?? false))>Ghi sổ</button>
-                    </form>
+                    @if(($issue->issue_source ?? 'normal') === 'bid')
+                        <a href="{{ route('client.pharma.orders.lots', $issue) }}" class="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-black text-white">Chọn lô & ghi sổ</a>
+                    @else
+                        <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}">@csrf
+                            <button class="h-10 min-w-[108px] rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                                @disabled(!($stockReadiness['can_post_directly'] ?? false))>Ghi sổ</button>
+                        </form>
+                    @endif
                 </div>
                 @if(!($stockReadiness['can_post_directly'] ?? false))
                     <p class="mt-2 text-xs leading-5 text-amber-800">Chưa có sản phẩm đủ điều kiện ghi sổ. Sản phẩm chờ cung ứng sẽ không bị trừ tồn.</p>
