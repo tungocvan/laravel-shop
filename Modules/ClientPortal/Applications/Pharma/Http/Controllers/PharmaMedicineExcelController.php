@@ -95,7 +95,7 @@ final class PharmaMedicineExcelController extends Controller
             throw ValidationException::withMessages(['ids' => 'Không có thuốc phù hợp để xuất Excel.']);
         }
 
-        $path = $excel->export(['selected_ids' => $ids]);
+        $path = $excel->exportDetailedCatalog($ids, $canPrice);
 
         return response()->download($excel->exportAbsolutePath($path), 'danh-muc-thuoc.xlsx')
             ->deleteFileAfterSend(true);
