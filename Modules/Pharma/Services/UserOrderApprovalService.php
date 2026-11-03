@@ -119,16 +119,18 @@ final class UserOrderApprovalService
                 throw ValidationException::withMessages(['order' => 'Trạng thái đơn hàng không hợp lệ.']);
             }
             $issue->load('items');
-            if ($issue->items->pluck('medicine_id')->count() !== $issue->items->pluck('medicine_id')->unique()->count()) {
-                throw ValidationException::withMessages(['order' => 'Đơn có nhiều dòng cùng sản phẩm cần được hợp nhất trước khi duyệt một phần.']);
-            }
             $knownIds = $issue->items->pluck('id')->map(fn ($id) => (int) $id)->all();
             foreach (array_keys($quantities) as $id) {
                 if (! in_array((int) $id, $knownIds, true)) {
                     throw ValidationException::withMessages(['quantities' => 'Sản phẩm không thuộc đơn hàng.']);
                 }
             }
-            $existingDeferred = $issue->deferredSupplies()->where('status', 'pending')->get()->keyBy('medicine_id');
+
+            // Split lot lines share medicine-level stock and a single deferred supply record.
+            // Validate every requested quantity before writing any changes.
+            $existingDeferred = $issue->deferredSupplies()->where('status', 'pending')
+                ->whereNull('drug_bid_award_allocation_id')->get()->keyBy('medicine_id');
+            $approvedByItem = [];
             $approvedAny = false;
             foreach ($issue->items as $item) {
                 $raw = $quantities[$item->id] ?? null;
@@ -136,32 +138,46 @@ final class UserOrderApprovalService
                     throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt phải là số nguyên không âm.']);
                 }
                 $approved = (int) $raw;
-                $existingSupply = $existingDeferred->get((int) $item->medicine_id);
-                $requested = (float) $item->quantity + (float) ($existingSupply?->quantity ?? 0);
-                $available = app(UserOrderStockReadinessService::class)->availableForMedicine($issue, (int) $item->medicine_id);
+                if ($approved > (float) $item->quantity) {
+                    throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt vượt số lượng dòng xuất kho.']);
+                }
+                $approvedByItem[$item->id] = $approved;
+                $approvedAny = $approvedAny || $approved > 0;
+            }
+            if (! $approvedAny) {
+                throw ValidationException::withMessages(['quantities' => 'Cần duyệt ít nhất một sản phẩm có số lượng thực xuất.']);
+            }
+
+            foreach ($issue->items->groupBy('medicine_id') as $medicineId => $items) {
+                $existingSupply = $existingDeferred->get((int) $medicineId);
+                $originalIssued = (float) $items->sum('quantity');
+                $requested = $originalIssued + (float) ($existingSupply?->quantity ?? 0);
+                $approved = (float) $items->sum(fn ($item) => $approvedByItem[$item->id]);
+                $available = app(UserOrderStockReadinessService::class)->availableForMedicine($issue, (int) $medicineId);
                 if ($approved > $requested || $approved > $available) {
-                    throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt vượt số lượng đặt hoặc tồn khả dụng.']);
+                    throw ValidationException::withMessages(['quantities' => 'Tổng số lượng duyệt vượt số lượng đặt hoặc tồn khả dụng của sản phẩm.']);
                 }
                 $deferred = $requested - $approved;
                 if ($deferred > 0) {
-                    $details = $supply[$item->id] ?? [];
+                    // The first item carries the medicine-level supply fields in the UI.
+                    $firstItem = $items->first();
+                    $details = $supply[$firstItem->id] ?? [];
                     $note = trim((string) ($details['note'] ?? $existingSupply?->note ?? ''));
                     $date = $details['expected_supply_date'] ?? $existingSupply?->expected_supply_date?->format('Y-m-d');
                     if ($note === '' || ! $date) {
                         throw ValidationException::withMessages(['supply' => 'Phần thiếu cần ngày dự kiến và ghi chú.']);
                     }
                     \Modules\Pharma\Models\InventoryIssueDeferredSupply::updateOrCreate(
-                        ['issue_id' => $issue->id, 'medicine_id' => $item->medicine_id, 'status' => 'pending'],
+                        ['issue_id' => $issue->id, 'medicine_id' => $medicineId, 'drug_bid_award_allocation_id' => null, 'status' => 'pending'],
                         ['quantity' => $deferred, 'expected_supply_date' => $date, 'note' => $note, 'created_by' => $actorUserId]
                     );
                 } else {
-                    $issue->deferredSupplies()->where('medicine_id', $item->medicine_id)->where('status', 'pending')->delete();
+                    $issue->deferredSupplies()->where('medicine_id', $medicineId)
+                        ->whereNull('drug_bid_award_allocation_id')->where('status', 'pending')->delete();
                 }
-                $item->update(['quantity' => $approved]);
-                $approvedAny = $approvedAny || $approved > 0;
-            }
-            if (! $approvedAny) {
-                throw ValidationException::withMessages(['quantities' => 'Cần duyệt ít nhất một sản phẩm có số lượng thực xuất.']);
+                foreach ($items as $item) {
+                    $item->update(['quantity' => $approvedByItem[$item->id]]);
+                }
             }
             $issue->update([
                 'status' => InventoryIssue::APPROVED, 'approved_by' => $actorUserId,
