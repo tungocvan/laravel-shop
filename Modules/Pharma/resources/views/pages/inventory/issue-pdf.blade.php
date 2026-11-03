@@ -33,7 +33,13 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <tr><td class="label">Người phụ trách:</td><td>{{ $managerNames ?: '—' }}</td></tr>
 @endif
 @if($settings->show_price_list)
-<tr><td class="label">Bảng giá áp dụng:</td><td>@if(($issue->issue_source ?? 'normal') === 'bid')Theo kết quả trúng thầu@else{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}@endif</td></tr>
+<tr><td class="label">Bảng giá áp dụng:</td><td>
+@if(($issue->issue_source ?? 'normal') === 'bid')
+Theo kết quả trúng thầu
+@else
+{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}
+@endif
+</td></tr>
 @endif
 </table>
 <table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc / Quy cách</th><th>ĐVT</th><th>Số lô</th><th>Hạn dùng</th><th>SL</th>
