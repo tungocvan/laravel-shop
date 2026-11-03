@@ -52,6 +52,22 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString('canEditOrder || $canSubmitOrder', $detail);
     }
 
+    public function test_whole_number_quantities_are_consistent_in_order_and_lot_workspaces(): void
+    {
+        $root = base_path();
+        $form = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/order-form.blade.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+        $lots = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/order-lots.blade.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+
+        $this->assertStringContainsString("number_format((float) \$current->quantity, 0, '.', '')", $form);
+        $this->assertStringContainsString("number_format((float) \$item->quantity, 0, ',', '.')", $detail);
+        $this->assertStringContainsString('step="1"', $lots);
+        $this->assertStringContainsString("'quantities.*' => ['nullable', 'integer', 'min:0']", $controller);
+        $this->assertStringContainsString("'batches.*.*.quantity' => 'nullable|integer|min:0'", $controller);
+        $this->assertStringContainsString('$canManageOrders', $controller);
+    }
+
     public function test_manual_lot_ui_keeps_pwa_shell_and_does_not_change_non_bid_fefo(): void
     {
         $root = base_path();
