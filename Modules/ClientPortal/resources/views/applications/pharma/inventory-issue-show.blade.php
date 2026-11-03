@@ -232,18 +232,19 @@
                         <p class="text-xs text-indigo-900">Số lượng thiếu được lưu chờ cung ứng. Sau khi duyệt, chọn một hoặc nhiều lô/HSD tại bước ghi sổ.</p>
                         @foreach($stockReadiness['rows'] ?? [] as $row)
                             @php($recommended = min((int) $row['requested_quantity'], (int) $row['available_stock']))
-                            <div class="rounded-xl border border-slate-200 bg-white p-3">
+                            <div data-partial-bid-product data-requested="{{ (int) $row['requested_quantity'] }}" class="rounded-xl border border-slate-200 bg-white p-3">
                                 <p class="text-sm font-black text-slate-900">{{ $row['medicine_name'] }}</p>
                                 <p class="mt-1 text-xs text-slate-600">Đặt {{ number_format($row['requested_quantity'],0,',','.') }} · Tồn {{ number_format($row['available_stock'],0,',','.') }}</p>
                                 <label class="mt-2 block text-xs font-bold text-slate-800">SL duyệt thực xuất
-                                    <input type="number" min="0" step="1" inputmode="numeric" max="{{ (int) min($row['requested_quantity'], $row['available_stock']) }}" name="approved_quantities[{{ $row['item_id'] }}]" value="{{ old('approved_quantities.'.$row['item_id'], $recommended) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base">
+                                    <input type="number" min="0" step="1" inputmode="numeric" max="{{ (int) min($row['requested_quantity'], $row['available_stock']) }}" data-partial-approved-quantity name="approved_quantities[{{ $row['item_id'] }}]" value="{{ old('approved_quantities.'.$row['item_id'], $recommended) }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-base">
                                 </label>
-                                <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                                <p data-partial-bid-summary role="status" aria-live="polite" class="mt-2 text-xs font-semibold text-emerald-700"></p>
+                                <div data-partial-supply-fields class="mt-2 grid gap-2 sm:grid-cols-2">
                                     <label class="text-xs font-bold text-slate-700">Ngày dự kiến cung ứng phần thiếu
-                                        <input type="date" name="partial_supply[{{ $row['item_id'] }}][expected_supply_date]" value="{{ old('partial_supply.'.$row['item_id'].'.expected_supply_date', $row['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d')) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                                        <input type="date" data-partial-supply-input name="partial_supply[{{ $row['item_id'] }}][expected_supply_date]" value="{{ old('partial_supply.'.$row['item_id'].'.expected_supply_date', $row['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d')) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
                                     </label>
                                     <label class="text-xs font-bold text-slate-700">Ghi chú chờ cung ứng
-                                        <input type="text" maxlength="2000" name="partial_supply[{{ $row['item_id'] }}][note]" value="{{ old('partial_supply.'.$row['item_id'].'.note', $row['supply_note'] ?: 'Chờ cung ứng phần số lượng chưa xuất.') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+                                        <input type="text" data-partial-supply-input maxlength="2000" name="partial_supply[{{ $row['item_id'] }}][note]" value="{{ old('partial_supply.'.$row['item_id'].'.note', $row['supply_note'] ?: 'Chờ cung ứng phần số lượng chưa xuất.') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
                                     </label>
                                 </div>
                             </div>
@@ -269,6 +270,33 @@
     @endif
     @if($canApproveOrder)
         <script>
+        // Conditional deferred-supply fields: only submit them when approved < ordered.
+        document.querySelectorAll('[data-partial-bid-product]').forEach((card) => {
+            const approved = card.querySelector('[data-partial-approved-quantity]');
+            const panel = card.querySelector('[data-partial-supply-fields]');
+            const summary = card.querySelector('[data-partial-bid-summary]');
+            if (!approved || !panel || !summary) return;
+            const requested = Number(card.dataset.requested);
+            const update = () => {
+                const amount = Number(approved.value);
+                const valid = approved.value !== '' && Number.isInteger(amount) && amount >= 0 && amount <= requested && approved.validity.valid;
+                const missing = valid ? requested - amount : 0;
+                const deferred = valid && missing > 0;
+                panel.classList.toggle('hidden', !deferred);
+                panel.querySelectorAll('[data-partial-supply-input]').forEach((field) => {
+                    field.disabled = !deferred;
+                    field.required = deferred;
+                });
+                summary.textContent = !valid ? 'Vui lòng nhập số lượng duyệt hợp lệ.' : deferred
+                    ? 'Chờ cung ứng ' + missing.toLocaleString('vi-VN') + ' đơn vị.'
+                    : 'Đủ số lượng được duyệt; không cần thông tin cung ứng phần thiếu.';
+                summary.classList.toggle('text-amber-800', deferred);
+                summary.classList.toggle('text-emerald-700', !deferred);
+            };
+            approved.addEventListener('input', update);
+            approved.addEventListener('change', update);
+            update();
+        });
         document.getElementById('order-reject-toggle')?.addEventListener('click', (event) => {
             const panel = document.getElementById('order-reject-form');
             if (!panel) return;
