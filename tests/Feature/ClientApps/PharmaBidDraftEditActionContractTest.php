@@ -13,10 +13,10 @@ class PharmaBidDraftEditActionContractTest extends TestCase
         $routes = file_get_contents($root.'Applications/Pharma/routes.php');
         $view = file_get_contents($root.'resources/views/applications/pharma/inventory-issues.blade.php');
 
-        $this->assertStringContainsString("'orderEditActions' => $orderEditActions", $controller);
+        $this->assertStringContainsString("'orderEditActions' => \$orderEditActions", $controller);
         $this->assertStringContainsString("client.pharma.orders.create-for-user", $controller);
         $this->assertStringContainsString("InventoryIssue::DRAFT", $controller);
-        $this->assertStringContainsString("[(int) $issue->created_by, (int) $issue->manager_user_id]", $controller);
+        $this->assertStringContainsString("[(int) \$issue->created_by, (int) \$issue->manager_user_id]", $controller);
         $this->assertSame(2, substr_count($view, "route('client.pharma.orders.edit',\$issue)"));
         $this->assertSame(2, substr_count($view, "Sửa đơn hàng thầu"));
         $this->assertSame(2, substr_count($view, 'orderEditActions[(int) $issue->id]'));
