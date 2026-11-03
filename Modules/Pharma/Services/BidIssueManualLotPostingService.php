@@ -54,6 +54,13 @@ final class BidIssueManualLotPostingService
                 throw ValidationException::withMessages(['batches' => 'Một thuốc vừa có dòng chờ cung ứng vừa có dòng thực xuất. Cần tách đơn trước khi ghi sổ.']);
             }
 
+            $allowedItemIds = $postable->pluck('id')->map(fn ($id) => (int) $id)->all();
+            foreach (array_keys($batches) as $submittedItemId) {
+                if (! in_array((int) $submittedItemId, $allowedItemIds, true)) {
+                    throw ValidationException::withMessages(['batches' => 'Sản phẩm phân bổ lô không thuộc đơn đã duyệt.']);
+                }
+            }
+
             $newRows = [];
             $lotTotals = [];
             foreach ($postable as $item) {
@@ -63,8 +70,15 @@ final class BidIssueManualLotPostingService
                 }
                 $allocated = 0.0;
                 foreach ($parts as $part) {
+                    if (! is_array($part)) {
+                        throw ValidationException::withMessages(['batches' => 'Dữ liệu lô không hợp lệ.']);
+                    }
                     $balanceId = (int) ($part['balance_id'] ?? 0);
-                    $quantity = (float) ($part['quantity'] ?? 0);
+                    $rawQuantity = $part['quantity'] ?? 0;
+                    if (! is_numeric($rawQuantity) || ! ctype_digit((string) $rawQuantity)) {
+                        throw ValidationException::withMessages(['batches' => 'Số lượng thực xuất phải là số nguyên không âm.']);
+                    }
+                    $quantity = (int) $rawQuantity;
                     if ($quantity <= 0) continue;
                     if ($balanceId <= 0 || ! is_finite($quantity)) {
                         throw ValidationException::withMessages(['batches' => 'Lô hoặc số lượng không hợp lệ.']);
