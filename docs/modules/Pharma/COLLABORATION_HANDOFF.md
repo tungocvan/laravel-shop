@@ -1,3 +1,15 @@
+## Checkpoint — Repeat approval and pending deferred supply — 2026-11-03
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge/deployment.
+- Issue #24 was reported as pending_approval after prior partial approval: Nereid issue line quantity 0, pending deferred supply 100 (2026-12-01, note "thiếu hàng"); two Anvo lines 98 and 102 are split by lots. Existing readiness treated item quantity 0 as original demand and hid deferred-supply controls.
+- Pharma-owned readiness now restores demand from pending deferred supply per medicine/allocation and recomputes shortage/ready flags. Price-list partial approval also uses item quantity plus existing deferred quantity and preserves existing expected date/note when resubmitted.
+- **Known guard:** price-list repeat approval currently rejects multiple issue rows for the same medicine; issue #24 has two Anvo lot rows, so it must not be used for a repeat approval until the lot-split reconciliation workflow is designed/tested. Do not delete, consolidate, or re-post lot rows automatically.
+- Focused source-contract regression added to `PharmaOrderApprovalCapabilityTest`. Runtime tests **NOT RUN**, UI **NOT VERIFIED**. Run focused test first, then impacted ClientPortal Pharma regression only after PASS.
+- Two earlier PDF deferred-supply integration commits exist on this branch but are **incomplete** (model/controller/Blade not integrated). Do not run the pending migration until PDF integration is complete and reviewed.
+- Pending: determine safe handling of lot-split rows when undoing approval; validate UI on an unposted single-row price-list order with deferred supply; do not merge main without explicit user approval.
+
+---
+
 ## Checkpoint — Pharma stock card + issue fulfillment closeout — 2026-10-05
 
 - Branch: `refactor/clientportal-pharma-inventory-stock-card`; compared with `main` before handoff: ahead 36, behind 0.
