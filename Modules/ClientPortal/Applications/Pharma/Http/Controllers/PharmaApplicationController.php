@@ -714,6 +714,9 @@ final class PharmaApplicationController extends Controller
             'group' => ['nullable', 'string', 'max:100'],
             'product_type' => ['nullable', 'string', 'max:50'],
             'special_control' => ['nullable', 'in:yes,no'],
+            'hssp' => ['nullable', 'in:with,without'],
+            'supplier_price' => ['nullable', 'in:with,without'],
+            'bid_award' => ['nullable', 'in:with,without'],
         ]);
 
         $application = $registry->find('pharma');
@@ -727,7 +730,7 @@ final class PharmaApplicationController extends Controller
         $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
         $filter = $validated['filter'] ?? null;
         $circularGroup = trim((string) ($validated['group'] ?? ''));
-        abort_if($filter === 'supplier-priced' && ! $canViewSupplierPricing, 403);
+        abort_if(($filter === 'supplier-priced' || filled($validated['supplier_price'] ?? null)) && ! $canViewSupplierPricing, 403);
 
         return view('ClientPortal::applications.pharma.products', [
             'application' => $application,
@@ -742,6 +745,9 @@ final class PharmaApplicationController extends Controller
                 circularGroup: $circularGroup !== '' ? $circularGroup : null,
                 productType: $validated['product_type'] ?? null,
                 specialControl: $validated['special_control'] ?? null,
+                hssp: $validated['hssp'] ?? null,
+                supplierPrice: $validated['supplier_price'] ?? null,
+                bidAward: $validated['bid_award'] ?? null,
             )->withQueryString(),
             'filter' => $filter,
             'filterCounts' => $catalog->filterCounts($canViewSupplierPricing),
@@ -750,6 +756,9 @@ final class PharmaApplicationController extends Controller
             'productTypeOptions' => \Modules\Pharma\Models\Medicine::productTypeOptions(),
             'selectedProductType' => $validated['product_type'] ?? '',
             'selectedSpecialControl' => $validated['special_control'] ?? '',
+            'selectedHssp' => $validated['hssp'] ?? '',
+            'selectedSupplierPrice' => $validated['supplier_price'] ?? '',
+            'selectedBidAward' => $validated['bid_award'] ?? '',
             'canViewSupplierPricing' => $canViewSupplierPricing,
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
