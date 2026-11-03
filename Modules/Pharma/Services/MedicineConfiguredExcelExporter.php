@@ -43,9 +43,15 @@ final class MedicineConfiguredExcelExporter
             $cell = Coordinate::stringFromColumnIndex($i + 1).$row;
             $sheet->setCellValue($cell, $profile['headers'][$key] ?? $allowed[$key]);
             $sheet->getColumnDimension(Coordinate::stringFromColumnIndex($i + 1))
-                ->setWidth(max(6, min(60, ($profile['widths'][$key] ?? 130) / 7)));
+                ->setWidth(max(5, min(60, (($profile['widths'][$key] ?? 130) - 5) / 7)));
         }
         $sheet->getStyle("A{$row}:{$last}{$row}")->getFont()->setBold(true)->setSize((int) $settings['header_font_size']);
+        $sheet->getStyle("A{$row}:{$last}{$row}")->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
+        $sheet->getRowDimension($row)->setRowHeight(-1);
+        $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd($headerRow, $headerRow);
         $sheet->getStyle("A{$row}:{$last}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB($settings['header_fill']);
         $sheet->setAutoFilter("A{$row}:{$last}{$row}");
