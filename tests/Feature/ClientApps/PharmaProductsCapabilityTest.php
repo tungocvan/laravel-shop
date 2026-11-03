@@ -259,4 +259,25 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('name="profile_id"', $view);
         $this->assertStringContainsString("route('client.pharma.products.excel-config')", $view);
     }
+
+    public function test_clientportal_uses_the_original_pharma_excel_designer_v4_with_locked_guard(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/excel-config.blade.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+        $adminView = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString("@livewire('pharma.medicine.excel-configurator'", $view);
+        $this->assertStringContainsString("'ownerGuard' => 'web'", $view);
+        $this->assertStringContainsString("'openOnMount' => true", $view);
+        $this->assertStringContainsString('@livewireStyles', $view);
+        $this->assertStringContainsString('@livewireScripts', $view);
+        $this->assertStringContainsString('#[Locked]', $component);
+        $this->assertStringContainsString('private function assertOwner(): int', $component);
+        $this->assertStringContainsString('client.pharma.products.excel-config', $component);
+        $this->assertStringContainsString('client.pharma.products.supplier-pricing', $component);
+        $this->assertStringContainsString('$this->ownerGuard', $component);
+        foreach (['Thương hiệu', 'Cột dữ liệu', 'Trang in', 'Nhân đôi', 'Tạo mới', 'Lưu cấu hình'] as $label) {
+            $this->assertStringContainsString($label, $adminView);
+        }
+    }
 }
