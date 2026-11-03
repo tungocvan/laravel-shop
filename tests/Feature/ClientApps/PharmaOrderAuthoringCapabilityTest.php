@@ -35,8 +35,8 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('final class UserOrderAuthoringService', $service);
         // guard locked order draft transitions marker
         $this->assertGreaterThanOrEqual(2, substr_count($service, "InventoryIssue::query()->lockForUpdate()->findOrFail(\$issue->getKey())"));
-        $this->assertStringContainsString('return DB::transaction(function () use ($userId, $issue): InventoryIssue {', $service);
-        $this->assertStringContainsString('return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data): InventoryIssue {', $service);
+        $this->assertStringContainsString('return DB::transaction(function () use ($userId, $issue, $canManageOrders): InventoryIssue {', $service);
+        $this->assertStringContainsString('return DB::transaction(function () use ($actorUserId, $managerUserId, $issue, $data, $canManageOrders): InventoryIssue {', $service);
         $this->assertStringContainsString("->activeAt(\$date)", $service);
         $this->assertStringContainsString("->where('type', PriceList::TYPE_GLOBAL)", $service);
         $this->assertStringContainsString("->whereDoesntHave('globalUsers')", $service);
@@ -52,7 +52,7 @@ final class PharmaOrderAuthoringCapabilityTest extends TestCase
         $this->assertStringContainsString('UserOrderAuthoringService $authoring', $controller);
         $this->assertStringContainsString('orderManagers()', $service);
         $this->assertStringContainsString('createDraft(int $actorUserId, int $managerUserId', $service);
-        $this->assertStringContainsString('guardSubmittable($userId, $issue)', $service);
+        $this->assertStringContainsString('guardSubmittable($userId, $issue, $canManageOrders)', $service);
         $this->assertStringContainsString('(int) $issue->manager_user_id', $service);
         $this->assertStringContainsString("in_array(\$userId, [(int) \$issue->created_by, (int) \$issue->manager_user_id], true)", $service);
         $this->assertStringContainsString("in_array((int) \$user->id, [(int) \$visibleIssue->created_by, (int) \$visibleIssue->manager_user_id], true)", $controller);
