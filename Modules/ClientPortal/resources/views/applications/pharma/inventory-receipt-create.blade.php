@@ -53,7 +53,7 @@ $receiptVatRate = old('vat_rate', $editing ? (float) ($receipt->items->first()?-
 <div id="receipt-items" class="mt-4 space-y-3"></div>
 </section>
 <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"><label class="text-sm font-bold text-slate-700">Ghi chú<textarea name="notes" rows="3" maxlength="2000" class="mt-1.5 w-full rounded-2xl border border-slate-300 p-3 font-normal">{{ old('notes', $editing ? $receipt->notes : '') }}</textarea></label></section>
-<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><a href="{{ route('client.pharma.inventory.receipts') }}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 text-sm font-black">Hủy</a><x-native-touch class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">{{ $editing ? 'Lưu thay đổi' : 'Lưu nháp' }}</x-native-touch></div>
+<div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><a href="{{ route('client.pharma.inventory.receipts') }}" class="inline-flex min-h-12 items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 text-sm font-black">Hủy</a><x-native-touch type="submit" class="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-black text-white">{{ $editing ? 'Lưu thay đổi' : 'Lưu nháp' }}</x-native-touch></div>
 </form>
 <template id="receipt-item-template"><article class="receipt-item rounded-2xl border border-slate-200 bg-slate-50 p-3">
 <div class="receipt-item-summary flex items-center justify-between gap-3">
