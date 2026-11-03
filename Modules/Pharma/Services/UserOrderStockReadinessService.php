@@ -71,9 +71,17 @@ final class UserOrderStockReadinessService
 
         $itemAllocationIds = $issue->items->pluck('drug_bid_award_allocation_id', 'id')->map(fn ($id) => (int) $id);
 
-        $rows = $rows->map(function (array $row) use ($deferredByAllocation, $deferredByMedicine, $itemAllocationIds): array {
+        $assignedMedicineSupply = [];
+        $rows = $rows->map(function (array $row) use ($deferredByAllocation, $deferredByMedicine, $itemAllocationIds, &$assignedMedicineSupply): array {
             $allocationId = $itemAllocationIds->get($row['item_id']);
-            $supply = $allocationId ? $deferredByAllocation->get((int) $allocationId) : $deferredByMedicine->get((int) $row['medicine_id']);
+            if ($allocationId) {
+                $supply = $deferredByAllocation->get((int) $allocationId);
+            } else {
+                // Medicine-level deferred demand belongs to the order, not every split lot row.
+                $medicineId = (int) $row['medicine_id'];
+                $supply = isset($assignedMedicineSupply[$medicineId]) ? null : $deferredByMedicine->get($medicineId);
+                $assignedMedicineSupply[$medicineId] = true;
+            }
             // A previously partially approved order stores only the issued quantity on the item.
             // Restore demand from the pending deferred supply for a repeat approval.
             $row['requested_quantity'] += (float) ($supply?->quantity ?? 0);
