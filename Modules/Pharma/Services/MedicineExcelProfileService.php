@@ -67,6 +67,10 @@ class MedicineExcelProfileService
                 'body_font_size' => 11,
                 'header_fill' => 'EFF4FA',
                 'body_border' => true,
+                'margin_top_cm' => 0.8, 'margin_bottom_cm' => 0.8,
+                'margin_left_cm' => 0.8, 'margin_right_cm' => 0.8,
+                'margin_header_cm' => 0.8, 'margin_footer_cm' => 0.8,
+                'center_horizontally' => true, 'center_vertically' => false,
             ],
         ];
     }
@@ -126,6 +130,12 @@ class MedicineExcelProfileService
         $settings['body_font_size'] = max(8, min(20, (int) $settings['body_font_size']));
         $settings['header_fill'] = in_array($settings['header_fill'], ['EFF4FA', 'F1F5F9', 'FFFFFF', 'EDE9FE'], true) ? $settings['header_fill'] : 'EFF4FA';
         $settings['body_border'] = (bool) $settings['body_border'];
+        foreach (['top', 'bottom', 'left', 'right', 'header', 'footer'] as $side) {
+            $key = 'margin_'.$side.'_cm';
+            $settings[$key] = max(0, min(5, (float) ($settings[$key] ?? 0.8)));
+        }
+        $settings['center_horizontally'] = (bool) ($settings['center_horizontally'] ?? true);
+        $settings['center_vertically'] = (bool) ($settings['center_vertically'] ?? false);
         $profile->forceFill([
             'owner_guard' => $guard, 'user_id' => $userId, 'name' => $name, 'is_default' => $makeDefault || (bool) $profile->is_default,
             'columns' => $columns, 'headers' => $headers, 'widths' => $widths,
