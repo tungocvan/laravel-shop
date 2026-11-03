@@ -712,6 +712,8 @@ final class PharmaApplicationController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
             'filter' => ['nullable', 'in:awarded,profile,supplier-priced'],
             'group' => ['nullable', 'string', 'max:100'],
+            'product_type' => ['nullable', 'string', 'max:50'],
+            'special_control' => ['nullable', 'in:yes,no'],
         ]);
 
         $application = $registry->find('pharma');
@@ -738,11 +740,16 @@ final class PharmaApplicationController extends Controller
                 filter: $filter,
                 allowSupplierPricing: $canViewSupplierPricing,
                 circularGroup: $circularGroup !== '' ? $circularGroup : null,
+                productType: $validated['product_type'] ?? null,
+                specialControl: $validated['special_control'] ?? null,
             )->withQueryString(),
             'filter' => $filter,
             'filterCounts' => $catalog->filterCounts($canViewSupplierPricing),
             'circularGroups' => $catalog->circularGroups(),
             'circularGroup' => $circularGroup,
+            'productTypeOptions' => \Modules\Pharma\Models\Medicine::productTypeOptions(),
+            'selectedProductType' => $validated['product_type'] ?? '',
+            'selectedSpecialControl' => $validated['special_control'] ?? '',
             'canViewSupplierPricing' => $canViewSupplierPricing,
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
