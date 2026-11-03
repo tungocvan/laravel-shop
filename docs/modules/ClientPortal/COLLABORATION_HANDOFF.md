@@ -1263,3 +1263,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Safety restriction: mixed deferred and fulfilled allocations for the same medicine are rejected; manual posting currently requires the full approved quantity for each non-deferred item. No mutation occurs on failed validation. This is a deliberately scoped first batch, not full Admin edit parity.
 - Remaining approved scope: canonical editable approved bid workflow, distinct edit/allocate permissions, audit trail and comprehensive runtime tests, Admin parity review. Do not claim completion or UI PASS yet.
 - Focused contract test: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Local execution, UI validation and regression are pending. No migration, production change, PR or merge.
+
+### 2026-11-03 — Draft bid UI actions / delegated manager follow-up
+
+- Added edit/submit actions on both responsive order list and detail; pending approval orders now link to approval detail. Draft remains distinct from pending approval; no direct approval of drafts.
+- `client.pharma.orders.create-for-user` explicitly authorizes cross-user draft edit (alongside create permission) and, together with `client.pharma.orders.submit`, cross-user submission. Pharma `UserOrderAuthoringService` validates draft status and existing business constraints inside transactions; delegation is an explicit parameter, never inferred from UI.
+- Updated `PharmaOrderAuthoringCapabilityTest` contract assertions and added draft action coverage to `PharmaBidManualLotCapabilityTest`.
+- Local focused and impacted regression not executed by GitHub integration. UI previously reported FAIL for missing edit/approval actions; UI must be retested after pulling. Approved bid content editing and reapproval flow remain future work.
