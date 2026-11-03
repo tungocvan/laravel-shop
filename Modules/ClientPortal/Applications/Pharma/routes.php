@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 
 if ((bool) config('modules.registry.Pharma.enabled', false)) {
     Route::middleware([
@@ -16,6 +17,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::post('/products/export', [PharmaMedicineExcelController::class, 'export'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.export');
         Route::get('/bid-awards', [PharmaApplicationController::class, 'bidAwards'])
             ->middleware('client.feature:pharma,bid-awards')
             ->name('bid-awards');
