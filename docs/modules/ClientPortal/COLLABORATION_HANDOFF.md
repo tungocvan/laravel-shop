@@ -1307,3 +1307,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - ClientPortal PDF export redirects to canonical order detail after successful generation, where Print and Download are already present when `current()` passes; avoids stale filtered/PWA list state.
 - Regression contract added in `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Test and UI are pending on local environment; if 409 occurs, inspect document settings/hash changes rather than bypassing privacy/integrity checks.
 - Still pending separately: refinement of partial-approval UI and restoration of original demand on undo approval. No production operations, merge, or migrations.
+
+### 2026-11-03 — Client Pharma receipt draft save button
+
+- Route: GET `/apps/pharma/inventory/receipts/create`; POST `/apps/pharma/inventory/receipts`.
+- Root cause: `x-native-touch` defaults to `type="button"`; receipt draft Save had no explicit submit type, so clicking did not submit the form.
+- Fix: explicit `type="submit"` on the Save/Update control in `inventory-receipt-create.blade.php`. No business-service, schema, inventory-posting, or authorization changes.
+- Regression: `tests/Feature/ClientApps/PharmaInventoryReceiptsCapabilityTest.php` now checks the form and submit control contract.
+- Checkpoint: `php artisan test tests/Feature/ClientApps/PharmaInventoryReceiptsCapabilityTest.php`; after PASS, run `php artisan test Modules/Pharma/Tests/Unit/InventoryReceiptDraftContractTest.php`. UI verification of both create and edit draft still required; do not claim TEST/UI PASS until confirmed.
