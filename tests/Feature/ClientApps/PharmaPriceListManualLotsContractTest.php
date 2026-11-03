@@ -21,6 +21,6 @@ class PharmaPriceListManualLotsContractTest extends TestCase
         $this->assertStringContainsString('postIssue($locked->fresh(', $lots);
         $this->assertStringContainsString("return redirect()->route('client.pharma.orders.lots', \$issue)", $controller);
         $this->assertStringContainsString("route('client.pharma.orders.lots', \$issue)", $view);
-        $this->assertStringContainsString("($item->batch_number && $item->expiry_date)", $inventory);
+        $this->assertStringContainsString('($item->batch_number && $item->expiry_date)', $inventory);
     }
 }
