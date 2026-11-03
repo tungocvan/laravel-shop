@@ -1,3 +1,14 @@
+## Checkpoint — Price-list manual lot POST 404 fix — 2026-11-03
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge or deployment performed.
+- Root cause: canonical `UserOrderAuthoringService::createDraft()` persists price-list orders with `issue_source = normal`, while ClientPortal `postOrderLots()` allowed only `bid` / `price_list`. GET `orderLots()` accepted the approved order, but POST aborted 404.
+- Fix: include `normal` in the POST source allowlist, retaining status `APPROVED`, `posted_at IS NULL`, capability authorization, validation, and Pharma-owned transactional lot posting safeguards.
+- Regression: added focused source/guard contract test in `PharmaOrderApprovalCapabilityTest`. Tests **NOT RUN** on the user's Laravel runtime; UI **NOT VERIFIED** after patch.
+- Local checkpoint: fetch/switch/pull branch, run focused test, then impacted ClientPortal Pharma regression only after focused PASS. Verify order #24 can POST without 404, transitions to `posted`, and cannot post twice. Do not retry actual posting without checking current order state.
+- Handoff: await local TEST results and user UI PASS; no merge to main without explicit approval.
+
+---
+
 ## Checkpoint — Pharma stock card + issue fulfillment closeout — 2026-10-05
 
 - Branch: `refactor/clientportal-pharma-inventory-stock-card`; compared with `main` before handoff: ahead 36, behind 0.
