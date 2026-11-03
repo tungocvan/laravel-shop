@@ -10,6 +10,8 @@ use Modules\Pharma\Services\MedicineExcelRelatedDataService;
 class ExcelConfigurator extends Component
 {
     public bool $open = false;
+    public string $ownerGuard = 'admin';
+    public bool $openOnMount = false;
     public int $designerRevision = 0;
     public bool $saveConfirmationOpen = false;
     public string $activeSection = 'brand';
@@ -26,14 +28,41 @@ class ExcelConfigurator extends Component
     public array $alignments = [];
     public array $settings = [];
 
-    public function mount(MedicineExcelProfileService $service): void
+    public function mount(MedicineExcelProfileService $service, string $ownerGuard = 'admin', bool $openOnMount = false): void
     {
+        abort_unless(in_array($ownerGuard, ['admin', 'web'], true), 403);
+        $this->ownerGuard = $ownerGuard;
+        $this->openOnMount = $openOnMount;
+        $this->assertOwner();
         $this->refreshProfiles($service);
         $this->loadProfile($service);
+        $this->open = $openOnMount;
+    }
+
+    private function assertOwner(): int
+    {
+        $user = auth($this->ownerGuard)->user();
+        abort_unless($user, 403);
+        if ($this->ownerGuard === 'web') {
+            abort_unless(app(\\Modules\\ClientPortal\\Services\\ApplicationRegistry::class)
+                ->userCan($user, 'client.pharma.products.excel-config'), 403);
+        }
+        return (int) $user->id;
+    }
+
+    private function allowedColumns(): array
+    {
+        $columns = MedicineExcelProfileService::COLUMNS;
+        if ($this->ownerGuard === 'web' && ! app(\\Modules\\ClientPortal\\Services\\ApplicationRegistry::class)
+            ->userCan(auth('web')->user(), 'client.pharma.products.supplier-pricing')) {
+            unset($columns['cost_price'], $columns['supplier_name']);
+        }
+        return $columns;
     }
 
     public function openConfig(MedicineExcelProfileService $service): void
     {
+        $this->assertOwner();
         $this->refreshProfiles($service);
         $this->loadProfile($service);
         $this->activeSection = 'brand';
@@ -67,14 +96,14 @@ class ExcelConfigurator extends Component
 
     public function editColumn(string $key): void
     {
-        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+        if (isset($this->allowedColumns()[$key])) {
             $this->activeColumnKey = $key;
         }
     }
 
     public function addColumn(string $key): void
     {
-        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+        if (isset($this->allowedColumns()[$key])) {
             $this->selected[$key] = true;
             $selected = array_values(array_filter(
                 $this->columns,
@@ -91,14 +120,14 @@ class ExcelConfigurator extends Component
 
     public function removeColumn(string $key): void
     {
-        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+        if (isset($this->allowedColumns()[$key])) {
             $this->selected[$key] = false;
         }
     }
 
     public function resetColumnOrder(): void
     {
-        $known = array_keys(MedicineExcelProfileService::COLUMNS);
+        $known = array_keys($this->allowedColumns());
         $this->columns = $known;
     }
 
@@ -112,7 +141,7 @@ class ExcelConfigurator extends Component
 
     public function reorderSelected(string $key, int $offset): void
     {
-        if (! isset(MedicineExcelProfileService::COLUMNS[$key]) || ! ($this->selected[$key] ?? false)) {
+        if (! isset($this->allowedColumns()[$key]) || ! ($this->selected[$key] ?? false)) {
             return;
         }
         $selected = array_values(array_filter($this->columns, fn ($item) => $this->selected[$item] ?? false));
@@ -132,7 +161,7 @@ class ExcelConfigurator extends Component
 
     public function moveSelectedToPosition(string $key, int $position): void
     {
-        if (! isset(MedicineExcelProfileService::COLUMNS[$key]) || ! ($this->selected[$key] ?? false)) {
+        if (! isset($this->allowedColumns()[$key]) || ! ($this->selected[$key] ?? false)) {
             return;
         }
 
@@ -162,7 +191,7 @@ class ExcelConfigurator extends Component
 
     public function selectAll(): void
     {
-        $this->selected = array_fill_keys(array_keys(MedicineExcelProfileService::COLUMNS), true);
+        $this->selected = array_fill_keys(array_keys($this->allowedColumns()), true);
     }
 
     public function clearAll(): void
@@ -172,14 +201,14 @@ class ExcelConfigurator extends Component
 
     public function setColumnWidth(string $key, int $pixels): void
     {
-        if (isset(MedicineExcelProfileService::COLUMNS[$key])) {
+        if (isset($this->allowedColumns()[$key])) {
             $this->widths[$key] = max(40, min(400, $pixels));
         }
     }
 
     public function move(string $key, int $offset): void
     {
-        if (! isset(MedicineExcelProfileService::COLUMNS[$key])) {
+        if (! isset($this->allowedColumns()[$key])) {
             return;
         }
         $index = array_search($key, $this->columns, true);
@@ -193,7 +222,7 @@ class ExcelConfigurator extends Component
 
     public function saveDraft(array $draft, MedicineExcelProfileService $service): void
     {
-        $allowed = array_keys(MedicineExcelProfileService::COLUMNS);
+        $allowed = array_keys($this->allowedColumns());
         $ordered = array_values(array_unique(array_filter(is_array($draft['columns'] ?? null) ? $draft['columns'] : [],
             fn ($key) => is_string($key) && in_array($key, $allowed, true))));
         $this->columns = array_values(array_unique(array_merge($ordered, $allowed)));
@@ -204,13 +233,14 @@ class ExcelConfigurator extends Component
             if (! is_array($values)) {
                 continue;
             }
-            $this->{$field} = array_intersect_key($values, MedicineExcelProfileService::COLUMNS);
+            $this->{$field} = array_intersect_key($values, $this->allowedColumns());
         }
         $this->save($service);
     }
 
     public function save(MedicineExcelProfileService $service): void
     {
+        $userId = $this->assertOwner();
         $this->validate([
             'profileName' => 'required|string|max:120',
             'settings.title' => 'required|string|max:200',
@@ -223,13 +253,13 @@ class ExcelConfigurator extends Component
             'settings.header_fill' => 'nullable|in:EFF4FA,F1F5F9,FFFFFF,EDE9FE',
             'settings.body_border' => 'nullable|boolean',
         ]);
-        $columns = array_values(array_filter($this->columns, fn ($key) => $this->selected[$key] ?? false));
-        $saved = $service->save((int) auth('admin')->id(), [
+        $columns = array_values(array_filter($this->columns, fn ($key) => ($this->selected[$key] ?? false) && isset($this->allowedColumns()[$key])));
+        $saved = $service->save($userId, [
             'name' => $this->profileName, 'is_default' => $this->isDefault,
             'columns' => $columns, 'headers' => $this->headers,
             'widths' => $this->widths, 'alignments' => $this->alignments,
             'settings' => $this->settings,
-        ], $this->profileId);
+        ], $this->profileId, $this->ownerGuard);
         $this->apply($saved);
         $this->refreshProfiles($service);
         $this->saveConfirmationOpen = true;
@@ -246,7 +276,7 @@ class ExcelConfigurator extends Component
         if ($this->profileId === null) {
             return;
         }
-        $service->delete((int) auth('admin')->id(), $this->profileId);
+        $service->delete($this->assertOwner(), $this->profileId, $this->ownerGuard);
         $this->profileId = null;
         $this->refreshProfiles($service);
         $this->loadProfile($service);
@@ -254,12 +284,12 @@ class ExcelConfigurator extends Component
 
     private function refreshProfiles(MedicineExcelProfileService $service): void
     {
-        $this->profiles = $service->listForUser((int) auth('admin')->id());
+        $this->profiles = $service->listForUser($this->assertOwner(), $this->ownerGuard);
     }
 
     private function loadProfile(MedicineExcelProfileService $service): void
     {
-        $this->apply($service->forUser((int) auth('admin')->id(), $this->profileId));
+        $this->apply($service->forUser($this->assertOwner(), $this->profileId, $this->ownerGuard));
     }
 
     private function apply(array $profile): void
@@ -267,9 +297,9 @@ class ExcelConfigurator extends Component
         $this->profileId = $profile['id'];
         $this->profileName = $profile['name'];
         $this->isDefault = (bool) $profile['is_default'];
-        $this->columns = array_values(array_unique(array_merge($profile['columns'], array_keys(MedicineExcelProfileService::COLUMNS))));
+        $this->columns = array_values(array_unique(array_merge(array_values(array_intersect($profile['columns'], array_keys($this->allowedColumns()))), array_keys($this->allowedColumns()))));
         $this->activeColumnKey = $profile['columns'][0] ?? 'name';
-        $this->selected = array_fill_keys($profile['columns'], true);
+        $this->selected = array_fill_keys(array_values(array_intersect($profile['columns'], array_keys($this->allowedColumns()))), true);
         $this->headers = $profile['headers'];
         $this->widths = $profile['widths'];
         $this->alignments = $profile['alignments'];
@@ -280,7 +310,7 @@ class ExcelConfigurator extends Component
     public function render(): View
     {
         return view('Pharma::livewire.medicine.excel-configurator', [
-            'definitions' => MedicineExcelProfileService::COLUMNS,
+            'definitions' => $this->allowedColumns(),
             'relatedGroups' => MedicineExcelRelatedDataService::GROUPS,
         ]);
     }
