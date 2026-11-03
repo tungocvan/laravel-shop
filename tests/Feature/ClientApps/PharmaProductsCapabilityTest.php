@@ -178,11 +178,14 @@ class PharmaProductsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('data-medicine-select-all', $view);
         $this->assertStringContainsString('data-medicine-select value="{{ $product->medicineId }}"', $view);
-        $this->assertStringContainsString('selected.includes({{ $product->medicineId }})', $view);
+        $this->assertStringContainsString('data-medicine-selected-count', $view);
         $this->assertStringContainsString('new Set(', $view);
         $this->assertStringContainsString("querySelectorAll('[data-medicine-select]')", $view);
-        $this->assertStringContainsString('toggleVisible(checked)', $view);
-        $this->assertStringContainsString('selected.length', $view);
+        $this->assertStringContainsString('MutationObserver(sync)', $view);
+        $this->assertStringContainsString('selected.size', $view);
+        $this->assertStringContainsString('selectAll.indeterminate', $view);
+        $this->assertStringContainsString('clear.hidden = selected.size === 0', $view);
+        $this->assertStringNotContainsString('x-data=', $view);
         $this->assertStringContainsString('data-pwa-load-more-targets', $view);
         $this->assertStringNotContainsString('value="{{ $product->variantId }}"', $view);
     }
