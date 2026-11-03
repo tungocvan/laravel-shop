@@ -8,6 +8,7 @@ use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 final class MedicineConfiguredExcelExporter
@@ -54,7 +55,6 @@ final class MedicineConfiguredExcelExporter
         $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd($headerRow, $headerRow);
         $sheet->getStyle("A{$row}:{$last}{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
             ->getStartColor()->setRGB($settings['header_fill']);
-        $sheet->setAutoFilter("A{$row}:{$last}{$row}");
         $sheet->freezePane('A'.($row + 1));
 
         $related = app(MedicineExcelRelatedDataService::class);
@@ -100,9 +100,18 @@ final class MedicineConfiguredExcelExporter
                 $sheet->getStyle($cell)->getAlignment()->setHorizontal($profile['alignments'][$key] ?? 'left');
             }
         }
+        $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('D8DEE8');
         if ($index > 0) {
-            $sheet->getStyle('A'.($headerRow + 1).':'.$last.($headerRow + $index))
-                ->getFont()->setSize((int) $settings['body_font_size']);
+            $bodyRange = 'A'.($headerRow + 1).':'.$last.($headerRow + $index);
+            $sheet->getStyle($bodyRange)->getFont()->setSize((int) $settings['body_font_size']);
+            $sheet->getStyle($bodyRange)->getAlignment()
+                ->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle($bodyRange)->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('D8DEE8');
+            for ($dataRow = $headerRow + 1; $dataRow <= $headerRow + $index; $dataRow++) {
+                $sheet->getRowDimension($dataRow)->setRowHeight(-1);
+            }
         }
         $sheet->getPageSetup()->setOrientation($settings['orientation'] === 'portrait' ? 'portrait' : 'landscape');
         $sheet->getPageSetup()->setPaperSize($settings['paper_size']);
