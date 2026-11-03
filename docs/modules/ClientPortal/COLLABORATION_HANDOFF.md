@@ -1,3 +1,13 @@
+## Checkpoint — Reuse original Pharma Excel Designer V4 — 2026-11-04
+
+- ClientPortal Excel configuration page now mounts the **existing** `pharma.medicine.excel-configurator` Livewire component with `ownerGuard=web` and `openOnMount=true`; includes Livewire styles/scripts only on that page. The Admin component and its Blade remain the canonical V4 designer.
+- Component supports admin default behavior, web-scoped profile ownership and per-action authorization. Guard identity is a locked Livewire property. Supplier columns/groups are omitted when web user lacks `client.pharma.products.supplier-pricing`; saving only permits allowed columns.
+- The previous ClientPortal form-only Excel config view was replaced, not duplicated. Existing ClientPortal route, permission, profile service, export and migration remain unchanged.
+- Added focused contract assertions. Runtime focused tests NOT RUN; UI regression NOT VERIFIED. Verify Admin designer unchanged, web modal opens, save/duplicate/reorder/inspector/page settings, desktop/mobile PWA, and unauthorized guard/price isolation before pre-merge regression.
+- No merge/deploy. Do not run migration on production without production safety workflow.
+
+---
+
 ## Checkpoint — ClientPortal Pharma configurable Excel templates — 2026-11-04
 
 - Added web-guard-scoped Excel templates using the canonical Pharma `MedicineExcelProfileService`. Migration adds `owner_guard` default `admin` to preserve existing Admin templates and updates uniqueness to guard+user+name. Do not run migration on production without production workflow approval.
