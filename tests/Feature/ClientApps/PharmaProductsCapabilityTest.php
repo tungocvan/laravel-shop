@@ -280,4 +280,16 @@ class PharmaProductsCapabilityTest extends TestCase
             $this->assertStringContainsString($label, $adminView);
         }
     }
+
+    public function test_excel_json_import_and_centered_wrapped_headers(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelProfileController.php'));
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $this->assertStringContainsString("name('products.excel-config.import-json')", $routes);
+        $this->assertStringContainsString('function importJson(', $controller);
+        $this->assertStringContainsString('->setWrapText(true)', $writer);
+        $this->assertStringContainsString('Alignment::HORIZONTAL_CENTER', $writer);
+        $this->assertStringContainsString('Alignment::VERTICAL_CENTER', $writer);
+    }
 }
