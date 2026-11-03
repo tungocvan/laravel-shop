@@ -4,6 +4,8 @@ namespace Modules\ClientPortal\Applications\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Modules\Pharma\Services\MedicineCatalogUploadService;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
@@ -13,6 +15,28 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PharmaMedicineExcelController extends Controller
 {
+    public function import(Request $request, ApplicationRegistry $registry, MedicineCatalogUploadService $upload): RedirectResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:xlsx,csv', 'max:10240'],
+        ]);
+
+        // Staging is intentionally non-destructive. No Medicine Master writes here.
+        $batch = $upload->stage($validated['file'], (int) $user->id);
+        $batch->forceFill(['source' => 'clientportal_pharma'])->save();
+
+        return redirect()->route('client.pharma.products')
+            ->with('medicine_import_staged', [
+                'batch_id' => (int) $batch->id,
+                'total' => $batch->rows()->count(),
+                'new' => $batch->rows()->where('classification', 'new')->count(),
+                'update' => $batch->rows()->where('classification', 'update')->count(),
+            ]);
+    }
+
     public function export(
         Request $request,
         ApplicationRegistry $registry,
