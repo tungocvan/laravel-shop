@@ -103,7 +103,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('aria-label="Bộ lọc danh mục thuốc"', $view);
         $this->assertStringContainsString('Tất cả nhóm', $view);
         $this->assertStringContainsString('@foreach($circularGroups as $group)', $view);
-        $this->assertStringContainsString("'group' => \$circularGroup", $view);
+        $this->assertStringContainsString('name="group"', $view);
         $this->assertStringContainsString('>Nhóm</th>', $view);
         $this->assertStringContainsString('>Giá kê khai</th>', $view);
         $this->assertStringContainsString('$product->circularGroup', $view);
@@ -168,7 +168,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("specialControl: \$validated['special_control'] ?? null", $controller);
         $this->assertStringContainsString('name="product_type"', $view);
         $this->assertStringContainsString('name="special_control"', $view);
-        $this->assertStringContainsString("'product_type' => \$selectedProductType", $view);
-        $this->assertStringContainsString("'special_control' => \$selectedSpecialControl", $view);
+        $this->assertStringContainsString('@selected($selectedProductType', $view);
+        $this->assertStringContainsString('@selected($selectedSpecialControl', $view);
     }
 }
