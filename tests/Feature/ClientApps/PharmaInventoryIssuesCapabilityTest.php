@@ -6,6 +6,24 @@ use Tests\TestCase;
 
 final class PharmaInventoryIssuesCapabilityTest extends TestCase
 {
+    public function test_order_pdf_export_reopens_detail_and_uses_persisted_stable_document_snapshot(): void
+    {
+        $root = base_path();
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $service = file_get_contents($root.'/Modules/Pharma/Services/InventoryIssueDocumentService.php');
+        $list = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+
+        $this->assertStringContainsString("redirect()->route('client.pharma.orders.show', \$visible)", $controller);
+        $this->assertStringContainsString("\$issue->fresh(['items.medicine'", $service);
+        $this->assertStringContainsString("items->sortBy('id')", $service);
+        $this->assertStringContainsString("\$this->current(\$issue->fresh())?->is(\$document)", $service);
+        $this->assertStringContainsString("route('client.pharma.orders.pdf',\$issue)", $detail);
+        $this->assertStringContainsString("route('client.pharma.orders.print',\$issue)", $detail);
+        $this->assertStringContainsString("route('client.pharma.orders.pdf',\$issue)", $list);
+        $this->assertStringContainsString("route('client.pharma.orders.print',\$issue)", $list);
+    }
+
     public function test_inventory_issue_reads_use_canonical_pharma_workspace_and_user_scope(): void
     {
         $root = base_path();
