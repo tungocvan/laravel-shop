@@ -225,7 +225,9 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("existingSupply?->quantity ?? 0", $approval);
         $this->assertStringContainsString("existingSupply?->note ?? ''", $approval);
         $this->assertStringContainsString("existingSupply?->expected_supply_date?->format('Y-m-d')", $approval);
-        $this->assertStringContainsString("if (\$issue->items->pluck('medicine_id')->count()", $approval);
+        $this->assertStringContainsString("->groupBy('medicine_id')", $approval);
+        $this->assertStringContainsString("->sum(fn (\$item) => \$approvedByItem[\$item->id])", $approval);
+        $this->assertStringContainsString("whereNull('drug_bid_award_allocation_id')", $approval);
     }
 
 }
