@@ -645,7 +645,7 @@ final class InventoryController extends Controller
             'deliverer_label'=>'required|string|max:120','receiver_label'=>'required|string|max:120',
             'keeper_label'=>'required|string|max:120','footer_note'=>'nullable|string|max:1000',
         ]);
-        foreach(['show_price_list','show_unit_price','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
+        foreach(['show_manager','show_price_list','show_unit_price','show_total_value','show_notes','show_issuer_signature','show_deliverer_signature','show_receiver_signature','show_keeper_signature'] as $field){
             $data[$field]=$request->boolean($field);
         }
         InventoryIssueDocumentSetting::current()->update($data);
