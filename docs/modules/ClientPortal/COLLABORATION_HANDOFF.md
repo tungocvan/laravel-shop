@@ -1299,3 +1299,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Pharma stock posting and bid commission snapshot now retain explicit batch/expiry rows for bid orders even when a deferred supply exists for the same medicine; non-bid paths keep existing deferred-medicine exclusion. This cross-module accounting change requires impacted regression, especially commission snapshots and reversal.
 - Important remaining limitation: partial approval updates issue item quantity and stores remainder in deferred supply. Undo approval currently does not reconstruct original item quantity from deferred; do not approve UI gate until undo/reapproval behaviour is verified and addressed. No automatic migration or production changes.
 - Tests not executed by GitHub integration. Focused: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php tests/Feature/ClientApps/PharmaOrderApprovalCapabilityTest.php`. After PASS, impacted: `php artisan test tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php Modules/Pharma/Tests/Unit/InventoryContractTest.php`; add commission/reversal regression if available. UI PASS for prior wizard only, not for partial approval/multi-lot posting.
+
+### 2026-11-03 — PDF export action visibility follow-up
+
+- User confirmed partial bid approval/stock posting works in local UI, but after generating PDF the list did not expose Print/Download. Existing private PDF routes and hash validation were retained.
+- InventoryIssueDocumentService now hashes freshly persisted issue/item data in deterministic ID order and verifies `current()` immediately after creating the document; a failed verification returns HTTP 409 rather than a false success message.
+- ClientPortal PDF export redirects to canonical order detail after successful generation, where Print and Download are already present when `current()` passes; avoids stale filtered/PWA list state.
+- Regression contract added in `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Test and UI are pending on local environment; if 409 occurs, inspect document settings/hash changes rather than bypassing privacy/integrity checks.
+- Still pending separately: refinement of partial-approval UI and restoration of original demand on undo approval. No production operations, merge, or migrations.
