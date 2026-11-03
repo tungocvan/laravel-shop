@@ -664,3 +664,13 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - Follow-up 2026-11-02: corrected missing Symfony `StreamedResponse` import affecting five inventory Excel download methods; updated focused contract test. Await local test and UI verification.
 
 - 2026-11-02: Admin price list ACTIVE -> INACTIVE via `PriceListDeactivationWorkflow::deactivateDirectly` with required reason, edit authorization and audit fields. Existing DRAFT/INACTIVE deletion rules retained. Focused contract test added; user reported TEST + UI PASS on original feature branch. Reapplied unchanged code on latest main after handoff merge conflict.
+
+
+## 2026-11-03 — Approved bid manual lot selection (checkpoint pending)
+
+- Branch: `feat/pharma-client-bid-lot-workflow-20261103`, based on `9c06aa3b9755cd8fe00728171bd3cbcb9d52815a`.
+- Added Pharma-owned `BidIssueManualLotPostingService` for approved bid orders. It validates the requested per-item lot quantities, current warehouse, unexpired balances and aggregate per-lot stock under transaction/row locks; delegates canonical posting/commission to `InventoryService::postIssue`.
+- ClientPortal adds a focused mobile-first lot workspace and GET/POST routes under `/apps/pharma/orders/{issue}/lots`. Existing `client.pharma.orders.post` permission is checked on both endpoints. Bid orders are redirected away from automatic FEFO posting; non-bid flow is unchanged.
+- Safety restriction: mixed deferred and fulfilled allocations for the same medicine are rejected; manual posting currently requires the full approved quantity for each non-deferred item. No mutation occurs on failed validation. This is a deliberately scoped first batch, not full Admin edit parity.
+- Remaining approved scope: canonical editable approved bid workflow, distinct edit/allocate permissions, audit trail and comprehensive runtime tests, Admin parity review. Do not claim completion or UI PASS yet.
+- Focused contract test: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Local execution, UI validation and regression are pending. No migration, production change, PR or merge.
