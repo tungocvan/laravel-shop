@@ -16,20 +16,21 @@ final class InventoryIssueDocumentLines
             ->where('source_id', $issue->getKey())
             ->where('type', 'issue')
             ->where('quantity_delta', '<', 0)
-            ->get(['medicine_id', 'quantity_delta']);
+            ->get(['medicine_id', 'batch_number', 'expiry_date', 'quantity_delta']);
 
-        $remaining = $movements->groupBy('medicine_id')
+        $key = static fn ($medicineId, $batch, $expiry): string => (int) $medicineId.'|'.(string) $batch.'|'.($expiry instanceof \DateTimeInterface ? $expiry->format('Y-m-d') : substr((string) $expiry, 0, 10));
+        $remaining = $movements->groupBy(fn ($movement) => $key($movement->medicine_id, $movement->batch_number, $movement->expiry_date))
             ->map(fn ($rows) => (float) abs($rows->sum('quantity_delta')))->all();
 
         $posted = collect();
         foreach ($issue->items as $item) {
-            $medicineId = (int) $item->medicine_id;
-            $quantity = min((float) $item->quantity, max(0, $remaining[$medicineId] ?? 0));
+            $movementKey = $key($item->medicine_id, $item->batch_number, $item->expiry_date);
+            $quantity = min((float) $item->quantity, max(0, $remaining[$movementKey] ?? 0));
             if ($quantity <= 0) {
                 continue;
             }
             $posted->push(['item' => $item, 'quantity' => $quantity, 'value' => $quantity * (float) $item->unit_price]);
-            $remaining[$medicineId] -= $quantity;
+            $remaining[$movementKey] -= $quantity;
         }
 
         $pending = $issue->deferredSupplies
