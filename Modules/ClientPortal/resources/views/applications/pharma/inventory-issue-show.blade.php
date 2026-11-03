@@ -197,14 +197,7 @@
                             <button class="h-10 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-black text-amber-900">Hoàn tác</button>
                         </form>
                     @endif
-                    @if(true)
-                        <a href="{{ route('client.pharma.orders.lots', $issue) }}" class="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-black text-white">Chọn lô & ghi sổ</a>
-                    @else
-                        <form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}">@csrf
-                            <button class="h-10 min-w-[108px] rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300"
-                                @disabled(!($stockReadiness['can_post_directly'] ?? false))>Ghi sổ</button>
-                        </form>
-                    @endif
+                    <a href="{{ route('client.pharma.orders.lots', $issue) }}" class="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-4 text-sm font-black text-white">Chọn lô & ghi sổ</a>
                 </div>
                 @if(!($stockReadiness['can_post_directly'] ?? false))
                     <p class="mt-2 text-xs leading-5 text-amber-800">Chưa có sản phẩm đủ điều kiện ghi sổ. Sản phẩm chờ cung ứng sẽ không bị trừ tồn.</p>
@@ -221,7 +214,7 @@
                     <button type="button" id="order-reject-toggle" aria-controls="order-reject-form" aria-expanded="false" class="h-13 rounded-2xl border border-rose-300 bg-white font-black text-rose-700">Từ chối</button>
                     <a href="#partial-bid-approval" class="flex h-13 items-center justify-center rounded-2xl bg-slate-950 font-black text-white">Điều chỉnh & duyệt</a>
                 </div>
-                @if(true)
+                <div>
                     <form id="partial-bid-approval" method="POST" action="{{ route('client.pharma.orders.approve',$issue) }}" class="mt-4 space-y-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
                         @csrf
                         <h3 class="text-sm font-black text-indigo-950">Duyệt số lượng thực xuất theo tồn kho</h3>
@@ -247,7 +240,7 @@
                         @endforeach
                         <button type="submit" class="min-h-12 w-full rounded-xl bg-indigo-700 px-4 font-black text-white">Xác nhận số lượng duyệt</button>
                     </form>
-                @endif
+                </div>
                 @if(!($stockReadiness['can_approve'] ?? false))
                     <p class="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold leading-5 text-amber-900">Chưa thể phê duyệt: đơn phải có ít nhất 1 sản phẩm đủ tồn; mọi sản phẩm thiếu phải lưu đầy đủ ngày dự kiến cung cấp và ghi chú.</p>
                 @endif
