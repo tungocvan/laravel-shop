@@ -256,6 +256,14 @@ class ExcelConfigurator extends Component
             'settings.body_font_size' => 'nullable|integer|between:8,20',
             'settings.header_fill' => 'nullable|in:EFF4FA,F1F5F9,FFFFFF,EDE9FE',
             'settings.body_border' => 'nullable|boolean',
+            'settings.margin_top_cm' => 'nullable|numeric|between:0,5',
+            'settings.margin_bottom_cm' => 'nullable|numeric|between:0,5',
+            'settings.margin_left_cm' => 'nullable|numeric|between:0,5',
+            'settings.margin_right_cm' => 'nullable|numeric|between:0,5',
+            'settings.margin_header_cm' => 'nullable|numeric|between:0,5',
+            'settings.margin_footer_cm' => 'nullable|numeric|between:0,5',
+            'settings.center_horizontally' => 'nullable|boolean',
+            'settings.center_vertically' => 'nullable|boolean',
         ]);
         $columns = array_values(array_filter($this->columns, fn ($key) => ($this->selected[$key] ?? false) && isset($this->allowedColumns()[$key])));
         $saved = $service->save($userId, [
