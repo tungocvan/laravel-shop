@@ -1679,6 +1679,8 @@ final class PharmaApplicationController extends Controller
             'managerOptions' => $canApproveOrders ? $workspace->managerOptions((int) $user->id, true) : collect(),
             'canApproveOrders' => $canApproveOrders,
             'canPostOrders' => $canPostOrders,
+            'canManageOrders' => $registry->userCan($user, 'client.pharma.orders.create-for-user'),
+            'canSubmitOrders' => $registry->userCan($user, 'client.pharma.orders.submit'),
             'canCreateOrders' => $registry->userCan($user, 'client.pharma.orders.create')
                 || $registry->userCan($user, 'client.pharma.orders.create-for-user'),
             'orderPdfActions' => $orderPdfActions,
@@ -1739,11 +1741,11 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
-        $visible = $workspace->findVisible((int) $user->id, $issue);
+        $visible = $workspace->findVisible((int) $user->id, $issue, $canCreateForUser);
         if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
         abort_if($visible === null, 404);
         abort_unless(
-            in_array((int) $user->id, [(int) $visible->created_by, (int) $visible->manager_user_id], true)
+            ($canCreateForUser || in_array((int) $user->id, [(int) $visible->created_by, (int) $visible->manager_user_id], true))
                 && $visible->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             403
         );
@@ -1767,13 +1769,13 @@ final class PharmaApplicationController extends Controller
         $user = $request->user('web'); abort_if($user === null, 401);
         $canCreateForUser = $registry->userCan($user, 'client.pharma.orders.create-for-user');
         abort_unless($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser, 403);
-        $visible = $workspace->findVisible((int) $user->id, $issue);
+        $visible = $workspace->findVisible((int) $user->id, $issue, $canCreateForUser);
         if ($visible === null && $canCreateForUser) $visible = $workspace->findByCreator((int) $user->id, $issue);
         abort_if($visible === null, 404);
         $data = $this->validateOrderAuthoring($request);
         $managerUserId = $canCreateForUser ? (int) ($data['manager_user_id'] ?? $visible->manager_user_id) : (int) $user->id;
         abort_if($managerUserId <= 0 || ($canCreateForUser && ! $authoring->orderManagers()->contains('id', $managerUserId)), 403);
-        $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data);
+        $authoring->updateDraft((int) $user->id, $managerUserId, $visible, $data, $canCreateForUser);
 
         return redirect()->route('client.pharma.orders.show', $visible)->with('success', 'Đã cập nhật đơn hàng Nháp.');
     }
@@ -1784,10 +1786,11 @@ final class PharmaApplicationController extends Controller
     ) {
         $user = $request->user('web'); abort_if($user === null, 401);
         abort_unless($registry->userCan($user, 'client.pharma.orders.submit'), 403);
-        $visible = $workspace->findVisible((int) $user->id, $issue);
-        if ($visible === null && $registry->userCan($user, 'client.pharma.orders.create-for-user')) $visible = $workspace->findByCreator((int) $user->id, $issue);
+        $canManageOrders = $registry->userCan($user, 'client.pharma.orders.create-for-user');
+        $visible = $workspace->findVisible((int) $user->id, $issue, $canCreateForUser);
+        if ($visible === null && $canManageOrders) $visible = $workspace->findVisible((int) $user->id, $issue, true);
         abort_if($visible === null, 404);
-        $authoring->submit((int) $user->id, $visible);
+        $authoring->submit((int) $user->id, $visible, $canManageOrders);
 
         return redirect()->route('client.pharma.orders')->with('success', 'Đơn hàng đã được gửi duyệt.');
     }
@@ -2068,10 +2071,10 @@ final class PharmaApplicationController extends Controller
             'inventoryBalanceLinks' => $canViewInventory ? $inventoryWorkspace->balanceLinksForItems($visibleIssue->items) : [],
             'canViewInventory' => $canViewInventory,
             'canEditOrder' => ($registry->userCan($user, 'client.pharma.orders.create') || $canCreateForUser)
-                && in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true)
+                && ($canCreateForUser || in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true))
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canSubmitOrder' => $registry->userCan($user, 'client.pharma.orders.submit')
-                && in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true)
+                && ($canCreateForUser || in_array((int) $user->id, [(int) $visibleIssue->created_by, (int) $visibleIssue->manager_user_id], true))
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT,
             'canApproveOrder' => $canApproveOrder
                 && $visibleIssue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL,
