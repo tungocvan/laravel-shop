@@ -211,4 +211,21 @@ final class PharmaOrderApprovalCapabilityTest extends TestCase
         $this->assertStringContainsString("\$inventory->postIssue(", $posting);
     }
 
+
+    public function test_repeat_price_list_approval_restores_pending_deferred_demand(): void
+    {
+        $readiness = file_get_contents(base_path('Modules/Pharma/Services/UserOrderStockReadinessService.php'));
+        $approval = file_get_contents(base_path('Modules/Pharma/Services/UserOrderApprovalService.php'));
+
+        $this->assertStringContainsString("'quantity', 'expected_supply_date', 'note'", $readiness);
+        $this->assertStringContainsString("['requested_quantity'] += (float) (", $readiness);
+        $this->assertStringContainsString("['shortage_quantity'] = max(0,", $readiness);
+        $this->assertStringContainsString("['is_ready'] = ", $readiness);
+        $this->assertStringContainsString("existingDeferred", $approval);
+        $this->assertStringContainsString("existingSupply?->quantity ?? 0", $approval);
+        $this->assertStringContainsString("existingSupply?->note ?? ''", $approval);
+        $this->assertStringContainsString("existingSupply?->expected_supply_date?->format('Y-m-d')", $approval);
+        $this->assertStringContainsString("if ($issue->items->pluck('medicine_id')->count()", $approval);
+    }
+
 }
