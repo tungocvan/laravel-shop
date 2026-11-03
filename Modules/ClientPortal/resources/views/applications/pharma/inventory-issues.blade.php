@@ -100,7 +100,29 @@
                     <div class="text-right"><p class="text-xs text-slate-500">Tổng tiền</p><p class="mt-0.5 text-base font-black text-slate-950">{{ $money($issue->total_value ?? 0) }}</p></div>
                 </div>
                 <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
+@if($issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT)
+                        @if(($canCreateOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true))))
+                            <a href="{{ route('client.pharma.orders.edit',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-3 text-xs font-black text-slate-800">Sửa đơn</a>
+                        @endif
+                        @if($canSubmitOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
+                            <form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-slate-900 px-3 text-xs font-black text-white">Gửi duyệt</button></form>
+                        @endif
+                    @endif
+                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL && $canApproveOrders)
+                        <a href="{{ route('client.pharma.orders.show',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-700 px-3 text-xs font-black text-white">Xem & phê duyệt</a>
+                    @endif
+                                        @if($issue->status === \Modules\Pharma\Models\InventoryIssue::DRAFT)
+                                        @if($canCreateOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
+                                            <a href="{{ route('client.pharma.orders.edit',$issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa đơn</a>
+                                        @endif
+                                        @if($canSubmitOrders && ($canManageOrders || in_array((int) auth('web')->id(), [(int) $issue->created_by, (int) $issue->manager_user_id], true)))
+                                            <form method="POST" action="{{ route('client.pharma.orders.submit',$issue) }}">@csrf<button class="block w-full px-4 py-2.5 text-left text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Gửi duyệt</button></form>
+                                        @endif
+                                    @endif
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::PENDING_APPROVAL && $canApproveOrders)
+                                        <a href="{{ route('client.pharma.orders.show',$issue) }}" class="block px-4 py-2.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Xem & phê duyệt</a>
+                                    @endif
+                                    @if($issue->status === \Modules\Pharma\Models\InventoryIssue::APPROVED)
                         @if($canApproveOrders)<form method="POST" action="{{ route('client.pharma.orders.undo-approval',$issue) }}">@csrf<button class="inline-flex min-h-10 items-center rounded-xl border border-amber-300 bg-amber-50 px-3 text-xs font-black text-amber-800 active:scale-[0.985]">Hoàn tác duyệt</button></form>@endif
                         @if($canPostOrders && ($issue->issue_source ?? 'normal') === 'bid')<a href="{{ route('client.pharma.orders.lots',$issue) }}" class="inline-flex min-h-10 items-center rounded-xl bg-emerald-700 px-3 text-xs font-black text-white">Chọn lô & ghi sổ</a>@endif
                         @if($canPostOrders && ($issue->issue_source ?? 'normal') !== 'bid')<form method="POST" action="{{ route('client.pharma.orders.post',$issue) }}" onsubmit="return confirm('Xác nhận ghi sổ phiếu xuất?')">@csrf<button class="inline-flex min-h-10 items-center rounded-xl bg-emerald-600 px-3 text-xs font-black text-white active:scale-[0.985]">Ghi sổ</button></form>@endif
