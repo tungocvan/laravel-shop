@@ -15,7 +15,7 @@
         <a href="{{ route('client.pharma.products') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-indigo-700">← Quay về danh mục thuốc</a>
         <h1 class="text-xl font-extrabold text-slate-900">Thiết kế mẫu xuất Excel</h1>
         <p class="text-sm text-slate-600">Dùng chung Excel Designer V4 với Pharma Admin. Mẫu được lưu riêng cho tài khoản ClientPortal.</p>
-        <livewire:pharma.medicine.excel-configurator owner-guard="web" :open-on-mount="true" />
+        @livewire('pharma.medicine.excel-configurator', ['ownerGuard' => 'web', 'openOnMount' => true])
     </div>
 @endsection
 
