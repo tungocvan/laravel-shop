@@ -256,7 +256,7 @@
                     body: data,
                     headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' },
                 });
-                if (!response.ok) throw new Error('Không thể xuất Excel (' + response.status + ').');
+                if (!response.ok || !String(response.headers.get('content-type') || '').includes('spreadsheetml')) throw new Error('Không thể xuất Excel (' + response.status + ').');
                 const blob = await response.blob();
                 preparedFile = new File([blob], 'danh-muc-thuoc.xlsx', {
                     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
