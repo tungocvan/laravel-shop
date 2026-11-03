@@ -1,3 +1,15 @@
+## Checkpoint — Issue PDF posted/deferred supply separation — 2026-11-03
+
+- Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge/deployment or runtime tests.
+- Issue #24 posted with Anvo lot LC82822 98 + LC82835 102; Nereid item quantity 0 has pending deferred supply 100 (2026-12-01, note "thiếu hàng"). Existing PDF incorrectly printed the zero-quantity item as a posted row.
+- Integrated `InventoryIssueDocumentLines` into `InventoryIssueDocumentService` and PDF Blade. Posted section uses matched negative issue inventory movements, excluding zero-quantity items; pending supply is shown separately when `show_deferred_supply` is enabled. Posted totals/count exclude pending supply.
+- Integrated `show_deferred_supply` model cast/fillable/default, controller checkbox persistence and admin settings UI. Existing additive migration `2026_11_03_000001_add_deferred_supply_toggle_to_issue_document_settings.php` is required before using updated settings code on a local database. **Do not run on production without the production procedure and explicit approval.**
+- PDF hash includes pending supply snapshot and bumped template version to v3; re-generating the PDF through the existing generate action replaces the stale document. Existing share links may be revoked by the service when source hash changes.
+- Focused contract test added to `PharmaPriceListManualLotsContractTest`. **NOT RUN**. Run focused tests first, then impacted regression; user must confirm UI PDF PASS.
+- Check local migration status read-only with `php artisan migrate:status` before applying any migration; back up database and confirm environment. Do not re-post issue #24. Review tracked working tree and PR; merge only with user approval.
+
+---
+
 ## Checkpoint — Shared FEFO capacity across split issue rows — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`. No main merge, deployment, migration or runtime test performed.
