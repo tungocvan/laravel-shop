@@ -1999,7 +1999,10 @@ final class PharmaApplicationController extends Controller
     {
         [$user,$visible]=$this->visibleOrderForDocument($issue,$request,$registry,$workspace);
         $documents->generate($visible,(int)$user->id);
-        return back()->with('success',"Đã xuất PDF phiếu {$visible->number}.");
+        // Navigate to the canonical detail view so print/download actions are visible
+        // even when the export originated from a filtered or AJAX-updated order list.
+        return redirect()->route('client.pharma.orders.show', $visible)
+            ->with('success', "Đã xuất PDF phiếu {$visible->number}. Bạn có thể in hoặc tải PDF bên dưới.");
     }
 
     public function downloadOrderPdf(int $issue, Request $request, ApplicationRegistry $registry, UserInventoryIssueWorkspace $workspace, InventoryIssueDocumentService $documents): BinaryFileResponse
