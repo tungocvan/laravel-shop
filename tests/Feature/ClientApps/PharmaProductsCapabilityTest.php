@@ -144,9 +144,13 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringNotContainsString('Medicine::query()', $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
-        foreach (['create', 'edit', 'delete', 'destroy', 'verifyMaster', 'import'] as $mutation) {
+        // JavaScript Set.delete() only clears a local selection; it is not a server mutation.
+        foreach (['create', 'edit', 'destroy', 'verifyMaster', 'import'] as $mutation) {
             $this->assertStringNotContainsString($mutation, $view);
         }
+        $this->assertStringNotContainsString("@method('DELETE')", $view);
+        $this->assertStringNotContainsString('method="DELETE"', $view);
+        $this->assertStringNotContainsString('route(\'client.pharma.products.destroy\'', $view);
     }
 
     public function test_catalog_product_type_and_special_control_filters_use_pharma_owned_query(): void
