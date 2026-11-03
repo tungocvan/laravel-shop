@@ -159,6 +159,8 @@ class MedicineImportExport extends BaseImportExportService
             ->cursor()
             ->map(function (Medicine $medicine) use ($related, $includeSupplierPricing): array {
                 $row = $this->mapExportRow($medicine);
+                $variant = $medicine->variants()->orderByDesc('is_default')->orderBy('id')->first();
+                $row = ['Mã thuốc' => $medicine->medicine_code, 'SKU' => $variant?->sku] + $row;
                 $preview = $related->preview($medicine);
                 $row['Hồ sơ sản phẩm (HSSP)'] = $preview['hssp_status'];
                 $row['Trúng thầu'] = $medicine->drugBidAwards()->exists() ? 'Có' : 'Không';
