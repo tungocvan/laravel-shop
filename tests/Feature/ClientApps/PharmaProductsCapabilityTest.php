@@ -193,4 +193,27 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('data-pwa-load-more-targets', $view);
         $this->assertStringNotContainsString('value="{{ $product->variantId }}"', $view);
     }
+
+    public function test_client_medicine_excel_export_is_permission_gated_and_preserves_pwa_context(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString("name('products.export')", $routes);
+        $this->assertStringContainsString('client.pharma.products.export', $manifest);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.products.export')", $controller);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.products.supplier-pricing')", $controller);
+        $this->assertStringContainsString("'ids.*' => ['required', 'integer', 'min:1', 'distinct']", $controller);
+        $this->assertStringContainsString('$catalog->browse(', $controller);
+        $this->assertStringContainsString('while ($result->hasMorePages())', $controller);
+        $this->assertStringContainsString('$excel->export(', $controller);
+        $this->assertStringContainsString('id="medicine-export-form"', $view);
+        $this->assertStringContainsString("data.append('ids[]', id)", $view);
+        $this->assertStringContainsString("credentials: 'same-origin'", $view);
+        $this->assertStringContainsString("cache: 'no-store'", $view);
+        $this->assertStringContainsString('navigator.canShare(shareData)', $view);
+        $this->assertStringContainsString('await navigator.share({ files: [preparedFile] })', $view);
+    }
 }
