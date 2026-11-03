@@ -128,6 +128,7 @@ final class UserOrderApprovalService
                     throw ValidationException::withMessages(['quantities' => 'Sản phẩm không thuộc đơn hàng.']);
                 }
             }
+            $existingDeferred = $issue->deferredSupplies()->where('status', 'pending')->get()->keyBy('medicine_id');
             $approvedAny = false;
             foreach ($issue->items as $item) {
                 $raw = $quantities[$item->id] ?? null;
@@ -135,7 +136,8 @@ final class UserOrderApprovalService
                     throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt phải là số nguyên không âm.']);
                 }
                 $approved = (int) $raw;
-                $requested = (float) $item->quantity;
+                $existingSupply = $existingDeferred->get((int) $item->medicine_id);
+                $requested = (float) $item->quantity + (float) ($existingSupply?->quantity ?? 0);
                 $available = app(UserOrderStockReadinessService::class)->availableForMedicine($issue, (int) $item->medicine_id);
                 if ($approved > $requested || $approved > $available) {
                     throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt vượt số lượng đặt hoặc tồn khả dụng.']);
@@ -143,8 +145,8 @@ final class UserOrderApprovalService
                 $deferred = $requested - $approved;
                 if ($deferred > 0) {
                     $details = $supply[$item->id] ?? [];
-                    $note = trim((string) ($details['note'] ?? ''));
-                    $date = $details['expected_supply_date'] ?? null;
+                    $note = trim((string) ($details['note'] ?? $existingSupply?->note ?? ''));
+                    $date = $details['expected_supply_date'] ?? $existingSupply?->expected_supply_date?->format('Y-m-d');
                     if ($note === '' || ! $date) {
                         throw ValidationException::withMessages(['supply' => 'Phần thiếu cần ngày dự kiến và ghi chú.']);
                     }
