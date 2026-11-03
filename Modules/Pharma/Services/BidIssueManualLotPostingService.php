@@ -40,18 +40,9 @@ final class BidIssueManualLotPostingService
 
             $locked->load(['items', 'deferredSupplies']);
             $deferredIds = $locked->deferredSupplies->pluck('drug_bid_award_allocation_id')->map(fn ($id) => (int) $id);
-            $postable = $locked->items->reject(fn ($item) => $deferredIds->contains((int) $item->drug_bid_award_allocation_id));
+            $postable = $locked->items->filter(fn ($item) => (float) $item->quantity > 0);
             if ($postable->isEmpty()) {
                 throw ValidationException::withMessages(['batches' => 'Không có sản phẩm đủ điều kiện thực xuất.']);
-            }
-
-            // Existing InventoryService::postIssue excludes deferred by medicine.
-            // Refuse ambiguous mixed allocations rather than silently dropping stock.
-            $deferredMedicines = $locked->items
-                ->filter(fn ($item) => $deferredIds->contains((int) $item->drug_bid_award_allocation_id))
-                ->pluck('medicine_id');
-            if ($postable->pluck('medicine_id')->intersect($deferredMedicines)->isNotEmpty()) {
-                throw ValidationException::withMessages(['batches' => 'Một thuốc vừa có dòng chờ cung ứng vừa có dòng thực xuất. Cần tách đơn trước khi ghi sổ.']);
             }
 
             $allowedItemIds = $postable->pluck('id')->map(fn ($id) => (int) $id)->all();
