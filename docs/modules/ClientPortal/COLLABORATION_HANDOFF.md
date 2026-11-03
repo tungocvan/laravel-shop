@@ -1277,3 +1277,9 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - ClientPortal authoring and manual lot request validation now require integer quantities; no database migration. Fixed an undefined `$canCreateForUser` reference in `submitOrder()` by using the existing authorized `$canManageOrders` capability.
 - Manual lot allocation is still a separate workspace for **APPROVED** bid orders; the Admin's combined edit/approve/post screen has **not** been fully ported. Approved-order editing and in-form lot allocation remain outstanding; do not mark Admin parity or UI PASS.
 - Focused: `php artisan test tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php`; run impacted approval/inventory tests only after focused PASS. Test execution pending on local checkout.
+
+### 2026-11-03 — Responsive order wizard navigation placement
+
+- User confirmed whole-number quantities display correctly; requested Back/Next controls to appear near product UI rather than far below viewport.
+- Removed viewport-sized minimum heights and excessive bottom padding from order wizard steps 1–3. The existing single action bar now follows visible content on desktop (`lg:static`), with mobile sticky bottom positioning and unchanged control IDs/step JS.
+- Added focused contract assertion in `PharmaBidManualLotCapabilityTest`. Local test and UI confirmation pending; do not claim UI PASS. No Pharma business logic or DB changes.
