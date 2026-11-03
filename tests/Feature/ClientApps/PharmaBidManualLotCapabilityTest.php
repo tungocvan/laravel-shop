@@ -97,6 +97,27 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString('ctype_digit((string) $rawQuantity)', $service);
     }
 
+    public function test_partial_bid_approval_uses_pharma_service_and_preserves_multi_lot_posting(): void
+    {
+        $root = base_path();
+        $view = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $approval = file_get_contents($root.'/Modules/Pharma/Services/UserOrderApprovalService.php');
+        $posting = file_get_contents($root.'/Modules/Pharma/Services/BidIssueManualLotPostingService.php');
+        $inventory = file_get_contents($root.'/Modules/Pharma/Services/InventoryService.php');
+        $commission = file_get_contents($root.'/Modules/Pharma/Services/DrugBidCommissionService.php');
+
+        $this->assertStringContainsString('approved_quantities[', $view);
+        $this->assertStringContainsString('partial_supply[', $view);
+        $this->assertStringContainsString('approveBidPartially(', $controller);
+        $this->assertStringContainsString('function approveBidPartially(', $approval);
+        $this->assertStringContainsString('InventoryIssueDeferredSupply::updateOrCreate', $approval);
+        $this->assertStringContainsString('$lotTotals[$balanceId]', $posting);
+        $this->assertStringContainsString('$item->batch_number && $item->expiry_date', $inventory);
+        $this->assertStringContainsString('$item->batch_number && $item->expiry_date', $commission);
+        $this->assertStringContainsString('postableItems = $visible->items->filter', $controller);
+    }
+
     public function test_manual_lot_ui_keeps_pwa_shell_and_does_not_change_non_bid_fefo(): void
     {
         $root = base_path();
