@@ -38,8 +38,7 @@ final class BidIssueManualLotPostingService
             }
 
             $locked->load(['items', 'deferredSupplies']);
-            $deferredMedicineIds = $locked->deferredSupplies->where('status', 'pending')->pluck('medicine_id')->map(fn ($id) => (int) $id)->all();
-            $postable = $locked->items->filter(fn ($item) => (float) $item->quantity > 0 && ! in_array((int) $item->medicine_id, $deferredMedicineIds, true));
+            $postable = $locked->items->filter(fn ($item) => (float) $item->quantity > 0);
             if ($postable->isEmpty()) {
                 throw ValidationException::withMessages(['batches' => 'Không có sản phẩm đủ điều kiện thực xuất.']);
             }
