@@ -1977,7 +1977,7 @@ final class PharmaApplicationController extends Controller
             'recipient_partner_id' => ['nullable', 'integer', 'exists:partners,id'],
             'price_list_id' => ['nullable', 'integer', 'exists:pharma_price_lists,id'],
             'quantities' => ['required', 'array'],
-            'quantities.*' => ['nullable', 'numeric', 'min:0'],
+            'quantities.*' => ['nullable', 'integer', 'min:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
     }
