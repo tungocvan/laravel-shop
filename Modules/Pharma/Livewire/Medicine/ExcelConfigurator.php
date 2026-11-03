@@ -4,13 +4,16 @@ namespace Modules\Pharma\Livewire\Medicine;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
+use Livewire\Attributes\Locked;
 use Modules\Pharma\Services\MedicineExcelProfileService;
 use Modules\Pharma\Services\MedicineExcelRelatedDataService;
 
 class ExcelConfigurator extends Component
 {
     public bool $open = false;
+    #[Locked]
     public string $ownerGuard = 'admin';
+    #[Locked]
     public bool $openOnMount = false;
     public int $designerRevision = 0;
     public bool $saveConfirmationOpen = false;
@@ -222,6 +225,7 @@ class ExcelConfigurator extends Component
 
     public function saveDraft(array $draft, MedicineExcelProfileService $service): void
     {
+        $this->assertOwner();
         $allowed = array_keys($this->allowedColumns());
         $ordered = array_values(array_unique(array_filter(is_array($draft['columns'] ?? null) ? $draft['columns'] : [],
             fn ($key) => is_string($key) && in_array($key, $allowed, true))));
@@ -309,9 +313,16 @@ class ExcelConfigurator extends Component
 
     public function render(): View
     {
+        $this->assertOwner();
+        $groups = MedicineExcelRelatedDataService::GROUPS;
+        foreach ($groups as $key => &$group) {
+            $group['fields'] = array_intersect_key($group['fields'], $this->allowedColumns());
+            if ($group['fields'] === []) unset($groups[$key]);
+        }
+        unset($group);
         return view('Pharma::livewire.medicine.excel-configurator', [
             'definitions' => $this->allowedColumns(),
-            'relatedGroups' => MedicineExcelRelatedDataService::GROUPS,
+            'relatedGroups' => $groups,
         ]);
     }
 }
