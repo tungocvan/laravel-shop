@@ -71,20 +71,20 @@ class MedicineExcelProfileService
         ];
     }
 
-    public function listForUser(int $userId): array
+    public function listForUser(int $userId, string $guard = 'admin'): array
     {
-        return MedicineExcelProfile::query()->where('user_id', $userId)
+        return MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)
             ->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'is_default'])->toArray();
     }
 
-    public function forUser(int $userId, ?int $id = null): array
+    public function forUser(int $userId, ?int $id = null, string $guard = 'admin'): array
     {
-        $query = MedicineExcelProfile::query()->where('user_id', $userId);
+        $query = MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId);
         $profile = $id ? $query->findOrFail($id) : $query->orderByDesc('is_default')->orderBy('id')->first();
         return $profile ? array_merge($profile->only(['id', 'name', 'is_default', 'columns', 'headers', 'widths', 'alignments', 'settings'])) : $this->defaults();
     }
 
-    public function save(int $userId, array $data, ?int $id = null): array
+    public function save(int $userId, array $data, ?int $id = null, string $guard = 'admin'): array
     {
         $defaults = $this->defaults();
         $columns = array_values(array_unique(array_filter((array) ($data['columns'] ?? []),
@@ -92,20 +92,20 @@ class MedicineExcelProfileService
         if ($columns === []) {
             throw ValidationException::withMessages(['columns' => 'Chọn ít nhất một cột xuất Excel.']);
         }
-        $profile = $id ? MedicineExcelProfile::query()->where('user_id', $userId)->findOrFail($id) : new MedicineExcelProfile();
+        $profile = $id ? MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)->findOrFail($id) : new MedicineExcelProfile();
         $name = mb_substr(trim((string) ($data['name'] ?? '')), 0, 120);
         if ($name === '') {
             throw ValidationException::withMessages(['name' => 'Nhập tên cấu hình.']);
         }
-        $exists = MedicineExcelProfile::query()->where('user_id', $userId)->where('name', $name)
+        $exists = MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)->where('name', $name)
             ->when($profile->exists, fn ($query) => $query->whereKeyNot($profile->id))->exists();
         if ($exists) {
             throw ValidationException::withMessages(['name' => 'Tên cấu hình đã tồn tại.']);
         }
         $makeDefault = (bool) ($data['is_default'] ?? false)
-            || ! MedicineExcelProfile::query()->where('user_id', $userId)->exists();
+            || ! MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)->exists();
         if ($makeDefault) {
-            MedicineExcelProfile::query()->where('user_id', $userId)->update(['is_default' => false]);
+            MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)->update(['is_default' => false]);
         }
         $headers = []; $widths = []; $alignments = [];
         foreach (self::COLUMNS as $key => $label) {
@@ -127,20 +127,20 @@ class MedicineExcelProfileService
         $settings['header_fill'] = in_array($settings['header_fill'], ['EFF4FA', 'F1F5F9', 'FFFFFF', 'EDE9FE'], true) ? $settings['header_fill'] : 'EFF4FA';
         $settings['body_border'] = (bool) $settings['body_border'];
         $profile->forceFill([
-            'user_id' => $userId, 'name' => $name, 'is_default' => $makeDefault || (bool) $profile->is_default,
+            'owner_guard' => $guard, 'user_id' => $userId, 'name' => $name, 'is_default' => $makeDefault || (bool) $profile->is_default,
             'columns' => $columns, 'headers' => $headers, 'widths' => $widths,
             'alignments' => $alignments, 'settings' => $settings,
         ])->save();
-        return $this->forUser($userId, (int) $profile->id);
+        return $this->forUser($userId, (int) $profile->id, $guard);
     }
 
-    public function delete(int $userId, int $id): void
+    public function delete(int $userId, int $id, string $guard = 'admin'): void
     {
-        $profile = MedicineExcelProfile::query()->where('user_id', $userId)->findOrFail($id);
+        $profile = MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)->findOrFail($id);
         $wasDefault = $profile->is_default;
         $profile->delete();
         if ($wasDefault) {
-            MedicineExcelProfile::query()->where('user_id', $userId)->orderBy('id')->first()?->update(['is_default' => true]);
+            MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)->orderBy('id')->first()?->update(['is_default' => true]);
         }
     }
 }
