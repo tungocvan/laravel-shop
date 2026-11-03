@@ -29,9 +29,11 @@ $signatureWidth=$signatures->count() > 0 ? (100 / $signatures->count()) : 100;
 <tr><td class="label">Ngày xuất:</td><td>{{ $issue->issue_date->format('d/m/Y') }}</td></tr>
 <tr><td class="label">Xuất tại kho:</td><td>{{ $settings->warehouse_name }}</td></tr>
 <tr><td class="label">Khách hàng / Nơi nhận:</td><td>{{ $issue->recipient_name ?: '—' }}</td></tr>
-<tr><td class="label">Người phụ trách:</td><td>{{ $issue->priceList?->manager?->name ?: '—' }}</td></tr>
+@if($settings->show_manager)
+<tr><td class="label">Người phụ trách:</td><td>{{ $issue->manager?->name ?: $issue->priceList?->manager?->name ?: '—' }}</td></tr>
+@endif
 @if($settings->show_price_list)
-<tr><td class="label">Bảng giá áp dụng:</td><td>{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}</td></tr>
+<tr><td class="label">Bảng giá áp dụng:</td><td>@if(($issue->issue_source ?? 'normal') === 'bid')Theo kết quả trúng thầu@else{{ $issue->priceList?->code ?: '—' }} {{ $issue->priceList?->name ? '('.$issue->priceList->name.')' : '' }}@endif</td></tr>
 @endif
 </table>
 <table class="items"><thead><tr><th>STT</th><th>Mã thuốc</th><th>Tên thuốc / Quy cách</th><th>ĐVT</th><th>Số lô</th><th>Hạn dùng</th><th>SL</th>
