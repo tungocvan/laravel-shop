@@ -18,6 +18,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::post('/products/excel-config/import-json', [PharmaMedicineExcelProfileController::class, 'importJson'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.excel-config.import-json');
         Route::get('/products/excel-config', [PharmaMedicineExcelProfileController::class, 'index'])
             ->middleware('client.feature:pharma,products')
             ->name('products.excel-config');
