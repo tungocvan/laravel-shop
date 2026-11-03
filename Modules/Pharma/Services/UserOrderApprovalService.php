@@ -102,6 +102,70 @@ final class UserOrderApprovalService
         });
     }
 
+    /**
+     * Approve a price-list order with partial fulfillment.
+     * Bid orders keep their allocation-specific workflow.
+     */
+    public function approvePartially(int $actorUserId, InventoryIssue $issue, array $quantities, array $supply): InventoryIssue
+    {
+        if ($issue->issue_source === 'bid') {
+            return $this->approveBidPartially($actorUserId, $issue, $quantities, $supply);
+        }
+
+        return DB::transaction(function () use ($actorUserId, $issue, $quantities, $supply): InventoryIssue {
+            $issue = $this->lockIssue($issue);
+            $this->guardPending($issue);
+            if ($issue->issue_source === 'bid' || $issue->posted_at !== null) {
+                throw ValidationException::withMessages(['order' => 'Trạng thái đơn hàng không hợp lệ.']);
+            }
+            $issue->load('items');
+            $knownIds = $issue->items->pluck('id')->map(fn ($id) => (int) $id)->all();
+            foreach (array_keys($quantities) as $id) {
+                if (! in_array((int) $id, $knownIds, true)) {
+                    throw ValidationException::withMessages(['quantities' => 'Sản phẩm không thuộc đơn hàng.']);
+                }
+            }
+            $approvedAny = false;
+            foreach ($issue->items as $item) {
+                $raw = $quantities[$item->id] ?? null;
+                if (! is_scalar($raw) || ! ctype_digit((string) $raw)) {
+                    throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt phải là số nguyên không âm.']);
+                }
+                $approved = (int) $raw;
+                $requested = (float) $item->quantity;
+                $available = app(UserOrderStockReadinessService::class)->availableForMedicine($issue, (int) $item->medicine_id);
+                if ($approved > $requested || $approved > $available) {
+                    throw ValidationException::withMessages(['quantities' => 'Số lượng duyệt vượt số lượng đặt hoặc tồn khả dụng.']);
+                }
+                $deferred = $requested - $approved;
+                if ($deferred > 0) {
+                    $details = $supply[$item->id] ?? [];
+                    $note = trim((string) ($details['note'] ?? ''));
+                    $date = $details['expected_supply_date'] ?? null;
+                    if ($note === '' || ! $date) {
+                        throw ValidationException::withMessages(['supply' => 'Phần thiếu cần ngày dự kiến và ghi chú.']);
+                    }
+                    \Modules\Pharma\Models\InventoryIssueDeferredSupply::updateOrCreate(
+                        ['issue_id' => $issue->id, 'medicine_id' => $item->medicine_id, 'status' => 'pending'],
+                        ['quantity' => $deferred, 'expected_supply_date' => $date, 'note' => $note, 'created_by' => $actorUserId]
+                    );
+                } else {
+                    $issue->deferredSupplies()->where('medicine_id', $item->medicine_id)->where('status', 'pending')->delete();
+                }
+                $item->update(['quantity' => $approved]);
+                $approvedAny = $approvedAny || $approved > 0;
+            }
+            if (! $approvedAny) {
+                throw ValidationException::withMessages(['quantities' => 'Cần duyệt ít nhất một sản phẩm có số lượng thực xuất.']);
+            }
+            $issue->update([
+                'status' => InventoryIssue::APPROVED, 'approved_by' => $actorUserId,
+                'approved_at' => now(), 'rejected_by' => null, 'rejected_at' => null, 'rejection_reason' => null,
+            ]);
+            return $issue->refresh();
+        });
+    }
+
     public function undoApproval(int $actorUserId, InventoryIssue $issue): InventoryIssue
     {
         return DB::transaction(function () use ($issue): InventoryIssue {
