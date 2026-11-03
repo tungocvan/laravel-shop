@@ -761,6 +761,8 @@ final class PharmaApplicationController extends Controller
             'selectedBidAward' => $validated['bid_award'] ?? '',
             'canViewSupplierPricing' => $canViewSupplierPricing,
             'canExportMedicines' => $registry->userCan($user, 'client.pharma.products.export'),
+            'canConfigureMedicineExcel' => $registry->userCan($user, 'client.pharma.products.excel-config'),
+            'medicineExcelProfiles' => $registry->userCan($user, 'client.pharma.products.export') ? app(\Modules\Pharma\Services\MedicineExcelProfileService::class)->listForUser((int) $user->id, 'web') : [],
             'canImportMedicines' => $registry->userCan($user, 'client.pharma.products.import'),
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
