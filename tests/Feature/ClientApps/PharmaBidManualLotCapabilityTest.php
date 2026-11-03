@@ -30,6 +30,25 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString('batches[{{ $item->id }}]', $view);
     }
 
+    public function test_draft_bid_actions_are_visible_and_manager_delegation_is_checked_by_domain_service(): void
+    {
+        $root = base_path();
+        $index = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issues.blade.php');
+        $detail = file_get_contents($root.'/Modules/ClientPortal/resources/views/applications/pharma/inventory-issue-show.blade.php');
+        $controller = file_get_contents($root.'/Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php');
+        $service = file_get_contents($root.'/Modules/Pharma/Services/UserOrderAuthoringService.php');
+
+        $this->assertStringContainsString('Sửa đơn', $index);
+        $this->assertStringContainsString('Gửi duyệt', $index);
+        $this->assertStringContainsString('Xem & phê duyệt', $index);
+        $this->assertStringContainsString('canSubmitOrders', $controller);
+        $this->assertStringContainsString('canManageOrders', $controller);
+        $this->assertStringContainsString('canManageOrders', $service);
+        $this->assertStringContainsString('guardEditable($actorUserId, $issue, $canManageOrders)', $service);
+        $this->assertStringContainsString('guardSubmittable($userId, $issue, $canManageOrders)', $service);
+        $this->assertStringContainsString('canEditOrder || $canSubmitOrder', $detail);
+    }
+
     public function test_manual_lot_ui_keeps_pwa_shell_and_does_not_change_non_bid_fefo(): void
     {
         $root = base_path();
