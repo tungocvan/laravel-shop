@@ -1861,6 +1861,51 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã hoàn tác phê duyệt. Đơn trở lại trạng thái Chờ duyệt để kiểm tra lại điều kiện.');
     }
 
+    public function orderLots(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace,
+        \Modules\Pharma\Services\BidIssueManualLotPostingService $lotPosting,
+    ): View {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue, true);
+        abort_if($visible === null || $visible->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED
+            || $visible->issue_source !== 'bid' || $visible->posted_at !== null, 404);
+        $visible->load(['items.medicine', 'deferredSupplies']);
+        $deferredIds = $visible->deferredSupplies->pluck('drug_bid_award_allocation_id')->map(fn ($id) => (int) $id);
+        $postableItems = $visible->items->reject(fn ($item) => $deferredIds->contains((int) $item->drug_bid_award_allocation_id));
+        return view('ClientPortal::applications.pharma.order-lots', [
+            'application' => $registry->find('pharma'),
+            'issue' => $visible,
+            'postableItems' => $postableItems,
+            'balances' => $lotPosting->availableLots($visible),
+        ]);
+    }
+
+    public function postOrderLots(
+        int $issue, Request $request, ApplicationRegistry $registry,
+        UserInventoryIssueWorkspace $workspace,
+        \Modules\Pharma\Services\BidIssueManualLotPostingService $lotPosting,
+        InventoryService $inventory,
+    ): RedirectResponse {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.orders.post'), 403);
+        $visible = $workspace->findVisible((int) $user->id, $issue, true);
+        abort_if($visible === null || $visible->status !== \Modules\Pharma\Models\InventoryIssue::APPROVED
+            || $visible->issue_source !== 'bid' || $visible->posted_at !== null, 404);
+        $data = $request->validate([
+            'batches' => 'required|array',
+            'batches.*' => 'array',
+            'batches.*.*.balance_id' => 'required|integer|min:1',
+            'batches.*.*.quantity' => 'nullable|numeric|min:0',
+        ]);
+        $lotPosting->post($visible, $data['batches'], (int) $user->id, $inventory);
+        return redirect()->route('client.pharma.orders.show', $issue)
+            ->with('success', 'Đã ghi sổ theo lô thực xuất được chọn.');
+    }
+
     public function postOrder(
         int $issue, Request $request, ApplicationRegistry $registry,
         UserInventoryIssueWorkspace $workspace, UserOrderStockReadinessService $stockReadiness,
