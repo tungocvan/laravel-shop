@@ -7,6 +7,20 @@ use Modules\Pharma\Models\InventoryIssue;
 
 final class UserOrderStockReadinessService
 {
+    /**
+     * Read-only available stock for a medicine in the issue warehouse.
+     * Approval must never mutate inventory balances.
+     */
+    public function availableForMedicine(InventoryIssue $issue, int $medicineId): float
+    {
+        return (float) InventoryBalance::query()
+            ->where('warehouse_id', $issue->warehouse_id)
+            ->where('medicine_id', $medicineId)
+            ->where('quantity_on_hand', '>', 0)
+            ->whereDate('expiry_date', '>=', now()->toDateString())
+            ->sum('quantity_on_hand');
+    }
+
     public function forIssue(InventoryIssue $issue): array
     {
         $issue->loadMissing('items.medicine');
