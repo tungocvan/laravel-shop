@@ -17,6 +17,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::post('/products/import', [PharmaMedicineExcelController::class, 'import'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.import');
         Route::post('/products/export', [PharmaMedicineExcelController::class, 'export'])
             ->middleware('client.feature:pharma,products')
             ->name('products.export');
