@@ -712,3 +712,12 @@ Do not reinterpret this checkpoint as an Admin Commission Center rewrite. Client
 - ClientPortal PDF export redirects to canonical order detail after successful generation, where Print and Download are already present when `current()` passes; avoids stale filtered/PWA list state.
 - Regression contract added in `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Test and UI are pending on local environment; if 409 occurs, inspect document settings/hash changes rather than bypassing privacy/integrity checks.
 - Still pending separately: refinement of partial-approval UI and restoration of original demand on undo approval. No production operations, merge, or migrations.
+
+### 2026-11-03 — Issue document metadata and primary lot action (checkpoint)
+
+- Branch: `feat/pharma-issue-document-meta-actions-latest-20261103`, based on `fix/client-pharma-conditional-deferred-fields-20261103` (preserves the existing ClientPortal order/lot workflow; `main` is behind this work).
+- Admin issue document settings now have an independent `show_manager` checkbox (default enabled via additive migration); existing `show_price_list` checkbox remains independent. Both apply to Admin issue detail/PDF and PDF consumed by ClientPortal print/download. PDF bid orders label source as “Theo kết quả trúng thầu”.
+- PDF manager name uses the Pharma canonical manager resolver: active bid award management assignments by partner/award, with issue manager fallback. PDF source hash incorporates resolved manager names when displayed so stale artifacts are not reused. Admin bid issue detail uses same resolver.
+- ClientPortal approved bid order list promotes “Chọn lô xuất kho” to a prominent primary action on desktop and mobile, leaving undo approval in secondary menu. Existing multi-lot allocation and posting flow unchanged.
+- Migration required on local/staging before UI verification: `php artisan migrate` only after reviewing pending migrations; no migration or production change performed by assistant.
+- Focused contract: `tests/Feature/ClientApps/PharmaInventoryIssuesCapabilityTest.php`. Regression: `Modules/Pharma/Tests/Unit/InventoryContractTest.php` and ClientPortal bid lot/approval focused suites. TEST PENDING, UI PENDING, no merge/deploy.
