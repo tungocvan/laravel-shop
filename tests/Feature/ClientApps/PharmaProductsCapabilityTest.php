@@ -117,7 +117,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$product->hasBidAward', $view);
         $this->assertStringContainsString('$product->hasProfile', $view);
         $this->assertStringContainsString('$canViewSupplierPricing && $product->hasSupplierPricing', $view);
-        $this->assertStringContainsString('if ($canViewSupplierPricing)', $view);
+        $this->assertStringContainsString('@if($canViewSupplierPricing)', $view);
         $this->assertStringContainsString('name="supplier_price"', $view);
         $this->assertStringContainsString('data-pwa-debounced-search="350"', $view);
         $this->assertStringContainsString('data-pwa-search-region="#product-results-region"', $view);
