@@ -208,7 +208,7 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("'ids.*' => ['required', 'integer', 'min:1', 'distinct']", $controller);
         $this->assertStringContainsString('$catalog->browse(', $controller);
         $this->assertStringContainsString('while ($result->hasMorePages())', $controller);
-        $this->assertStringContainsString('$excel->export(', $controller);
+        $this->assertStringContainsString('$excel->exportDetailedCatalog($ids, $canPrice)', $controller);
         $this->assertStringContainsString("name('products.import')", $routes);
         $this->assertStringContainsString('client.pharma.products.import', $manifest);
         $this->assertStringContainsString('MedicineCatalogUploadService $upload', $controller);
@@ -223,5 +223,20 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("cache: 'no-store'", $view);
         $this->assertStringContainsString('navigator.canShare(shareData)', $view);
         $this->assertStringContainsString('await navigator.share({ files: [preparedFile] })', $view);
+    }
+
+    public function test_detailed_excel_contains_profile_award_supplier_and_special_control_fields(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineImportExport.php'));
+        $related = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelRelatedDataService.php'));
+
+        foreach (['exportDetailedCatalog', 'Mã thuốc', 'SKU', 'Hoạt chất kiểm soát đặc biệt',
+            'Hồ sơ sản phẩm (HSSP)', 'Trúng thầu', 'Công ty trúng thầu',
+            'Nơi trúng thầu', 'Số quyết định trúng thầu', 'Giá trúng thầu',
+            'Số lượng phân bổ', 'Nhà cung cấp', 'Giá vốn NCC'] as $field) {
+            $this->assertStringContainsString($field, $service);
+        }
+        $this->assertStringContainsString('if ($includeSupplierPricing)', $service);
+        $this->assertStringContainsString('public function preview(?Medicine $medicine): array', $related);
     }
 }
