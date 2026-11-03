@@ -1,3 +1,12 @@
+## Checkpoint — Excel width and print page alignment — 2026-11-04
+
+- Excel Designer V4 now exposes margins (top/bottom/left/right/header/footer in cm, default 0.8) and horizontal/vertical page centering (default horizontal on, vertical off). Settings are validated and saved in existing profile JSON; no database migration required.
+- Configured XLSX writer now uses PhpSpreadsheet `Drawing::pixelsToCellDimension` with configured default font instead of manual `(pixels-5)/7`. Excel's reported pixel width can still vary with font and display zoom; validate against a newly exported XLSX.
+- Existing no-filter, wrap text, subtle borders and per-column alignments remain unchanged. Admin and ClientPortal share Designer settings, but Admin's legacy export writer may require a separate parity batch.
+- Added focused source contract. Tests and UI NOT RUN/VERIFIED by assistant. Run focused tests first, compare column width and print preview, then consider Admin writer parity only after audit. No merge/deploy.
+
+---
+
 ## Checkpoint — Excel sample JSON import and column widths — 2026-11-04
 
 - User-supplied XLSX has 14 configured columns, with widths expressed in Excel character units, not UI pixels. Converted sample widths to UI pixel values with `round(excelWidth * 7 + 5)` and changed ClientPortal writer to `(pixels - 5) / 7`. This is an approximation at Excel's default font/96dpi; actual display may differ by font, zoom and Excel renderer.
