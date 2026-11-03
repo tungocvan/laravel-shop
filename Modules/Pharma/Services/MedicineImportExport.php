@@ -174,6 +174,7 @@ class MedicineImportExport extends BaseImportExportService
                 if ($includeSupplierPricing) {
                     $row['Nhà cung cấp'] = $preview['supplier_name'];
                     $row['Giá vốn NCC'] = $preview['cost_price'];
+                    $row['Giá nhập NCC'] = $medicine->supplierTrackings()->orderByDesc('working_date')->orderByDesc('id')->value('import_price');
                 }
                 return $row;
             });
