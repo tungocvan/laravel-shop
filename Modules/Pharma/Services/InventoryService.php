@@ -164,7 +164,7 @@ final class InventoryService
             $issue->load(['items','deferredSupplies']);
             if ($issue->items->isEmpty()) throw ValidationException::withMessages(['items'=>'Phiếu xuất phải có ít nhất một dòng.']);
             $deferredMedicineIds=$issue->deferredSupplies->pluck('medicine_id')->map(fn($id)=>(int)$id)->unique();
-            $postedItems=$issue->items->reject(fn($item)=>$deferredMedicineIds->contains((int)$item->medicine_id))->values();
+            $postedItems=$issue->items->reject(fn($item)=>($issue->issue_source === 'bid' && $item->batch_number && $item->expiry_date) ? (float)$item->quantity <= 0 : $deferredMedicineIds->contains((int)$item->medicine_id))->values();
             if ($postedItems->isEmpty()) throw ValidationException::withMessages(['stock'=>'Không có mặt hàng đủ điều kiện xuất kho; toàn bộ mặt hàng đang chờ cung ứng.']);
             foreach ($postedItems as $item) {
                 if(blank($item->batch_number) || !$item->expiry_date) throw ValidationException::withMessages(['stock'=>'Mặt hàng thực xuất chưa chọn lô/HSD, chưa thể ghi sổ.']);
