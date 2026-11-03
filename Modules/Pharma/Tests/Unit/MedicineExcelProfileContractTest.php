@@ -133,7 +133,10 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString("this.draft.headers[key] = this.labels[key]", $view);
         $this->assertStringContainsString('public int $designerRevision = 0;', $component);
         $this->assertStringContainsString('$this->designerRevision++;', $component);
-        $this->assertStringContainsString('service->delete((int) auth(\'admin\')->id(), $this->profileId);', $component);
+        $this->assertStringContainsString('$service->delete($this->assertOwner(), $this->profileId, $this->ownerGuard);', $component);
+        $this->assertStringContainsString('public string $ownerGuard = \'admin\';', $component);
+        $this->assertStringContainsString('#[Locked]', $component);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.products.excel-config')", $component);
         $this->assertStringContainsString('$this->profileId = null;', $component);
         $this->assertStringContainsString('x-on:click="add(@js($key))"', $view);
     }
