@@ -1253,3 +1253,13 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Pharma PWA roadmap P1-P8 is complete with automated and rendered UI acceptance.
 - Merge gate: run focused regression first, then ClientPortal/Pharma module regression because this branch changes shared ClientPortal interaction/components and multiple Pharma PWA capabilities. Full-project regression is NOT APPLICABLE under the repository workflow because no global bootstrap/auth/schema/module-framework boundary changed.
 - Before merge, verify local git status while preserving known local-only ngrok artifacts; do not add/delete `.env.backup-before-ngrok-session` or `public/hot.pharma-mobile`.
+
+
+## 2026-11-03 — Approved bid manual lot selection (checkpoint pending)
+
+- Branch: `feat/pharma-client-bid-lot-workflow-20261103`, based on `9c06aa3b9755cd8fe00728171bd3cbcb9d52815a`.
+- Added Pharma-owned `BidIssueManualLotPostingService` for approved bid orders. It validates the requested per-item lot quantities, current warehouse, unexpired balances and aggregate per-lot stock under transaction/row locks; delegates canonical posting/commission to `InventoryService::postIssue`.
+- ClientPortal adds a focused mobile-first lot workspace and GET/POST routes under `/apps/pharma/orders/{issue}/lots`. Existing `client.pharma.orders.post` permission is checked on both endpoints. Bid orders are redirected away from automatic FEFO posting; non-bid flow is unchanged.
+- Safety restriction: mixed deferred and fulfilled allocations for the same medicine are rejected; manual posting currently requires the full approved quantity for each non-deferred item. No mutation occurs on failed validation. This is a deliberately scoped first batch, not full Admin edit parity.
+- Remaining approved scope: canonical editable approved bid workflow, distinct edit/allocate permissions, audit trail and comprehensive runtime tests, Admin parity review. Do not claim completion or UI PASS yet.
+- Focused contract test: `tests/Feature/ClientApps/PharmaBidManualLotCapabilityTest.php`. Local execution, UI validation and regression are pending. No migration, production change, PR or merge.
