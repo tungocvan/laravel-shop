@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineRelationsController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelProfileController;
 
 if ((bool) config('modules.registry.Pharma.enabled', false)) {
@@ -27,6 +28,12 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.create');
         Route::post('/products/{medicine}/variants', [PharmaMedicineEditorController::class, 'storeVariant'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.store');
+        Route::get('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'hssp'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp');
+        Route::post('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'createHssp'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp.store');
+        Route::get('/products/{medicine}/supplier-conditions', [PharmaMedicineRelationsController::class, 'supplierConditions'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.supplier-conditions');
         Route::get('/products/{medicine}/edit', [PharmaMedicineEditorController::class, 'edit'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.edit');
         Route::put('/products/{medicine}', [PharmaMedicineEditorController::class, 'update'])
