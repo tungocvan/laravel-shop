@@ -40,6 +40,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.supplier-conditions.save');
         Route::get('/products/{medicine}/edit', [PharmaMedicineEditorController::class, 'edit'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.edit');
+        Route::delete('/products/{medicine}', [PharmaMedicineEditorController::class, 'destroy'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.destroy');
         Route::put('/products/{medicine}', [PharmaMedicineEditorController::class, 'update'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.update');
         Route::post('/products/excel-config/import-json', [PharmaMedicineExcelProfileController::class, 'importJson'])
