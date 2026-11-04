@@ -17,6 +17,8 @@ use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineProfile;
 use Modules\Pharma\Models\SupplierTracking;
 use Modules\Partner\Models\Partner;
+use Modules\Pharma\Models\OfficialSourceFacility;
+use Modules\Pharma\Services\SupplierTrackingService;
 use Modules\Pharma\Services\HsspDossierTemplateService;
 
 final class PharmaMedicineRelationsController extends Controller
@@ -199,11 +201,19 @@ final class PharmaMedicineRelationsController extends Controller
         $trackings = $master->supplierTrackings()->latest('id')->paginate(15);
         $editing = $request->integer('tracking') ? $master->supplierTrackings()->findOrFail($request->integer('tracking')) : null;
         $suppliers = Partner::query()->withPartnerType('supplier')->orderBy('name')->get(['id', 'name', 'tax_code']);
+        $supplierService = app(SupplierTrackingService::class);
+        $selectedFacilityIds = $editing?->facilities()->pluck('pharma_official_source_facilities.id')->all() ?? [];
+        $facilitySearch = trim((string) $request->query('facility_search', ''));
+        $facilities = $supplierService->facilityCandidates($facilitySearch, $selectedFacilityIds, 25);
 
         return view('ClientPortal::applications.pharma.medicine-supplier-conditions', $this->viewData($registry, $settings, $master) + [
             'trackings' => $trackings,
             'editing' => $editing,
             'suppliers' => $suppliers,
+            'distributionRegions' => $supplierService->distributionRegions(),
+            'distributionProvincesByRegion' => $supplierService->distributionProvincesByRegion(),
+            'facilities' => $facilities,
+            'selectedFacilityIds' => $selectedFacilityIds,
             'canManageConditions' => $registry->userCan($request->user('web'), 'client.pharma.products.supplier-conditions.manage'),
         ]);
     }
@@ -225,7 +235,13 @@ final class PharmaMedicineRelationsController extends Controller
             'deposit_amount' => ['nullable', 'numeric', 'min:0'],
             'unit' => ['nullable', 'string', 'max:50'],
             'area' => ['nullable', 'string', 'max:255'],
-            'distribution_scope' => ['nullable', 'string', 'max:1000'],
+            'distribution_scope' => ['required', 'in:all,regions,facilities'],
+            'distribution_regions' => ['nullable', 'array'],
+            'distribution_regions.*' => ['string', 'max:50'],
+            'distribution_provinces' => ['nullable', 'array'],
+            'distribution_provinces.*' => ['string', 'max:20'],
+            'facility_ids' => ['nullable', 'array'],
+            'facility_ids.*' => ['integer', 'exists:pharma_official_source_facilities,id'],
             'supplier_representative' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:5000'],
             'contract' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
@@ -237,7 +253,19 @@ final class PharmaMedicineRelationsController extends Controller
         $tracking = isset($data['tracking_id'])
             ? $master->supplierTrackings()->findOrFail($data['tracking_id'])
             : new SupplierTracking(['medicine_id' => $master->id]);
-        $values = collect($data)->except(['tracking_id', 'contract'])->all();
+        $scope = $data['distribution_scope'];
+        $service = app(SupplierTrackingService::class);
+        $regionMap = $service->distributionRegions();
+        $selectedRegions = array_values(array_intersect(array_keys($regionMap), $data['distribution_regions'] ?? []));
+        $provinceMap = $service->distributionProvincesByRegion();
+        $allowedProvinces = collect($provinceMap)->only($selectedRegions)->flatMap(fn ($items) => array_keys($items))->map(fn ($code) => (string) $code)->all();
+        $selectedProvinces = array_values(array_intersect($allowedProvinces, $data['distribution_provinces'] ?? []));
+        $facilityIds = $scope === 'facilities'
+            ? OfficialSourceFacility::query()->where('is_active', true)->whereIn('id', $data['facility_ids'] ?? [])->pluck('id')->all()
+            : [];
+        $values = collect($data)->except(['tracking_id', 'contract', 'distribution_regions', 'distribution_provinces', 'facility_ids'])->all();
+        $values['distribution_regions'] = $scope === 'regions' ? $selectedRegions : null;
+        $values['distribution_provinces'] = $scope === 'regions' ? $selectedProvinces : null;
         $values['supplier_name'] = $partner->name;
         $values['supplier_name_normalized'] = mb_strtolower(trim($partner->name));
         if ($request->hasFile('contract')) {
@@ -246,6 +274,7 @@ final class PharmaMedicineRelationsController extends Controller
         $tracking->fill($values);
         $tracking->medicine_id = $master->id;
         $tracking->save();
+        $tracking->facilities()->sync($facilityIds);
 
         return redirect()->route('client.pharma.products.supplier-conditions', $master->id)
             ->with('success', 'Đã lưu điều kiện thương mại cho thuốc.');
