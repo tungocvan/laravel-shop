@@ -21,6 +21,18 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
 
+    public function test_client_catalog_includes_master_records_without_variants(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString("'masterOnlyMedicines'", $controller);
+        $this->assertStringContainsString("->whereDoesntHave('variants')", $controller);
+        $this->assertStringContainsString('$masterOnlyMedicines->total()', $view);
+        $this->assertStringContainsString('Chưa có SKU', $view);
+        $this->assertStringContainsString("route('client.pharma.products.edit', \$master->id)", $view);
+    }
+
     public function test_client_catalog_exposes_create_and_edit_actions(): void
     {
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
