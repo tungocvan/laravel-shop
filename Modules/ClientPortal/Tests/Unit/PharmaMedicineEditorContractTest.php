@@ -33,6 +33,27 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.edit', \$master->id)", $view);
     }
 
+    public function test_new_import_approval_allocates_medicine_code_and_default_sku_safely(): void
+    {
+        $service = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/ClientMedicineImportCreator.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelController.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/import-batch.blade.php'));
+        $stager = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalogImportStager.php'));
+
+        $this->assertStringContainsString('DB::transaction(', $service);
+        $this->assertStringContainsString('lockForUpdate()', $service);
+        $this->assertStringContainsString('MedicineImportRow::CLASS_NEW', $service);
+        $this->assertStringContainsString('$this->medicines->store(', $service);
+        $this->assertStringContainsString('$this->variants->createFirst(', $service);
+        $this->assertStringContainsString('medicine_code_reference', $service);
+        $this->assertStringContainsString('registration_exists_without_roundtrip_reference', $stager);
+        $this->assertStringContainsString('function approveNew(', $controller);
+        $this->assertStringContainsString("'client.pharma.products.create-variant'", $controller);
+        $this->assertStringContainsString("'/products/import/batches/{batch}/approve-new'", $routes);
+        $this->assertStringContainsString("route('client.pharma.products.import.approve-new'", $view);
+    }
+
     public function test_client_import_has_dedicated_page_history_and_batch_review(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelController.php'));
