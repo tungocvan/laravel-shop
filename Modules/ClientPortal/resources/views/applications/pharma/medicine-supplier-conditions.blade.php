@@ -58,10 +58,69 @@
             </div>
         </section>
         <section data-supplier-panel="distribution" hidden class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 class="font-extrabold">Phạm vi phân phối</h2>
-            <div class="mt-4 grid gap-4">
-                <label class="text-sm font-bold">Khu vực <input name="area" value="{{ old('area', $editing?->area) }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
-                <label class="text-sm font-bold">Phạm vi / khách hàng / cơ sở được phép bán <textarea name="distribution_scope" rows="4" class="mt-2 block w-full rounded-xl border border-slate-300 p-3">{{ old('distribution_scope', $editing?->distribution_scope) }}</textarea></label>
+            <h2 class="font-extrabold">3. Phạm vi được phép bán</h2>
+            <p class="mt-1 text-sm text-slate-500">Chọn một phạm vi áp dụng như Admin. Cơ sở khám chữa bệnh lấy từ danh mục chính thức của Pharma.</p>
+            @php
+                $scope = old('distribution_scope', $editing?->distribution_scope ?? 'all');
+                $selectedRegions = old('distribution_regions', $editing?->distribution_regions ?? []);
+                $selectedProvinces = old('distribution_provinces', $editing?->distribution_provinces ?? []);
+                $selectedFacilities = old('facility_ids', $selectedFacilityIds);
+            @endphp
+            <div class="mt-4 grid gap-3 sm:grid-cols-3">
+                @foreach(['all'=>'Toàn bộ cơ sở','regions'=>'Theo vùng miền','facilities'=>'Chọn từng cơ sở'] as $value=>$label)
+                    <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-semibold">
+                        <input type="radio" name="distribution_scope" value="{{ $value }}" @checked($scope === $value) class="text-indigo-600">
+                        {{ $label }}
+                    </label>
+                @endforeach
+            </div>
+            <div data-distribution-mode="regions" class="mt-4 space-y-4" hidden>
+                <h3 class="text-sm font-bold">Vùng miền</h3>
+                <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach($distributionRegions as $code=>$label)
+                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm">
+                            <input type="checkbox" name="distribution_regions[]" value="{{ $code }}" @checked(in_array((string) $code, array_map('strval', $selectedRegions), true)) data-region-checkbox>
+                            {{ $label }}
+                        </label>
+                    @endforeach
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <h3 class="text-sm font-bold">Tỉnh/Thành thuộc vùng miền</h3>
+                    <p class="mt-1 text-xs text-slate-500">Chỉ hiển thị các tỉnh/thành thuộc vùng đã chọn.</p>
+                    <div class="mt-3 space-y-4">
+                        @foreach($distributionProvincesByRegion as $regionCode=>$provinceOptions)
+                            <div data-province-region="{{ $regionCode }}" hidden>
+                                <h4 class="mb-2 text-xs font-bold uppercase text-slate-500">{{ $distributionRegions[$regionCode] ?? $regionCode }}</h4>
+                                <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                    @foreach($provinceOptions as $provinceCode=>$provinceName)
+                                        <label class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm">
+                                            <input type="checkbox" name="distribution_provinces[]" value="{{ $provinceCode }}" @checked(in_array((string) $provinceCode, array_map('strval', $selectedProvinces), true))>
+                                            {{ $provinceName }}
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </div>
+            <div data-distribution-mode="facilities" class="mt-4" hidden>
+                <h3 class="text-sm font-bold">Chọn cơ sở khám chữa bệnh</h3>
+                <p class="mt-1 text-xs text-slate-500">Tìm theo tên, mã CSKCB hoặc tỉnh/thành. Các cơ sở đã chọn luôn được giữ trong danh sách.</p>
+                <div class="mt-3 flex gap-2">
+                    <input id="facility-search-input" type="search" value="{{ request('facility_search') }}" placeholder="Tìm cơ sở, mã CSKCB hoặc tỉnh/thành..." class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3">
+                    <button type="button" id="facility-search-button" class="rounded-xl border border-indigo-300 px-4 text-sm font-bold text-indigo-700">Tìm</button>
+                </div>
+                <div class="mt-3 max-h-72 overflow-y-auto divide-y divide-slate-100 rounded-xl border border-slate-200">
+                    @forelse($facilities as $facility)
+                        <label class="flex items-start gap-3 p-3 hover:bg-slate-50">
+                            <input type="checkbox" name="facility_ids[]" value="{{ $facility->id }}" @checked(in_array((string) $facility->id, array_map('strval', $selectedFacilities), true)) class="mt-1">
+                            <span><span class="block text-sm font-semibold">{{ $facility->facility_name }}</span><span class="text-xs text-slate-500">{{ $facility->external_id }} · {{ $facility->province_name ?: 'Chưa có tỉnh/thành' }}</span></span>
+                        </label>
+                    @empty
+                        <p class="p-4 text-sm text-slate-500">Không tìm thấy cơ sở phù hợp.</p>
+                    @endforelse
+                </div>
             </div>
         </section>
         <section data-supplier-panel="commitments" hidden class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -106,6 +165,28 @@
                 return;
             }
             if (!confirm('Xác nhận lưu điều kiện thương mại?')) event.preventDefault();
+        });
+        const scopeInputs = Array.from(root.querySelectorAll('input[name="distribution_scope"]'));
+        const refreshDistribution = () => {
+            const scope = scopeInputs.find(input => input.checked)?.value ?? 'all';
+            root.querySelectorAll('[data-distribution-mode]').forEach(panel => {
+                panel.hidden = panel.dataset.distributionMode !== scope;
+                panel.querySelectorAll('input').forEach(input => { input.disabled = panel.hidden; });
+            });
+            const selectedRegions = Array.from(root.querySelectorAll('[data-region-checkbox]:checked')).map(input => input.value);
+            root.querySelectorAll('[data-province-region]').forEach(group => {
+                group.hidden = !selectedRegions.includes(group.dataset.provinceRegion);
+                group.querySelectorAll('input').forEach(input => { input.disabled = group.hidden || scope !== 'regions'; });
+            });
+        };
+        scopeInputs.forEach(input => input.addEventListener('change', refreshDistribution));
+        root.querySelectorAll('[data-region-checkbox]').forEach(input => input.addEventListener('change', refreshDistribution));
+        refreshDistribution();
+        const searchButton = document.getElementById('facility-search-button');
+        searchButton?.addEventListener('click', () => {
+            const url = new URL(window.location.href);
+            url.searchParams.set('facility_search', document.getElementById('facility-search-input').value.trim());
+            window.location.assign(url.toString());
         });
         show('supplier');
     });
