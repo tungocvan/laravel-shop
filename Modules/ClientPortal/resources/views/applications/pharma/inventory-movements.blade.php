@@ -14,7 +14,9 @@
             <a href="{{ route('client.pharma.inventory') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Tồn kho</a>
             <span class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Xuất–Nhập–Tồn</span>
             <a href="{{ route('client.pharma.inventory.receipts') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Phiếu nhập</a>
-            <a href="{{ route('client.pharma.inventory.issues') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Phiếu xuất</a>
+            @if(\\Illuminate\\Support\\Facades\\Route::has('client.pharma.inventory.issues'))
+                <a href="{{ route('client.pharma.inventory.issues') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Phiếu xuất</a>
+            @endif
         </nav>
     </header>
 
