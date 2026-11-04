@@ -32,6 +32,7 @@ final class MedicineConfiguredExcelExporter
         $row = 1;
         $spreadsheet->getDefaultStyle()->getFont()->setName($settings['font_family']);
         $logoPath = null;
+        $logoHeightPoints = 0;
         $reportHeader = $settings['report_header'] ?? [];
         if ($reportHeader['enabled'] ?? false) {
             $logo = $reportHeader['logo_data'] ?? null;
@@ -47,6 +48,7 @@ final class MedicineConfiguredExcelExporter
                     $drawing->setCoordinates('A1');
                     $drawing->setWidth((int) ($reportHeader['logo_width'] ?? 110));
                     $drawing->setWorksheet($sheet);
+                    $logoHeightPoints = $drawing->getHeight() * 0.75;
                 }
             }
             $details = [
@@ -58,6 +60,7 @@ final class MedicineConfiguredExcelExporter
                 ['email', 'Email: '],
             ];
             $headerStart = $row;
+            $headerHeightPoints = 0;
             foreach ($details as [$field, $prefix]) {
                 $value = trim((string) ($reportHeader[$field] ?? ''));
                 if ($field === 'company_name' && $value === '') $value = trim((string) $settings['company_name']);
@@ -68,12 +71,19 @@ final class MedicineConfiguredExcelExporter
                 $style->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
                 $style->getFont()->setSize((int) $settings['body_font_size']);
                 if ($field === 'company_name') $style->getFont()->setBold(true)->setSize((int) $settings['header_font_size'] + 1);
-                $sheet->getRowDimension($row)->setRowHeight($field === 'company_name' ? 26 : 22);
+                // Let Excel auto-size normal rows; reserve a safe baseline for logo geometry.
+                $sheet->getRowDimension($row)->setRowHeight(-1);
+                $headerHeightPoints += max(15, (int) ($field === 'company_name' ? $settings['header_font_size'] + 1 : $settings['body_font_size']) * 1.5);
                 $row++;
             }
-            if ($logoPath !== null) {
-                $minimumRows = (int) ceil(($settings['report_header']['logo_width'] ?? 110) / 20);
-                $row = max($row, $headerStart + $minimumRows);
+            if ($logoPath !== null && $logoHeightPoints > $headerHeightPoints) {
+                // Extra blank rows protect the report title from tall logos without fixed row numbers.
+                $missingPoints = $logoHeightPoints - $headerHeightPoints;
+                $extraRows = (int) ceil($missingPoints / 15);
+                for ($i = 0; $i < $extraRows; $i++) {
+                    $sheet->getRowDimension($row)->setRowHeight(-1);
+                    $row++;
+                }
             }
             $row++;
             $sheet->mergeCells("A{$row}:{$last}{$row}");
@@ -87,7 +97,7 @@ final class MedicineConfiguredExcelExporter
                 $sheet->setCellValueExplicit("A{$row}", (string) $reportHeader[$field], DataType::TYPE_STRING);
                 $sheet->getStyle("A{$row}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
                 $sheet->getStyle("A{$row}")->getFont()->setSize((int) $settings['body_font_size'])->setBold($field === 'recipient');
-                $sheet->getRowDimension($row)->setRowHeight($field === 'intro' ? 44 : 24);
+                $sheet->getRowDimension($row)->setRowHeight(-1);
                 $row++;
             }
             $row++;
