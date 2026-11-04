@@ -66,8 +66,9 @@
                 <button type="submit" class="mt-5 min-h-11 rounded-xl bg-indigo-700 px-6 font-bold text-white">Xác nhận lưu bộ HSSP</button>
             </section>
         </form>
+        @push('application-scripts')
         <script>
-        (() => {
+        document.addEventListener('DOMContentLoaded', () => {
             const root = document.getElementById('client-hssp-form');
             if (!root) return;
             const tabs = Array.from(root.querySelectorAll('[data-hssp-tab]'));
@@ -93,9 +94,10 @@
                 }
                 if (!confirm('Xác nhận cập nhật HSSP và tiếp nhận các tài liệu mới?')) event.preventDefault();
             });
-            show({{ $errors->any() ? "'profile'" : "'profile'" }});
-        })();
+            show('profile');
+        });
         </script>
+        @endpush
         @else
         <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 class="font-extrabold">HSSP hiện hành · {{ $profile->profile_version }}</h2>
