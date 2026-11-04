@@ -66,7 +66,7 @@ final class InventoryConfiguredExcelExporter
                 $sheet->setCellValue("A{$line}", $title);
                 $sheet->getStyle("A{$line}")->getFont()->setBold(true)->setSize(16);
                 $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-                $sheet->getRowDimension($line)->setRowHeight(-1);
+                $sheet->getRowDimension($line)->setRowHeight(21); // 28 px at 96 DPI = 21 pt in Excel.
                 $line += 2;
                 if (! empty($header['enabled'])) {
                     foreach (['recipient' => 'Kính gửi: ', 'intro' => ''] as $key => $prefix) {
@@ -138,6 +138,10 @@ final class InventoryConfiguredExcelExporter
                     $signatureStart = Coordinate::stringFromColumnIndex(max(1, (int) floor(count($columns) / 2) + 1));
                     foreach (['date_text', 'signer_title', 'signer_name'] as $key) {
                         $value = trim((string) ($footer[$key] ?? ''));
+                        if ($key === 'date_text' && $value === '') {
+                            $today = now('Asia/Ho_Chi_Minh');
+                            $value = 'TP.HCM, ngày '.$today->format('d').' tháng '.$today->format('m').' năm '.$today->format('Y');
+                        }
                         if ($value === '') continue;
                         if ($key === 'signer_name') $line += max(1, min(12, (int) ($footer['signature_blank_rows'] ?? 4)));
                         $sheet->mergeCells("{$signatureStart}{$line}:{$last}{$line}");
