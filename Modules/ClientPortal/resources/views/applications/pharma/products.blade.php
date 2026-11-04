@@ -20,6 +20,7 @@
     </section>
 
     @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
+    @if(session('error'))<div role="alert" class="rounded-xl bg-red-50 p-4 text-sm text-red-800">{{ session('error') }}</div>@endif
     <nav aria-label="Công cụ danh mục thuốc" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         @can('client.pharma.products.create')
             <a href="{{ route('client.pharma.products.create') }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white hover:bg-indigo-800">+ Thêm thuốc</a>
@@ -133,6 +134,13 @@
                         @endcan
                         @can('client.pharma.products.edit')
                             <a href="{{ route('client.pharma.products.edit', $master->id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-800">Sửa thuốc</a>
+                        @endcan
+                        @can('client.pharma.products.delete')
+                            <form method="POST" action="{{ route('client.pharma.products.destroy', $master->id) }}" onsubmit="return confirm('Xóa thuốc {{ addslashes($master->medicine_code) }}? Chỉ xóa được khi không có bất kỳ dữ liệu liên kết nào. Thao tác không thể hoàn tác.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="inline-flex min-h-10 items-center rounded-xl border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50">Xóa</button>
+                            </form>
                         @endcan
                     </div>
                 </div>
