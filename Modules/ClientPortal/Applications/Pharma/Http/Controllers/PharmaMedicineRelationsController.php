@@ -229,7 +229,7 @@ final class PharmaMedicineRelationsController extends Controller
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'in:active,inactive,pending'],
             'import_price' => ['required', 'numeric', 'min:0'],
-            'selling_price' => ['nullable', 'numeric', 'min:0'],
+            'selling_price' => ['required', 'numeric', 'min:0'],
             'invoice_price' => ['nullable', 'numeric', 'min:0'],
             'committed_quantity' => ['nullable', 'numeric', 'min:0'],
             'deposit_amount' => ['nullable', 'numeric', 'min:0'],
@@ -251,6 +251,9 @@ final class PharmaMedicineRelationsController extends Controller
             'import_price.required' => 'Vui lòng nhập Giá nhập NCC ở tab Điều kiện thương mại.',
             'import_price.numeric' => 'Giá nhập NCC phải là số.',
             'import_price.min' => 'Giá nhập NCC không được âm.',
+            'selling_price.required' => 'Vui lòng nhập Giá bán tham khảo ở tab Điều kiện thương mại.',
+            'selling_price.numeric' => 'Giá bán tham khảo phải là số.',
+            'selling_price.min' => 'Giá bán tham khảo không được âm.',
             'end_date.after_or_equal' => 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.',
             'distribution_scope.required' => 'Vui lòng chọn phạm vi phân phối.',
         ]);
@@ -272,6 +275,11 @@ final class PharmaMedicineRelationsController extends Controller
             ? OfficialSourceFacility::query()->where('is_active', true)->whereIn('id', $data['facility_ids'] ?? [])->pluck('id')->all()
             : [];
         $values = collect($data)->except(['tracking_id', 'contract', 'distribution_regions', 'distribution_provinces', 'facility_ids'])->all();
+        // Numeric columns in the legacy supplier tracking schema are NOT NULL.
+        // Optional amounts are stored as 0 (no amount supplied), never as NULL.
+        foreach (['invoice_price', 'committed_quantity', 'deposit_amount'] as $amount) {
+            $values[$amount] = $data[$amount] ?? 0;
+        }
         $values['distribution_regions'] = $scope === 'regions' ? $selectedRegions : null;
         $values['distribution_provinces'] = $scope === 'regions' ? $selectedProvinces : null;
         $values['supplier_name'] = $partner->name;
