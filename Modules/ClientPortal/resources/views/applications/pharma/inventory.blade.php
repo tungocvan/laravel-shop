@@ -69,7 +69,7 @@
                 <label class="min-w-0 lg:col-span-4">
                     <span class="flex h-7 items-center text-xs font-bold text-slate-500">Tìm thuốc</span>
                     <div class="relative mt-1">
-                        <input id="inventory-search-input" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Tên thuốc / hoạt chất" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 pr-11 text-sm shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
+                        <input id="inventory-search-input" type="search" name="q" value="{{ $filters['q'] }}" autocomplete="off" placeholder="Tìm mã thuốc / tên thuốc" class="h-12 w-full rounded-2xl border border-slate-300 bg-white px-4 pr-11 text-sm shadow-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200">
                         @if($filters['q'])
                             <a href="{{ route('client.pharma.inventory', array_filter(['expiry'=>$filters['expiry'],'cost_status'=>$canViewCosts ? $filters['cost_status'] : null,'sort'=>$canViewCosts ? $filters['sort'] : null])) }}" aria-label="Xóa từ khóa tìm kiếm" class="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-lg font-bold text-slate-400 hover:bg-slate-100 hover:text-slate-700">×</a>
                         @endif
@@ -95,15 +95,24 @@
                     </div>
                 </div>
             </div>
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+                <label class="text-xs font-bold text-slate-600">Số dòng <select name="per_page" onchange="this.form.submit()" class="ml-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($filters['per_page']===$size)>{{ $size }} / trang</option>@endforeach</select></label>
+                <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600"><input id="inventory-only-positive" type="checkbox"> Chỉ còn tồn (trang hiện tại)</label>
+                <a href="{{ route('client.pharma.inventory') }}" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold">Xóa bộ lọc</a>
+            </div>
             <p class="mt-2 text-xs text-slate-400">Kết quả tự cập nhật khi bạn nhập.</p>
         </form>
     </section>
 
+    <form id="inventory-selected-export" method="GET" action="{{ route('client.pharma.inventory.export') }}" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+        <label class="inline-flex items-center gap-2 text-sm font-bold text-indigo-900"><input id="inventory-select-all" type="checkbox"> Chọn tất cả trên trang hiện tại</label>
+        <div class="flex items-center gap-2"><span id="inventory-selected-count" class="text-xs text-indigo-800">0 lô đã chọn</span><button type="button" id="inventory-clear-selected" class="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold">Bỏ chọn</button><button type="submit" id="inventory-export-selected" disabled class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">Xuất Excel đã chọn</button></div>
+    </form>
     <section id="inventory-mobile-list" class="grid gap-3 md:grid-cols-2 xl:hidden">
         @forelse($balances as $row)
             @php $expired=$row->expiry_date->isPast(); $near=!$expired && $row->expiry_date->lte(now()->addMonths(6)); @endphp
-            <a data-inventory-card href="{{ route('client.pharma.inventory.balances.show', $row) }}" class="block rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
-                <div class="flex items-start justify-between gap-3">
+            <a data-inventory-card data-quantity="{{ (float)$row->quantity_on_hand }}" href="{{ route('client.pharma.inventory.balances.show', $row) }}" class="block rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition active:scale-[0.985] motion-reduce:transform-none">
+                <div class="flex items-start justify-between gap-3"><input type="checkbox" data-inventory-select value="{{ $row->id }}" aria-label="Chọn lô {{ $row->batch_number }}" onclick="event.stopPropagation()" class="h-4 w-4">
                     <div class="min-w-0"><h2 class="font-black text-slate-950">{{ $row->medicine->name }}</h2><p class="mt-1 text-xs leading-5 text-slate-500">{{ $row->medicine->active_ingredients ?: 'Chưa có hoạt chất' }}</p></div>
                     <span class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold {{ $expired ? 'bg-rose-100 text-rose-700' : ($near ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700') }}">{{ $expired ? 'Hết hạn' : ($near ? 'Sắp hết hạn' : 'Còn hạn') }}</span>
                 </div>
@@ -124,7 +133,7 @@
     </section>
 
     <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
-        <div class="overflow-x-auto"><table class="w-full table-fixed divide-y divide-slate-200 text-sm"><colgroup><col class="w-[14%]"><col class="w-[27%]"><col class="w-[10%]"><col class="w-[11%]"><col class="w-[10%]">@if($canViewCosts)<col class="w-[13%]"><col class="w-[15%]">@endif</colgroup><thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Hoạt chất / Quy cách</th><th class="px-4 py-3 whitespace-nowrap">Số lô</th><th class="px-4 py-3 whitespace-nowrap">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn hiện tại</th>@if($canViewCosts)<th class="px-4 py-3 text-right whitespace-nowrap">Giá vốn TB</th><th class="px-4 py-3 text-right whitespace-nowrap">Giá trị tồn</th>@endif</tr></thead><tbody id="inventory-desktop-body" class="divide-y divide-slate-100">@forelse($balances as $row)<tr data-inventory-row class="group"><td class="px-4 py-3 font-bold text-slate-950"><a href="{{ route('client.pharma.inventory.balances.show', $row) }}" class="inline-flex items-center gap-2 hover:underline">{{ $row->medicine->name }}<span class="text-slate-300 transition group-hover:translate-x-0.5">›</span></a></td><td class="px-4 py-3"><div class="font-medium text-slate-700">{{ $row->medicine->active_ingredients ?: '—' }}</div><div class="mt-1 text-xs text-slate-400">{{ $row->medicine->packaging_specification ?: '—' }}</div></td><td class="px-4 py-3 whitespace-nowrap">{{ $row->batch_number }}</td><td class="px-4 py-3 whitespace-nowrap">{{ $row->expiry_date->format('d/m/Y') }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ rtrim(rtrim(number_format((float)$row->quantity_on_hand,3,'.',''),'0'),'.') }}</td>@if($canViewCosts)<td class="px-4 py-3 text-right whitespace-nowrap">{{ $row->average_cost_price !== null ? $money($row->average_cost_price) : '—' }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ $row->inventory_value !== null ? $money($row->inventory_value) : '—' }}</td>@endif</tr>@empty<tr><td colspan="{{ $canViewCosts ? 7 : 5 }}" class="px-4 py-8 text-center text-slate-500">Không có tồn kho phù hợp bộ lọc.</td></tr>@endforelse</tbody></table></div>
+        <div class="overflow-x-auto"><table class="w-full table-fixed divide-y divide-slate-200 text-sm"><colgroup><col class="w-[5%]"><col class="w-[14%]"><col class="w-[27%]"><col class="w-[10%]"><col class="w-[11%]"><col class="w-[10%]">@if($canViewCosts)<col class="w-[13%]"><col class="w-[15%]">@endif</colgroup><thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="px-2 py-3">Chọn</th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Hoạt chất / Quy cách</th><th class="px-4 py-3 whitespace-nowrap">Số lô</th><th class="px-4 py-3 whitespace-nowrap">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn hiện tại</th>@if($canViewCosts)<th class="px-4 py-3 text-right whitespace-nowrap">Giá vốn TB</th><th class="px-4 py-3 text-right whitespace-nowrap">Giá trị tồn</th>@endif</tr></thead><tbody id="inventory-desktop-body" class="divide-y divide-slate-100">@forelse($balances as $row)<tr data-inventory-row data-quantity="{{ (float)$row->quantity_on_hand }}" class="group"><td class="px-2 py-3"><input type="checkbox" data-inventory-select value="{{ $row->id }}" aria-label="Chọn lô {{ $row->batch_number }}" class="h-4 w-4"></td><td class="px-4 py-3 font-bold text-slate-950"><a href="{{ route('client.pharma.inventory.balances.show', $row) }}" class="inline-flex items-center gap-2 hover:underline">{{ $row->medicine->name }}<span class="text-slate-300 transition group-hover:translate-x-0.5">›</span></a></td><td class="px-4 py-3"><div class="font-medium text-slate-700">{{ $row->medicine->active_ingredients ?: '—' }}</div><div class="mt-1 text-xs text-slate-400">{{ $row->medicine->packaging_specification ?: '—' }}</div></td><td class="px-4 py-3 whitespace-nowrap">{{ $row->batch_number }}</td><td class="px-4 py-3 whitespace-nowrap">{{ $row->expiry_date->format('d/m/Y') }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ rtrim(rtrim(number_format((float)$row->quantity_on_hand,3,'.',''),'0'),'.') }}</td>@if($canViewCosts)<td class="px-4 py-3 text-right whitespace-nowrap">{{ $row->average_cost_price !== null ? $money($row->average_cost_price) : '—' }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ $row->inventory_value !== null ? $money($row->inventory_value) : '—' }}</td>@endif</tr>@empty<tr><td colspan="{{ $canViewCosts ? 8 : 6 }}" class="px-4 py-8 text-center text-slate-500">Không có tồn kho phù hợp bộ lọc.</td></tr>@endforelse</tbody></table></div>
     </section>
 
     @if($balances->hasMorePages())
@@ -158,6 +167,43 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const selected = new Set();
+    const selectionInputs = () => Array.from(document.querySelectorAll('#inventory-desktop-body [data-inventory-select]'));
+    const selectAll = document.getElementById('inventory-select-all');
+    const updateSelected = () => {
+        document.querySelectorAll('[data-inventory-select]').forEach(input => { input.checked = selected.has(input.value); });
+        const inputs = selectionInputs();
+        selectAll.checked = inputs.length > 0 && inputs.every(input => input.checked);
+        selectAll.indeterminate = !selectAll.checked && inputs.some(input => input.checked);
+        document.getElementById('inventory-selected-count').textContent = selected.size + ' lô đã chọn';
+        document.getElementById('inventory-export-selected').disabled = selected.size === 0;
+    };
+    document.addEventListener('change', event => {
+        if (!event.target.matches('[data-inventory-select]')) return;
+        if (event.target.checked) selected.add(event.target.value);
+        else selected.delete(event.target.value);
+        updateSelected();
+    });
+    selectAll.addEventListener('change', () => {
+        selectionInputs().forEach(input => selectAll.checked ? selected.add(input.value) : selected.delete(input.value));
+        updateSelected();
+    });
+    document.getElementById('inventory-clear-selected').addEventListener('click', () => { selected.clear(); updateSelected(); });
+    document.getElementById('inventory-selected-export').addEventListener('submit', event => {
+        if (!selected.size) { event.preventDefault(); return; }
+        const form = event.currentTarget;
+        form.querySelectorAll('input[name="ids[]"]').forEach(input => input.remove());
+        selected.forEach(id => {
+            const input = document.createElement('input');
+            input.type = 'hidden'; input.name = 'ids[]'; input.value = id; form.appendChild(input);
+        });
+    });
+    const positiveOnly = document.getElementById('inventory-only-positive');
+    positiveOnly.addEventListener('change', () => {
+        document.querySelectorAll('[data-quantity]').forEach(row => row.classList.toggle('hidden', positiveOnly.checked && Number(row.dataset.quantity) <= 0));
+    });
+    updateSelected();
+
     const mobileList = document.getElementById('inventory-mobile-list');
     const desktopBody = document.getElementById('inventory-desktop-body');
     const wrap = document.getElementById('inventory-load-more-wrap');
@@ -180,6 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
             documentPage.querySelectorAll('#inventory-mobile-list [data-inventory-card]').forEach((card) => mobileList?.appendChild(card));
             documentPage.querySelectorAll('#inventory-desktop-body [data-inventory-row]').forEach((row) => desktopBody?.appendChild(row));
 
+            updateSelected();
+            if (positiveOnly.checked) positiveOnly.dispatchEvent(new Event('change'));
             const next = documentPage.getElementById('inventory-load-more');
             if (next) {
                 more.href = next.href;
