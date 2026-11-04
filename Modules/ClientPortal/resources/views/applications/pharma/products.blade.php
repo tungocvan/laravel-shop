@@ -30,7 +30,7 @@
         @endif
         @if($canExportMedicines)
             <a href="{{ route('client.pharma.products.export.roundtrip') }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800 hover:bg-emerald-100">↓ Xuất Excel để nhập lại</a>
-            <a href="#medicine-export-form" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Xuất báo cáo</a>
+
         @endif
         @if($canConfigureMedicineExcel)<a href="{{ route('client.pharma.products.excel-config') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">⚙ Cấu hình Excel</a>@endif
     </nav>
@@ -75,13 +75,6 @@
             <a href="{{ route('client.pharma.products.import.batch', session('medicine_import_staged.batch_id')) }}" class="ml-2 font-bold underline">Xem chi tiết staging</a>
         </div>
     @endif
-    @if($canImportMedicines)
-        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
-            <div><strong class="text-slate-900">Import Excel & lịch sử staging</strong><p class="mt-1 text-xs text-slate-500">Tải tệp, phân loại và rà soát từng dòng trên trang import riêng.</p></div>
-            <a href="{{ route('client.pharma.products.import.page') }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 font-bold text-indigo-700">Mở trang Import →</a>
-        </div>
-    @endif
-
     @if($canExportMedicines)
         <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
             @csrf
