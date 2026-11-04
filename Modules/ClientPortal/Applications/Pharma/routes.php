@@ -124,12 +124,12 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')
             ->middleware('client.feature:pharma,commissions')
             ->name('commissions.show');
-        Route::get('/inventory/movements', [\\Modules\\ClientPortal\\Applications\\Pharma\\Http\\Controllers\\PharmaInventoryReportsController::class, 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements');
-        Route::get('/inventory/movements/export', [\\Modules\\ClientPortal\\Applications\\Pharma\\Http\\Controllers\\PharmaInventoryReportsController::class, 'exportMovements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements.export');
-        Route::get('/inventory/export', [\\Modules\\ClientPortal\\Applications\\Pharma\\Http\\Controllers\\PharmaInventoryReportsController::class, 'exportStock'])->middleware('client.feature:pharma,inventory')->name('inventory.export');
-        Route::get('/inventory/opening', [\\Modules\\ClientPortal\\Applications\\Pharma\\Http\\Controllers\\PharmaInventoryReportsController::class, 'opening'])->middleware('client.feature:pharma,inventory')->name('inventory.opening');
-        Route::get('/inventory/opening/template', [\\Modules\\ClientPortal\\Applications\\Pharma\\Http\\Controllers\\PharmaInventoryReportsController::class, 'openingTemplate'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.template');
-        Route::post('/inventory/opening/import', [\\Modules\\ClientPortal\\Applications\\Pharma\\Http\\Controllers\\PharmaInventoryReportsController::class, 'importOpening'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.import');
+        Route::get('/inventory/movements', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements');
+        Route::get('/inventory/movements/export', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'exportMovements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements.export');
+        Route::get('/inventory/export', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'exportStock'])->middleware('client.feature:pharma,inventory')->name('inventory.export');
+        Route::get('/inventory/opening', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'opening'])->middleware('client.feature:pharma,inventory')->name('inventory.opening');
+        Route::get('/inventory/opening/template', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'openingTemplate'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.template');
+        Route::post('/inventory/opening/import', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'importOpening'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.import');
         Route::get('/inventory', [PharmaApplicationController::class, 'inventory'])
             ->middleware('client.feature:pharma,inventory')
             ->name('inventory');
