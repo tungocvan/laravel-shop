@@ -54,17 +54,20 @@ final class InventoryConfiguredExcelExporter
                 $sheet->mergeCells("A{$line}:{$last}{$line}");
                 $sheet->setCellValue("A{$line}", $title);
                 $sheet->getStyle("A{$line}")->getFont()->setBold(true)->setSize(16);
-                $sheet->getStyle("A{$line}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+                $sheet->getRowDimension($line)->setRowHeight(34);
                 $line += 2;
                 $headingLine = $line;
                 foreach ($columns as $i => $key) {
                     $letter = Coordinate::stringFromColumnIndex($i + 1);
                     $sheet->setCellValue($letter.$line, $headers[$key] ?? $key);
-                    $sheet->getColumnDimension($letter)->setWidth(max(10, min(60, (int) (($widths[$key] ?? 130) / 7))));
+                    $sheet->getColumnDimension($letter)->setWidth(max(40, min(600, (int) ($widths[$key] ?? 130))), 'px');
 
                 }
                 $style = $sheet->getStyle("A{$line}:{$last}{$line}");
                 $style->getFont()->setBold(true)->setSize((int) ($settings['header_font_size'] ?? 12));
+                $style->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+                $sheet->getRowDimension($headingLine)->setRowHeight(34);
                 $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($settings['header_fill'] ?? 'EFF4FA');
                 $line++;
                 $sequence = 0;
@@ -79,8 +82,9 @@ final class InventoryConfiguredExcelExporter
                         } else {
                             $sheet->setCellValueExplicit($cell, (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                         }
-                        $sheet->getStyle($cell)->getAlignment()->setHorizontal($alignments[$key] ?? 'left');
+                        $sheet->getStyle($cell)->getAlignment()->setHorizontal($alignments[$key] ?? 'left')->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
                     }
+                    $sheet->getRowDimension($line)->setRowHeight(-1);
                     $line++;
                 }
                 if (! empty($settings['body_border']) && $line > $headingLine + 1) {
