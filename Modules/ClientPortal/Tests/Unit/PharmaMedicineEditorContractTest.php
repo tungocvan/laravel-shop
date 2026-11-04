@@ -17,6 +17,11 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("function destroy(", $controller);
         $this->assertStringContainsString("lockForUpdate()", $controller);
         $this->assertStringContainsString("supplierTrackings", $controller);
+        $this->assertStringContainsString('information_schema.KEY_COLUMN_USAGE', $controller);
+        $this->assertStringContainsString('$master->variants()->delete()', $controller);
+        $this->assertStringContainsString('$variant->packages()->exists()', $controller);
+        $this->assertStringContainsString('Xóa thuốc / SKU chưa có giao dịch', $catalog);
+        $this->assertStringNotContainsString('Xóa thuốc · Đã có SKU', $catalog);
         $this->assertStringContainsString("name('products.destroy')", $routes);
         $this->assertStringContainsString("'client.pharma.products.delete'", $manifest);
         $this->assertStringContainsString("route('client.pharma.products.destroy'", $catalog);
