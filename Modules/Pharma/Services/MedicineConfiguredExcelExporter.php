@@ -94,7 +94,11 @@ final class MedicineConfiguredExcelExporter
             foreach (['recipient', 'intro'] as $field) {
                 if (trim((string) ($reportHeader[$field] ?? '')) === '') continue;
                 $sheet->mergeCells("A{$row}:{$last}{$row}");
-                $sheet->setCellValueExplicit("A{$row}", (string) $reportHeader[$field], DataType::TYPE_STRING);
+                $recipientText = (string) $reportHeader[$field];
+                if ($field === 'recipient' && ! str_starts_with(mb_strtolower(trim($recipientText)), 'kính gửi:')) {
+                    $recipientText = 'Kính gửi: '.$recipientText;
+                }
+                $sheet->setCellValueExplicit("A{$row}", $recipientText, DataType::TYPE_STRING);
                 $sheet->getStyle("A{$row}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
                 $sheet->getStyle("A{$row}")->getFont()->setSize((int) $settings['body_font_size'])->setBold($field === 'recipient');
                 $sheet->getRowDimension($row)->setRowHeight(-1);
@@ -195,7 +199,13 @@ final class MedicineConfiguredExcelExporter
             foreach (['date_text', 'signer_title'] as $field) {
                 if (trim((string) ($footer[$field] ?? '')) === '') continue;
                 $sheet->mergeCells("{$firstSignatureColumn}{$footerRow}:{$last}{$footerRow}");
-                $sheet->setCellValueExplicit("{$firstSignatureColumn}{$footerRow}", (string) $footer[$field], DataType::TYPE_STRING);
+                $footerText = (string) $footer[$field];
+                if ($field === 'date_text' && ! preg_match('/ngày\\s+[0-9]{1,2}\\s+tháng\\s+[0-9]{1,2}\\s+năm\\s+[0-9]{4}/iu', $footerText)) {
+                    $today = now(config('app.timezone'));
+                    $footerText = rtrim(trim($footerText), ', ').', ngày '.$today->format('d').' tháng '.$today->format('m').' năm '.$today->format('Y');
+                    $footerText = ltrim($footerText, ', ');
+                }
+                $sheet->setCellValueExplicit("{$firstSignatureColumn}{$footerRow}", $footerText, DataType::TYPE_STRING);
                 $style = $sheet->getStyle("{$firstSignatureColumn}{$footerRow}:{$last}{$footerRow}");
                 $style->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                 $style->getFont()->setBold($field === 'signer_title')->setSize((int) $settings['body_font_size']);
