@@ -34,6 +34,32 @@
         @endif
         @if($canConfigureMedicineExcel)<a href="{{ route('client.pharma.products.excel-config') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">⚙ Cấu hình Excel</a>@endif
     </nav>
+    @if($canExportMedicines)
+    <details class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary class="flex min-h-12 cursor-pointer items-center justify-between px-4 text-sm font-bold text-slate-800">Mẫu xuất Excel <span class="text-xs text-indigo-700">Ẩn / hiện ▾</span></summary>
+        <div class="border-t border-slate-100 p-3">
+        <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+            @csrf
+            @foreach(request()->only(['q', 'group', 'product_type', 'special_control', 'hssp', 'supplier_price', 'bid_award', 'filter']) as $key => $value)
+                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+            @endforeach
+            <label class="min-w-44 text-xs font-bold text-slate-600">Mẫu xuất Excel
+                <select name="profile_id" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
+                    <option value="">Mẫu mặc định</option>
+                    @foreach($medicineExcelProfiles as $template)
+                        <option value="{{ $template['id'] }}">{{ $template['name'] }}{{ $template['is_default'] ? ' ★' : '' }}</option>
+                    @endforeach
+                </select>
+            </label>
+            <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-bold text-white">Xuất Excel</button>
+            <span class="text-xs text-slate-500">Có chọn thuốc: xuất thuốc đã chọn. Không chọn: xuất toàn bộ kết quả lọc.</span>
+            <button type="button" data-medicine-share hidden class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold">Mở / Chia sẻ tệp</button>
+            <span data-medicine-export-status role="status" class="text-xs text-slate-600"></span>
+        </form>
+        </div>
+    </details>
+    @endif
+
     <details class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" @if($search !== '' || $circularGroup !== '' || $filter !== null || $selectedProductType !== '' || $selectedSpecialControl !== '' || $selectedHssp !== '' || $selectedSupplierPrice !== '' || $selectedBidAward !== '') open @endif>
         <summary class="mb-3 flex cursor-pointer items-center justify-between gap-3"><span><strong class="block text-sm text-slate-900">Tìm kiếm & bộ lọc</strong><span class="mt-1 block text-xs text-slate-500">Tìm theo tên, mã thuốc, SKU hoặc giấy phép lưu hành</span></span><span class="text-xs font-bold text-indigo-700">Ẩn / hiện ▾</span></summary>
         <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-start">
@@ -75,27 +101,6 @@
             <a href="{{ route('client.pharma.products.import.batch', session('medicine_import_staged.batch_id')) }}" class="ml-2 font-bold underline">Xem chi tiết staging</a>
         </div>
     @endif
-    @if($canExportMedicines)
-        <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
-            @csrf
-            @foreach(request()->only(['q', 'group', 'product_type', 'special_control', 'hssp', 'supplier_price', 'bid_award', 'filter']) as $key => $value)
-                <input type="hidden" name="{{ $key }}" value="{{ $value }}">
-            @endforeach
-            <label class="min-w-44 text-xs font-bold text-slate-600">Mẫu xuất Excel
-                <select name="profile_id" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
-                    <option value="">Mẫu mặc định</option>
-                    @foreach($medicineExcelProfiles as $template)
-                        <option value="{{ $template['id'] }}">{{ $template['name'] }}{{ $template['is_default'] ? ' ★' : '' }}</option>
-                    @endforeach
-                </select>
-            </label>
-            <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-bold text-white">Xuất Excel</button>
-            <span class="text-xs text-slate-500">Có chọn thuốc: xuất thuốc đã chọn. Không chọn: xuất toàn bộ kết quả lọc.</span>
-            <button type="button" data-medicine-share hidden class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold">Mở / Chia sẻ tệp</button>
-            <span data-medicine-export-status role="status" class="text-xs text-slate-600"></span>
-        </form>
-    @endif
-
     <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
         <label class="inline-flex min-h-10 cursor-pointer items-center gap-2 font-semibold text-slate-700">
             <input type="checkbox" data-medicine-select-all class="h-4 w-4 rounded border-slate-300 text-blue-600">
