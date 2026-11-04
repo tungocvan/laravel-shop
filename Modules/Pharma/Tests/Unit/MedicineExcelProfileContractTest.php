@@ -169,4 +169,21 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('wire:model="settings.margin_{{ $side }}_cm"', $designer);
         $this->assertStringContainsString('wire:model="settings.center_horizontally"', $designer);
     }
+
+    public function test_configured_excel_supports_fit_to_page_and_two_border_weights(): void
+    {
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString("'fit_to_page' => false", $service);
+        $this->assertStringContainsString("'settings.fit_to_page' => 'nullable|boolean'", $component);
+        $this->assertStringContainsString('wire:model="settings.fit_to_page"', $view);
+        $this->assertStringContainsString('setFitToPage(', $writer);
+        $this->assertStringContainsString('setFitToWidth(1)', $writer);
+        $this->assertStringContainsString('setFitToHeight(1)', $writer);
+        $this->assertStringContainsString('Border::BORDER_HAIR : Border::BORDER_THIN', $writer);
+        $this->assertStringContainsString("'D8DEE8' : '333333'", $writer);
+    }
 }
