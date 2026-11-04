@@ -104,6 +104,17 @@
         </form>
     </section>
 
+    @if($canViewCosts && $filters['cost_status'] === 'unpriced')
+        <section class="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <button type="button" onclick="document.getElementById('inventory-supplier-cost-help').classList.toggle('hidden')" aria-controls="inventory-supplier-cost-help" class="rounded-xl border border-amber-300 bg-white px-4 py-2 text-sm font-bold text-amber-900">Kiểm tra giá vốn NCC</button>
+            <div id="inventory-supplier-cost-help" class="mt-3 hidden text-sm leading-6 text-amber-950">
+                Giá vốn tồn kho ưu tiên giá điều chỉnh của lô nếu lớn hơn 0; nếu chưa có thì lấy trung bình giá nhập NCC đang hoạt động, có hiệu lực và lớn hơn 0 của cùng mã thuốc.
+                Nếu lô vẫn chưa có giá, hãy kiểm tra mục <strong>Danh mục thuốc → Nhà cung cấp / Theo dõi NCC</strong>: mã thuốc, trạng thái active, giá nhập và thời hạn hiệu lực.
+                Thao tác kiểm tra chỉ đọc dữ liệu, không ghi đè giá vốn hoặc lịch sử nhập xuất kho.
+            </div>
+        </section>
+    @endif
+
     <form id="inventory-selected-export" method="GET" action="{{ route('client.pharma.inventory.export') }}" class="hidden flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
         <span id="inventory-selected-summary" class="text-sm font-semibold text-indigo-900">Đã chọn lô trên trang hiện tại</span>
         <div class="flex items-center gap-2"><span id="inventory-selected-count" class="text-xs text-indigo-800">0 lô đã chọn</span><button type="button" id="inventory-clear-selected" class="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold">Bỏ chọn</button><button type="submit" id="inventory-export-selected" disabled class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">Xuất Excel đã chọn</button></div>
