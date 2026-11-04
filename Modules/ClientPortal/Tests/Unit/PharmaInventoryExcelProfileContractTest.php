@@ -11,6 +11,10 @@ final class PharmaInventoryExcelProfileContractTest extends TestCase
     {
         $stock = PharmaInventoryExcelProfileController::allowed('stock', true);
         $movements = PharmaInventoryExcelProfileController::allowed('movements', true);
+        self::assertArrayHasKey('stt', $stock);
+        self::assertArrayHasKey('unit', $stock);
+        self::assertArrayHasKey('average_cost_price', $stock);
+        self::assertArrayHasKey('inventory_value', $stock);
         self::assertArrayHasKey('quantity_on_hand', $stock);
         self::assertArrayNotHasKey('period_in', $stock);
         self::assertArrayHasKey('period_in', $movements);
