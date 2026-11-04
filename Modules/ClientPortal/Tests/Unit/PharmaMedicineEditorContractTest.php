@@ -30,5 +30,12 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.edit'", $list);
         $this->assertStringContainsString('@csrf', $form);
         $this->assertStringContainsString("@method('PUT')", $form);
+        $this->assertStringContainsString('data-medicine-tabs', $form);
+        $this->assertStringContainsString('data-tab-counter', $form);
+        $this->assertStringContainsString('data-tab-next', $form);
+        $this->assertStringContainsString('data-tab-previous', $form);
+        $this->assertStringContainsString('medicine-panel-classification', $form);
+        $this->assertStringContainsString('panels[i].hidden = !active', $form);
+        $this->assertStringNotContainsString('x-show=', $form);
     }
 }
