@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Shared\Drawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing as WorksheetDrawing;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 final class MedicineConfiguredExcelExporter
@@ -30,7 +31,60 @@ final class MedicineConfiguredExcelExporter
         $last = Coordinate::stringFromColumnIndex(count($columns));
         $row = 1;
         $spreadsheet->getDefaultStyle()->getFont()->setName($settings['font_family']);
-        if ($settings['header_enabled']) {
+        $logoPath = null;
+        $reportHeader = $settings['report_header'] ?? [];
+        if ($reportHeader['enabled'] ?? false) {
+            $logo = $reportHeader['logo_data'] ?? null;
+            $hasLogo = ($reportHeader['show_logo'] ?? false) && is_string($logo) && preg_match('#^data:image/(png|jpeg);base64,#', $logo);
+            $textStart = $hasLogo && count($columns) >= 4 ? Coordinate::stringFromColumnIndex(3) : 'A';
+            if ($hasLogo && count($columns) >= 4) {
+                $binary = base64_decode(substr($logo, strpos($logo, ',') + 1), true);
+                if ($binary !== false && strlen($binary) <= 262144 && @getimagesizefromstring($binary)) {
+                    $logoPath = tempnam(sys_get_temp_dir(), 'pharma-logo-');
+                    file_put_contents($logoPath, $binary);
+                    $drawing = new WorksheetDrawing();
+                    $drawing->setPath($logoPath);
+                    $drawing->setCoordinates('A1');
+                    $drawing->setWidth((int) ($reportHeader['logo_width'] ?? 110));
+                    $drawing->setWorksheet($sheet);
+                }
+            }
+            $lines = array_filter([
+                $reportHeader['company_name'] ?: $settings['company_name'],
+                $reportHeader['address'] ?? '',
+                $reportHeader['office'] ?? '',
+                $reportHeader['tax_code'] ?? '',
+                $reportHeader['phone'] ?? '',
+                $reportHeader['email'] ?? '',
+            ], fn ($value) => trim((string) $value) !== '');
+            $headerStart = $row;
+            foreach ($lines as $line) {
+                $sheet->mergeCells("{$textStart}{$row}:{$last}{$row}");
+                $sheet->setCellValueExplicit("{$textStart}{$row}", (string) $line, DataType::TYPE_STRING);
+                $sheet->getStyle("{$textStart}{$row}")->getAlignment()->setWrapText(true);
+                $sheet->getRowDimension($row)->setRowHeight(20);
+                $row++;
+            }
+            if ($logoPath !== null) {
+                $minimumRows = (int) ceil(($settings['report_header']['logo_width'] ?? 110) / 20);
+                $row = max($row, $headerStart + $minimumRows);
+            }
+            $row++;
+            $sheet->mergeCells("A{$row}:{$last}{$row}");
+            $sheet->setCellValue("A{$row}", $settings['title']);
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true)->setSize((int) $settings['header_font_size'] + 2);
+            $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $row++;
+            foreach (['recipient', 'intro'] as $field) {
+                if (trim((string) ($reportHeader[$field] ?? '')) === '') continue;
+                $sheet->mergeCells("A{$row}:{$last}{$row}");
+                $sheet->setCellValueExplicit("A{$row}", (string) $reportHeader[$field], DataType::TYPE_STRING);
+                $sheet->getStyle("A{$row}")->getAlignment()->setWrapText(true);
+                $sheet->getRowDimension($row)->setRowHeight($field === 'intro' ? 44 : 22);
+                $row++;
+            }
+            $row++;
+        } elseif ($settings['header_enabled']) {
             foreach (['company_name', 'title'] as $key) {
                 $sheet->mergeCells("A{$row}:{$last}{$row}");
                 $sheet->setCellValue("A{$row}", $settings[$key]);
@@ -116,6 +170,25 @@ final class MedicineConfiguredExcelExporter
                 $sheet->getRowDimension($dataRow)->setRowHeight(-1);
             }
         }
+        $footer = $settings['report_footer'] ?? [];
+        if ($footer['enabled'] ?? false) {
+            $footerRow = $headerRow + $index + 2;
+            foreach (['date_text', 'signer_title'] as $field) {
+                if (trim((string) ($footer[$field] ?? '')) === '') continue;
+                $sheet->mergeCells("A{$footerRow}:{$last}{$footerRow}");
+                $sheet->setCellValueExplicit("A{$footerRow}", (string) $footer[$field], DataType::TYPE_STRING);
+                $sheet->getStyle("A{$footerRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                if ($field === 'signer_title') $sheet->getStyle("A{$footerRow}")->getFont()->setBold(true);
+                $footerRow++;
+            }
+            $footerRow += (int) ($footer['signature_rows'] ?? 4);
+            if (trim((string) ($footer['signer_name'] ?? '')) !== '') {
+                $sheet->mergeCells("A{$footerRow}:{$last}{$footerRow}");
+                $sheet->setCellValueExplicit("A{$footerRow}", (string) $footer['signer_name'], DataType::TYPE_STRING);
+                $sheet->getStyle("A{$footerRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("A{$footerRow}")->getFont()->setBold(true);
+            }
+        }
         $sheet->getPageSetup()->setOrientation($settings['orientation'] === 'portrait' ? 'portrait' : 'landscape');
         $sheet->getPageSetup()->setPaperSize($settings['paper_size']);
         $sheet->getPageSetup()->setFitToPage((bool) ($settings['fit_to_page'] ?? false));
@@ -133,6 +206,7 @@ final class MedicineConfiguredExcelExporter
         $path = tempnam(sys_get_temp_dir(), 'pharma-configured-excel-');
         (new Xlsx($spreadsheet))->save($path);
         $spreadsheet->disconnectWorksheets();
+        if ($logoPath !== null) @unlink($logoPath);
 
         return $path;
     }
