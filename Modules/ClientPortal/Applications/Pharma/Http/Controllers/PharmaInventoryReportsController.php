@@ -145,7 +145,15 @@ final class PharmaInventoryReportsController extends Controller
     {
         $this->authorizeInventory($request, $registry, true);
         $medicines = Medicine::query()->orderBy('name')->get(['id','name','medicine_code']);
-        return view('ClientPortal::applications.pharma.inventory-opening', compact('medicines'));
+        $today = now()->toDateString();
+        $supplierCosts = DB::table('pharma_supplier_trackings')
+            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as price'))
+            ->where('status', 'active')
+            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
+            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
+            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
+            ->groupBy('medicine_id')->pluck('price', 'medicine_id');
+        return view('ClientPortal::applications.pharma.inventory-opening', compact('medicines', 'supplierCosts'));
     }
 
     public function storeOpeningManual(Request $request, ApplicationRegistry $registry, InventoryService $inventory): RedirectResponse
@@ -156,6 +164,7 @@ final class PharmaInventoryReportsController extends Controller
             'batch_number'=>'required|string|max:100',
             'expiry_date'=>'required|date',
             'opening_quantity'=>'required|numeric|gt:0',
+            'manual_cost_price'=>'nullable|numeric|gt:0',
         ]);
         $warehouse = $inventory->defaultWarehouse();
         DB::transaction(function () use ($data, $warehouse, $inventory) {
@@ -169,6 +178,12 @@ final class PharmaInventoryReportsController extends Controller
                 throw ValidationException::withMessages(['batch_number'=>'Lô đã phát sinh tồn, không thể ghi nhận tồn đầu kỳ lần nữa.']);
             }
             $inventory->setOpeningBalance($warehouse->id, (int)$data['medicine_id'], $data['batch_number'], $data['expiry_date'], (float)$data['opening_quantity'], null);
+            if (isset($data['manual_cost_price'])) {
+                InventoryBalance::query()->where('warehouse_id', $warehouse->id)
+                    ->where('medicine_id', $data['medicine_id'])->where('batch_number', $data['batch_number'])
+                    ->whereDate('expiry_date', $data['expiry_date'])
+                    ->update(['manual_cost_price' => round((float) $data['manual_cost_price'], 2)]);
+            }
         });
         return redirect()->route('client.pharma.inventory.opening')->with('success', 'Đã ghi nhận tồn đầu kỳ cho lô '.$data['batch_number'].'.');
     }
