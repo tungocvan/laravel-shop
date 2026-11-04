@@ -21,6 +21,21 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
 
+    public function test_supplier_distribution_matches_admin_scope_contract(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-supplier-conditions.blade.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineRelationsController.php'));
+        foreach (['all', 'regions', 'facilities'] as $scope) {
+            $this->assertStringContainsString("'".$scope."'=>'", $view);
+        }
+        foreach (['distribution_regions[]', 'distribution_provinces[]', 'facility_ids[]'] as $field) {
+            $this->assertStringContainsString('name="'.$field.'"', $view);
+        }
+        $this->assertStringContainsString('distributionProvincesByRegion()', $controller);
+        $this->assertStringContainsString("where('is_active', true)", $controller);
+        $this->assertStringContainsString('facilities()->sync($facilityIds)', $controller);
+    }
+
     public function test_supplier_commercial_editor_has_four_tabs_and_write_permission(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-supplier-conditions.blade.php'));
