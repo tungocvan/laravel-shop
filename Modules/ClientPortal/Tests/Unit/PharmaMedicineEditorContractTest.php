@@ -15,7 +15,7 @@ class PharmaMedicineEditorContractTest extends TestCase
         foreach (["'/products/create'", "'/products/{medicine}/edit'", "'/products/{medicine}'"] as $route) {
             $this->assertStringContainsString($route, $routes);
         }
-        $this->assertStringContainsString("'client.pharma.products.'.$action", $controller);
+        $this->assertStringContainsString("'client.pharma.products.'.\$action", $controller);
         $this->assertStringContainsString('MedicineService $service', $controller);
         $this->assertStringContainsString("'client.pharma.products.create'", $manifest);
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
