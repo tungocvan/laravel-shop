@@ -135,12 +135,14 @@ final class InventoryConfiguredExcelExporter
                 if (! empty($footer['enabled'])) {
                     $line += 2;
                     // Signature block occupies the right half of the report, matching Medicine Master exports.
-                    $signatureStart = Coordinate::stringFromColumnIndex(max(1, (int) floor(count($columns) / 2) + 1));
+                    $signatureStart = Coordinate::stringFromColumnIndex(max(1, count($columns) - 2));
                     foreach (['date_text', 'signer_title', 'signer_name'] as $key) {
                         $value = trim((string) ($footer[$key] ?? ''));
-                        if ($key === 'date_text' && $value === '') {
+                        if ($key === 'date_text') {
                             $today = now('Asia/Ho_Chi_Minh');
-                            $value = 'TP.HCM, ngày '.$today->format('d').' tháng '.$today->format('m').' năm '.$today->format('Y');
+                            $location = trim((string) preg_replace('/[,\\s]*ngày\\s+.*$/iu', '', $value));
+                            $location = $location !== '' ? rtrim($location, ', ') : 'TP.HCM';
+                            $value = $location.', ngày '.$today->format('d').' tháng '.$today->format('m').' năm '.$today->format('Y');
                         }
                         if ($value === '') continue;
                         if ($key === 'signer_name') $line += max(1, min(12, (int) ($footer['signature_blank_rows'] ?? 4)));
