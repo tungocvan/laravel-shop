@@ -166,6 +166,7 @@
                     <div><h3 class="text-lg font-bold">Trang in</h3><p class="text-sm text-slate-500">Thiết lập khổ giấy, hướng trang và xem trước bố cục.</p></div>
                     <div class="grid gap-5 lg:grid-cols-2">
                         <section class="rounded-2xl border p-4"><h4 class="text-sm font-bold">Khổ giấy &amp; hướng trang</h4><div class="mt-3 grid grid-cols-2 gap-3">
+                            <label class="col-span-2 inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.fit_to_page"> Fit to Page — vừa 1 trang ngang × 1 trang dọc</label>
                             <label class="text-xs font-semibold">Khổ giấy<select wire:model="settings.paper_size" class="{{ $input }}"><option>A4</option><option>A3</option><option>LETTER</option></select></label>
                             <label class="text-xs font-semibold">Hướng<select wire:model="settings.orientation" class="{{ $input }}"><option value="landscape">Ngang</option><option value="portrait">Dọc</option></select></label>
                         </div></section>
@@ -176,7 +177,7 @@
                                 <label class="text-xs font-semibold">Cỡ chữ header<input type="number" min="8" max="20" wire:model="settings.header_font_size" class="{{ $input }}"></label>
                                 <label class="text-xs font-semibold">Cỡ chữ dữ liệu<input type="number" min="8" max="20" wire:model="settings.body_font_size" class="{{ $input }}"></label>
                                 <label class="text-xs font-semibold col-span-2">Màu nền header<select wire:model="settings.header_fill" class="{{ $input }}"><option value="EFF4FA">Xanh nhạt</option><option value="F1F5F9">Xám nhạt</option><option value="EDE9FE">Tím nhạt</option><option value="FFFFFF">Trắng</option></select></label>
-                                <label class="col-span-2 inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.body_border"> Viền mảnh giữa các ô dữ liệu</label>
+                                <label class="col-span-2 inline-flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.body_border"> Viền mảnh xám nhạt (bỏ chọn: viền đậm)</label>
                                 <div class="col-span-2 mt-3 border-t pt-3">
                                     <h5 class="mb-2 text-sm font-bold">Lề trang in (cm)</h5>
                                     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
