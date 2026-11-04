@@ -69,7 +69,7 @@ final class PharmaInventoryReportsController extends Controller
         }
         $report = $summary->summarize($warehouse, $from, $to, isset($data['movement_medicine_id']) ? (int)$data['movement_medicine_id'] : null, $ids);
         $rows = $report['rows']->map(fn ($r) => [
-            'medicine_code'=>$r->medicine_code, 'name'=>$r->name, 'batch_number'=>$r->batch_number,
+            'medicine_code'=>$r->medicine_code, 'name'=>$r->name, 'unit'=>Medicine::query()->where('medicine_code', $r->medicine_code)->value('unit'), 'batch_number'=>$r->batch_number,
             'expiry_date'=>Carbon::parse($r->expiry_date)->format('d/m/Y'),
             'period_opening'=>(float)$r->period_opening, 'period_in'=>(float)$r->period_in,
             'period_out'=>(float)$r->period_out, 'period_closing'=>(float)$r->period_closing,
@@ -87,41 +87,34 @@ final class PharmaInventoryReportsController extends Controller
         $canCosts = $registry->userCan($request->user('web'), 'client.pharma.inventory.costs');
         $selected = $data['ids'] ?? [];
         $rows = collect();
+        $warehouse = $inventory->defaultWarehouse();
         if ($selected) {
-            $warehouse = $inventory->defaultWarehouse();
-            $balances = InventoryBalance::query()->with('medicine')
-                ->where('warehouse_id', $warehouse->id)->whereIn('id', $selected)->get();
-            abort_unless($balances->count() === count($selected), 403);
-            foreach ($balances as $r) {
+            $validCount = InventoryBalance::query()->where('warehouse_id', $warehouse->id)
+                ->whereIn('id', $selected)->count();
+            abort_unless($validCount === count($selected), 403);
+        }
+        // Use the same priced query as the stock UI for both selected and full exports.
+        // InventoryBalance itself has no computed average_cost_price / inventory_value columns.
+        $selectedSet = array_fill_keys(array_map('intval', $selected), true);
+        for ($page = 1; ; $page++) {
+            $batch = $workspace->browse(perPage: 100, page: $page, canViewCosts: $canCosts);
+            foreach ($batch->items() as $r) {
+                if ($selected && ! isset($selectedSet[(int) $r->id])) continue;
                 $record = [
-                    'medicine_code'=>$r->medicine->medicine_code, 'name'=>$r->medicine->name,
-                    'batch_number'=>$r->batch_number, 'expiry_date'=>$r->expiry_date->format('d/m/Y'),
-                    'quantity_on_hand'=>(float)$r->quantity_on_hand,
+                    'medicine_code' => $r->medicine->medicine_code,
+                    'name' => $r->medicine->name,
+                    'unit' => $r->medicine->unit,
+                    'batch_number' => $r->batch_number,
+                    'expiry_date' => $r->expiry_date->format('d/m/Y'),
+                    'quantity_on_hand' => (float) $r->quantity_on_hand,
                 ];
                 if ($canCosts) {
-                    $record['average_cost_price'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
-                    $record['inventory_value'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
+                    $record['average_cost_price'] = $r->average_cost_price === null ? null : (float) $r->average_cost_price;
+                    $record['inventory_value'] = $r->inventory_value === null ? null : (float) $r->inventory_value;
                 }
                 $rows->push($record);
             }
-        } else {
-            // Preserve the existing full-export behavior for callers without selected IDs.
-            for ($page = 1; ; $page++) {
-                $batch = $workspace->browse(perPage: 100, page: $page, canViewCosts: $canCosts);
-                foreach ($batch->items() as $r) {
-                    $record = [
-                        'medicine_code'=>$r->medicine->medicine_code, 'name'=>$r->medicine->name,
-                        'batch_number'=>$r->batch_number, 'expiry_date'=>$r->expiry_date->format('d/m/Y'),
-                        'quantity_on_hand'=>(float)$r->quantity_on_hand,
-                    ];
-                    if ($canCosts) {
-                        $record['average_cost_price'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
-                        $record['inventory_value'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
-                    }
-                    $rows->push($record);
-                }
-                if (! $batch->hasMorePages()) break;
-            }
+            if (! $batch->hasMorePages()) break;
         }
         return $this->configuredDownload($request, $registry, 'stock', $rows, 'client-pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
     }
@@ -133,6 +126,12 @@ final class PharmaInventoryReportsController extends Controller
         $profile = PharmaInventoryExcelProfileController::profile($id, $report, $profileId);
         $allowed = PharmaInventoryExcelProfileController::allowed($report, $registry->userCan($request->user('web'), 'client.pharma.inventory.costs'));
         $columns = $profile ? array_values(array_intersect($profile->columns ?? [], array_keys($allowed))) : array_keys($allowed);
+        // Existing templates predate the mandatory STT and unit columns.
+        if (! in_array('stt', $columns, true)) array_unshift($columns, 'stt');
+        if (! in_array('unit', $columns, true)) {
+            $nameIndex = array_search('name', $columns, true);
+            array_splice($columns, $nameIndex === false ? 2 : $nameIndex + 1, 0, ['unit']);
+        }
         abort_if($columns === [], 422, 'Mẫu Excel không có cột hợp lệ.');
         return app(\Modules\ClientPortal\Applications\Pharma\Services\InventoryConfiguredExcelExporter::class)->download(
             $rows, $columns, array_replace($allowed, $profile?->headers ?? []),
