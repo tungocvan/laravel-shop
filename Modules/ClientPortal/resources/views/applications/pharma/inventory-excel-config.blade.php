@@ -4,6 +4,14 @@
 @php
     $back = $report === 'stock' ? 'client.pharma.inventory' : 'client.pharma.inventory.movements';
     $values = $profile?->columns ?? array_keys($columns);
+    // Legacy movement profiles exported STT/unit implicitly; show them selected and editable.
+    if ($report === 'movements' && $profile) {
+        foreach (['stt', 'unit'] as $requiredColumn) {
+            if (array_key_exists($requiredColumn, $columns) && ! in_array($requiredColumn, $values, true)) {
+                $values[] = $requiredColumn;
+            }
+        }
+    }
     $settings = $profile?->settings ?? [];
 @endphp
 <div class="fixed inset-0 z-40 overflow-hidden bg-slate-950/60 p-3 sm:p-6" id="inventory-excel-designer">
