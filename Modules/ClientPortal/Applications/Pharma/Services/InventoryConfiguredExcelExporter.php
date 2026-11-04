@@ -23,6 +23,8 @@ final class InventoryConfiguredExcelExporter
             $last = Coordinate::stringFromColumnIndex(count($columns));
             $line = 1;
             $header = $settings['report_header'] ?? [];
+            if (empty($header['company_name']) && ! empty($settings['company_name'])) $header['company_name'] = $settings['company_name'];
+            if (! empty($settings['company_name']) && ! array_key_exists('enabled', $header)) $header['enabled'] = true;
             $logoPath = null;
             try {
                 if (! empty($header['enabled'])) {
@@ -65,11 +67,18 @@ final class InventoryConfiguredExcelExporter
                 $style->getFont()->setBold(true)->setSize((int) ($settings['header_font_size'] ?? 12));
                 $style->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($settings['header_fill'] ?? 'EFF4FA');
                 $line++;
+                $sequence = 0;
                 foreach ($rows as $record) {
+                    $sequence++;
                     foreach ($columns as $i => $key) {
-                        $value = $record[$key] ?? null;
+                        $value = $key === 'stt' ? $sequence : ($record[$key] ?? null);
                         $cell = Coordinate::stringFromColumnIndex($i + 1).$line;
-                        $sheet->setCellValue($cell, $value);
+                        if (in_array($key, ['stt','quantity_on_hand','average_cost_price','inventory_value','period_opening','period_in','period_out','period_closing'], true) && $value !== null && is_numeric($value)) {
+                            $sheet->setCellValue($cell, (float) $value);
+                            $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
+                        } else {
+                            $sheet->setCellValueExplicit($cell, (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                        }
                         $sheet->getStyle($cell)->getAlignment()->setHorizontal($alignments[$key] ?? 'left');
                     }
                     $line++;
@@ -89,6 +98,7 @@ final class InventoryConfiguredExcelExporter
                 }
                 $sheet->getPageSetup()->setOrientation(($settings['orientation'] ?? 'landscape') === 'portrait' ? 'portrait' : 'landscape');
                 $sheet->getPageSetup()->setPaperSize(match ($settings['paper_size'] ?? 'A4') {'A3' => '8', 'LETTER' => '1', default => '9'});
+                $sheet->getStyle('A'.($headingLine + 1).':'.$last.max($headingLine + 1, $line - 1))->getFont()->setSize((int) ($settings['body_font_size'] ?? 11));
                 $sheet->freezePane('A'.($headingLine + 1));
                 (new Xlsx($book))->save('php://output');
             } finally {
