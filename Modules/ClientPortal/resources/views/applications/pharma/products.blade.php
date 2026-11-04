@@ -107,6 +107,33 @@
     </div>
 
     <div id="product-results-region" class="space-y-4">
+    @if($masterOnlyMedicines->total() > 0)
+    <section class="overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm" aria-label="Thuốc chưa có biến thể">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 bg-amber-50 px-4 py-3">
+            <div><h2 class="text-sm font-extrabold text-amber-950">Thuốc mới · Chưa có SKU / biến thể <span class="ml-1 rounded-full bg-amber-100 px-2 py-1 text-xs">{{ $masterOnlyMedicines->total() }}</span></h2>
+            <p class="mt-1 text-xs text-amber-800">Đã lưu vào Medicine Master. Chưa có biến thể nên chưa nằm trong danh sách SKU phía dưới.</p></div>
+        </div>
+        <div class="divide-y divide-slate-100">
+            @foreach($masterOnlyMedicines as $master)
+                <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+                    <div class="min-w-0">
+                        <div class="font-bold text-slate-900">{{ $master->name }}</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ $master->medicine_code }} @if($master->registration_number) · GPLH: {{ $master->registration_number }} @endif</div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="rounded-lg bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">Chưa có SKU</span>
+                        @can('client.pharma.products.edit')
+                            <a href="{{ route('client.pharma.products.edit', $master->id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-800">Sửa thuốc</a>
+                        @endcan
+                    </div>
+                </div>
+            @endforeach
+        </div>
+        @if($masterOnlyMedicines->hasPages())
+            <div class="border-t border-slate-100 px-4 py-3">{{ $masterOnlyMedicines->links() }}</div>
+        @endif
+    </section>
+    @endif
     <section id="product-mobile-results" class="space-y-3 xl:hidden">
         @forelse($products as $product)
             <article data-product-card class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
