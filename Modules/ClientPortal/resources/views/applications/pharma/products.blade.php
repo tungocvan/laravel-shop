@@ -177,37 +177,70 @@
         @endforelse
     </section>
 
-    <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
+    <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block" aria-label="Bảng danh mục thuốc">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3">
+            <div>
+                <h2 class="text-sm font-extrabold text-slate-900">Danh sách thuốc có SKU</h2>
+                <p class="mt-0.5 text-xs text-slate-500">Thông tin thuốc, giấy phép lưu hành và giá kê khai</p>
+            </div>
+            <span class="text-xs font-semibold text-slate-500">Cuộn ngang khi màn hình hẹp để xem đầy đủ cột</span>
+        </div>
         <div class="overflow-x-auto">
-            <table class="min-w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-bold uppercase tracking-wide text-slate-500">
-                    <tr><th class="w-12 px-3 py-3"><span class="sr-only">Chọn thuốc</span></th><th class="w-[17%] px-4 py-3">Tên thuốc</th><th class="w-[9%] px-4 py-3">Nhóm</th><th class="w-[23%] px-4 py-3">Hoạt chất / Hàm lượng</th><th class="w-[13%] px-4 py-3">GPLH</th><th class="w-[7%] px-4 py-3">ĐVT</th><th class="w-[15%] px-4 py-3">Quy cách</th><th class="w-[11%] px-4 py-3 text-right">Giá kê khai</th><th class="w-[5%] px-3 py-3 text-center">Xem</th></tr>
+            <table class="w-full min-w-[1180px] table-fixed border-collapse text-left text-[13px]">
+                <caption class="sr-only">Danh sách thuốc theo tên, nhóm, hoạt chất, giấy phép, đơn vị tính, quy cách và giá</caption>
+                <colgroup>
+                    <col class="w-[3.5%]">
+                    <col class="w-[20%]">
+                    <col class="w-[6%]">
+                    <col class="w-[19%]">
+                    <col class="w-[13%]">
+                    <col class="w-[7%]">
+                    <col class="w-[17%]">
+                    <col class="w-[9.5%]">
+                    <col class="w-[5%]">
+                </colgroup>
+                <thead class="border-b border-slate-200 bg-slate-50/90 text-[11px] font-extrabold uppercase tracking-[0.035em] text-slate-600">
+                    <tr>
+                        <th scope="col" class="px-3 py-3.5"><span class="sr-only">Chọn thuốc</span></th>
+                        <th scope="col" class="px-3 py-3.5">Tên thuốc</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Nhóm</th>
+                        <th scope="col" class="px-3 py-3.5">Hoạt chất <span class="block font-medium normal-case tracking-normal text-slate-400">Hàm lượng</span></th>
+                        <th scope="col" class="px-3 py-3.5">GPLH</th>
+                        <th scope="col" class="px-2 py-3.5">ĐVT</th>
+                        <th scope="col" class="px-3 py-3.5">Quy cách đóng gói</th>
+                        <th scope="col" class="px-3 py-3.5 text-right">Giá kê khai</th>
+                        <th scope="col" class="px-2 py-3.5 text-center">Thao tác</th>
+                    </tr>
                 </thead>
                 <tbody id="product-desktop-results" class="divide-y divide-slate-100">
                     @forelse($products as $product)
-                        <tr data-product-row class="align-top">
-                            <td class="px-3 py-4"><input type="checkbox" data-medicine-select value="{{ $product->medicineId }}" aria-label="Chọn thuốc {{ $product->brandName }}" class="h-4 w-4 rounded border-slate-300 text-blue-600"></td>
-                            <td class="px-5 py-4">
-                                <div class="font-bold text-slate-950">{{ $product->brandName }}</div>
-                                <div class="mt-2 flex flex-wrap gap-1.5">
-                                    @if($product->hasBidAward)<span class="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 ring-1 ring-inset ring-blue-200">Trúng thầu</span>@endif
-                                    @if($product->hasProfile)<span class="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200">HSSP</span>@endif
-                                    @if($canViewSupplierPricing && $product->hasSupplierPricing)<span class="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">Giá NCC</span>@endif
+                        <tr data-product-row class="group align-top transition-colors hover:bg-indigo-50/40">
+                            <td class="px-3 py-4"><input type="checkbox" data-medicine-select value="{{ $product->medicineId }}" aria-label="Chọn thuốc {{ $product->brandName }}" class="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600"></td>
+                            <td class="px-3 py-4">
+                                <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" class="block break-words font-extrabold leading-5 text-slate-950 hover:text-indigo-700 hover:underline">{{ $product->brandName }}</a>
+                                <div class="mt-2 flex flex-wrap gap-1">
+                                    @if($product->hasBidAward)<span class="rounded-md bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700 ring-1 ring-inset ring-blue-200">Trúng thầu</span>@endif
+                                    @if($product->hasProfile)<span class="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-200">HSSP</span>@endif
+                                    @if($canViewSupplierPricing && $product->hasSupplierPricing)<span class="rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 ring-1 ring-inset ring-amber-200">Giá NCC</span>@endif
                                 </div>
                             </td>
-                            <td class="px-4 py-4 font-semibold text-slate-700">{{ $product->circularGroup ?: '—' }}</td>
-                            <td class="px-4 py-4 text-slate-600">{{ $product->activeIngredients ?: '—' }}@if($product->strength)<br><span class="text-xs text-slate-400">{{ $product->strength }}</span>@endif</td>
-                            <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $product->registrationNumber ?: '—' }}</td>
-                            <td class="whitespace-nowrap px-5 py-4 text-slate-600">{{ $product->unit ?: '—' }}</td>
-                            <td class="px-4 py-4 text-slate-600">{{ $product->packaging ?: '—' }}</td>
-                            <td class="whitespace-nowrap px-4 py-4 text-right font-bold tabular-nums text-slate-800">{{ $product->declaredPrice !== null ? number_format($product->declaredPrice, 0, ',', '.') : '—' }}</td>
-                            <td class="px-3 py-4 text-center">
-                                <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75" stroke-width="1.8"/></svg>
-                                </a>
-                             @can('client.pharma.products.edit')
-                            <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-indigo-200 px-2 text-xs font-bold text-indigo-800">Sửa</a>
-                        @endcan </td>
+                            <td class="px-2 py-4 text-center"><span class="inline-flex min-w-7 justify-center rounded-lg bg-slate-100 px-2 py-1 font-semibold text-slate-700">{{ $product->circularGroup ?: '—' }}</span></td>
+                            <td class="px-3 py-4 leading-5 text-slate-700">
+                                <div class="break-words">{{ $product->activeIngredients ?: '—' }}</div>
+                                @if($product->strength)<div class="mt-1 text-xs font-semibold text-slate-500">{{ $product->strength }}</div>@endif
+                            </td>
+                            <td class="break-all px-3 py-4 font-medium leading-5 text-slate-600">{{ $product->registrationNumber ?: '—' }}</td>
+                            <td class="break-words px-2 py-4 text-slate-600">{{ $product->unit ?: '—' }}</td>
+                            <td class="break-words px-3 py-4 leading-5 text-slate-600">{{ $product->packaging ?: '—' }}</td>
+                            <td class="px-3 py-4 text-right font-extrabold tabular-nums text-slate-900">{{ $product->declaredPrice !== null ? number_format($product->declaredPrice, 0, ',', '.') : '—' }}</td>
+                            <td class="px-2 py-3.5">
+                                <div class="flex flex-col items-center gap-1.5">
+                                    <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-1 text-[11px] font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700">Xem</a>
+                                    @can('client.pharma.products.edit')
+                                        <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" aria-label="Sửa thuốc {{ $product->brandName }}" class="inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-indigo-200 bg-white px-1 text-[11px] font-semibold text-indigo-700 transition hover:bg-indigo-50">Sửa</a>
+                                    @endcan
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">Không tìm thấy thuốc phù hợp.</td></tr>
