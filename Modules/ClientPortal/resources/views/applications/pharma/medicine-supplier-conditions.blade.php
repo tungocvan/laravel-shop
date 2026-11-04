@@ -13,10 +13,21 @@
         <p class="mt-2 text-sm text-slate-200">{{ $medicine->name }} · {{ $medicine->medicine_code }}</p>
     </header>
 
-    @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
-    @if($errors->any())<div role="alert" class="rounded-xl bg-red-50 p-4 text-sm text-red-800">{{ $errors->first() }}</div>@endif
+    <dialog id="supplier-feedback-modal" aria-labelledby="supplier-feedback-title" class="w-[min(92vw,520px)] rounded-2xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/50">
+        <div class="p-6">
+            <h2 id="supplier-feedback-title" class="text-lg font-extrabold text-slate-950">Thông báo</h2>
+            <ul id="supplier-feedback-messages" class="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700"></ul>
+            <div class="mt-6 flex justify-end"><button type="button" id="supplier-feedback-close" class="rounded-xl bg-indigo-700 px-5 py-2.5 text-sm font-bold text-white">Đã hiểu</button></div>
+        </div>
+    </dialog>
+    @if($errors->any())
+        <script type="application/json" id="supplier-server-errors">@json($errors->all(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)</script>
+    @endif
+    @if(session('success'))
+        <script type="application/json" id="supplier-server-success">@json(session('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT)</script>
+    @endif
     @if($canManageConditions)
-    <form id="supplier-conditions-form" action="{{ route('client.pharma.products.supplier-conditions.save', $medicine->id) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+    <form id="supplier-conditions-form" action="{{ route('client.pharma.products.supplier-conditions.save', $medicine->id) }}" method="POST" enctype="multipart/form-data" novalidate class="space-y-4">
         @csrf
         @if($editing)<input type="hidden" name="tracking_id" value="{{ $editing->id }}">@endif
         <nav class="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm" aria-label="Các phần điều kiện thương mại">
@@ -57,7 +68,7 @@
             <h2 class="font-extrabold">Điều kiện thương mại</h2>
             <p class="mt-2 text-xs text-slate-500">Giá nhập từ nhà cung cấp; giá bán cho khách hàng được quản lý tại Bảng giá.</p>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                @foreach(['import_price'=>'Giá nhập NCC','selling_price'=>'Giá bán tham khảo','invoice_price'=>'Giá hóa đơn'] as $key=>$title)
+                @foreach(['import_price'=>'Giá nhập NCC *','selling_price'=>'Giá bán tham khảo','invoice_price'=>'Giá hóa đơn'] as $key=>$title)
                     <label class="text-sm font-bold">{{ $title }} (đ) <input type="number" min="0" step="0.01" name="{{ $key }}" value="{{ old($key, $editing?->{$key}) }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
                 @endforeach
             </div>
@@ -162,17 +173,56 @@
             panels.forEach(panel => { panel.hidden = panel.dataset.supplierPanel !== name; });
         };
         tabs.forEach(button => button.addEventListener('click', () => show(button.dataset.supplierTab)));
+        const modal = document.getElementById('supplier-feedback-modal');
+        const modalTitle = document.getElementById('supplier-feedback-title');
+        const modalMessages = document.getElementById('supplier-feedback-messages');
+        const closeModal = document.getElementById('supplier-feedback-close');
+        const feedback = (title, messages) => {
+            modalTitle.textContent = title;
+            modalMessages.replaceChildren();
+            messages.forEach(message => {
+                const item = document.createElement('li');
+                item.textContent = message;
+                modalMessages.appendChild(item);
+            });
+            if (typeof modal.showModal === 'function') modal.showModal();
+            else window.alert(title + '\\n' + messages.join('\\n'));
+        };
+        closeModal?.addEventListener('click', () => modal.close());
+        const serverErrors = document.getElementById('supplier-server-errors');
+        const serverSuccess = document.getElementById('supplier-server-success');
+        if (serverErrors) {
+            const errors = JSON.parse(serverErrors.textContent);
+            show(errors.some(message => message.includes('Giá nhập')) ? 'commercial' : 'supplier');
+            feedback('Không thể lưu điều kiện thương mại', errors);
+        } else if (serverSuccess) {
+            feedback('Lưu thành công', [JSON.parse(serverSuccess.textContent)]);
+        }
         root.addEventListener('submit', event => {
-            if (!root.querySelector('[name="partner_id"]').value) {
-                event.preventDefault();
-                show('supplier');
-                document.getElementById('supplier-partner-error')?.classList.remove('hidden');
-                root.querySelector('#supplier-partner-search button')?.focus();
-                return;
+            const issues = [];
+            const partner = root.querySelector('[name="partner_id"]');
+            const price = root.querySelector('[name="import_price"]');
+            let firstTab = null;
+            if (!partner?.value) {
+                issues.push('Tab 1 - Nhà cung cấp: Vui lòng chọn nhà cung cấp.');
+                firstTab = 'supplier';
             }
-            if (!confirm('Xác nhận lưu điều kiện thương mại?')) event.preventDefault();
+            if (!price?.value.trim() || !Number.isFinite(Number(price.value)) || Number(price.value) < 0) {
+                issues.push('Tab 2 - Điều kiện thương mại: Giá nhập NCC là bắt buộc và phải là số không âm.');
+                firstTab ??= 'commercial';
+            }
+            const start = root.querySelector('[name="start_date"]')?.value;
+            const end = root.querySelector('[name="end_date"]')?.value;
+            if (start && end && end < start) {
+                issues.push('Tab 1 - Hiệu lực: Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.');
+                firstTab ??= 'supplier';
+            }
+            if (issues.length) {
+                event.preventDefault();
+                show(firstTab);
+                feedback('Vui lòng kiểm tra dữ liệu trước khi lưu', issues);
+            }
         });
-        root.querySelector('[name="partner_id"]')?.addEventListener('change', () => document.getElementById('supplier-partner-error')?.classList.add('hidden'));
         const scopeInputs = Array.from(root.querySelectorAll('input[name="distribution_scope"]'));
         const refreshDistribution = () => {
             const scope = scopeInputs.find(input => input.checked)?.value ?? 'all';
