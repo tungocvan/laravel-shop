@@ -54,7 +54,7 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString("fetch(more.href", $view);
         $this->assertStringContainsString('IntersectionObserver', $view);
         $this->assertStringContainsString('inventory-desktop-body', $view);
-        $this->assertStringContainsString('Tên thuốc / hoạt chất', $view);
+        $this->assertStringContainsString('>Tên thuốc</th>', $view);
         $this->assertStringContainsString('Hoạt chất / Quy cách', $view);
         $this->assertStringNotContainsString('>Mã thuốc</th>', $view);
         $this->assertStringContainsString('border border-slate-300', $view);
