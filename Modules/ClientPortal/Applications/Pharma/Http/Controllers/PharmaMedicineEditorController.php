@@ -108,6 +108,7 @@ final class PharmaMedicineEditorController extends Controller
                     AND REFERENCED_COLUMN_NAME = 'id'"
             );
             $variantIds = $variants->modelKeys();
+            $importLinks = [];
             foreach ($references as $reference) {
                 $table = (string) $reference->table_name;
                 $column = (string) $reference->column_name;
@@ -115,7 +116,26 @@ final class PharmaMedicineEditorController extends Controller
                 if ($parent === 'pharma_medicines' && $table === 'pharma_medicine_variants') {
                     continue;
                 }
-                // Identifier values originate from the database schema, not request input.
+
+                // Import staging rows are audit history, not stock/order transactions.
+                // Only unlink their matched IDs when the FK column is nullable.
+                if ($table === 'pharma_medicine_import_rows'
+                    && (($parent === 'pharma_medicines' && $column === 'matched_medicine_id')
+                        || ($parent === 'pharma_medicine_variants' && $column === 'matched_variant_id'))) {
+                    $nullable = DB::table('information_schema.COLUMNS')
+                        ->where('TABLE_SCHEMA', DB::raw('DATABASE()'))
+                        ->where('TABLE_NAME', $table)
+                        ->where('COLUMN_NAME', $column)
+                        ->where('IS_NULLABLE', 'YES')
+                        ->exists();
+                    if (! $nullable) {
+                        return 'Không thể xóa: cột '.$table.'.'.$column.' không cho phép bỏ liên kết lịch sử import.';
+                    }
+                    $importLinks[] = [$column, $parent];
+                    continue;
+                }
+
+                // All other FK references remain protected, including stock and orders.
                 $query = DB::table($table);
                 $exists = $parent === 'pharma_medicines'
                     ? $query->where($column, $master->id)->exists()
@@ -129,6 +149,16 @@ final class PharmaMedicineEditorController extends Controller
             foreach ($variants as $variant) {
                 if ($variant->packages()->exists() || $variant->aliases()->exists()) {
                     return 'SKU '.$variant->sku.' đang có quy cách đóng gói hoặc tên thay thế.';
+                }
+            }
+
+            // Keep import row payload, batch and audit status; only clear stale matches.
+            foreach ($importLinks as [$column, $parent]) {
+                $query = DB::table('pharma_medicine_import_rows');
+                if ($parent === 'pharma_medicines') {
+                    $query->where($column, $master->id)->update([$column => null]);
+                } elseif ($variantIds !== []) {
+                    $query->whereIn($column, $variantIds)->update([$column => null]);
                 }
             }
 
