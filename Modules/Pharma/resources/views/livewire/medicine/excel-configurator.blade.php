@@ -63,6 +63,35 @@
                         <div class="p-4"><label class="text-xs font-semibold">Tiêu đề<input wire:model="settings.title" class="{{ $input }}"></label>
                         <p class="mt-3 text-xs text-slate-500">Tiêu đề và tên doanh nghiệp được căn giữa trong Excel khi bật Header / Footer.</p></div>
                     </section>
+                    <section class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                        <h4 class="text-sm font-bold">Header trên trang tính (lưu trong JSON)</h4>
+                        <label class="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.report_header.enabled"> Bật Header tùy chỉnh</label>
+                        <label class="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.report_header.show_logo"> Hiển thị logo (nếu có)</label>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            <label class="text-xs font-semibold">Logo PNG/JPG (tối đa 256 KB)<input type="file" accept="image/png,image/jpeg" wire:model="logoUpload" class="{{ $input }}"></label>
+                            <label class="text-xs font-semibold">Chiều rộng logo (px)<input type="number" min="40" max="220" wire:model="settings.report_header.logo_width" class="{{ $input }}"></label>
+                        </div>
+                        @error('logoUpload') <p class="text-xs text-rose-600">{{ $message }}</p> @enderror
+                        @if(!empty($settings['report_header']['logo_data']))
+                            <div class="flex items-center gap-3"><img src="{{ $settings['report_header']['logo_data'] }}" alt="Logo báo cáo" class="h-14 max-w-32 object-contain"><button type="button" wire:click="removeReportLogo" class="rounded border px-3 py-2 text-xs">Bỏ logo</button></div>
+                        @endif
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            @foreach(['company_name' => 'Tên doanh nghiệp', 'address' => 'Địa chỉ', 'office' => 'Văn phòng đại diện', 'tax_code' => 'Mã số thuế', 'phone' => 'Điện thoại', 'email' => 'Email', 'recipient' => 'Kính gửi'] as $field => $label)
+                                <label class="text-xs font-semibold">{{ $label }}<input wire:model="settings.report_header.{{ $field }}" class="{{ $input }}" maxlength="250"></label>
+                            @endforeach
+                            <label class="text-xs font-semibold sm:col-span-2">Lời giới thiệu<textarea wire:model="settings.report_header.intro" rows="3" maxlength="1000" class="{{ $input }}"></textarea></label>
+                        </div>
+                    </section>
+                    <section class="rounded-2xl border border-slate-200 p-4 space-y-3">
+                        <h4 class="text-sm font-bold">Footer sau bảng dữ liệu (lưu trong JSON)</h4>
+                        <label class="flex items-center gap-2 text-xs font-semibold"><input type="checkbox" wire:model="settings.report_footer.enabled"> Bật Footer tùy chỉnh</label>
+                        <div class="grid gap-3 sm:grid-cols-2">
+                            @foreach(['date_text' => 'Ngày, địa điểm ký', 'signer_title' => 'Chức danh', 'signer_name' => 'Người ký'] as $field => $label)
+                                <label class="text-xs font-semibold">{{ $label }}<input wire:model="settings.report_footer.{{ $field }}" maxlength="250" class="{{ $input }}"></label>
+                            @endforeach
+                            <label class="text-xs font-semibold">Khoảng trống chữ ký (số hàng)<input type="number" min="1" max="10" wire:model="settings.report_footer.signature_rows" class="{{ $input }}"></label>
+                        </div>
+                    </section>
                     <section class="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4"><h4 class="text-sm font-bold">Tách biệt dữ liệu</h4><p class="mt-2 text-sm text-slate-600">Đây là mẫu báo cáo riêng. File Export danh mục thuốc chuẩn để import trở lại vẫn giữ nguyên định dạng và chức năng.</p></section>
                 </div>
                 @elseif($activeSection === 'columns')
