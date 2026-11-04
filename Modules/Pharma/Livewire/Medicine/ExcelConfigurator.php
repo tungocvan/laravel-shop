@@ -256,6 +256,7 @@ class ExcelConfigurator extends Component
             'settings.body_font_size' => 'nullable|integer|between:8,20',
             'settings.header_fill' => 'nullable|in:EFF4FA,F1F5F9,FFFFFF,EDE9FE',
             'settings.body_border' => 'nullable|boolean',
+            'settings.fit_to_page' => 'nullable|boolean',
             'settings.margin_top_cm' => 'nullable|numeric|between:0,5',
             'settings.margin_bottom_cm' => 'nullable|numeric|between:0,5',
             'settings.margin_left_cm' => 'nullable|numeric|between:0,5',
