@@ -39,6 +39,8 @@ return [
             'icon' => 'beaker',
             'sort_order' => 20,
             'actions' => [
+                'create' => ['name' => 'Thêm thuốc', 'permission' => 'client.pharma.products.create', 'sort_order' => 5],
+                'edit' => ['name' => 'Sửa thuốc', 'permission' => 'client.pharma.products.edit', 'sort_order' => 6],
                 'import' => [
                     'name' => 'Nhập Excel vào staging danh mục thuốc',
                     'permission' => 'client.pharma.products.import',
@@ -128,7 +130,7 @@ return [
             'description' => 'Tra cứu Medicine Master và thông tin sản phẩm theo phạm vi được cấp.',
             'eyebrow' => 'Medicine Catalog',
             'page_title' => 'Danh mục thuốc',
-            'page_description' => 'Tra cứu danh mục chuẩn theo tên thuốc, mã thuốc, SKU, hoạt chất hoặc giấy phép lưu hành. PWA chỉ đọc và không thay đổi Medicine Master.',
+            'page_description' => 'Tra cứu danh mục chuẩn; người có quyền được thêm và sửa Medicine Master.',
             'route' => 'client.pharma.products',
             'permission' => 'client.pharma.products.view',
             'icon' => 'beaker',
