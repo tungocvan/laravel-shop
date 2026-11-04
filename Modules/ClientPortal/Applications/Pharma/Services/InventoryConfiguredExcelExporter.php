@@ -22,6 +22,8 @@ final class InventoryConfiguredExcelExporter
             $book->getDefaultStyle()->getFont()->setName(in_array($font, ['Times New Roman','Arial','Calibri'], true) ? $font : 'Times New Roman');
             $last = Coordinate::stringFromColumnIndex(count($columns));
             $line = 1;
+            $inventoryTotal = 0.0;
+            $hasInventoryValue = in_array('inventory_value', $columns, true);
             $header = $settings['report_header'] ?? [];
             if (empty($header['company_name']) && ! empty($settings['company_name'])) $header['company_name'] = $settings['company_name'];
             if (! empty($settings['company_name']) && ! array_key_exists('enabled', $header)) $header['enabled'] = true;
@@ -83,8 +85,24 @@ final class InventoryConfiguredExcelExporter
                             $sheet->setCellValueExplicit($cell, (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                         }
                         $sheet->getStyle($cell)->getAlignment()->setHorizontal($alignments[$key] ?? 'left')->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+                        if ($key === 'inventory_value' && is_numeric($value)) $inventoryTotal += (float) $value;
                     }
-                    $sheet->getRowDimension($line)->setRowHeight(-1);
+                    $sheet->getRowDimension($line)->setRowHeight(30);
+                    $line++;
+                }
+                if ($hasInventoryValue) {
+                    $valueIndex = array_search('inventory_value', $columns, true) + 1;
+                    $valueColumn = Coordinate::stringFromColumnIndex($valueIndex);
+                    if ($valueIndex > 1) {
+                        $before = Coordinate::stringFromColumnIndex($valueIndex - 1);
+                        $sheet->mergeCells("A{$line}:{$before}{$line}");
+                    }
+                    $sheet->setCellValue("A{$line}", 'TỔNG GIÁ TRỊ TỒN');
+                    $sheet->setCellValue("{$valueColumn}{$line}", $inventoryTotal);
+                    $sheet->getStyle("{$valueColumn}{$line}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("A{$line}:{$last}{$line}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+                    $sheet->getRowDimension($line)->setRowHeight(30);
                     $line++;
                 }
                 if (! empty($settings['body_border']) && $line > $headingLine + 1) {
@@ -100,6 +118,14 @@ final class InventoryConfiguredExcelExporter
                         $line++;
                     }
                 }
+                $sheet->getPageSetup()->setFitToWidth(1)->setFitToHeight(0);
+                $sheet->getPageSetup()->setRowsToRepeatAtTopByStartAndEnd($headingLine, $headingLine);
+                $sheet->getPageMargins()->setTop((float) ($settings['margin_top'] ?? 0.8) / 2.54);
+                $sheet->getPageMargins()->setBottom((float) ($settings['margin_bottom'] ?? 0.8) / 2.54);
+                $sheet->getPageMargins()->setLeft((float) ($settings['margin_left'] ?? 0.8) / 2.54);
+                $sheet->getPageMargins()->setRight((float) ($settings['margin_right'] ?? 0.8) / 2.54);
+                $sheet->getHeaderFooter()->setOddHeader((string) ($settings['print_header'] ?? ''));
+                $sheet->getHeaderFooter()->setOddFooter((string) ($settings['print_footer'] ?? ''));
                 $sheet->getPageSetup()->setOrientation(($settings['orientation'] ?? 'landscape') === 'portrait' ? 'portrait' : 'landscape');
                 $sheet->getPageSetup()->setPaperSize(match ($settings['paper_size'] ?? 'A4') {'A3' => '8', 'LETTER' => '1', default => '9'});
                 $sheet->getStyle('A'.($headingLine + 1).':'.$last.max($headingLine + 1, $line - 1))->getFont()->setSize((int) ($settings['body_font_size'] ?? 11));
