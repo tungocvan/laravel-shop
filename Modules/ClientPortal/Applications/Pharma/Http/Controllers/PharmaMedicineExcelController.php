@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Modules\Pharma\Services\MedicineCatalogUploadService;
 use Modules\Pharma\Models\MedicineImportBatch;
+use Modules\ClientPortal\Applications\Pharma\Services\ClientMedicineImportCreator;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
@@ -41,6 +42,24 @@ final class PharmaMedicineExcelController extends Controller
         $rows = $batch->rows()->orderBy('source_row')->paginate(30);
 
         return view('ClientPortal::applications.pharma.import-batch', compact('batch', 'rows'));
+    }
+
+    public function approveNew(
+        Request $request,
+        ApplicationRegistry $registry,
+        MedicineImportBatch $batch,
+        ClientMedicineImportCreator $creator,
+    ): RedirectResponse {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.create'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.products.create-variant'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.products.import'), 403);
+        abort_unless($batch->source === 'clientportal_pharma' && (int) $batch->created_by === (int) $user->id, 404);
+
+        $count = $creator->createNew($batch);
+
+        return redirect()->route('client.pharma.products.import.batch', $batch->id)
+            ->with('status', "Đã tạo {$count} Medicine Master và SKU mặc định. Các dòng cập nhật khác chưa được ghi.");
     }
 
     public function template(Request $request, ApplicationRegistry $registry): \Symfony\Component\HttpFoundation\StreamedResponse
