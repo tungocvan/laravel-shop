@@ -6,16 +6,19 @@
     $values = $profile?->columns ?? array_keys($columns);
     $settings = $profile?->settings ?? [];
 @endphp
-<div class="mx-auto max-w-6xl space-y-4 px-3 py-4">
-    <a href="{{ route($back) }}" class="text-sm font-semibold text-indigo-700">← Quay về báo cáo</a>
-    <div class="rounded-2xl bg-slate-950 p-5 text-white">
-        <p class="text-xs uppercase tracking-wider text-indigo-200">Excel Designer · Pharma Inventory</p>
-        <h1 class="mt-2 text-2xl font-bold">Cấu hình Excel · {{ $report === 'stock' ? 'Tồn kho' : 'Xuất – Nhập – Tồn' }}</h1>
-        <p class="mt-1 text-sm text-slate-300">Các mẫu được lưu riêng cho tài khoản và loại báo cáo.</p>
-    </div>
+<div class="fixed inset-0 z-40 overflow-hidden bg-slate-950/60 p-3 sm:p-6" id="inventory-excel-designer">
+    <div class="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <header class="flex shrink-0 items-center justify-between border-b px-5 py-4">
+            <div><p class="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Excel Designer · Pharma Inventory</p>
+                <h1 class="text-xl font-extrabold text-slate-900">Bố cục xuất {{ $report === 'stock' ? 'Tồn kho' : 'Xuất – Nhập – Tồn' }}</h1>
+                <p class="text-xs text-slate-500">Thiết kế dữ liệu, thông tin doanh nghiệp và trang in.</p>
+            </div>
+            <a href="{{ route($back) }}" aria-label="Đóng cấu hình" class="rounded-xl border px-4 py-2 text-sm font-semibold hover:bg-slate-50">✕</a>
+        </header>
+        <div class="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4 sm:px-6">
     @if(session('status'))<div class="rounded-xl bg-emerald-50 p-3 text-emerald-800">{{ session('status') }}</div>@endif
     @if($errors->any())<div class="rounded-xl bg-rose-50 p-3 text-rose-800">{{ $errors->first() }}</div>@endif
-    <div class="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-3">
+    <div class="flex flex-wrap items-center gap-3 rounded-xl border bg-white p-3 shadow-sm">
         <label class="text-sm font-semibold">Chọn mẫu
             <select onchange="window.location.href=this.value" class="ml-2 rounded-lg border p-2">
                 <option value="{{ route('client.pharma.inventory.excel-config', ['report'=>$report]) }}">Mẫu mặc định / Tạo mới</option>
@@ -29,10 +32,10 @@
             <form method="POST" action="{{ route('client.pharma.inventory.excel-config.delete', ['report'=>$report,'profile'=>$profile->id]) }}" onsubmit="return confirm('Xóa mẫu Excel này?')">@csrf @method('DELETE')<button class="rounded-lg border border-rose-300 px-3 py-2 text-sm text-rose-700">Xóa mẫu</button></form>
         @endif
     </div>
-    <form method="POST" action="{{ route('client.pharma.inventory.excel-config.save', ['report'=>$report]) }}" class="space-y-4">
+    <form id="inventory-excel-form" method="POST" action="{{ route('client.pharma.inventory.excel-config.save', ['report'=>$report]) }}" class="space-y-4">
         @csrf
         @if($profile)<input type="hidden" name="profile_id" value="{{ $profile->id }}">@endif
-        <section class="grid gap-4 rounded-2xl border bg-white p-5 md:grid-cols-2">
+        <div class="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]"><aside class="lg:sticky lg:top-0 lg:self-start rounded-xl border bg-white p-3"><p class="mb-3 text-xs font-bold uppercase text-slate-400">Bố cục xuất</p><nav class="grid gap-2 text-sm font-semibold"><a href="#excel-brand" class="rounded-lg border px-3 py-2 text-indigo-700 hover:bg-indigo-50">1 · Thương hiệu</a><a href="#excel-columns" class="rounded-lg border px-3 py-2 hover:bg-indigo-50">2 · Cột dữ liệu</a><a href="#excel-print" class="rounded-lg border px-3 py-2 hover:bg-indigo-50">3 · Trang in</a></nav></aside><div class="space-y-4 min-w-0"><section id="excel-print" class="grid gap-4 rounded-2xl border bg-white p-5 md:grid-cols-2">
             <label class="text-sm font-semibold">Tên cấu hình *<input required name="name" value="{{ old('name', $profile?->name ?? 'Mẫu báo cáo kho') }}" class="mt-1 w-full rounded-lg border p-2"></label>
             <label class="flex items-center gap-2 text-sm font-semibold"><input type="checkbox" name="is_default" value="1" @checked(old('is_default', $profile?->is_default ?? true))> Đặt làm mẫu mặc định</label>
             <label class="text-sm">Tên công ty<input name="settings[company_name]" value="{{ $settings['company_name'] ?? '' }}" class="mt-1 w-full rounded-lg border p-2"></label>
@@ -41,8 +44,8 @@
             <label class="text-sm">Hướng giấy<select name="settings[orientation]" class="mt-1 w-full rounded-lg border p-2"><option value="landscape" @selected(($settings['orientation'] ?? 'landscape') === 'landscape')>Ngang</option><option value="portrait" @selected(($settings['orientation'] ?? '') === 'portrait')>Dọc</option></select></label>
             <label class="text-sm">Font<select name="settings[font_family]" class="mt-1 w-full rounded-lg border p-2">@foreach(['Times New Roman','Arial','Calibri'] as $v)<option @selected(($settings['font_family'] ?? 'Times New Roman') === $v)>{{ $v }}</option>@endforeach</select></label>
         </section>
-        <section class="rounded-2xl border bg-white p-5">
-            <h2 class="mb-3 font-bold">Header / Thông tin doanh nghiệp</h2>
+        <section id="excel-brand" class="rounded-2xl border bg-white p-5">
+            <h2 class="mb-3 font-bold">Thương hiệu & nội dung · Header / Thông tin doanh nghiệp</h2>
             <label class="mb-4 flex items-center gap-2 text-sm"><input type="checkbox" name="settings[report_header][enabled]" value="1" @checked(old('settings.report_header.enabled', $settings['report_header']['enabled'] ?? true))> Hiển thị thông tin doanh nghiệp phía trên tiêu đề báo cáo</label>
             <div class="grid gap-3 md:grid-cols-2">
                 @foreach(['company_name'=>'Tên doanh nghiệp','address'=>'Địa chỉ','office'=>'Văn phòng đại diện','tax_code'=>'Mã số thuế','phone'=>'Điện thoại','email'=>'Email','recipient'=>'Kính gửi','intro'=>'Nội dung mở đầu'] as $field=>$label)
@@ -53,9 +56,9 @@
             </div>
             <p class="mt-3 text-xs text-slate-500">Các thông tin này sẽ xuất phía trên tiêu đề báo cáo. Logo và Header/Footer nâng cao sẽ được hoàn thiện trong bước đồng bộ Designer V4.</p>
         </section>
-        <section class="rounded-2xl border bg-white p-5">
+        <section id="excel-columns" class="rounded-2xl border bg-white p-5">
             <h2 class="mb-3 font-bold">Cột dữ liệu · Chọn, đặt tên, căn lề và độ rộng</h2>
-            <p class="mb-4 text-xs text-slate-500">Chọn ít nhất một cột. Thứ tự xuất hiện theo danh sách bên dưới.</p>
+            <p class="mb-4 text-xs text-slate-500">Chọn ít nhất một cột. Độ rộng nhập theo pixel và được giữ nguyên khi xuất XLSX. Thứ tự xuất hiện theo danh sách bên dưới.</p>
             <div class="space-y-2">
                 @foreach($columns as $key=>$label)
                     <div class="grid grid-cols-[auto_minmax(100px,1fr)] items-center gap-3 rounded-lg border p-3 lg:grid-cols-[auto_1fr_1fr_100px_120px]">
@@ -70,7 +73,10 @@
                 @endforeach
             </div>
         </section>
-        <div class="sticky bottom-2 flex justify-end rounded-xl border bg-white p-3 shadow-lg"><button class="rounded-xl bg-indigo-600 px-6 py-3 font-bold text-white">Lưu cấu hình Excel</button></div>
+        </div></div>
     </form>
+        </div>
+        <footer class="flex shrink-0 items-center justify-between gap-3 border-t bg-white px-5 py-3"><span class="text-xs text-slate-500">Mẫu cấu hình dành riêng cho từng loại báo cáo</span><div class="flex gap-2"><a href="{{ route($back) }}" class="rounded-lg border px-4 py-2 text-sm font-semibold">Hủy</a><button type="submit" form="inventory-excel-form" class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white">Lưu cấu hình</button></div></footer>
+    </div>
 </div>
 @endsection
