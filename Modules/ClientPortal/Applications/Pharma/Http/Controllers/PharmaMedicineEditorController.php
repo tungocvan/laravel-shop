@@ -77,29 +77,74 @@ final class PharmaMedicineEditorController extends Controller
     {
         $this->authorizeAction($request, $registry, 'delete');
 
-        $deleted = DB::transaction(function () use ($medicine): bool {
+        $reason = DB::transaction(function () use ($medicine): ?string {
             $master = Medicine::query()->whereKey($medicine)->lockForUpdate()->firstOrFail();
+            $variants = $master->variants()->lockForUpdate()->get();
 
-            // Never cascade-delete SKU, commercial, dossier, tender or source data.
-            foreach ([
-                'variants', 'aliases', 'profiles', 'sources', 'priceListItems',
-                'supplierTrackings', 'drugBidAwards', 'categories', 'medicineCategories',
-            ] as $relation) {
+            // Business records must never be removed as a side effect of deleting a medicine.
+            $protectedRelations = [
+                'aliases' => 'tên thuốc thay thế',
+                'profiles' => 'hồ sơ sản phẩm',
+                'sources' => 'nguồn dữ liệu',
+                'priceListItems' => 'bảng giá',
+                'supplierTrackings' => 'điều kiện nhà cung cấp',
+                'drugBidAwards' => 'trúng thầu',
+                'categories' => 'nhóm thuốc',
+                'medicineCategories' => 'phân loại thuốc',
+            ];
+            foreach ($protectedRelations as $relation => $label) {
                 if ($master->{$relation}()->exists()) {
-                    return false;
+                    return 'Thuốc đang liên kết với '.$label.'. Vui lòng xử lý liên kết trước khi xóa.';
                 }
             }
 
-            return (bool) $master->delete();
+            // Check every database FK referencing either the medicine or its SKUs.
+            // This protects inventory, orders and future modules without hardcoding table names.
+            $references = DB::select(
+                "SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name, REFERENCED_TABLE_NAME AS referenced_table
+                   FROM information_schema.KEY_COLUMN_USAGE
+                  WHERE TABLE_SCHEMA = DATABASE()
+                    AND REFERENCED_TABLE_NAME IN ('pharma_medicines', 'pharma_medicine_variants')
+                    AND REFERENCED_COLUMN_NAME = 'id'"
+            );
+            $variantIds = $variants->modelKeys();
+            foreach ($references as $reference) {
+                $table = (string) $reference->table_name;
+                $column = (string) $reference->column_name;
+                $parent = (string) $reference->referenced_table;
+                if ($parent === 'pharma_medicines' && $table === 'pharma_medicine_variants') {
+                    continue;
+                }
+                // Identifier values originate from the database schema, not request input.
+                $query = DB::table($table);
+                $exists = $parent === 'pharma_medicines'
+                    ? $query->where($column, $master->id)->exists()
+                    : ($variantIds !== [] && $query->whereIn($column, $variantIds)->exists());
+                if ($exists) {
+                    return 'Không thể xóa: đã có dữ liệu liên kết tại bảng '.$table.'.';
+                }
+            }
+
+            // Model relations can exist without foreign-key constraints.
+            foreach ($variants as $variant) {
+                if ($variant->packages()->exists() || $variant->aliases()->exists()) {
+                    return 'SKU '.$variant->sku.' đang có quy cách đóng gói hoặc tên thay thế.';
+                }
+            }
+
+            // All SKUs are unreferenced; remove them together with the master atomically.
+            $master->variants()->delete();
+            $master->delete();
+
+            return null;
         });
 
-        if (! $deleted) {
-            return redirect()->route('client.pharma.products', ['q' => $medicine])
-                ->with('error', 'Không thể xóa: thuốc đã có SKU hoặc dữ liệu liên kết. Vui lòng kiểm tra trước khi xóa.');
+        if ($reason !== null) {
+            return redirect()->back()->with('error', $reason);
         }
 
         return redirect()->route('client.pharma.products')
-            ->with('success', 'Đã xóa thuốc chưa có dữ liệu liên kết.');
+            ->with('success', 'Đã xóa thuốc và các SKU chưa phát sinh dữ liệu nghiệp vụ.');
     }
 
     public function createVariant(int $medicine, Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, MedicineService $service)
