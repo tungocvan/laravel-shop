@@ -17,6 +17,10 @@ final class PharmaInventoryExcelProfileContractTest extends TestCase
         self::assertArrayHasKey('inventory_value', $stock);
         self::assertArrayHasKey('quantity_on_hand', $stock);
         self::assertArrayNotHasKey('period_in', $stock);
+        self::assertArrayHasKey('stt', $movements);
+        self::assertArrayHasKey('unit', $movements);
+        self::assertSame('STT', $movements['stt']);
+        self::assertSame('Đơn vị tính', $movements['unit']);
         self::assertArrayHasKey('period_in', $movements);
         self::assertArrayNotHasKey('quantity_on_hand', $movements);
     }
