@@ -178,6 +178,21 @@ class MedicineCatalogImportStager
             }
         }
 
+        // Same registration with a renamed brand and no round-trip code must not
+        // silently become a second master. Require manual review instead.
+        $registration = $this->normalizer->registration($normalized['registration_number'] ?? null);
+        if ($registration !== null) {
+            $sameRegistration = Medicine::query()->where('registration_number', $registration)->limit(2)->get();
+            if ($sameRegistration->isNotEmpty()) {
+                return [
+                    MedicineImportRow::CLASS_NEEDS_REVIEW,
+                    'registration_exists_without_roundtrip_reference',
+                    $sameRegistration->count() === 1 ? $sameRegistration->first()->id : null,
+                    null,
+                ];
+            }
+        }
+
         $possibleDuplicates = $this->possibleExistingMedicines($normalized)
             ->filter(fn (Medicine $candidate): bool => $this->samePackaging($candidate, $normalized))
             ->values();
