@@ -1,3 +1,13 @@
+## Checkpoint — Portable Excel report Header/Footer with optional logo — 2026-11-04
+
+- Shared Pharma Excel Designer V4 (Admin + ClientPortal) has opt-in report header/footer fields, optional PNG/JPEG logo upload (max 256 KB, max 2000px per side), adjustable logo width, and signature fields. Header/footer blocks are stored inside existing `settings.report_header` and `settings.report_footer` JSON, including embedded `data:image/png|jpeg;base64` logo; no hardcoded organization contact data, no new migration.
+- Shared Livewire designer offers `Xuất JSON` for the last **saved** profile. ClientPortal existing `Nhập mẫu JSON` accepts schema_version=1 and creates a new profile; save the designer first, then export JSON. Existing legacy profiles continue using their original two-line header unless the new report header is explicitly enabled.
+- Configured XLSX exporter draws the optional logo on the worksheet, dynamically merges company details, title, recipient/intro, and appends footer after the last medicine row. It cleans up temporary logo file after save. Excel page header/footer in Page Setup remains separate.
+- **Known limitations/checks:** XLSX layout with fewer than 4 selected columns intentionally skips logo placement; very long intro is fixed-height and needs visual review; Excel page breaks and print preview require manual review. Admin legacy XLSX export writer is not yet wired to this configured exporter. Import/export JSON for Admin requires a separate entry point if requested.
+- Tests/UI not executed by assistant. Run focused tests and verify save → JSON export → import → XLSX for logo/no-logo and many medicines. No merge/deploy.
+
+---
+
 ## Checkpoint — Excel Fit to Page and border toggle — 2026-11-04
 
 - Shared Pharma Excel Designer V4 adds `settings.fit_to_page` checkbox (default false), saved per profile. ClientPortal configured XLSX export enables fit-to-page 1 page wide × 1 page tall only when checked; unchecked leaves fit-to-page disabled.
