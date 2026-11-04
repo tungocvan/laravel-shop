@@ -42,6 +42,18 @@
             <label class="text-sm">Font<select name="settings[font_family]" class="mt-1 w-full rounded-lg border p-2">@foreach(['Times New Roman','Arial','Calibri'] as $v)<option @selected(($settings['font_family'] ?? 'Times New Roman') === $v)>{{ $v }}</option>@endforeach</select></label>
         </section>
         <section class="rounded-2xl border bg-white p-5">
+            <h2 class="mb-3 font-bold">Header / Thông tin doanh nghiệp</h2>
+            <label class="mb-4 flex items-center gap-2 text-sm"><input type="checkbox" name="settings[report_header][enabled]" value="1" @checked(old('settings.report_header.enabled', $settings['report_header']['enabled'] ?? true))> Hiển thị thông tin doanh nghiệp phía trên tiêu đề báo cáo</label>
+            <div class="grid gap-3 md:grid-cols-2">
+                @foreach(['company_name'=>'Tên doanh nghiệp','address'=>'Địa chỉ','office'=>'Văn phòng đại diện','tax_code'=>'Mã số thuế','phone'=>'Điện thoại','email'=>'Email','recipient'=>'Kính gửi','intro'=>'Nội dung mở đầu'] as $field=>$label)
+                    <label class="text-sm font-semibold">{{ $label }}
+                        <input name="settings[report_header][{{ $field }}]" value="{{ old('settings.report_header.'.$field, $settings['report_header'][$field] ?? ($field === 'company_name' ? ($settings['company_name'] ?? '') : '')) }}" class="mt-1 w-full rounded-lg border p-2 text-sm">
+                    </label>
+                @endforeach
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Các thông tin này sẽ xuất phía trên tiêu đề báo cáo. Logo và Header/Footer nâng cao sẽ được hoàn thiện trong bước đồng bộ Designer V4.</p>
+        </section>
+        <section class="rounded-2xl border bg-white p-5">
             <h2 class="mb-3 font-bold">Cột dữ liệu · Chọn, đặt tên, căn lề và độ rộng</h2>
             <p class="mb-4 text-xs text-slate-500">Chọn ít nhất một cột. Thứ tự xuất hiện theo danh sách bên dưới.</p>
             <div class="space-y-2">
