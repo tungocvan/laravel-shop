@@ -26,6 +26,7 @@ class MedicineCatalogImportStager
         ]);
 
         $seen = [];
+        $seenReferences = [];
         $counts = [
             MedicineImportRow::CLASS_NEW => 0,
             MedicineImportRow::CLASS_UPDATE => 0,
@@ -51,9 +52,13 @@ class MedicineCatalogImportStager
                 $medicineIdentity,
                 $variantIdentity,
                 $seen,
+                $seenReferences,
             );
 
             $seen[$variantIdentity][] = $payloadHash;
+            if ($medicineId !== null && ($normalized['medicine_code_reference'] ?? null)) {
+                $seenReferences[$medicineId] = true;
+            }
             $counts[$classification]++;
 
             $batch->rows()->create([
@@ -90,6 +95,7 @@ class MedicineCatalogImportStager
         ?string $medicineIdentity,
         string $variantIdentity,
         array $seen,
+        array $seenReferences,
     ): array {
         if (($normalized['product_type'] ?? null) === '__invalid_product_type__') {
             return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'invalid_product_type', null, null];
@@ -97,6 +103,44 @@ class MedicineCatalogImportStager
 
         if (($normalized['name'] ?? null) === null || ($normalized['concentration'] ?? null) === null) {
             return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'missing_required_identity_fields', null, null];
+        }
+
+        // Explicit round-trip references take precedence over mutable identity fields.
+        // Never interpret an unknown or contradictory reference as a new medicine.
+        $medicineCode = trim((string) ($normalized['medicine_code_reference'] ?? ''));
+        $skuCode = trim((string) ($normalized['sku_reference'] ?? ''));
+        if ($medicineCode !== '' || $skuCode !== '') {
+            $medicine = $medicineCode !== ''
+                ? Medicine::query()->where('medicine_code', $medicineCode)->first()
+                : null;
+            $variant = $skuCode !== ''
+                ? MedicineVariant::query()->where('sku', $skuCode)->first()
+                : null;
+
+            if (($medicineCode !== '' && ! $medicine) || ($skuCode !== '' && ! $variant)) {
+                return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'roundtrip_reference_not_found', $medicine?->id, $variant?->id];
+            }
+            if ($variant && $medicine && $variant->medicine_id !== $medicine->id) {
+                return [MedicineImportRow::CLASS_CONFLICT, 'roundtrip_sku_medicine_mismatch', $medicine->id, $variant->id];
+            }
+            $medicine ??= $variant?->medicine;
+            if (! $medicine) {
+                return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'roundtrip_medicine_not_found', null, null];
+            }
+
+            $name = $this->normalizer->text($normalized['name'] ?? null);
+            $existingName = $this->normalizer->text($medicine->name);
+            $registration = $this->normalizer->registration($normalized['registration_number'] ?? null);
+            $existingRegistration = $this->normalizer->registration($medicine->registration_number);
+            if ($name === null || $existingName !== $name
+                || ($registration !== null && $existingRegistration !== null && $registration !== $existingRegistration)) {
+                return [MedicineImportRow::CLASS_CONFLICT, 'roundtrip_identity_mismatch', $medicine->id, $variant?->id];
+            }
+            if (isset($seenReferences[$medicine->id])) {
+                return [MedicineImportRow::CLASS_NEEDS_REVIEW, 'roundtrip_repeated_medicine_reference', $medicine->id, $variant?->id];
+            }
+
+            return [MedicineImportRow::CLASS_UPDATE, 'roundtrip_existing_medicine', $medicine->id, $variant?->id];
         }
 
         if (isset($seen[$variantIdentity])) {
