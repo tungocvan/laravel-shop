@@ -49,6 +49,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,products')->name('products.import.page');
         Route::get('/products/import/batches/{batch}', [PharmaMedicineExcelController::class, 'importBatch'])
             ->whereNumber('batch')->middleware('client.feature:pharma,products')->name('products.import.batch');
+        Route::post('/products/import/batches/{batch}/approve-new', [PharmaMedicineExcelController::class, 'approveNew'])
+            ->whereNumber('batch')->middleware('client.feature:pharma,products')->name('products.import.approve-new');
         Route::get('/products/import/template', [PharmaMedicineExcelController::class, 'template'])
             ->middleware('client.feature:pharma,products')->name('products.import.template');
         Route::post('/products/import', [PharmaMedicineExcelController::class, 'import'])
