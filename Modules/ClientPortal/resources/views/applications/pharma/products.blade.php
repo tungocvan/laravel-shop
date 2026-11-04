@@ -136,7 +136,7 @@
                             <a href="{{ route('client.pharma.products.edit', $master->id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-800">Sửa thuốc</a>
                         @endcan
                         @can('client.pharma.products.delete')
-                            <form method="POST" action="{{ route('client.pharma.products.destroy', $master->id) }}" onsubmit="return confirm('Xóa thuốc {{ addslashes($master->medicine_code) }}? Chỉ xóa được khi không có bất kỳ dữ liệu liên kết nào. Thao tác không thể hoàn tác.');">
+                            <form method="POST" action="{{ route('client.pharma.products.destroy', $master->id) }}" onsubmit="return confirm('Xóa thuốc {{ addslashes($master->medicine_code) }}? Hệ thống chỉ cho xóa nếu chưa có dữ liệu liên kết. Thao tác không thể hoàn tác.');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="inline-flex min-h-10 items-center rounded-xl border border-red-200 px-3 text-xs font-bold text-red-700 hover:bg-red-50">Xóa</button>
@@ -180,6 +180,13 @@
                 <div class="mt-4 flex justify-end gap-2">
                     @can('client.pharma.products.edit')
                         <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-800">Sửa</a>
+                    @endcan
+                    @can('client.pharma.products.delete')
+                        <form method="POST" action="{{ route('client.pharma.products.destroy', $product->medicineId) }}" onsubmit="return confirm('Xóa thuốc và các SKU chưa có giao dịch? Hệ thống sẽ từ chối nếu có dữ liệu liên kết.');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="inline-flex min-h-10 items-center rounded-xl border border-red-200 px-3 text-xs font-bold text-red-700">Xóa</button>
+                        </form>
                     @endcan
                     <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75" stroke-width="1.8"/></svg>
@@ -262,7 +269,13 @@
                                             <a href="{{ route('client.pharma.products.supplier-conditions', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Điều kiện NCC</a>
                                         @endcan
                                         <div class="my-1 border-t border-slate-100"></div>
-                                        <span title="Thuốc đã có SKU nên không thể xóa. Chỉ thuốc chưa có bất kỳ liên kết nào mới được xóa." aria-disabled="true" class="block cursor-not-allowed rounded-lg px-3 py-2 text-xs font-semibold text-slate-400">Xóa thuốc · Đã có SKU</span>
+                                        @can('client.pharma.products.delete')
+                                            <form method="POST" action="{{ route('client.pharma.products.destroy', $product->medicineId) }}" onsubmit="return confirm('Xóa thuốc và toàn bộ SKU chưa phát sinh nghiệp vụ? Hệ thống sẽ từ chối nếu có dữ liệu liên kết. Thao tác không thể hoàn tác.');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="block w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-red-700 hover:bg-red-50">Xóa thuốc / SKU chưa có giao dịch</button>
+                                            </form>
+                                        @endcan
                                     </div>
                                 </details>
                             </td>
