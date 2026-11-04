@@ -59,7 +59,7 @@ final class InventoryConfiguredExcelExporter
                     $letter = Coordinate::stringFromColumnIndex($i + 1);
                     $sheet->setCellValue($letter.$line, $headers[$key] ?? $key);
                     $sheet->getColumnDimension($letter)->setWidth(max(10, min(60, (int) (($widths[$key] ?? 130) / 7))));
-                    $sheet->getStyle($letter.($line + 1).':'.$letter.'1048576')->getAlignment()->setHorizontal($alignments[$key] ?? 'left');
+
                 }
                 $style = $sheet->getStyle("A{$line}:{$last}{$line}");
                 $style->getFont()->setBold(true)->setSize((int) ($settings['header_font_size'] ?? 12));
@@ -68,7 +68,9 @@ final class InventoryConfiguredExcelExporter
                 foreach ($rows as $record) {
                     foreach ($columns as $i => $key) {
                         $value = $record[$key] ?? null;
-                        $sheet->setCellValue(Coordinate::stringFromColumnIndex($i + 1).$line, $value);
+                        $cell = Coordinate::stringFromColumnIndex($i + 1).$line;
+                        $sheet->setCellValue($cell, $value);
+                        $sheet->getStyle($cell)->getAlignment()->setHorizontal($alignments[$key] ?? 'left');
                     }
                     $line++;
                 }
