@@ -20,10 +20,19 @@
     </section>
 
     @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
-    @can('client.pharma.products.create')
-        <a href="{{ route('client.pharma.products.create') }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-5 py-2 text-sm font-bold text-white">+ Thêm thuốc</a>
-    @endcan
+    <nav aria-label="Công cụ danh mục thuốc" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        @can('client.pharma.products.create')
+            <a href="{{ route('client.pharma.products.create') }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white hover:bg-indigo-800">+ Thêm thuốc</a>
+        @endcan
+        @if($canImportMedicines)
+            <a href="#pharma-import-tools" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Nhập Excel</a>
+            <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">↓ Tải mẫu nhập</a>
+        @endif
+        @if($canExportMedicines)<a href="#medicine-export-form" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Xuất Excel</a>@endif
+        @if($canConfigureMedicineExcel)<a href="{{ route('client.pharma.products.excel-config') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">⚙ Cấu hình Excel</a>@endif
+    </nav>
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div class="mb-3 flex items-center justify-between gap-3"><div><h2 class="text-sm font-extrabold text-slate-900">Tìm kiếm & bộ lọc</h2><p class="mt-1 text-xs text-slate-500">Tìm theo tên, mã thuốc, SKU hoặc giấy phép lưu hành</p></div></div>
         <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-start">
             <label class="min-w-0 flex-1 sm:col-span-2 xl:col-span-4">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
@@ -63,17 +72,15 @@
         </div>
     @endif
     @if($canImportMedicines)
-        <form method="POST" action="{{ route('client.pharma.products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+        <form id="pharma-import-tools" method="POST" action="{{ route('client.pharma.products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
             @csrf
             <label class="flex-1"><span class="mb-1 block text-xs font-bold text-slate-600">Nhập Excel vào staging (XLSX/CSV, tối đa 10MB)</span><input type="file" name="file" accept=".xlsx,.csv" required class="block w-full rounded-xl border border-slate-300 px-3 py-2"></label>
+            <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 font-bold text-indigo-800">↓ Tải file mẫu CSV</a>
             <button type="submit" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-900">Tải lên & phân loại</button>
             <span class="w-full text-xs text-amber-700">Chỉ phân loại dữ liệu; chưa ghi Medicine Master. Bước rà soát/ghi sổ sẽ triển khai riêng.</span>
         </form>
     @endif
 
-    @if($canConfigureMedicineExcel)
-        <a href="{{ route('client.pharma.products.excel-config') }}" class="inline-flex min-h-11 items-center rounded-xl border border-indigo-300 bg-indigo-50 px-4 text-sm font-bold text-indigo-800">⚙ Cấu hình Excel</a>
-    @endif
     @if($canExportMedicines)
         <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
             @csrf
@@ -234,12 +241,16 @@
                             <td class="break-words px-3 py-4 leading-5 text-slate-600">{{ $product->packaging ?: '—' }}</td>
                             <td class="px-3 py-4 text-right font-extrabold tabular-nums text-slate-900">{{ $product->declaredPrice !== null ? number_format($product->declaredPrice, 0, ',', '.') : '—' }}</td>
                             <td class="px-2 py-3.5">
-                                <div class="flex flex-col items-center gap-1.5">
-                                    <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-1 text-[11px] font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700">Xem</a>
-                                    @can('client.pharma.products.edit')
-                                        <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" aria-label="Sửa thuốc {{ $product->brandName }}" class="inline-flex min-h-8 w-full items-center justify-center rounded-lg border border-indigo-200 bg-white px-1 text-[11px] font-semibold text-indigo-700 transition hover:bg-indigo-50">Sửa</a>
-                                    @endcan
-                                </div>
+                                <details class="relative">
+                                    <summary aria-label="Thao tác cho {{ $product->brandName }}" class="flex min-h-9 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 bg-white px-2 font-extrabold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">⋯</summary>
+                                    <div class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+                                        <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
+                                        @can('client.pharma.products.edit')
+                                            <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa thuốc</a>
+                                        @endcan
+                                        <div class="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400">HSSP / Điều kiện NCC: chưa hỗ trợ tại Client Portal</div>
+                                    </div>
+                                </details>
                             </td>
                         </tr>
                     @empty
