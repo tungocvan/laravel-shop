@@ -21,6 +21,19 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
 
+    public function test_catalog_toolbar_is_compact_and_action_menu_is_not_clipped(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringNotContainsString('Import Excel & lịch sử staging', $view);
+        $this->assertStringNotContainsString('Xuất báo cáo', $view);
+        $this->assertStringContainsString('Mẫu xuất Excel', $view);
+        $this->assertStringContainsString('Tìm kiếm & bộ lọc', $view);
+        $this->assertStringContainsString('data-medicine-actions-menu', $view);
+        $this->assertStringContainsString('document.body.appendChild(menu)', $view);
+        $this->assertStringContainsString('window.addEventListener(\'scroll\', closeActions, true)', $view);
+    }
+
     public function test_client_catalog_includes_master_records_without_variants(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
