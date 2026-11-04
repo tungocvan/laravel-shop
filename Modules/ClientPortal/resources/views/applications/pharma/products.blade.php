@@ -38,7 +38,7 @@
     <details class="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <summary class="flex min-h-12 cursor-pointer items-center justify-between px-4 text-sm font-bold text-slate-800">Mẫu xuất Excel <span class="text-xs text-indigo-700">Ẩn / hiện ▾</span></summary>
         <div class="border-t border-slate-100 p-3">
-        <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+        <form id="medicine-export-form" method="POST" action="{{ route('client.pharma.products.export') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
             @csrf
             @foreach(request()->only(['q', 'group', 'product_type', 'special_control', 'hssp', 'supplier_price', 'bid_award', 'filter']) as $key => $value)
                 <input type="hidden" name="{{ $key }}" value="{{ $value }}">
@@ -51,7 +51,7 @@
                     @endforeach
                 </select>
             </label>
-            <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 py-2 font-bold text-white">Xuất Excel</button>
+            <button type="submit" class="inline-flex min-h-11 items-center justify-center self-end rounded-xl bg-slate-900 px-5 py-2 font-bold text-white">Xuất Excel</button>
             <span class="text-xs text-slate-500">Có chọn thuốc: xuất thuốc đã chọn. Không chọn: xuất toàn bộ kết quả lọc.</span>
             <button type="button" data-medicine-share hidden class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold">Mở / Chia sẻ tệp</button>
             <span data-medicine-export-status role="status" class="text-xs text-slate-600"></span>
@@ -247,7 +247,12 @@
                                         @can('client.pharma.products.edit')
                                             <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa thuốc</a>
                                         @endcan
-                                        <div class="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400">HSSP / Điều kiện NCC: chưa hỗ trợ tại Client Portal</div>
+                                                                                @can('client.pharma.products.hssp.view')
+                                            <a href="{{ route('client.pharma.products.hssp', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Tạo / Xem HSSP</a>
+                                        @endcan
+                                        @can('client.pharma.products.supplier-pricing')
+                                            <a href="{{ route('client.pharma.products.supplier-conditions', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Điều kiện NCC</a>
+                                        @endcan
                                     </div>
                                 </details>
                             </td>
