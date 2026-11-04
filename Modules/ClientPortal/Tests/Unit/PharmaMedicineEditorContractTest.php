@@ -47,6 +47,15 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.create-variant'", $manifest);
         $this->assertStringContainsString('lockForUpdate()', $service);
         $this->assertStringContainsString('variantIdentity($identityAttributes)', $service);
+        $identityAssignment = strpos($service, '$identityKey = $this->skuGenerator->variantIdentity($identityAttributes)');
+        $variantInsert = strpos($service, 'return $medicine->variants()->create([');
+        $identityPersistence = strpos($service, "'variant_identity_key' => ".'$identityKey', $variantInsert);
+        $this->assertNotFalse($identityAssignment);
+        $this->assertNotFalse($variantInsert);
+        $this->assertNotFalse($identityPersistence);
+        $this->assertLessThan($variantInsert, $identityAssignment);
+        $this->assertGreaterThan($variantInsert, $identityPersistence);
+
         $this->assertStringContainsString("'variant_identity_key' => \$identityKey", $service);
         $this->assertStringContainsString("'sku_basis_hash' =>", $service);
         $this->assertStringContainsString("->variants()->exists()", $service);
