@@ -46,7 +46,7 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'Nồng độ - Hàm lượng'", $controller);
         $this->assertStringContainsString("'/products/export/roundtrip'", $routes);
         $this->assertStringContainsString("route('client.pharma.products.export.roundtrip')", $view);
-        $this->assertStringContainsString('chưa cập nhật Medicine Master', $view);
+        $this->assertStringContainsString('Chưa ghi bất kỳ thay đổi nào vào Medicine Master', $view);
     }
 
     public function test_explicit_sku_creation_is_guarded_and_does_not_autocreate_on_medicine_save(): void
