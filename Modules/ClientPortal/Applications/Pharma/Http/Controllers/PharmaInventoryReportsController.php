@@ -69,12 +69,12 @@ final class PharmaInventoryReportsController extends Controller
         }
         $report = $summary->summarize($warehouse, $from, $to, isset($data['movement_medicine_id']) ? (int)$data['movement_medicine_id'] : null, $ids);
         $rows = $report['rows']->map(fn ($r) => [
-            'Mã thuốc'=>$r->medicine_code, 'Tên thuốc'=>$r->name, 'Số lô'=>$r->batch_number,
-            'Hạn dùng'=>Carbon::parse($r->expiry_date)->format('d/m/Y'),
-            'Tồn đầu kỳ'=>(float)$r->period_opening, 'Nhập trong kỳ'=>(float)$r->period_in,
-            'Xuất trong kỳ'=>(float)$r->period_out, 'Tồn cuối kỳ'=>(float)$r->period_closing,
+            'medicine_code'=>$r->medicine_code, 'name'=>$r->name, 'batch_number'=>$r->batch_number,
+            'expiry_date'=>Carbon::parse($r->expiry_date)->format('d/m/Y'),
+            'period_opening'=>(float)$r->period_opening, 'period_in'=>(float)$r->period_in,
+            'period_out'=>(float)$r->period_out, 'period_closing'=>(float)$r->period_closing,
         ]);
-        return (new FastExcel($rows))->download('client-pharma-xuat-nhap-ton-'.$from->format('Ymd').'-'.$to->format('Ymd').'.xlsx');
+        return $this->configuredDownload($request, $registry, 'movements', $rows, 'client-pharma-xuat-nhap-ton-'.$from->format('Ymd').'-'.$to->format('Ymd').'.xlsx');
     }
 
     public function exportStock(Request $request, ApplicationRegistry $registry, UserInventoryWorkspace $workspace, InventoryService $inventory): StreamedResponse
@@ -94,13 +94,13 @@ final class PharmaInventoryReportsController extends Controller
             abort_unless($balances->count() === count($selected), 403);
             foreach ($balances as $r) {
                 $record = [
-                    'Mã thuốc'=>$r->medicine->medicine_code, 'Tên thuốc'=>$r->medicine->name,
-                    'Số lô'=>$r->batch_number, 'Hạn dùng'=>$r->expiry_date->format('d/m/Y'),
-                    'Tồn hiện tại'=>(float)$r->quantity_on_hand,
+                    'medicine_code'=>$r->medicine->medicine_code, 'name'=>$r->medicine->name,
+                    'batch_number'=>$r->batch_number, 'expiry_date'=>$r->expiry_date->format('d/m/Y'),
+                    'quantity_on_hand'=>(float)$r->quantity_on_hand,
                 ];
                 if ($canCosts) {
-                    $record['Giá vốn'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
-                    $record['Giá trị tồn'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
+                    $record['average_cost_price'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
+                    $record['inventory_value'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
                 }
                 $rows->push($record);
             }
@@ -110,20 +110,20 @@ final class PharmaInventoryReportsController extends Controller
                 $batch = $workspace->browse(perPage: 100, page: $page, canViewCosts: $canCosts);
                 foreach ($batch->items() as $r) {
                     $record = [
-                        'Mã thuốc'=>$r->medicine->medicine_code, 'Tên thuốc'=>$r->medicine->name,
-                        'Số lô'=>$r->batch_number, 'Hạn dùng'=>$r->expiry_date->format('d/m/Y'),
-                        'Tồn hiện tại'=>(float)$r->quantity_on_hand,
+                        'medicine_code'=>$r->medicine->medicine_code, 'name'=>$r->medicine->name,
+                        'batch_number'=>$r->batch_number, 'expiry_date'=>$r->expiry_date->format('d/m/Y'),
+                        'quantity_on_hand'=>(float)$r->quantity_on_hand,
                     ];
                     if ($canCosts) {
-                        $record['Giá vốn'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
-                        $record['Giá trị tồn'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
+                        $record['average_cost_price'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
+                        $record['inventory_value'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
                     }
                     $rows->push($record);
                 }
                 if (! $batch->hasMorePages()) break;
             }
         }
-        return (new FastExcel($rows))->download('client-pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
+        return $this->configuredDownload($request, $registry, 'stock', $rows, 'client-pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
     }
 
     public function opening(Request $request, ApplicationRegistry $registry): View
