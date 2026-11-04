@@ -32,20 +32,42 @@ final class PharmaInventoryReportsController extends Controller
     public function movements(Request $request, ApplicationRegistry $registry, InventoryService $inventory, InventoryMovementSummaryService $summary): View
     {
         $this->authorizeInventory($request, $registry);
-        $data = $request->validate(['from'=>'nullable|date','to'=>'nullable|date|after_or_equal:from']);
+        $data = $request->validate([
+            'from'=>'nullable|date', 'to'=>'nullable|date|after_or_equal:from',
+            'movement_medicine_id'=>'nullable|integer|exists:pharma_medicines,id',
+            'per_page'=>'nullable|integer|in:25,50,100',
+        ]);
         $from = Carbon::parse($data['from'] ?? now()->startOfMonth()->toDateString())->startOfDay();
-        $to = Carbon::parse($data['to'] ?? now()->toDateString())->endOfDay();
-        $report = $summary->summarize($inventory->defaultWarehouse(), $from, $to);
-        return view('ClientPortal::applications.pharma.inventory-movements', compact('from','to','report'));
+        $to = Carbon::parse($data['to'] ?? now()->endOfMonth()->toDateString())->endOfDay();
+        $warehouse = $inventory->defaultWarehouse();
+        $movementMedicineId = isset($data['movement_medicine_id']) ? (int)$data['movement_medicine_id'] : null;
+        $movementPerPage = (int)($data['per_page'] ?? 25);
+        $report = $summary->summarize($warehouse, $from, $to, $movementMedicineId, [], $movementPerPage);
+        $medicineIds = InventoryBalance::query()->where('warehouse_id', $warehouse->id)->distinct()->pluck('medicine_id');
+        $movementMedicines = Medicine::query()->whereIn('id', $medicineIds)->orderBy('name')->get(['id','medicine_code','name']);
+        $canViewCosts = $registry->userCan($request->user('web'), 'client.pharma.inventory.costs');
+        return view('ClientPortal::applications.pharma.inventory-movements', compact(
+            'warehouse','from','to','report','movementMedicineId','movementPerPage','movementMedicines','canViewCosts'
+        ));
     }
 
     public function exportMovements(Request $request, ApplicationRegistry $registry, InventoryService $inventory, InventoryMovementSummaryService $summary): StreamedResponse
     {
         $this->authorizeInventory($request, $registry);
-        $data = $request->validate(['from'=>'required|date','to'=>'required|date|after_or_equal:from']);
+        $data = $request->validate([
+            'from'=>'required|date', 'to'=>'required|date|after_or_equal:from',
+            'movement_medicine_id'=>'nullable|integer|exists:pharma_medicines,id',
+            'ids'=>'nullable|array|max:500', 'ids.*'=>'integer|distinct|exists:pharma_inventory_balances,id',
+        ]);
         $from = Carbon::parse($data['from'])->startOfDay();
         $to = Carbon::parse($data['to'])->endOfDay();
-        $report = $summary->summarize($inventory->defaultWarehouse(), $from, $to);
+        $warehouse = $inventory->defaultWarehouse();
+        $ids = $data['ids'] ?? [];
+        if ($ids) {
+            $allowed = InventoryBalance::query()->where('warehouse_id', $warehouse->id)->whereIn('id', $ids)->count();
+            abort_unless($allowed === count($ids), 403);
+        }
+        $report = $summary->summarize($warehouse, $from, $to, isset($data['movement_medicine_id']) ? (int)$data['movement_medicine_id'] : null, $ids);
         $rows = $report['rows']->map(fn ($r) => [
             'Mã thuốc'=>$r->medicine_code, 'Tên thuốc'=>$r->name, 'Số lô'=>$r->batch_number,
             'Hạn dùng'=>Carbon::parse($r->expiry_date)->format('d/m/Y'),
