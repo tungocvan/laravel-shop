@@ -16,6 +16,7 @@ use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Models\MedicineProfile;
 use Modules\Pharma\Models\SupplierTracking;
+use Modules\Partner\Models\Partner;
 use Modules\Pharma\Services\HsspDossierTemplateService;
 
 final class PharmaMedicineRelationsController extends Controller
@@ -196,9 +197,58 @@ final class PharmaMedicineRelationsController extends Controller
         $this->authorizeAction($request, $registry, 'supplier-pricing');
         $master = Medicine::query()->findOrFail($medicine);
         $trackings = $master->supplierTrackings()->latest('id')->paginate(15);
+        $editing = $request->integer('tracking') ? $master->supplierTrackings()->findOrFail($request->integer('tracking')) : null;
+        $suppliers = Partner::query()->withPartnerType('supplier')->orderBy('name')->get(['id', 'name', 'tax_code']);
 
         return view('ClientPortal::applications.pharma.medicine-supplier-conditions', $this->viewData($registry, $settings, $master) + [
             'trackings' => $trackings,
+            'editing' => $editing,
+            'suppliers' => $suppliers,
+            'canManageConditions' => $registry->userCan($request->user('web'), 'client.pharma.products.supplier-conditions.manage'),
         ]);
     }
+    public function saveSupplierConditions(int $medicine, Request $request, ApplicationRegistry $registry): RedirectResponse
+    {
+        $this->authorizeAction($request, $registry, 'supplier-conditions.manage');
+        $master = Medicine::query()->findOrFail($medicine);
+        $data = $request->validate([
+            'tracking_id' => ['nullable', 'integer'],
+            'partner_id' => ['required', 'integer', 'exists:partners,id'],
+            'working_date' => ['nullable', 'date'],
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+            'status' => ['required', 'in:active,inactive,pending'],
+            'import_price' => ['nullable', 'numeric', 'min:0'],
+            'selling_price' => ['nullable', 'numeric', 'min:0'],
+            'invoice_price' => ['nullable', 'numeric', 'min:0'],
+            'committed_quantity' => ['nullable', 'numeric', 'min:0'],
+            'deposit_amount' => ['nullable', 'numeric', 'min:0'],
+            'unit' => ['nullable', 'string', 'max:50'],
+            'area' => ['nullable', 'string', 'max:255'],
+            'distribution_scope' => ['nullable', 'string', 'max:1000'],
+            'supplier_representative' => ['nullable', 'string', 'max:255'],
+            'note' => ['nullable', 'string', 'max:5000'],
+            'contract' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
+        ]);
+        $partner = Partner::query()->findOrFail($data['partner_id']);
+        if (! $partner->hasPartnerType('supplier')) {
+            throw ValidationException::withMessages(['partner_id' => 'Đối tác được chọn không phải Nhà cung cấp.']);
+        }
+        $tracking = isset($data['tracking_id'])
+            ? $master->supplierTrackings()->findOrFail($data['tracking_id'])
+            : new SupplierTracking(['medicine_id' => $master->id]);
+        $values = collect($data)->except(['tracking_id', 'contract'])->all();
+        $values['supplier_name'] = $partner->name;
+        $values['supplier_name_normalized'] = mb_strtolower(trim($partner->name));
+        if ($request->hasFile('contract')) {
+            $values['contract_file_path'] = $request->file('contract')->store('Pharma/SupplierTrackings/'.$master->id, 'local');
+        }
+        $tracking->fill($values);
+        $tracking->medicine_id = $master->id;
+        $tracking->save();
+
+        return redirect()->route('client.pharma.products.supplier-conditions', $master->id)
+            ->with('success', 'Đã lưu điều kiện thương mại cho thuốc.');
+    }
+
 }
