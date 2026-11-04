@@ -43,12 +43,19 @@ final class InventoryConfiguredExcelExporter
                             $drawing->setWorksheet($sheet);
                         }
                     }
-                    foreach (['company_name','address','office','tax_code','phone','email','recipient','intro'] as $key) {
+                    $companyFields = [
+                        'company_name' => '', 'address' => 'Địa chỉ: ', 'office' => 'VPĐD: ',
+                        'tax_code' => 'Mã số thuế: ', 'phone' => 'Số điện thoại: ',
+                        'email' => 'Email: ',
+                    ];
+                    foreach ($companyFields as $key => $prefix) {
                         $value = trim((string) ($header[$key] ?? ''));
                         if ($value === '') continue;
                         $sheet->mergeCells("A{$line}:{$last}{$line}");
-                        $sheet->setCellValue("A{$line}", $value);
-                        $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+                        $sheet->setCellValue("A{$line}", $prefix.$value);
+                        $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()
+                            ->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+                        if ($key === 'company_name') $sheet->getStyle("A{$line}")->getFont()->setBold(true);
                         $sheet->getRowDimension($line)->setRowHeight(-1);
                         $line++;
                     }
@@ -61,6 +68,20 @@ final class InventoryConfiguredExcelExporter
                 $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
                 $sheet->getRowDimension($line)->setRowHeight(-1);
                 $line += 2;
+                if (! empty($header['enabled'])) {
+                    foreach (['recipient' => 'Kính gửi: ', 'intro' => ''] as $key => $prefix) {
+                        $value = trim((string) ($header[$key] ?? ''));
+                        if ($value === '') continue;
+                        $sheet->mergeCells("A{$line}:{$last}{$line}");
+                        $sheet->setCellValue("A{$line}", $prefix.$value);
+                        $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()
+                            ->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+                        if ($key === 'recipient') $sheet->getStyle("A{$line}")->getFont()->setBold(true);
+                        $sheet->getRowDimension($line)->setRowHeight(-1);
+                        $line++;
+                    }
+                    if (! empty($header['recipient']) || ! empty($header['intro'])) $line++;
+                }
                 $headingLine = $line;
                 foreach ($columns as $i => $key) {
                     $letter = Coordinate::stringFromColumnIndex($i + 1);
@@ -113,11 +134,17 @@ final class InventoryConfiguredExcelExporter
                 $footer = $settings['report_footer'] ?? [];
                 if (! empty($footer['enabled'])) {
                     $line += 2;
-                    foreach (['date_text','signer_title','signer_name'] as $key) {
-                        if (empty($footer[$key])) continue;
-                        $sheet->mergeCells("A{$line}:{$last}{$line}");
-                        $sheet->setCellValue("A{$line}", $footer[$key]);
-                        $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setWrapText(true);
+                    // Signature block occupies the right half of the report, matching Medicine Master exports.
+                    $signatureStart = Coordinate::stringFromColumnIndex(max(1, (int) floor(count($columns) / 2) + 1));
+                    foreach (['date_text', 'signer_title', 'signer_name'] as $key) {
+                        $value = trim((string) ($footer[$key] ?? ''));
+                        if ($value === '') continue;
+                        if ($key === 'signer_name') $line += max(1, min(12, (int) ($footer['signature_blank_rows'] ?? 4)));
+                        $sheet->mergeCells("{$signatureStart}{$line}:{$last}{$line}");
+                        $sheet->setCellValue("{$signatureStart}{$line}", $value);
+                        $sheet->getStyle("{$signatureStart}{$line}:{$last}{$line}")->getAlignment()
+                            ->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+                        if ($key !== 'date_text') $sheet->getStyle("{$signatureStart}{$line}")->getFont()->setBold(true);
                         $sheet->getRowDimension($line)->setRowHeight(-1);
                         $line++;
                     }
