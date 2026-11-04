@@ -4,6 +4,7 @@ namespace Modules\ClientPortal\Applications\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use LogicException;
 use Modules\Category\Models\Category;
@@ -70,6 +71,35 @@ final class PharmaMedicineEditorController extends Controller
         }
 
         return redirect()->route('client.pharma.products.edit', $medicine)->with('success', 'Đã cập nhật thuốc.');
+    }
+
+    public function destroy(int $medicine, Request $request, ApplicationRegistry $registry)
+    {
+        $this->authorizeAction($request, $registry, 'delete');
+
+        $deleted = DB::transaction(function () use ($medicine): bool {
+            $master = Medicine::query()->whereKey($medicine)->lockForUpdate()->firstOrFail();
+
+            // Never cascade-delete SKU, commercial, dossier, tender or source data.
+            foreach ([
+                'variants', 'aliases', 'profiles', 'sources', 'priceListItems',
+                'supplierTrackings', 'drugBidAwards', 'categories', 'medicineCategories',
+            ] as $relation) {
+                if ($master->{$relation}()->exists()) {
+                    return false;
+                }
+            }
+
+            return (bool) $master->delete();
+        });
+
+        if (! $deleted) {
+            return redirect()->route('client.pharma.products', ['q' => $medicine])
+                ->with('error', 'Không thể xóa: thuốc đã có SKU hoặc dữ liệu liên kết. Vui lòng kiểm tra trước khi xóa.');
+        }
+
+        return redirect()->route('client.pharma.products')
+            ->with('success', 'Đã xóa thuốc chưa có dữ liệu liên kết.');
     }
 
     public function createVariant(int $medicine, Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, MedicineService $service)
