@@ -261,6 +261,8 @@
                                         @can('client.pharma.products.supplier-pricing')
                                             <a href="{{ route('client.pharma.products.supplier-conditions', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Điều kiện NCC</a>
                                         @endcan
+                                        <div class="my-1 border-t border-slate-100"></div>
+                                        <span title="Thuốc đã có SKU nên không thể xóa. Chỉ thuốc chưa có bất kỳ liên kết nào mới được xóa." aria-disabled="true" class="block cursor-not-allowed rounded-lg px-3 py-2 text-xs font-semibold text-slate-400">Xóa thuốc · Đã có SKU</span>
                                     </div>
                                 </details>
                             </td>
