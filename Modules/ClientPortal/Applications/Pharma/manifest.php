@@ -260,6 +260,11 @@ return [
             'icon' => 'archive-box',
             'sort_order' => 70,
             'actions' => [
+                'opening-manage' => [
+                    'name' => 'Nhập tồn đầu kỳ',
+                    'permission' => 'client.pharma.inventory.opening.manage',
+                    'sort_order' => 6,
+                ],
                 'costs' => [
                     'name' => 'Xem giá vốn và giá trị tồn',
                     'permission' => 'client.pharma.inventory.costs',
