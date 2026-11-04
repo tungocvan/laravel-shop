@@ -137,7 +137,9 @@ final class PharmaMedicineRelationsController extends Controller
         $dossier = DB::transaction(function () use ($master, $profile, $data, $itemsData, $templates, $dossiers, $request): Dossier {
             $locked = MedicineProfile::query()->lockForUpdate()->findOrFail($profile->id);
             abort_unless((int) $locked->medicine_id === (int) $master->id, 404);
-            $current = $request->boolean('is_current');
+            // The Client Portal editor operates on the current profile only.
+            // Keep it current so it remains accessible after save.
+            $current = true;
             if ($current) {
                 $master->profiles()->whereKeyNot($locked->id)->update(['is_current' => false]);
             }
