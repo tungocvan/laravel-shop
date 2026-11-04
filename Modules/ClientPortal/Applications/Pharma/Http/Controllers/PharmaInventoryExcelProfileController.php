@@ -13,7 +13,7 @@ use Modules\Pharma\Models\MedicineExcelProfile;
 final class PharmaInventoryExcelProfileController extends Controller
 {
     public const COLUMNS = [
-        'medicine_code' => 'Mã thuốc', 'name' => 'Tên thuốc', 'batch_number' => 'Số lô',
+        'stt' => 'STT', 'medicine_code' => 'Mã thuốc', 'name' => 'Tên thuốc', 'unit' => 'Đơn vị tính', 'batch_number' => 'Số lô',
         'expiry_date' => 'Hạn dùng', 'quantity_on_hand' => 'Tồn hiện tại',
         'average_cost_price' => 'Giá vốn', 'inventory_value' => 'Giá trị tồn',
         'period_opening' => 'Tồn đầu kỳ', 'period_in' => 'Nhập trong kỳ',
@@ -23,7 +23,7 @@ final class PharmaInventoryExcelProfileController extends Controller
     public static function allowed(string $report, bool $costs): array
     {
         $keys = $report === 'stock'
-            ? ['medicine_code','name','batch_number','expiry_date','quantity_on_hand','average_cost_price','inventory_value']
+            ? ['stt','medicine_code','name','unit','batch_number','expiry_date','quantity_on_hand','average_cost_price','inventory_value']
             : ['medicine_code','name','batch_number','expiry_date','period_opening','period_in','period_out','period_closing'];
         if (! $costs) {
             $keys = array_diff($keys, ['average_cost_price', 'inventory_value']);
