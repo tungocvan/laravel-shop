@@ -11,6 +11,7 @@
             <p class="mt-1 text-sm text-slate-600">{{ $warehouse->name }} · Mốc bắt đầu sổ kho: <strong>{{ $warehouse->opening_cutoff_at?->format('d/m/Y H:i') ?? 'Chưa ghi nhận' }}</strong></p>
         </div>
         <nav class="flex flex-wrap gap-2" aria-label="Điều hướng kho">
+            <a href="{{ route('client.pharma.inventory.excel-config', ['report'=>'movements']) }}" class="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-indigo-700">⚙ Cấu hình Excel</a>
             <a href="{{ route('client.pharma.inventory') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Tồn kho</a>
             <span class="rounded-xl bg-indigo-600 px-3 py-2 text-sm font-semibold text-white">Xuất–Nhập–Tồn</span>
             <a href="{{ route('client.pharma.inventory.receipts') }}" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700">Phiếu nhập</a>
