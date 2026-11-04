@@ -11,6 +11,7 @@ use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MedicineService;
+use Modules\Pharma\Services\MedicineVariantCreationService;
 
 final class PharmaMedicineEditorController extends Controller
 {
@@ -69,6 +70,36 @@ final class PharmaMedicineEditorController extends Controller
         }
 
         return redirect()->route('client.pharma.products.edit', $medicine)->with('success', 'Đã cập nhật thuốc.');
+    }
+
+    public function createVariant(int $medicine, Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, MedicineService $service)
+    {
+        $this->authorizeAction($request, $registry, 'create-variant');
+        $master = $service->findOrFail($medicine);
+
+        if ($master->variants()->exists()) {
+            return redirect()->route('client.pharma.products', ['q' => $master->medicine_code])
+                ->with('success', 'Thuốc đã có SKU trong danh mục.');
+        }
+
+        return view('ClientPortal::applications.pharma.variant-create', $this->formData($registry, $settings, $master));
+    }
+
+    public function storeVariant(int $medicine, Request $request, ApplicationRegistry $registry, MedicineVariantCreationService $creator)
+    {
+        $this->authorizeAction($request, $registry, 'create-variant');
+
+        $data = $request->validate([
+            'strength_text' => ['required', 'string', 'max:255'],
+            'presentation_text' => ['required', 'string', 'max:255'],
+            'base_unit' => ['required', 'string', 'max:100'],
+            'declared_price' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $variant = $creator->createFirst($medicine, $data);
+
+        return redirect()->route('client.pharma.products.show', $variant->id)
+            ->with('success', 'Đã tạo SKU '. $variant->sku .'.');
     }
 
     private function validated(Request $request): array
