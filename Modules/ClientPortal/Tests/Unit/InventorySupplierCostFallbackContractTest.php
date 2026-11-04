@@ -11,7 +11,8 @@ class InventorySupplierCostFallbackContractTest extends TestCase
         $source = file_get_contents(__DIR__.'/../../../Pharma/Services/UserInventoryWorkspace.php');
 
         $this->assertStringContainsString('NULLIF(pharma_inventory_balances.manual_cost_price, 0)', $source);
-        $this->assertStringContainsString("->where('cost_price', '>', 0)", $source);
+        $this->assertStringContainsString("COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0", $source);
+        $this->assertStringContainsString("AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price", $source);
         $this->assertStringContainsString('(float) $row->manual_cost_price > 0', $source);
         $this->assertStringContainsString('(float) $lot->manual_cost_price > 0', $source);
     }
