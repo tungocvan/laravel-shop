@@ -33,6 +33,25 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.edit', \$master->id)", $view);
     }
 
+    public function test_explicit_sku_creation_is_guarded_and_does_not_autocreate_on_medicine_save(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineEditorController.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineVariantCreationService.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/variant-create.blade.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+
+        $this->assertStringContainsString("'/products/{medicine}/variants/create'", $routes);
+        $this->assertStringContainsString("'/products/{medicine}/variants'", $routes);
+        $this->assertStringContainsString("'create-variant'", $controller);
+        $this->assertStringContainsString("'client.pharma.products.create-variant'", $manifest);
+        $this->assertStringContainsString('lockForUpdate()', $service);
+        $this->assertStringContainsString("->variants()->exists()", $service);
+        $this->assertStringContainsString("where('sku', \$sku)", $service);
+        $this->assertStringContainsString("route('client.pharma.products.variants.store'", $view);
+        $this->assertStringContainsString('@csrf', $view);
+    }
+
     public function test_client_catalog_exposes_create_and_edit_actions(): void
     {
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
