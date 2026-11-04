@@ -27,14 +27,19 @@
         <section data-supplier-panel="supplier" class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 class="font-extrabold">Nhà cung cấp & hiệu lực</h2>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                <label class="text-sm font-bold sm:col-span-2">Nhà cung cấp *
-                    <select required name="partner_id" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3">
-                        <option value="">Chọn nhà cung cấp từ Partner Master</option>
+                <div class="sm:col-span-2">
+                    <label class="mb-2 block text-sm font-bold" for="supplier-partner-search">Nhà cung cấp <span class="text-red-600">*</span></label>
+                    <x-pwa-select-search id="supplier-partner-search" name="partner_id" :selected="old('partner_id', $editing?->partner_id)" placeholder="Chọn nhà cung cấp từ Partner Master" search-placeholder="Tìm tên nhà cung cấp / MST...">
+                        <button type="button" data-pwa-select-search-option data-value="" data-label="Chọn nhà cung cấp từ Partner Master" data-search="" class="block w-full rounded-xl px-3 py-3 text-left text-sm hover:bg-slate-100">Chọn nhà cung cấp từ Partner Master</button>
                         @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier->id }}" @selected((string) old('partner_id', $editing?->partner_id) === (string) $supplier->id)>{{ $supplier->name }} · MST {{ $supplier->tax_code }}</option>
+                            <button type="button" data-pwa-select-search-option data-value="{{ $supplier->id }}" data-label="{{ $supplier->name }} · MST {{ $supplier->tax_code }}" data-search="{{ mb_strtolower($supplier->name.' '.($supplier->tax_code ?? '')) }}" class="block w-full rounded-xl px-3 py-3 text-left text-sm hover:bg-slate-100">
+                                <strong class="block font-bold text-slate-900">{{ $supplier->name }}</strong>
+                                @if($supplier->tax_code)<small class="mt-0.5 block text-xs text-slate-500">MST {{ $supplier->tax_code }}</small>@endif
+                            </button>
                         @endforeach
-                    </select>
-                </label>
+                    </x-pwa-select-search>
+                    <p id="supplier-partner-error" role="alert" class="mt-2 hidden text-sm font-semibold text-red-700">Vui lòng chọn nhà cung cấp trước khi lưu.</p>
+                </div>
                 @foreach(['start_date'=>'Hiệu lực từ','end_date'=>'Hiệu lực đến','working_date'=>'Ngày ghi nhận'] as $key=>$title)
                     <label class="text-sm font-bold">{{ $title }} <input type="date" name="{{ $key }}" value="{{ old($key, $editing?->{$key}?->format('Y-m-d')) }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
                 @endforeach
@@ -161,11 +166,13 @@
             if (!root.querySelector('[name="partner_id"]').value) {
                 event.preventDefault();
                 show('supplier');
-                root.querySelector('[name="partner_id"]').focus();
+                document.getElementById('supplier-partner-error')?.classList.remove('hidden');
+                root.querySelector('#supplier-partner-search button')?.focus();
                 return;
             }
             if (!confirm('Xác nhận lưu điều kiện thương mại?')) event.preventDefault();
         });
+        root.querySelector('[name="partner_id"]')?.addEventListener('change', () => document.getElementById('supplier-partner-error')?.classList.add('hidden'));
         const scopeInputs = Array.from(root.querySelectorAll('input[name="distribution_scope"]'));
         const refreshDistribution = () => {
             const scope = scopeInputs.find(input => input.checked)?.value ?? 'all';
