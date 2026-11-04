@@ -23,6 +23,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,products')->name('products.create');
         Route::post('/products', [PharmaMedicineEditorController::class, 'store'])
             ->middleware('client.feature:pharma,products')->name('products.store');
+        Route::get('/products/{medicine}/variants/create', [PharmaMedicineEditorController::class, 'createVariant'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.create');
+        Route::post('/products/{medicine}/variants', [PharmaMedicineEditorController::class, 'storeVariant'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.store');
         Route::get('/products/{medicine}/edit', [PharmaMedicineEditorController::class, 'edit'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.edit');
         Route::put('/products/{medicine}', [PharmaMedicineEditorController::class, 'update'])
