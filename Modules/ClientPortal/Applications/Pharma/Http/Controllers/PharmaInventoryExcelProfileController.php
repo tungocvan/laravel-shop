@@ -101,6 +101,8 @@ final class PharmaInventoryExcelProfileController extends Controller
             'font_family' => 'Times New Roman', 'header_font_size' => 12, 'body_font_size' => 11,
             'header_fill' => 'EFF4FA', 'body_border' => true,
         ], $data['settings'] ?? []);
+        $settings['report_header'] = array_replace(['enabled' => false], (array) ($settings['report_header'] ?? []));
+        $settings['report_header']['enabled'] = $request->boolean('settings.report_header.enabled');
         $profile->forceFill([
             'user_id' => $id, 'owner_guard' => $guard, 'name' => $data['name'],
             'is_default' => $makeDefault || (bool) $profile->is_default,
