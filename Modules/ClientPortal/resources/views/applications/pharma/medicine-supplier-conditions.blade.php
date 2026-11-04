@@ -68,7 +68,7 @@
             <h2 class="font-extrabold">Điều kiện thương mại</h2>
             <p class="mt-2 text-xs text-slate-500">Giá nhập từ nhà cung cấp; giá bán cho khách hàng được quản lý tại Bảng giá.</p>
             <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                @foreach(['import_price'=>'Giá nhập NCC *','selling_price'=>'Giá bán tham khảo','invoice_price'=>'Giá hóa đơn'] as $key=>$title)
+                @foreach(['import_price'=>'Giá nhập NCC *','selling_price'=>'Giá bán tham khảo *','invoice_price'=>'Giá hóa đơn'] as $key=>$title)
                     <label class="text-sm font-bold">{{ $title }} (đ) <input type="number" min="0" step="0.01" name="{{ $key }}" value="{{ old($key, $editing?->{$key}) }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
                 @endforeach
             </div>
@@ -193,7 +193,7 @@
         const serverSuccess = document.getElementById('supplier-server-success');
         if (serverErrors) {
             const errors = JSON.parse(serverErrors.textContent);
-            show(errors.some(message => message.includes('Giá nhập')) ? 'commercial' : 'supplier');
+            show(errors.some(message => message.includes('Giá nhập') || message.includes('Giá bán')) ? 'commercial' : 'supplier');
             feedback('Không thể lưu điều kiện thương mại', errors);
         } else if (serverSuccess) {
             feedback('Lưu thành công', [JSON.parse(serverSuccess.textContent)]);
@@ -202,6 +202,7 @@
             const issues = [];
             const partner = root.querySelector('[name="partner_id"]');
             const price = root.querySelector('[name="import_price"]');
+            const selling = root.querySelector('[name="selling_price"]');
             let firstTab = null;
             if (!partner?.value) {
                 issues.push('Tab 1 - Nhà cung cấp: Vui lòng chọn nhà cung cấp.');
@@ -209,6 +210,10 @@
             }
             if (!price?.value.trim() || !Number.isFinite(Number(price.value)) || Number(price.value) < 0) {
                 issues.push('Tab 2 - Điều kiện thương mại: Giá nhập NCC là bắt buộc và phải là số không âm.');
+                firstTab ??= 'commercial';
+            }
+            if (!selling?.value.trim() || !Number.isFinite(Number(selling.value)) || Number(selling.value) < 0) {
+                issues.push('Tab 2 - Điều kiện thương mại: Giá bán tham khảo là bắt buộc và phải là số không âm.');
                 firstTab ??= 'commercial';
             }
             const start = root.querySelector('[name="start_date"]')?.value;
