@@ -78,6 +78,30 @@ final class PharmaInventoryExcelProfileController extends Controller
             'settings.paper_size' => 'nullable|in:A4,A3,LETTER',
             'settings.orientation' => 'nullable|in:portrait,landscape',
             'settings.font_family' => 'nullable|in:Times New Roman,Arial,Calibri',
+            'settings.header_font_size' => 'nullable|integer|between:8,24',
+            'settings.body_font_size' => 'nullable|integer|between:8,24',
+            'settings.body_border' => 'nullable|boolean',
+            'settings.print_header' => 'nullable|string|max:500',
+            'settings.print_footer' => 'nullable|string|max:500',
+            'settings.margin_top' => 'nullable|numeric|between:0,5',
+            'settings.margin_bottom' => 'nullable|numeric|between:0,5',
+            'settings.margin_left' => 'nullable|numeric|between:0,5',
+            'settings.margin_right' => 'nullable|numeric|between:0,5',
+            'settings.report_header' => 'nullable|array',
+            'settings.report_header.enabled' => 'nullable|boolean',
+            'settings.report_header.company_name' => 'nullable|string|max:200',
+            'settings.report_header.address' => 'nullable|string|max:500',
+            'settings.report_header.office' => 'nullable|string|max:500',
+            'settings.report_header.tax_code' => 'nullable|string|max:100',
+            'settings.report_header.phone' => 'nullable|string|max:100',
+            'settings.report_header.email' => 'nullable|string|max:200',
+            'settings.report_header.recipient' => 'nullable|string|max:200',
+            'settings.report_header.intro' => 'nullable|string|max:1000',
+            'settings.report_footer' => 'nullable|array',
+            'settings.report_footer.enabled' => 'nullable|boolean',
+            'settings.report_footer.date_text' => 'nullable|string|max:200',
+            'settings.report_footer.signer_title' => 'nullable|string|max:200',
+            'settings.report_footer.signer_name' => 'nullable|string|max:200',
         ]);
         if (array_diff($data['columns'], array_keys($allowed))) {
             throw ValidationException::withMessages(['columns' => 'Cột xuất không hợp lệ hoặc không có quyền truy cập.']);
@@ -103,6 +127,9 @@ final class PharmaInventoryExcelProfileController extends Controller
         ], $data['settings'] ?? []);
         $settings['report_header'] = array_replace(['enabled' => false], (array) ($settings['report_header'] ?? []));
         $settings['report_header']['enabled'] = $request->boolean('settings.report_header.enabled');
+        $settings['report_footer'] = array_replace(['enabled' => false], (array) ($settings['report_footer'] ?? []));
+        $settings['report_footer']['enabled'] = $request->boolean('settings.report_footer.enabled');
+        $settings['body_border'] = $request->boolean('settings.body_border');
         $profile->forceFill([
             'user_id' => $id, 'owner_guard' => $guard, 'name' => $data['name'],
             'is_default' => $makeDefault || (bool) $profile->is_default,
