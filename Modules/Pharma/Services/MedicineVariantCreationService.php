@@ -33,12 +33,8 @@ final class MedicineVariantCreationService
                 'registration_number' => $medicine->registration_number,
                 'name' => $medicine->name,
                 'dosage_form' => $medicine->dosage_form,
-                'variant_identity_key' => $identityKey,
-                'sku_basis_hash' => $this->skuGenerator->generate($identityAttributes)['basis_hash'],
                 'strength_text' => $attributes['strength_text'],
-                'strength_normalized' => $this->normalizer->text($attributes['strength_text']),
                 'presentation_text' => $attributes['presentation_text'],
-                'presentation_normalized' => $this->normalizer->text($attributes['presentation_text']),
             ];
             $identityKey = $this->skuGenerator->variantIdentity($identityAttributes);
 
@@ -58,6 +54,10 @@ final class MedicineVariantCreationService
 
             return $medicine->variants()->create([
                 'sku' => $sku,
+                'variant_identity_key' => $identityKey,
+                'sku_basis_hash' => $this->skuGenerator->generate($identityAttributes)['basis_hash'],
+                'strength_normalized' => $this->normalizer->text($attributes['strength_text']),
+                'presentation_normalized' => $this->normalizer->text($attributes['presentation_text']),
                 'strength_text' => $attributes['strength_text'],
                 'presentation_text' => $attributes['presentation_text'],
                 'base_unit' => $attributes['base_unit'],
