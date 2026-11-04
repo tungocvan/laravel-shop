@@ -23,6 +23,7 @@
 
     <nav aria-label="Báo cáo tồn kho" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
         <a href="{{ route('client.pharma.inventory.movements') }}" class="rounded-xl border border-indigo-200 px-4 py-2 text-sm font-bold text-indigo-700">Xuất–Nhập–Tồn</a>
+        <a href="{{ route('client.pharma.inventory.excel-config', ['report'=>'stock']) }}" class="rounded-xl border border-indigo-200 px-4 py-2 text-sm font-bold text-indigo-700">⚙ Cấu hình Excel</a>
         <a href="{{ route('client.pharma.inventory.export') }}" class="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-bold text-emerald-700">↓ Export tồn kho XLSX</a>
         @can('client.pharma.inventory.opening.manage')
             <a href="{{ route('client.pharma.inventory.opening') }}" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700">Tồn đầu kỳ</a>
