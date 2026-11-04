@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Modules\Pharma\Services\MedicineCatalogUploadService;
+use Modules\Pharma\Models\MedicineImportBatch;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
@@ -17,6 +18,31 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PharmaMedicineExcelController extends Controller
 {
+    public function importPage(Request $request, ApplicationRegistry $registry): \Illuminate\View\View
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+
+        $batches = MedicineImportBatch::query()
+            ->where('source', 'clientportal_pharma')
+            ->where('created_by', (int) $user->id)
+            ->latest('id')
+            ->paginate(12);
+
+        return view('ClientPortal::applications.pharma.import', compact('batches'));
+    }
+
+    public function importBatch(Request $request, ApplicationRegistry $registry, MedicineImportBatch $batch): \Illuminate\View\View
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+        abort_unless($batch->source === 'clientportal_pharma' && (int) $batch->created_by === (int) $user->id, 404);
+
+        $rows = $batch->rows()->orderBy('source_row')->paginate(30);
+
+        return view('ClientPortal::applications.pharma.import-batch', compact('batch', 'rows'));
+    }
+
     public function template(Request $request, ApplicationRegistry $registry): \Symfony\Component\HttpFoundation\StreamedResponse
     {
         $user = $request->user('web');
@@ -147,7 +173,7 @@ final class PharmaMedicineExcelController extends Controller
         $batch = $upload->stage($validated['file'], (int) $user->id);
         $batch->forceFill(['source' => 'clientportal_pharma'])->save();
 
-        return redirect()->route('client.pharma.products')
+        return redirect()->route('client.pharma.products.import.batch', ['batch' => $batch->id])
             ->with('medicine_import_staged', [
                 'batch_id' => (int) $batch->id,
                 'total' => $batch->rows()->count(),
