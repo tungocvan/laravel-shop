@@ -33,6 +33,26 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.edit', \$master->id)", $view);
     }
 
+    public function test_client_import_has_dedicated_page_history_and_batch_review(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelController.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $catalog = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $import = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/import.blade.php'));
+        $review = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/import-batch.blade.php'));
+
+        $this->assertStringContainsString('function importPage(', $controller);
+        $this->assertStringContainsString('function importBatch(', $controller);
+        $this->assertStringContainsString('where(\'created_by\', (int) $user->id)', $controller);
+        $this->assertStringContainsString("'clientportal_pharma'", $controller);
+        $this->assertStringContainsString("'/products/import/batches/{batch}'", $routes);
+        $this->assertStringContainsString("route('client.pharma.products.import.page')", $catalog);
+        $this->assertStringContainsString("route('client.pharma.products.import')", $import);
+        $this->assertStringContainsString('Lịch sử import gần đây', $import);
+        $this->assertStringContainsString('resolution_reason', $review);
+        $this->assertStringContainsString('Chưa ghi vào Medicine Master', $review);
+    }
+
     public function test_roundtrip_import_references_are_matched_without_automatic_writes(): void
     {
         $mapper = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalogImportMapper.php'));
