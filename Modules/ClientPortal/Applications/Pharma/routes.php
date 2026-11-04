@@ -30,6 +30,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.store');
         Route::get('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'hssp'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp');
+        Route::put('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'updateHssp'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp.update');
         Route::post('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'createHssp'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp.store');
         Route::get('/products/{medicine}/supplier-conditions', [PharmaMedicineRelationsController::class, 'supplierConditions'])
