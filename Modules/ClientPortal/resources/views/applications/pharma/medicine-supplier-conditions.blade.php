@@ -13,7 +13,7 @@
         <p class="mt-2 text-sm text-slate-200">{{ $medicine->name }} · {{ $medicine->medicine_code }}</p>
     </header>
 
-    <dialog id="supplier-feedback-modal" aria-labelledby="supplier-feedback-title" class="w-[min(92vw,520px)] rounded-2xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/50">
+    <dialog id="supplier-feedback-modal" aria-labelledby="supplier-feedback-title" class="fixed inset-0 m-auto max-h-[90vh] w-[min(92vw,520px)] rounded-2xl border border-slate-200 p-0 shadow-2xl backdrop:bg-slate-950/50">
         <div class="p-6">
             <h2 id="supplier-feedback-title" class="text-lg font-extrabold text-slate-950">Thông báo</h2>
             <ul id="supplier-feedback-messages" class="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700"></ul>
