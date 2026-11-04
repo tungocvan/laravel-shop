@@ -25,7 +25,7 @@
             <a href="{{ route('client.pharma.products.create') }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white hover:bg-indigo-800">+ Thêm thuốc</a>
         @endcan
         @if($canImportMedicines)
-            <a href="#pharma-import-tools" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Nhập Excel</a>
+            <a href="{{ route('client.pharma.products.import.page') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Nhập Excel</a>
             <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">↓ Tải mẫu nhập</a>
         @endif
         @if($canExportMedicines)
@@ -72,16 +72,14 @@
             <strong>Excel đã được tiếp nhận vào staging #{{ session('medicine_import_staged.batch_id') }} (chưa ghi vào danh mục).</strong>
             {{ session('medicine_import_staged.total') }} dòng; mới: {{ session('medicine_import_staged.new') }}, cập nhật: {{ session('medicine_import_staged.update') }}.
             Chưa ghi bất kỳ thay đổi nào vào Medicine Master. Cần rà soát và phê duyệt trước khi đồng bộ.
+            <a href="{{ route('client.pharma.products.import.batch', session('medicine_import_staged.batch_id')) }}" class="ml-2 font-bold underline">Xem chi tiết staging</a>
         </div>
     @endif
     @if($canImportMedicines)
-        <form id="pharma-import-tools" method="POST" action="{{ route('client.pharma.products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
-            @csrf
-            <label class="flex-1"><span class="mb-1 block text-xs font-bold text-slate-600">Nhập Excel vào staging (XLSX/CSV, tối đa 10MB)</span><input type="file" name="file" accept=".xlsx,.csv" required class="block w-full rounded-xl border border-slate-300 px-3 py-2"></label>
-            <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 font-bold text-indigo-800">↓ Tải file mẫu XLSX</a>
-            <button type="submit" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-900">Tải lên & phân loại</button>
-            <span class="w-full text-xs text-amber-700">Chỉ phân loại dữ liệu; chưa ghi Medicine Master. Bước rà soát/ghi sổ sẽ triển khai riêng.</span>
-        </form>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
+            <div><strong class="text-slate-900">Import Excel & lịch sử staging</strong><p class="mt-1 text-xs text-slate-500">Tải tệp, phân loại và rà soát từng dòng trên trang import riêng.</p></div>
+            <a href="{{ route('client.pharma.products.import.page') }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 font-bold text-indigo-700">Mở trang Import →</a>
+        </div>
     @endif
 
     @if($canExportMedicines)
