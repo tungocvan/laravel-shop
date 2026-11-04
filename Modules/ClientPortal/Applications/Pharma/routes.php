@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelProfileController;
 
 if ((bool) config('modules.registry.Pharma.enabled', false)) {
@@ -18,6 +19,14 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::get('/products/create', [PharmaMedicineEditorController::class, 'create'])
+            ->middleware('client.feature:pharma,products')->name('products.create');
+        Route::post('/products', [PharmaMedicineEditorController::class, 'store'])
+            ->middleware('client.feature:pharma,products')->name('products.store');
+        Route::get('/products/{medicine}/edit', [PharmaMedicineEditorController::class, 'edit'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.edit');
+        Route::put('/products/{medicine}', [PharmaMedicineEditorController::class, 'update'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.update');
         Route::post('/products/excel-config/import-json', [PharmaMedicineExcelProfileController::class, 'importJson'])
             ->middleware('client.feature:pharma,products')
             ->name('products.excel-config.import-json');
