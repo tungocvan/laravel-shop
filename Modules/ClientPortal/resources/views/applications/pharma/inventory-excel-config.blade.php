@@ -8,7 +8,12 @@
     if ($report === 'movements' && $profile) {
         foreach (['stt', 'unit'] as $requiredColumn) {
             if (array_key_exists($requiredColumn, $columns) && ! in_array($requiredColumn, $values, true)) {
-                $values[] = $requiredColumn;
+                if ($requiredColumn === 'stt') {
+                    array_unshift($values, 'stt');
+                } else {
+                    $namePosition = array_search('name', $values, true);
+                    array_splice($values, $namePosition === false ? 2 : $namePosition + 1, 0, ['unit']);
+                }
             }
         }
     }
