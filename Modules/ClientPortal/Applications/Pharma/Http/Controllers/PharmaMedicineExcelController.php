@@ -22,7 +22,7 @@ final class PharmaMedicineExcelController extends Controller
         $user = $request->user('web');
         abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
 
-        // Headers are the aliases supported by MedicineCatalogImportMapper.
+        // Match the accepted header aliases in MedicineCatalogImportMapper.
         $headers = [
             'Loại sản phẩm', 'Tên thuốc', 'Tên hoạt chất', 'Nồng độ - Hàm lượng',
             'Dạng bào chế', 'Đường dùng', 'Đơn vị tính', 'Quy cách đóng gói',
@@ -31,12 +31,31 @@ final class PharmaMedicineExcelController extends Controller
         ];
 
         return response()->streamDownload(static function () use ($headers): void {
-            $stream = fopen('php://output', 'wb');
-            fwrite($stream, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel Vietnamese headers
-            fputcsv($stream, $headers);
-            fclose($stream);
-        }, 'mau-nhap-danh-muc-thuoc.csv', [
-            'Content-Type' => 'text/csv; charset=UTF-8',
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+            try {
+                $sheet = $spreadsheet->getActiveSheet();
+                $sheet->setTitle('Danh muc thuoc');
+                $sheet->fromArray($headers, null, 'A1');
+                $lastColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers));
+                $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+                $sheet->getStyle("A1:{$lastColumn}1")->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('1E3A8A');
+                $sheet->getStyle("A1:{$lastColumn}1")->getAlignment()->setWrapText(true);
+                $sheet->getRowDimension(1)->setRowHeight(36);
+                $sheet->freezePane('A2');
+                $sheet->setAutoFilter("A1:{$lastColumn}1");
+                foreach (range(1, count($headers)) as $index) {
+                    $sheet->getColumnDimensionByColumn($index)->setWidth(24);
+                }
+                $sheet->getColumnDimension('B')->setWidth(34);
+                $sheet->getColumnDimension('I')->setWidth(32);
+                (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save('php://output');
+            } finally {
+                $spreadsheet->disconnectWorksheets();
+            }
+        }, 'mau-nhap-danh-muc-thuoc.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store',
         ]);
     }
