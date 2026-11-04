@@ -75,7 +75,7 @@
         <form id="pharma-import-tools" method="POST" action="{{ route('client.pharma.products.import') }}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm">
             @csrf
             <label class="flex-1"><span class="mb-1 block text-xs font-bold text-slate-600">Nhập Excel vào staging (XLSX/CSV, tối đa 10MB)</span><input type="file" name="file" accept=".xlsx,.csv" required class="block w-full rounded-xl border border-slate-300 px-3 py-2"></label>
-            <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 font-bold text-indigo-800">↓ Tải file mẫu CSV</a>
+            <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 font-bold text-indigo-800">↓ Tải file mẫu XLSX</a>
             <button type="submit" class="min-h-11 rounded-xl border border-slate-300 px-4 py-2 font-bold text-slate-900">Tải lên & phân loại</button>
             <span class="w-full text-xs text-amber-700">Chỉ phân loại dữ liệu; chưa ghi Medicine Master. Bước rà soát/ghi sổ sẽ triển khai riêng.</span>
         </form>
