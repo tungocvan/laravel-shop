@@ -60,6 +60,7 @@ return [
                 'hssp.view' => ['name' => 'Xem HSSP thuốc', 'permission' => 'client.pharma.products.hssp.view', 'sort_order' => 8],
                 'hssp.update' => ['name' => 'Cập nhật HSSP', 'permission' => 'client.pharma.products.hssp.update', 'sort_order' => 10],
                 'hssp.create' => ['name' => 'Tạo HSSP nháp', 'permission' => 'client.pharma.products.hssp.create', 'sort_order' => 9],
+                'supplier-conditions.manage' => ['name' => 'Cập nhật điều kiện thương mại', 'permission' => 'client.pharma.products.supplier-conditions.manage', 'sort_order' => 11],
                 'supplier-pricing' => [
                     'name' => 'Xem giá nhà cung cấp',
                     'permission' => 'client.pharma.products.supplier-pricing',
