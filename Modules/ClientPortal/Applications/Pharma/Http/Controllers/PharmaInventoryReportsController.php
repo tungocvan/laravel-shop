@@ -77,15 +77,22 @@ final class PharmaInventoryReportsController extends Controller
         return (new FastExcel($rows))->download('client-pharma-xuat-nhap-ton-'.$from->format('Ymd').'-'.$to->format('Ymd').'.xlsx');
     }
 
-    public function exportStock(Request $request, ApplicationRegistry $registry, UserInventoryWorkspace $workspace): StreamedResponse
+    public function exportStock(Request $request, ApplicationRegistry $registry, UserInventoryWorkspace $workspace, InventoryService $inventory): StreamedResponse
     {
         $this->authorizeInventory($request, $registry);
+        $data = $request->validate([
+            'ids'=>'nullable|array|max:500',
+            'ids.*'=>'integer|distinct|exists:pharma_inventory_balances,id',
+        ]);
         $canCosts = $registry->userCan($request->user('web'), 'client.pharma.inventory.costs');
+        $selected = $data['ids'] ?? [];
         $rows = collect();
-        // Reuse the same warehouse-scoped browse logic as the Client inventory page.
-        for ($page = 1; ; $page++) {
-            $batch = $workspace->browse(perPage: 100, page: $page, canViewCosts: $canCosts);
-            foreach ($batch->items() as $r) {
+        if ($selected) {
+            $warehouse = $inventory->defaultWarehouse();
+            $balances = InventoryBalance::query()->with('medicine')
+                ->where('warehouse_id', $warehouse->id)->whereIn('id', $selected)->get();
+            abort_unless($balances->count() === count($selected), 403);
+            foreach ($balances as $r) {
                 $record = [
                     'Mã thuốc'=>$r->medicine->medicine_code, 'Tên thuốc'=>$r->medicine->name,
                     'Số lô'=>$r->batch_number, 'Hạn dùng'=>$r->expiry_date->format('d/m/Y'),
@@ -97,7 +104,24 @@ final class PharmaInventoryReportsController extends Controller
                 }
                 $rows->push($record);
             }
-            if (! $batch->hasMorePages()) break;
+        } else {
+            // Preserve the existing full-export behavior for callers without selected IDs.
+            for ($page = 1; ; $page++) {
+                $batch = $workspace->browse(perPage: 100, page: $page, canViewCosts: $canCosts);
+                foreach ($batch->items() as $r) {
+                    $record = [
+                        'Mã thuốc'=>$r->medicine->medicine_code, 'Tên thuốc'=>$r->medicine->name,
+                        'Số lô'=>$r->batch_number, 'Hạn dùng'=>$r->expiry_date->format('d/m/Y'),
+                        'Tồn hiện tại'=>(float)$r->quantity_on_hand,
+                    ];
+                    if ($canCosts) {
+                        $record['Giá vốn'] = $r->average_cost_price === null ? null : (float)$r->average_cost_price;
+                        $record['Giá trị tồn'] = $r->inventory_value === null ? null : (float)$r->inventory_value;
+                    }
+                    $rows->push($record);
+                }
+                if (! $batch->hasMorePages()) break;
+            }
         }
         return (new FastExcel($rows))->download('client-pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
     }
