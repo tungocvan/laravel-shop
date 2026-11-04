@@ -41,6 +41,7 @@ return [
             'actions' => [
                 'create' => ['name' => 'Thêm thuốc', 'permission' => 'client.pharma.products.create', 'sort_order' => 5],
                 'edit' => ['name' => 'Sửa thuốc', 'permission' => 'client.pharma.products.edit', 'sort_order' => 6],
+                'create-variant' => ['name' => 'Tạo SKU thuốc', 'permission' => 'client.pharma.products.create-variant', 'sort_order' => 7],
                 'import' => [
                     'name' => 'Nhập Excel vào staging danh mục thuốc',
                     'permission' => 'client.pharma.products.import',
