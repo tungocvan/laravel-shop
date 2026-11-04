@@ -32,7 +32,7 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'/products/{medicine}/hssp'", $routes);
         $this->assertStringContainsString("'/products/{medicine}/supplier-conditions'", $routes);
         $this->assertStringContainsString("'client.pharma.products.hssp.create'", $manifest);
-        $this->assertStringContainsString("'client.pharma.products.supplier-pricing'", $controller);
+        $this->assertStringContainsString("$"+"this->authorizeAction($"+"request, $"+"registry, 'supplier-pricing')", $controller);
         $this->assertStringContainsString('MedicineProfile::STATUS_INCOMPLETE', $controller);
         $this->assertStringContainsString('createFromTemplate(', $controller);
         $this->assertStringContainsString("route('client.pharma.products.hssp'", $catalog);
