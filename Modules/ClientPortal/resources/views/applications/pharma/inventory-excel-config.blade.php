@@ -56,6 +56,29 @@
             </div>
             <p class="mt-3 text-xs text-slate-500">Các thông tin này sẽ xuất phía trên tiêu đề báo cáo. Logo và Header/Footer nâng cao sẽ được hoàn thiện trong bước đồng bộ Designer V4.</p>
         </section>
+        <section class="rounded-2xl border bg-white p-5">
+            <h2 class="mb-3 font-bold">Footer sau bảng dữ liệu</h2>
+            <label class="mb-3 flex items-center gap-2 text-sm"><input type="checkbox" name="settings[report_footer][enabled]" value="1" @checked(old('settings.report_footer.enabled', $settings['report_footer']['enabled'] ?? false))> Bật Footer tùy chỉnh</label>
+            <div class="grid gap-3 md:grid-cols-2">
+                @foreach(['date_text'=>'Ngày, địa điểm ký','signer_title'=>'Chức danh','signer_name'=>'Người ký'] as $field=>$label)
+                    <label class="text-sm font-semibold">{{ $label }}<input name="settings[report_footer][{{ $field }}]" value="{{ old('settings.report_footer.'.$field, $settings['report_footer'][$field] ?? '') }}" class="mt-1 w-full rounded-lg border p-2 text-sm"></label>
+                @endforeach
+            </div>
+        </section>
+        <section class="rounded-2xl border bg-white p-5">
+            <h2 class="mb-3 font-bold">Trang in · Kiểu chữ &amp; lề trang</h2>
+            <div class="grid gap-3 md:grid-cols-2">
+                <label class="text-sm">Cỡ chữ tiêu đề cột<input type="number" min="8" max="24" name="settings[header_font_size]" value="{{ old('settings.header_font_size', $settings['header_font_size'] ?? 12) }}" class="mt-1 w-full rounded-lg border p-2"></label>
+                <label class="text-sm">Cỡ chữ dữ liệu<input type="number" min="8" max="24" name="settings[body_font_size]" value="{{ old('settings.body_font_size', $settings['body_font_size'] ?? 11) }}" class="mt-1 w-full rounded-lg border p-2"></label>
+                @foreach(['margin_top'=>'Lề trên (cm)','margin_bottom'=>'Lề dưới (cm)','margin_left'=>'Lề trái (cm)','margin_right'=>'Lề phải (cm)'] as $key=>$label)
+                    <label class="text-sm">{{ $label }}<input type="number" step="0.1" min="0" max="5" name="settings[{{ $key }}]" value="{{ old('settings.'.$key, $settings[$key] ?? 0.8) }}" class="mt-1 w-full rounded-lg border p-2"></label>
+                @endforeach
+                <label class="text-sm">Header trang in (mã Excel: &amp;P số trang)<input name="settings[print_header]" value="{{ old('settings.print_header', $settings['print_header'] ?? '') }}" class="mt-1 w-full rounded-lg border p-2"></label>
+                <label class="text-sm">Footer trang in<input name="settings[print_footer]" value="{{ old('settings.print_footer', $settings['print_footer'] ?? '') }}" class="mt-1 w-full rounded-lg border p-2"></label>
+            </div>
+            <label class="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" name="settings[body_border]" value="1" @checked(old('settings.body_border', $settings['body_border'] ?? true))> Viền mảnh bảng dữ liệu</label>
+            <p class="mt-2 text-xs text-slate-500">Excel tự động lặp tiêu đề cột trên mỗi trang và căn vừa chiều ngang giấy. Các ô tiêu đề và dữ liệu được Wrap Text.</p>
+        </section>
         <section id="excel-columns" class="rounded-2xl border bg-white p-5">
             <h2 class="mb-3 font-bold">Cột dữ liệu · Chọn, đặt tên, căn lề và độ rộng</h2>
             <p class="mb-4 text-xs text-slate-500">Chọn ít nhất một cột. Độ rộng nhập theo pixel và được giữ nguyên khi xuất XLSX. Thứ tự xuất hiện theo danh sách bên dưới.</p>
