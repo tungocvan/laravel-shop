@@ -68,6 +68,8 @@ class MedicineExcelProfileService
                 'header_fill' => 'EFF4FA',
                 'body_border' => true,
                 'fit_to_page' => false,
+                'report_header' => ['enabled' => false, 'show_logo' => false, 'logo_data' => null, 'logo_width' => 110, 'company_name' => '', 'address' => '', 'office' => '', 'tax_code' => '', 'phone' => '', 'email' => '', 'recipient' => '', 'intro' => ''],
+                'report_footer' => ['enabled' => false, 'date_text' => '', 'signer_title' => '', 'signer_name' => '', 'signature_rows' => 4],
                 'margin_top_cm' => 0.8, 'margin_bottom_cm' => 0.8,
                 'margin_left_cm' => 0.8, 'margin_right_cm' => 0.8,
                 'margin_header_cm' => 0.8, 'margin_footer_cm' => 0.8,
@@ -138,6 +140,37 @@ class MedicineExcelProfileService
         }
         $settings['center_horizontally'] = (bool) ($settings['center_horizontally'] ?? true);
         $settings['center_vertically'] = (bool) ($settings['center_vertically'] ?? false);
+        foreach (['report_header', 'report_footer'] as $section) {
+            $input = is_array($settings[$section] ?? null) ? $settings[$section] : [];
+            $settings[$section] = array_replace($defaults['settings'][$section], array_intersect_key($input, $defaults['settings'][$section]));
+            $settings[$section]['enabled'] = (bool) $settings[$section]['enabled'];
+        }
+        $header = &$settings['report_header'];
+        foreach (['company_name', 'address', 'office', 'tax_code', 'phone', 'email', 'recipient', 'intro'] as $key) {
+            $header[$key] = mb_substr(trim((string) $header[$key]), 0, $key === 'intro' ? 1000 : 250);
+        }
+        $header['show_logo'] = (bool) $header['show_logo'];
+        $header['logo_width'] = max(40, min(220, (int) $header['logo_width']));
+        $logo = $header['logo_data'];
+        if ($logo !== null && $logo !== '') {
+            if (! is_string($logo) || strlen($logo) > 400000 || ! preg_match('#^data:image/(png|jpeg);base64,([A-Za-z0-9+/=]+)$#D', $logo, $matches)) {
+                throw ValidationException::withMessages(['settings.report_header.logo_data' => 'Logo phải là PNG/JPEG hợp lệ, tối đa 256 KB.']);
+            }
+            $binary = base64_decode($matches[2], true);
+            $imageInfo = $binary === false ? false : @getimagesizefromstring($binary);
+            if ($binary === false || strlen($binary) > 262144 || ! $imageInfo || ! in_array($imageInfo[2], [IMAGETYPE_PNG, IMAGETYPE_JPEG], true) || $imageInfo[0] > 2000 || $imageInfo[1] > 2000) {
+                throw ValidationException::withMessages(['settings.report_header.logo_data' => 'Logo không hợp lệ hoặc vượt giới hạn.']);
+            }
+        } else {
+            $header['logo_data'] = null;
+        }
+        unset($header);
+        $footer = &$settings['report_footer'];
+        foreach (['date_text', 'signer_title', 'signer_name'] as $key) {
+            $footer[$key] = mb_substr(trim((string) $footer[$key]), 0, 250);
+        }
+        $footer['signature_rows'] = max(1, min(10, (int) $footer['signature_rows']));
+        unset($footer);
         $profile->forceFill([
             'owner_guard' => $guard, 'user_id' => $userId, 'name' => $name, 'is_default' => $makeDefault || (bool) $profile->is_default,
             'columns' => $columns, 'headers' => $headers, 'widths' => $widths,
