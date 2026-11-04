@@ -96,7 +96,6 @@
                 </div>
             </div>
             <div class="mt-3 flex flex-wrap items-center gap-3">
-                <label class="text-xs font-bold text-slate-600">Số dòng <select name="per_page" onchange="this.form.submit()" class="ml-2 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">@foreach([25,50,100] as $size)<option value="{{ $size }}" @selected($filters['per_page']===$size)>{{ $size }} / trang</option>@endforeach</select></label>
                 <label class="inline-flex items-center gap-2 text-xs font-semibold text-slate-600"><input id="inventory-only-positive" type="checkbox"> Chỉ còn tồn (trang hiện tại)</label>
                 <a href="{{ route('client.pharma.inventory') }}" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold">Xóa bộ lọc</a>
             </div>
@@ -104,8 +103,8 @@
         </form>
     </section>
 
-    <form id="inventory-selected-export" method="GET" action="{{ route('client.pharma.inventory.export') }}" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
-        <label class="inline-flex items-center gap-2 text-sm font-bold text-indigo-900"><input id="inventory-select-all" type="checkbox"> Chọn tất cả trên trang hiện tại</label>
+    <form id="inventory-selected-export" method="GET" action="{{ route('client.pharma.inventory.export') }}" class="hidden flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+        <span id="inventory-selected-summary" class="text-sm font-semibold text-indigo-900">Đã chọn lô trên trang hiện tại</span>
         <div class="flex items-center gap-2"><span id="inventory-selected-count" class="text-xs text-indigo-800">0 lô đã chọn</span><button type="button" id="inventory-clear-selected" class="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-xs font-bold">Bỏ chọn</button><button type="submit" id="inventory-export-selected" disabled class="rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-40">Xuất Excel đã chọn</button></div>
     </form>
     <section id="inventory-mobile-list" class="grid gap-3 md:grid-cols-2 xl:hidden">
@@ -133,7 +132,7 @@
     </section>
 
     <section class="hidden overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:block">
-        <div class="overflow-x-auto"><table class="w-full table-fixed divide-y divide-slate-200 text-sm"><colgroup><col class="w-[5%]"><col class="w-[14%]"><col class="w-[27%]"><col class="w-[10%]"><col class="w-[11%]"><col class="w-[10%]">@if($canViewCosts)<col class="w-[13%]"><col class="w-[15%]">@endif</colgroup><thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="px-2 py-3">Chọn</th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Hoạt chất / Quy cách</th><th class="px-4 py-3 whitespace-nowrap">Số lô</th><th class="px-4 py-3 whitespace-nowrap">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn hiện tại</th>@if($canViewCosts)<th class="px-4 py-3 text-right whitespace-nowrap">Giá vốn TB</th><th class="px-4 py-3 text-right whitespace-nowrap">Giá trị tồn</th>@endif</tr></thead><tbody id="inventory-desktop-body" class="divide-y divide-slate-100">@forelse($balances as $row)<tr data-inventory-row data-quantity="{{ (float)$row->quantity_on_hand }}" class="group"><td class="px-2 py-3"><input type="checkbox" data-inventory-select value="{{ $row->id }}" aria-label="Chọn lô {{ $row->batch_number }}" class="h-4 w-4"></td><td class="px-4 py-3 font-bold text-slate-950"><a href="{{ route('client.pharma.inventory.balances.show', $row) }}" class="inline-flex items-center gap-2 hover:underline">{{ $row->medicine->name }}<span class="text-slate-300 transition group-hover:translate-x-0.5">›</span></a></td><td class="px-4 py-3"><div class="font-medium text-slate-700">{{ $row->medicine->active_ingredients ?: '—' }}</div><div class="mt-1 text-xs text-slate-400">{{ $row->medicine->packaging_specification ?: '—' }}</div></td><td class="px-4 py-3 whitespace-nowrap">{{ $row->batch_number }}</td><td class="px-4 py-3 whitespace-nowrap">{{ $row->expiry_date->format('d/m/Y') }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ rtrim(rtrim(number_format((float)$row->quantity_on_hand,3,'.',''),'0'),'.') }}</td>@if($canViewCosts)<td class="px-4 py-3 text-right whitespace-nowrap">{{ $row->average_cost_price !== null ? $money($row->average_cost_price) : '—' }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ $row->inventory_value !== null ? $money($row->inventory_value) : '—' }}</td>@endif</tr>@empty<tr><td colspan="{{ $canViewCosts ? 8 : 6 }}" class="px-4 py-8 text-center text-slate-500">Không có tồn kho phù hợp bộ lọc.</td></tr>@endforelse</tbody></table></div>
+        <div class="overflow-x-auto"><table class="w-full table-fixed divide-y divide-slate-200 text-sm"><colgroup><col class="w-[5%]"><col class="w-[14%]"><col class="w-[27%]"><col class="w-[10%]"><col class="w-[11%]"><col class="w-[10%]">@if($canViewCosts)<col class="w-[13%]"><col class="w-[15%]">@endif</colgroup><thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500"><tr><th class="px-2 py-3"><input id="inventory-select-all" type="checkbox" aria-label="Chọn tất cả các lô đã tải" title="Chọn tất cả các lô đã tải" class="h-4 w-4 rounded border-slate-300"></th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Hoạt chất / Quy cách</th><th class="px-4 py-3 whitespace-nowrap">Số lô</th><th class="px-4 py-3 whitespace-nowrap">Hạn dùng</th><th class="px-4 py-3 text-right">Tồn hiện tại</th>@if($canViewCosts)<th class="px-4 py-3 text-right whitespace-nowrap">Giá vốn TB</th><th class="px-4 py-3 text-right whitespace-nowrap">Giá trị tồn</th>@endif</tr></thead><tbody id="inventory-desktop-body" class="divide-y divide-slate-100">@forelse($balances as $row)<tr data-inventory-row data-quantity="{{ (float)$row->quantity_on_hand }}" class="group"><td class="px-2 py-3"><input type="checkbox" data-inventory-select value="{{ $row->id }}" aria-label="Chọn lô {{ $row->batch_number }}" class="h-4 w-4"></td><td class="px-4 py-3 font-bold text-slate-950"><a href="{{ route('client.pharma.inventory.balances.show', $row) }}" class="inline-flex items-center gap-2 hover:underline">{{ $row->medicine->name }}<span class="text-slate-300 transition group-hover:translate-x-0.5">›</span></a></td><td class="px-4 py-3"><div class="font-medium text-slate-700">{{ $row->medicine->active_ingredients ?: '—' }}</div><div class="mt-1 text-xs text-slate-400">{{ $row->medicine->packaging_specification ?: '—' }}</div></td><td class="px-4 py-3 whitespace-nowrap">{{ $row->batch_number }}</td><td class="px-4 py-3 whitespace-nowrap">{{ $row->expiry_date->format('d/m/Y') }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ rtrim(rtrim(number_format((float)$row->quantity_on_hand,3,'.',''),'0'),'.') }}</td>@if($canViewCosts)<td class="px-4 py-3 text-right whitespace-nowrap">{{ $row->average_cost_price !== null ? $money($row->average_cost_price) : '—' }}</td><td class="px-4 py-3 text-right font-black whitespace-nowrap">{{ $row->inventory_value !== null ? $money($row->inventory_value) : '—' }}</td>@endif</tr>@empty<tr><td colspan="{{ $canViewCosts ? 8 : 6 }}" class="px-4 py-8 text-center text-slate-500">Không có tồn kho phù hợp bộ lọc.</td></tr>@endforelse</tbody></table></div>
     </section>
 
     @if($balances->hasMorePages())
@@ -172,11 +171,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectAll = document.getElementById('inventory-select-all');
     const updateSelected = () => {
         document.querySelectorAll('[data-inventory-select]').forEach(input => { input.checked = selected.has(input.value); });
-        const inputs = selectionInputs();
+        const inputs = selectionInputs().filter(input => !input.closest('tr')?.classList.contains('hidden'));
         selectAll.checked = inputs.length > 0 && inputs.every(input => input.checked);
         selectAll.indeterminate = !selectAll.checked && inputs.some(input => input.checked);
         document.getElementById('inventory-selected-count').textContent = selected.size + ' lô đã chọn';
         document.getElementById('inventory-export-selected').disabled = selected.size === 0;
+        const selectionBar = document.getElementById('inventory-selected-export');
+        selectionBar.classList.toggle('hidden', selected.size === 0);
+        selectionBar.classList.toggle('flex', selected.size > 0);
     };
     document.addEventListener('change', event => {
         if (!event.target.matches('[data-inventory-select]')) return;
@@ -185,7 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSelected();
     });
     selectAll.addEventListener('change', () => {
-        selectionInputs().forEach(input => selectAll.checked ? selected.add(input.value) : selected.delete(input.value));
+        const checked = selectAll.checked;
+        selectionInputs().filter(input => !input.closest('tr')?.classList.contains('hidden')).forEach(input => checked ? selected.add(input.value) : selected.delete(input.value));
         updateSelected();
     });
     document.getElementById('inventory-clear-selected').addEventListener('click', () => { selected.clear(); updateSelected(); });
@@ -201,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const positiveOnly = document.getElementById('inventory-only-positive');
     positiveOnly.addEventListener('change', () => {
         document.querySelectorAll('[data-quantity]').forEach(row => row.classList.toggle('hidden', positiveOnly.checked && Number(row.dataset.quantity) <= 0));
+        updateSelected();
     });
     updateSelected();
 
