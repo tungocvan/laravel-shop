@@ -21,6 +21,25 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
 
+    public function test_supplier_commercial_editor_has_four_tabs_and_write_permission(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-supplier-conditions.blade.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineRelationsController.php'));
+
+        foreach (['supplier', 'commercial', 'distribution', 'commitments'] as $tab) {
+            $this->assertStringContainsString('data-supplier-tab="'.$tab.'"', $view);
+            $this->assertStringContainsString('data-supplier-panel="'.$tab.'"', $view);
+        }
+        $this->assertStringContainsString("route('client.pharma.products.supplier-conditions.save'", $view);
+        $this->assertStringContainsString("name('products.supplier-conditions.save')", $routes);
+        $this->assertStringContainsString("'client.pharma.products.supplier-conditions.manage'", $manifest);
+        $this->assertStringContainsString("'supplier-conditions.manage'", $controller);
+        $this->assertStringContainsString("hasPartnerType('supplier')", $controller);
+        $this->assertStringContainsString("supplierTrackings()->findOrFail(", $controller);
+    }
+
     public function test_hssp_editor_uses_tabs_and_scoped_update_route(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-hssp.blade.php'));
