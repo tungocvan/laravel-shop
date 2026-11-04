@@ -9,6 +9,11 @@ use Modules\Pharma\Models\MedicineVariant;
 
 final class MedicineVariantCreationService
 {
+    public function __construct(
+        private readonly MedicineSkuGenerator $skuGenerator,
+        private readonly MedicineCatalogNormalizer $normalizer,
+    ) {}
+
     /**
      * Explicitly create the first catalog SKU. Never silently create a sellable Product.
      * The medicine row lock serializes concurrent first-SKU requests.
@@ -21,6 +26,25 @@ final class MedicineVariantCreationService
             if ($medicine->variants()->exists()) {
                 throw ValidationException::withMessages([
                     'sku' => 'Thuốc đã có SKU. Không thể tạo lại SKU mặc định.',
+                ]);
+            }
+
+            $identityAttributes = [
+                'registration_number' => $medicine->registration_number,
+                'name' => $medicine->name,
+                'dosage_form' => $medicine->dosage_form,
+                'variant_identity_key' => $identityKey,
+                'sku_basis_hash' => $this->skuGenerator->generate($identityAttributes)['basis_hash'],
+                'strength_text' => $attributes['strength_text'],
+                'strength_normalized' => $this->normalizer->text($attributes['strength_text']),
+                'presentation_text' => $attributes['presentation_text'],
+                'presentation_normalized' => $this->normalizer->text($attributes['presentation_text']),
+            ];
+            $identityKey = $this->skuGenerator->variantIdentity($identityAttributes);
+
+            if (MedicineVariant::query()->where('variant_identity_key', $identityKey)->exists()) {
+                throw ValidationException::withMessages([
+                    'sku' => 'Biến thể với thông tin nhận diện này đã tồn tại.',
                 ]);
             }
 
