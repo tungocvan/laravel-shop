@@ -55,8 +55,7 @@ final class ClientMedicineImportCreator
                     throw ValidationException::withMessages(['batch' => "Dòng {$row->source_row} đã có thuốc/SKU tương ứng. Hãy import lại để phân loại."]);
                 }
                 if (! empty($data['registration_number']) && Medicine::query()
-                    ->where('registration_number', $data['registration_number'])
-                    ->where('name', $data['name'])->exists()) {
+                    ->where('registration_number', $data['registration_number'])->exists()) {
                     throw ValidationException::withMessages(['batch' => "Dòng {$row->source_row} có khả năng trùng thuốc hiện có."]);
                 }
             }
