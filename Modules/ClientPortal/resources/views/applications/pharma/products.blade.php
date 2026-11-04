@@ -2,7 +2,7 @@
 
 @section('title', $featurePresentation['page_title'] ?? 'Danh mục thuốc')
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
-@section('app-subtitle', 'Danh mục thuốc · chỉ đọc')
+@section('app-subtitle', 'Danh mục thuốc')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
@@ -19,6 +19,10 @@
         <p class="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{{ $featurePresentation['page_description'] }}</p>
     </section>
 
+    @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
+    @can('client.pharma.products.create')
+        <a href="{{ route('client.pharma.products.create') }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-5 py-2 text-sm font-bold text-white">+ Thêm thuốc</a>
+    @endcan
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
         <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-start">
             <label class="min-w-0 flex-1 sm:col-span-2 xl:col-span-4">
@@ -129,7 +133,10 @@
                     <div><dt class="text-xs font-bold text-slate-400">Dạng bào chế</dt><dd class="mt-1 text-slate-700">{{ $product->dosageForm ?: '—' }}</dd></div>
                     <div class="col-span-2"><dt class="text-xs font-bold text-slate-400">Quy cách</dt><dd class="mt-1 text-slate-700">{{ $product->packaging ?: '—' }}</dd></div>
                     </dl>
-                <div class="mt-4 flex justify-end">
+                <div class="mt-4 flex justify-end gap-2">
+                    @can('client.pharma.products.edit')
+                        <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-800">Sửa</a>
+                    @endcan
                     <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 hover:text-slate-950">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75" stroke-width="1.8"/></svg>
                     </a>
@@ -168,7 +175,9 @@
                                 <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" aria-label="Xem chi tiết {{ $product->brandName }}" title="Xem chi tiết" class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-950">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.25 12s3.5-6 9.75-6 9.75 6 9.75 6-3.5 6-9.75 6S2.25 12 2.25 12Z"/><circle cx="12" cy="12" r="2.75" stroke-width="1.8"/></svg>
                                 </a>
-                            </td>
+                             @can('client.pharma.products.edit')
+                            <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-indigo-200 px-2 text-xs font-bold text-indigo-800">Sửa</a>
+                        @endcan </td>
                         </tr>
                     @empty
                         <tr><td colspan="9" class="px-5 py-10 text-center text-slate-500">Không tìm thấy thuốc phù hợp.</td></tr>
