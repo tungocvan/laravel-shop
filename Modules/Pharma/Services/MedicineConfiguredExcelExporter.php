@@ -49,20 +49,26 @@ final class MedicineConfiguredExcelExporter
                     $drawing->setWorksheet($sheet);
                 }
             }
-            $lines = array_filter([
-                $reportHeader['company_name'] ?: $settings['company_name'],
-                $reportHeader['address'] ?? '',
-                $reportHeader['office'] ?? '',
-                $reportHeader['tax_code'] ?? '',
-                $reportHeader['phone'] ?? '',
-                $reportHeader['email'] ?? '',
-            ], fn ($value) => trim((string) $value) !== '');
+            $details = [
+                ['company_name', ''],
+                ['address', 'Địa chỉ: '],
+                ['office', 'VPĐD: '],
+                ['tax_code', 'Mã số thuế: '],
+                ['phone', 'Số điện thoại: '],
+                ['email', 'Email: '],
+            ];
             $headerStart = $row;
-            foreach ($lines as $line) {
+            foreach ($details as [$field, $prefix]) {
+                $value = trim((string) ($reportHeader[$field] ?? ''));
+                if ($field === 'company_name' && $value === '') $value = trim((string) $settings['company_name']);
+                if ($value === '') continue;
                 $sheet->mergeCells("{$textStart}{$row}:{$last}{$row}");
-                $sheet->setCellValueExplicit("{$textStart}{$row}", (string) $line, DataType::TYPE_STRING);
-                $sheet->getStyle("{$textStart}{$row}")->getAlignment()->setWrapText(true);
-                $sheet->getRowDimension($row)->setRowHeight(20);
+                $sheet->setCellValueExplicit("{$textStart}{$row}", $prefix.$value, DataType::TYPE_STRING);
+                $style = $sheet->getStyle("{$textStart}{$row}");
+                $style->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+                $style->getFont()->setSize((int) $settings['body_font_size']);
+                if ($field === 'company_name') $style->getFont()->setBold(true)->setSize((int) $settings['header_font_size'] + 1);
+                $sheet->getRowDimension($row)->setRowHeight($field === 'company_name' ? 26 : 22);
                 $row++;
             }
             if ($logoPath !== null) {
@@ -79,8 +85,9 @@ final class MedicineConfiguredExcelExporter
                 if (trim((string) ($reportHeader[$field] ?? '')) === '') continue;
                 $sheet->mergeCells("A{$row}:{$last}{$row}");
                 $sheet->setCellValueExplicit("A{$row}", (string) $reportHeader[$field], DataType::TYPE_STRING);
-                $sheet->getStyle("A{$row}")->getAlignment()->setWrapText(true);
-                $sheet->getRowDimension($row)->setRowHeight($field === 'intro' ? 44 : 22);
+                $sheet->getStyle("A{$row}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("A{$row}")->getFont()->setSize((int) $settings['body_font_size'])->setBold($field === 'recipient');
+                $sheet->getRowDimension($row)->setRowHeight($field === 'intro' ? 44 : 24);
                 $row++;
             }
             $row++;
@@ -172,21 +179,27 @@ final class MedicineConfiguredExcelExporter
         }
         $footer = $settings['report_footer'] ?? [];
         if ($footer['enabled'] ?? false) {
+            // Rightmost four columns are a single signature block, regardless of selected column order.
+            $firstSignatureColumn = Coordinate::stringFromColumnIndex(max(1, count($columns) - 3));
             $footerRow = $headerRow + $index + 2;
             foreach (['date_text', 'signer_title'] as $field) {
                 if (trim((string) ($footer[$field] ?? '')) === '') continue;
-                $sheet->mergeCells("A{$footerRow}:{$last}{$footerRow}");
-                $sheet->setCellValueExplicit("A{$footerRow}", (string) $footer[$field], DataType::TYPE_STRING);
-                $sheet->getStyle("A{$footerRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                if ($field === 'signer_title') $sheet->getStyle("A{$footerRow}")->getFont()->setBold(true);
+                $sheet->mergeCells("{$firstSignatureColumn}{$footerRow}:{$last}{$footerRow}");
+                $sheet->setCellValueExplicit("{$firstSignatureColumn}{$footerRow}", (string) $footer[$field], DataType::TYPE_STRING);
+                $style = $sheet->getStyle("{$firstSignatureColumn}{$footerRow}:{$last}{$footerRow}");
+                $style->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                $style->getFont()->setBold($field === 'signer_title')->setSize((int) $settings['body_font_size']);
+                $sheet->getRowDimension($footerRow)->setRowHeight(23);
                 $footerRow++;
             }
             $footerRow += (int) ($footer['signature_rows'] ?? 4);
             if (trim((string) ($footer['signer_name'] ?? '')) !== '') {
-                $sheet->mergeCells("A{$footerRow}:{$last}{$footerRow}");
-                $sheet->setCellValueExplicit("A{$footerRow}", (string) $footer['signer_name'], DataType::TYPE_STRING);
-                $sheet->getStyle("A{$footerRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle("A{$footerRow}")->getFont()->setBold(true);
+                $sheet->mergeCells("{$firstSignatureColumn}{$footerRow}:{$last}{$footerRow}");
+                $sheet->setCellValueExplicit("{$firstSignatureColumn}{$footerRow}", (string) $footer['signer_name'], DataType::TYPE_STRING);
+                $style = $sheet->getStyle("{$firstSignatureColumn}{$footerRow}:{$last}{$footerRow}");
+                $style->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                $style->getFont()->setBold(true)->setSize((int) $settings['body_font_size']);
+                $sheet->getRowDimension($footerRow)->setRowHeight(24);
             }
         }
         $sheet->getPageSetup()->setOrientation($settings['orientation'] === 'portrait' ? 'portrait' : 'landscape');
