@@ -105,7 +105,33 @@ final class PharmaInventoryReportsController extends Controller
     public function opening(Request $request, ApplicationRegistry $registry): View
     {
         $this->authorizeInventory($request, $registry, true);
-        return view('ClientPortal::applications.pharma.inventory-opening');
+        $medicines = Medicine::query()->orderBy('name')->get(['id','name','medicine_code']);
+        return view('ClientPortal::applications.pharma.inventory-opening', compact('medicines'));
+    }
+
+    public function storeOpeningManual(Request $request, ApplicationRegistry $registry, InventoryService $inventory): RedirectResponse
+    {
+        $this->authorizeInventory($request, $registry, true);
+        $data = $request->validate([
+            'medicine_id'=>'required|integer|exists:pharma_medicines,id',
+            'batch_number'=>'required|string|max:100',
+            'expiry_date'=>'required|date',
+            'opening_quantity'=>'required|numeric|gt:0',
+        ]);
+        $warehouse = $inventory->defaultWarehouse();
+        DB::transaction(function () use ($data, $warehouse, $inventory) {
+            $existing = InventoryBalance::query()->where('warehouse_id', $warehouse->id)
+                ->where('medicine_id', $data['medicine_id'])->where('batch_number', $data['batch_number'])
+                ->whereDate('expiry_date', $data['expiry_date'])->lockForUpdate()->first();
+            $hasLedger = DB::table('pharma_inventory_transactions')->where('warehouse_id', $warehouse->id)
+                ->where('medicine_id', $data['medicine_id'])->where('batch_number', $data['batch_number'])
+                ->whereDate('expiry_date', $data['expiry_date'])->exists();
+            if ($hasLedger || ($existing && ((float)$existing->opening_quantity !== 0.0 || (float)$existing->quantity_on_hand !== 0.0))) {
+                throw ValidationException::withMessages(['batch_number'=>'Lô đã phát sinh tồn, không thể ghi nhận tồn đầu kỳ lần nữa.']);
+            }
+            $inventory->setOpeningBalance($warehouse->id, (int)$data['medicine_id'], $data['batch_number'], $data['expiry_date'], (float)$data['opening_quantity'], null);
+        });
+        return redirect()->route('client.pharma.inventory.opening')->with('success', 'Đã ghi nhận tồn đầu kỳ cho lô '.$data['batch_number'].'.');
     }
 
     public function openingTemplate(Request $request, ApplicationRegistry $registry): StreamedResponse
