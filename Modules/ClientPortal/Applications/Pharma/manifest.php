@@ -57,6 +57,8 @@ return [
                     'permission' => 'client.pharma.products.export',
                     'sort_order' => 20,
                 ],
+                'hssp.view' => ['name' => 'Xem HSSP thuốc', 'permission' => 'client.pharma.products.hssp.view', 'sort_order' => 8],
+                'hssp.create' => ['name' => 'Tạo HSSP nháp', 'permission' => 'client.pharma.products.hssp.create', 'sort_order' => 9],
                 'supplier-pricing' => [
                     'name' => 'Xem giá nhà cung cấp',
                     'permission' => 'client.pharma.products.supplier-pricing',
