@@ -242,7 +242,7 @@
         @endif
         <footer class="flex shrink-0 items-center justify-between gap-3 border-t bg-white px-5 py-3 lg:px-7">
             <p class="min-w-0 truncate text-xs text-slate-500"><b>{{ $profileName }}</b> · {{ $selectedOrder->count() }} cột được chọn</p>
-            <div class="flex shrink-0 gap-2"><button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button><button type="button" @if($activeSection === 'columns') x-on:click="$dispatch('medicine-designer-save')" @else wire:click="save" @endif class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button></div>
+            <div class="flex shrink-0 gap-2"><button type="button" wire:click="exportProfileJson" class="h-10 rounded-xl border px-3 text-xs font-bold" title="Xuất cấu hình đã lưu, gồm Header, Footer và logo">Xuất JSON</button><button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button><button type="button" @if($activeSection === 'columns') x-on:click="$dispatch('medicine-designer-save')" @else wire:click="save" @endif class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button></div>
         </footer>
     </div>
 </div>
