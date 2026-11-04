@@ -21,6 +21,24 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
 
+    public function test_hssp_editor_uses_tabs_and_scoped_update_route(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-hssp.blade.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineRelationsController.php'));
+
+        foreach (['profile', 'storage', 'documents', 'review'] as $tab) {
+            $this->assertStringContainsString('data-hssp-tab="'.$tab.'"', $view);
+            $this->assertStringContainsString('data-hssp-panel="'.$tab.'"', $view);
+        }
+        $this->assertStringContainsString('<x-dossier.editor', $view);
+        $this->assertStringContainsString("route('client.pharma.products.hssp.update'", $view);
+        $this->assertStringContainsString("'/products/{medicine}/hssp'", $routes);
+        $this->assertStringContainsString("'client.pharma.products.hssp.update'", $manifest);
+        $this->assertStringContainsString("'hssp.update'", $controller);
+    }
+
     public function test_client_hssp_and_supplier_actions_are_scoped_to_web_permissions(): void
     {
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
