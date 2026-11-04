@@ -24,7 +24,7 @@ final class PharmaInventoryExcelProfileController extends Controller
     {
         $keys = $report === 'stock'
             ? ['stt','medicine_code','name','unit','batch_number','expiry_date','quantity_on_hand','average_cost_price','inventory_value']
-            : ['medicine_code','name','batch_number','expiry_date','period_opening','period_in','period_out','period_closing'];
+            : ['stt','medicine_code','name','unit','batch_number','expiry_date','period_opening','period_in','period_out','period_closing'];
         if (! $costs) {
             $keys = array_diff($keys, ['average_cost_price', 'inventory_value']);
         }
