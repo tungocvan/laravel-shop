@@ -33,6 +33,22 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.edit', \$master->id)", $view);
     }
 
+    public function test_roundtrip_import_references_are_matched_without_automatic_writes(): void
+    {
+        $mapper = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalogImportMapper.php'));
+        $stager = file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalogImportStager.php'));
+
+        $this->assertStringContainsString("'medicine_code_reference'", $mapper);
+        $this->assertStringContainsString("'sku_reference'", $mapper);
+        $this->assertStringContainsString('where(\'medicine_code\', $medicineCode)', $stager);
+        $this->assertStringContainsString('where(\'sku\', $skuCode)', $stager);
+        $this->assertStringContainsString("'roundtrip_reference_not_found'", $stager);
+        $this->assertStringContainsString("'roundtrip_sku_medicine_mismatch'", $stager);
+        $this->assertStringContainsString("'roundtrip_identity_mismatch'", $stager);
+        $this->assertStringContainsString("'roundtrip_repeated_medicine_reference'", $stager);
+        $this->assertStringContainsString("'roundtrip_existing_medicine'", $stager);
+    }
+
     public function test_roundtrip_excel_export_uses_staging_import_headers_and_permission(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelController.php'));
