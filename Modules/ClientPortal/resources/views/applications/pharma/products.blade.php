@@ -34,8 +34,8 @@
         @endif
         @if($canConfigureMedicineExcel)<a href="{{ route('client.pharma.products.excel-config') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">⚙ Cấu hình Excel</a>@endif
     </nav>
-    <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div class="mb-3 flex items-center justify-between gap-3"><div><h2 class="text-sm font-extrabold text-slate-900">Tìm kiếm & bộ lọc</h2><p class="mt-1 text-xs text-slate-500">Tìm theo tên, mã thuốc, SKU hoặc giấy phép lưu hành</p></div></div>
+    <details class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm" @if($search !== '' || $circularGroup !== '' || $filter !== null || $selectedProductType !== '' || $selectedSpecialControl !== '' || $selectedHssp !== '' || $selectedSupplierPrice !== '' || $selectedBidAward !== '') open @endif>
+        <summary class="mb-3 flex cursor-pointer items-center justify-between gap-3"><span><strong class="block text-sm text-slate-900">Tìm kiếm & bộ lọc</strong><span class="mt-1 block text-xs text-slate-500">Tìm theo tên, mã thuốc, SKU hoặc giấy phép lưu hành</span></span><span class="text-xs font-bold text-indigo-700">Ẩn / hiện ▾</span></summary>
         <form id="product-search-form" method="GET" action="{{ route('client.pharma.products') }}" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4 xl:items-start">
             <label class="min-w-0 flex-1 sm:col-span-2 xl:col-span-4">
                 <span class="mb-1.5 block text-xs font-bold uppercase tracking-wide text-slate-500">Tìm thuốc</span>
@@ -65,7 +65,7 @@
                 </div>
             @endif
         </form>
-    </section>
+    </details>
 
     @if(session('medicine_import_staged'))
         <div role="status" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
