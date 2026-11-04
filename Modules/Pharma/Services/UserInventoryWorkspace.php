@@ -275,9 +275,9 @@ final class UserInventoryWorkspace
         $today = now()->toDateString();
 
         return SupplierTracking::query()
-            ->select('medicine_id', DB::raw('AVG(cost_price) as average_cost_price'))
+            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price'))
             ->where('status', 'active')
-            ->where('cost_price', '>', 0)
+            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
             ->groupBy('medicine_id');
@@ -288,9 +288,9 @@ final class UserInventoryWorkspace
         $today = now()->toDateString();
 
         return SupplierTracking::query()
-            ->select('medicine_id', DB::raw('AVG(cost_price) as average_cost_price'))
+            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price'))
             ->where('status', 'active')
-            ->where('cost_price', '>', 0)
+            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
             ->groupBy('medicine_id')
