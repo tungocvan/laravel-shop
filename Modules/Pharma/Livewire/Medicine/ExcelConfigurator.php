@@ -4,12 +4,16 @@ namespace Modules\Pharma\Livewire\Medicine;
 
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\Attributes\Locked;
 use Modules\Pharma\Services\MedicineExcelProfileService;
 use Modules\Pharma\Services\MedicineExcelRelatedDataService;
 
 class ExcelConfigurator extends Component
 {
+    use WithFileUploads;
+
+    public $logoUpload = null;
     public bool $open = false;
     #[Locked]
     public string $ownerGuard = 'admin';
@@ -242,6 +246,14 @@ class ExcelConfigurator extends Component
         $this->save($service);
     }
 
+    public function removeReportLogo(): void
+    {
+        $this->assertOwner();
+        $this->settings['report_header']['logo_data'] = null;
+        $this->settings['report_header']['show_logo'] = false;
+        $this->logoUpload = null;
+    }
+
     public function save(MedicineExcelProfileService $service): void
     {
         $userId = $this->assertOwner();
@@ -265,7 +277,22 @@ class ExcelConfigurator extends Component
             'settings.margin_footer_cm' => 'nullable|numeric|between:0,5',
             'settings.center_horizontally' => 'nullable|boolean',
             'settings.center_vertically' => 'nullable|boolean',
+            'logoUpload' => 'nullable|image|mimes:png,jpg,jpeg|max:256|dimensions:max_width=2000,max_height=2000',
+            'settings.report_header' => 'nullable|array',
+            'settings.report_header.enabled' => 'nullable|boolean',
+            'settings.report_header.show_logo' => 'nullable|boolean',
+            'settings.report_header.logo_width' => 'nullable|integer|between:40,220',
+            'settings.report_footer' => 'nullable|array',
+            'settings.report_footer.enabled' => 'nullable|boolean',
+            'settings.report_footer.signature_rows' => 'nullable|integer|between:1,10',
         ]);
+        if ($this->logoUpload !== null) {
+            $mime = $this->logoUpload->getMimeType();
+            $data = file_get_contents($this->logoUpload->getRealPath());
+            $this->settings['report_header']['logo_data'] = 'data:'.$mime.';base64,'.base64_encode($data);
+            $this->settings['report_header']['show_logo'] = true;
+            $this->logoUpload = null;
+        }
         $columns = array_values(array_filter($this->columns, fn ($key) => ($this->selected[$key] ?? false) && isset($this->allowedColumns()[$key])));
         $saved = $service->save($userId, [
             'name' => $this->profileName, 'is_default' => $this->isDefault,
