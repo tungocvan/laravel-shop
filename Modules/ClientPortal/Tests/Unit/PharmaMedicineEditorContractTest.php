@@ -18,6 +18,11 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("lockForUpdate()", $controller);
         $this->assertStringContainsString("supplierTrackings", $controller);
         $this->assertStringContainsString('information_schema.KEY_COLUMN_USAGE', $controller);
+        $this->assertStringContainsString("'pharma_medicine_import_rows'", $controller);
+        $this->assertStringContainsString("'matched_medicine_id'", $controller);
+        $this->assertStringContainsString("'matched_variant_id'", $controller);
+        $this->assertStringContainsString("'IS_NULLABLE', 'YES'", $controller);
+        $this->assertStringContainsString('->update([$column => null])', $controller);
         $this->assertStringContainsString('$master->variants()->delete()', $controller);
         $this->assertStringContainsString('$variant->packages()->exists()', $controller);
         $this->assertStringContainsString('Xóa thuốc / SKU chưa có giao dịch', $catalog);
