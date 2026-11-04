@@ -28,10 +28,15 @@ class PharmaMedicineEditorContractTest extends TestCase
         $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineRelationsController.php'));
 
+        // Blade renders the four buttons from a loop; source contains dynamic attributes.
         foreach (['supplier', 'commercial', 'distribution', 'commitments'] as $tab) {
-            $this->assertStringContainsString('data-supplier-tab="'.$tab.'"', $view);
-            $this->assertStringContainsString('data-supplier-panel="'.$tab.'"', $view);
+            $this->assertStringContainsString("'".$tab."'=>'", $view);
         }
+        $this->assertStringContainsString('data-supplier-tab="{{ $tab }}"', $view);
+        $this->assertStringContainsString('data-supplier-panel="supplier"', $view);
+        $this->assertStringContainsString('data-supplier-panel="commercial"', $view);
+        $this->assertStringContainsString('data-supplier-panel="distribution"', $view);
+        $this->assertStringContainsString('data-supplier-panel="commitments"', $view);
         $this->assertStringContainsString("route('client.pharma.products.supplier-conditions.save'", $view);
         $this->assertStringContainsString("name('products.supplier-conditions.save')", $routes);
         $this->assertStringContainsString("'client.pharma.products.supplier-conditions.manage'", $manifest);
