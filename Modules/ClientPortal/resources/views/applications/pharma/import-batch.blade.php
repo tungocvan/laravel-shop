@@ -18,8 +18,28 @@
         <p class="mt-2 break-words text-sm text-slate-500">{{ $batch->source_file }} · {{ $batch->created_at?->format('d/m/Y H:i') }} · {{ $batch->status }}</p>
     </header>
     <div role="status" class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-        <strong>Chưa ghi vào Medicine Master.</strong> Đây là kết quả phân loại staging, không phải xác nhận cập nhật. Chức năng phê duyệt/commit chưa được bật.
+        <strong>Chưa ghi vào Medicine Master.</strong> Đây là kết quả phân loại staging, không phải xác nhận cập nhật. Chỉ có thể phê duyệt tạo thuốc mới; cập nhật Medicine Master hiện có chưa được bật.
     </div>
+    @if(session('status'))
+        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{{ session('status') }}</div>
+    @endif
+    @if($errors->any())
+        <div role="alert" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</div>
+    @endif
+    @if($batch->status === \Modules\Pharma\Models\MedicineImportBatch::STATUS_READY && $batch->new_rows > 0)
+        @can('client.pharma.products.create')
+            @can('client.pharma.products.create-variant')
+                <section class="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm">
+                    <h2 class="font-extrabold text-slate-900">3. Phê duyệt tạo thuốc mới</h2>
+                    <p class="mt-2 text-sm text-slate-600">Chỉ tạo các dòng phân loại <strong>Mới</strong>. Hệ thống tự cấp Mã thuốc MED-xxxxxx và SKU MED-xxxxxx-V01. Không cập nhật các dòng cũ hoặc xử lý dòng xung đột.</p>
+                    <form method="POST" action="{{ route('client.pharma.products.import.approve-new', $batch->id) }}" class="mt-4" onsubmit="return confirm('Xác nhận tạo các thuốc MỚI trong batch #{{ $batch->id }}? Hệ thống sẽ cấp Mã thuốc và SKU.');">
+                        @csrf
+                        <button type="submit" class="min-h-11 rounded-xl bg-indigo-700 px-5 text-sm font-bold text-white hover:bg-indigo-800">Xác nhận tạo {{ $batch->new_rows }} thuốc mới + SKU</button>
+                    </form>
+                </section>
+            @endcan
+        @endcan
+    @endif
     <section class="grid grid-cols-2 gap-3 md:grid-cols-5">
         @foreach([
             ['Tổng dòng', $batch->total_rows, 'slate'],
