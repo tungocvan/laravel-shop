@@ -28,7 +28,10 @@
             <a href="#pharma-import-tools" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Nhập Excel</a>
             <a href="{{ route('client.pharma.products.import.template') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">↓ Tải mẫu nhập</a>
         @endif
-        @if($canExportMedicines)<a href="#medicine-export-form" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Xuất Excel</a>@endif
+        @if($canExportMedicines)
+            <a href="{{ route('client.pharma.products.export.roundtrip') }}" class="inline-flex min-h-10 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800 hover:bg-emerald-100">↓ Xuất Excel để nhập lại</a>
+            <a href="#medicine-export-form" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">Xuất báo cáo</a>
+        @endif
         @if($canConfigureMedicineExcel)<a href="{{ route('client.pharma.products.excel-config') }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">⚙ Cấu hình Excel</a>@endif
     </nav>
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -66,7 +69,7 @@
 
     @if(session('medicine_import_staged'))
         <div role="status" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <strong>Excel đã được tiếp nhận vào staging #{{ session('medicine_import_staged.batch_id') }}.</strong>
+            <strong>Excel đã được tiếp nhận vào staging #{{ session('medicine_import_staged.batch_id') }} (chưa ghi vào danh mục).</strong>
             {{ session('medicine_import_staged.total') }} dòng; mới: {{ session('medicine_import_staged.new') }}, cập nhật: {{ session('medicine_import_staged.update') }}.
             Chưa ghi bất kỳ thay đổi nào vào Medicine Master. Cần rà soát và phê duyệt trước khi đồng bộ.
         </div>
