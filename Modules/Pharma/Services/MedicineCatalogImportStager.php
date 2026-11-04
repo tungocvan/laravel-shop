@@ -129,10 +129,9 @@ class MedicineCatalogImportStager
             }
 
             $name = $this->normalizer->text($normalized['name'] ?? null);
-            $existingName = $this->normalizer->text($medicine->name);
             $registration = $this->normalizer->registration($normalized['registration_number'] ?? null);
             $existingRegistration = $this->normalizer->registration($medicine->registration_number);
-            if ($name === null || $existingName !== $name
+            if ($name === null
                 || ($registration !== null && $existingRegistration !== null && $registration !== $existingRegistration)) {
                 return [MedicineImportRow::CLASS_CONFLICT, 'roundtrip_identity_mismatch', $medicine->id, $variant?->id];
             }
