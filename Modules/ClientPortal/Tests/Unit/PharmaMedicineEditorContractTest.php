@@ -21,6 +21,25 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
 
+    public function test_client_hssp_and_supplier_actions_are_scoped_to_web_permissions(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $manifest = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/manifest.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineRelationsController.php'));
+        $catalog = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+        $hssp = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-hssp.blade.php'));
+
+        $this->assertStringContainsString("'/products/{medicine}/hssp'", $routes);
+        $this->assertStringContainsString("'/products/{medicine}/supplier-conditions'", $routes);
+        $this->assertStringContainsString("'client.pharma.products.hssp.create'", $manifest);
+        $this->assertStringContainsString("'client.pharma.products.supplier-pricing'", $controller);
+        $this->assertStringContainsString('MedicineProfile::STATUS_INCOMPLETE', $controller);
+        $this->assertStringContainsString('createFromTemplate(', $controller);
+        $this->assertStringContainsString("route('client.pharma.products.hssp'", $catalog);
+        $this->assertStringContainsString("route('client.pharma.products.supplier-conditions'", $catalog);
+        $this->assertStringContainsString("route('client.pharma.products.hssp.store'", $hssp);
+    }
+
     public function test_catalog_toolbar_is_compact_and_action_menu_is_not_clipped(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
