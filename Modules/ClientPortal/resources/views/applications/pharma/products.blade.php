@@ -122,6 +122,9 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="rounded-lg bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">Chưa có SKU</span>
+                        @can('client.pharma.products.create-variant')
+                            <a href="{{ route('client.pharma.products.variants.create', $master->id) }}" class="inline-flex min-h-10 items-center rounded-xl bg-indigo-700 px-3 text-xs font-bold text-white">Tạo SKU</a>
+                        @endcan
                         @can('client.pharma.products.edit')
                             <a href="{{ route('client.pharma.products.edit', $master->id) }}" class="inline-flex min-h-10 items-center rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-800">Sửa thuốc</a>
                         @endcan
