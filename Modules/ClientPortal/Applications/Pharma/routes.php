@@ -43,6 +43,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::delete('/products/excel-config/{profile}', [PharmaMedicineExcelProfileController::class, 'delete'])
             ->whereNumber('profile')->middleware('client.feature:pharma,products')
             ->name('products.excel-config.delete');
+        Route::get('/products/export/roundtrip', [PharmaMedicineExcelController::class, 'roundtripExport'])
+            ->middleware('client.feature:pharma,products')->name('products.export.roundtrip');
         Route::get('/products/import/template', [PharmaMedicineExcelController::class, 'template'])
             ->middleware('client.feature:pharma,products')->name('products.import.template');
         Route::post('/products/import', [PharmaMedicineExcelController::class, 'import'])
