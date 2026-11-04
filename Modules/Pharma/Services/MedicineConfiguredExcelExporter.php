@@ -101,21 +101,28 @@ final class MedicineConfiguredExcelExporter
                 $sheet->getStyle($cell)->getAlignment()->setHorizontal($profile['alignments'][$key] ?? 'left');
             }
         }
+        $borderStyle = ($settings['body_border'] ?? true) ? Border::BORDER_HAIR : Border::BORDER_THIN;
+        $borderColor = ($settings['body_border'] ?? true) ? 'D8DEE8' : '333333';
         $sheet->getStyle("A{$headerRow}:{$last}{$headerRow}")->getBorders()->getAllBorders()
-            ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('D8DEE8');
+            ->setBorderStyle($borderStyle)->getColor()->setRGB($borderColor);
         if ($index > 0) {
             $bodyRange = 'A'.($headerRow + 1).':'.$last.($headerRow + $index);
             $sheet->getStyle($bodyRange)->getFont()->setSize((int) $settings['body_font_size']);
             $sheet->getStyle($bodyRange)->getAlignment()
                 ->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
             $sheet->getStyle($bodyRange)->getBorders()->getAllBorders()
-                ->setBorderStyle(Border::BORDER_HAIR)->getColor()->setRGB('D8DEE8');
+                ->setBorderStyle($borderStyle)->getColor()->setRGB($borderColor);
             for ($dataRow = $headerRow + 1; $dataRow <= $headerRow + $index; $dataRow++) {
                 $sheet->getRowDimension($dataRow)->setRowHeight(-1);
             }
         }
         $sheet->getPageSetup()->setOrientation($settings['orientation'] === 'portrait' ? 'portrait' : 'landscape');
         $sheet->getPageSetup()->setPaperSize($settings['paper_size']);
+        $sheet->getPageSetup()->setFitToPage((bool) ($settings['fit_to_page'] ?? false));
+        if ($settings['fit_to_page'] ?? false) {
+            $sheet->getPageSetup()->setFitToWidth(1);
+            $sheet->getPageSetup()->setFitToHeight(1);
+        }
         $margins = $sheet->getPageMargins();
         foreach (['top', 'bottom', 'left', 'right', 'header', 'footer'] as $side) {
             $setter = 'set'.ucfirst($side);
