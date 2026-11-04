@@ -200,6 +200,11 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString("['report_header']", $writer);
         $this->assertStringContainsString("['report_footer']", $writer);
         $this->assertStringContainsString('WorksheetDrawing', $writer);
+        $this->assertStringContainsString("'Kính gửi: '", $writer);
+        $this->assertStringContainsString("str_starts_with(mb_strtolower(trim(", $writer);
+        $this->assertStringContainsString("now(config('app.timezone'))", $writer);
+        $this->assertStringContainsString("' tháng '", $writer);
+        $this->assertStringContainsString("' năm '", $writer);
         $this->assertStringContainsString('public function exportProfileJson', $component);
         $this->assertStringContainsString('wire:model="logoUpload"', $view);
         $this->assertStringContainsString('wire:click="exportProfileJson"', $view);
