@@ -240,9 +240,9 @@
                             <td class="break-words px-3 py-4 leading-5 text-slate-600">{{ $product->packaging ?: '—' }}</td>
                             <td class="px-3 py-4 text-right font-extrabold tabular-nums text-slate-900">{{ $product->declaredPrice !== null ? number_format($product->declaredPrice, 0, ',', '.') : '—' }}</td>
                             <td class="px-2 py-3.5">
-                                <details class="relative">
+                                <details data-medicine-actions class="relative">
                                     <summary aria-label="Thao tác cho {{ $product->brandName }}" class="flex min-h-9 cursor-pointer list-none items-center justify-center rounded-lg border border-slate-200 bg-white px-2 font-extrabold text-slate-700 hover:border-indigo-300 hover:text-indigo-700">⋯</summary>
-                                    <div class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
+                                    <div data-medicine-actions-menu class="absolute right-0 z-20 mt-1 w-44 rounded-xl border border-slate-200 bg-white p-1 shadow-xl">
                                         <a href="{{ route('client.pharma.products.show', ['variant' => $product->variantId]) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Xem chi tiết</a>
                                         @can('client.pharma.products.edit')
                                             <a href="{{ route('client.pharma.products.edit', $product->medicineId) }}" class="block rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Sửa thuốc</a>
@@ -372,6 +372,47 @@
             catch (error) { if (error.name !== 'AbortError') status.textContent = 'Không thể mở tệp trên thiết bị này.'; }
         });
     }
+
+    // Only one row menu may be open. Port the menu to <body> to avoid clipping
+    // inside the horizontally scrollable table and overlapping other rows.
+    let activeMenu = null;
+    const closeActions = () => {
+        if (!activeMenu) return;
+        const { details, menu } = activeMenu;
+        menu.removeAttribute('style');
+        details.appendChild(menu);
+        details.open = false;
+        activeMenu = null;
+    };
+    root.addEventListener('click', event => {
+        const summary = event.target.closest('[data-medicine-actions] > summary');
+        if (!summary) return;
+        event.preventDefault();
+        const details = summary.parentElement;
+        if (activeMenu && activeMenu.details === details) { closeActions(); return; }
+        closeActions();
+        const menu = details.querySelector('[data-medicine-actions-menu]');
+        if (!menu) return;
+        details.open = true;
+        document.body.appendChild(menu);
+        const rect = summary.getBoundingClientRect();
+        const width = 190;
+        const left = Math.max(8, Math.min(rect.right - width, window.innerWidth - width - 8));
+        const below = window.innerHeight - rect.bottom >= 180;
+        menu.style.cssText = 'position:fixed;z-index:9999;width:' + width + 'px;left:' + left + 'px;' +
+            (below ? 'top:' + Math.min(rect.bottom + 4, window.innerHeight - 8) + 'px;' : 'bottom:' + (window.innerHeight - rect.top + 4) + 'px;') +
+            'max-height:calc(100vh - 16px);overflow-y:auto;';
+        activeMenu = { details, menu };
+    });
+    document.addEventListener('pointerdown', event => {
+        if (activeMenu && !activeMenu.menu.contains(event.target) && !activeMenu.details.contains(event.target)) closeActions();
+    });
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeActions(); });
+    window.addEventListener('scroll', closeActions, true);
+    window.addEventListener('resize', closeActions);
+    root.addEventListener('click', event => {
+        if (activeMenu && event.target.closest('[data-medicine-actions-menu] a')) closeActions();
+    });
 
     const results = root.querySelector('#product-results-region');
     if (results) new MutationObserver(sync).observe(results, { childList: true, subtree: true });
