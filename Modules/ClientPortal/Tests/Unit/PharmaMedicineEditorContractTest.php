@@ -47,7 +47,7 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.products.create-variant'", $manifest);
         $this->assertStringContainsString('lockForUpdate()', $service);
         $this->assertStringContainsString('variantIdentity($identityAttributes)', $service);
-        $this->assertStringContainsString("'variant_identity_key' => $identityKey", $service);
+        $this->assertStringContainsString("'variant_identity_key' => \$identityKey", $service);
         $this->assertStringContainsString("'sku_basis_hash' =>", $service);
         $this->assertStringContainsString("->variants()->exists()", $service);
         $this->assertStringContainsString("where('sku', \$sku)", $service);
