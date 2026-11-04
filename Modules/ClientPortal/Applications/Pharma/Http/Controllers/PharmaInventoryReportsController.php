@@ -125,7 +125,10 @@ final class PharmaInventoryReportsController extends Controller
                 $existing = InventoryBalance::query()->where('warehouse_id', $warehouse->id)
                     ->where('medicine_id', $medicines[$row['code']])->where('batch_number', $row['lot'])
                     ->whereDate('expiry_date', $row['date'])->lockForUpdate()->first();
-                if ($existing && ((float)$existing->opening_quantity !== 0.0 || (float)$existing->quantity_on_hand !== 0.0)) {
+                $hasLedger = DB::table('pharma_inventory_transactions')->where('warehouse_id', $warehouse->id)
+                    ->where('medicine_id', $medicines[$row['code']])->where('batch_number', $row['lot'])
+                    ->whereDate('expiry_date', $row['date'])->exists();
+                if ($hasLedger || ($existing && ((float)$existing->opening_quantity !== 0.0 || (float)$existing->quantity_on_hand !== 0.0))) {
                     throw ValidationException::withMessages(['file'=>'Lô '.$row['lot'].' đã phát sinh tồn, không thể nhập lại.']);
                 }
             }
