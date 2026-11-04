@@ -17,6 +17,30 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 final class PharmaMedicineExcelController extends Controller
 {
+    public function template(Request $request, ApplicationRegistry $registry): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+
+        // Headers are the aliases supported by MedicineCatalogImportMapper.
+        $headers = [
+            'Loại sản phẩm', 'Tên thuốc', 'Tên hoạt chất', 'Nồng độ - Hàm lượng',
+            'Dạng bào chế', 'Đường dùng', 'Đơn vị tính', 'Quy cách đóng gói',
+            'Giấy phép lưu hành sản phẩm', 'Nhóm thuốc', 'Thuốc KSĐB',
+            'Hạn dùng', 'Cơ sở sản xuất', 'Nước sản xuất', 'Giá kê khai',
+        ];
+
+        return response()->streamDownload(static function () use ($headers): void {
+            $stream = fopen('php://output', 'wb');
+            fwrite($stream, "\xEF\xBB\xBF"); // UTF-8 BOM for Excel Vietnamese headers
+            fputcsv($stream, $headers);
+            fclose($stream);
+        }, 'mau-nhap-danh-muc-thuoc.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
     public function import(Request $request, ApplicationRegistry $registry, MedicineCatalogUploadService $upload): RedirectResponse
     {
         $user = $request->user('web');
