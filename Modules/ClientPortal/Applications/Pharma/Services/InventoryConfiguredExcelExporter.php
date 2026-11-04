@@ -48,6 +48,8 @@ final class InventoryConfiguredExcelExporter
                         if ($value === '') continue;
                         $sheet->mergeCells("A{$line}:{$last}{$line}");
                         $sheet->setCellValue("A{$line}", $value);
+                        $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_CENTER);
+                        $sheet->getRowDimension($line)->setRowHeight(-1);
                         $line++;
                     }
                     if ($logoPath) $line = max($line, 7);
@@ -57,7 +59,7 @@ final class InventoryConfiguredExcelExporter
                 $sheet->setCellValue("A{$line}", $title);
                 $sheet->getStyle("A{$line}")->getFont()->setBold(true)->setSize(16);
                 $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-                $sheet->getRowDimension($line)->setRowHeight(34);
+                $sheet->getRowDimension($line)->setRowHeight(-1);
                 $line += 2;
                 $headingLine = $line;
                 foreach ($columns as $i => $key) {
@@ -87,7 +89,7 @@ final class InventoryConfiguredExcelExporter
                         $sheet->getStyle($cell)->getAlignment()->setHorizontal($alignments[$key] ?? 'left')->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
                         if ($key === 'inventory_value' && is_numeric($value)) $inventoryTotal += (float) $value;
                     }
-                    $sheet->getRowDimension($line)->setRowHeight(30);
+                    $sheet->getRowDimension($line)->setRowHeight(-1);
                     $line++;
                 }
                 if ($hasInventoryValue) {
@@ -102,7 +104,7 @@ final class InventoryConfiguredExcelExporter
                     $sheet->getStyle("{$valueColumn}{$line}")->getNumberFormat()->setFormatCode('#,##0');
                     $sheet->getStyle("A{$line}:{$last}{$line}")->getFont()->setBold(true);
                     $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
-                    $sheet->getRowDimension($line)->setRowHeight(30);
+                    $sheet->getRowDimension($line)->setRowHeight(-1);
                     $line++;
                 }
                 if (! empty($settings['body_border']) && $line > $headingLine + 1) {
@@ -115,6 +117,8 @@ final class InventoryConfiguredExcelExporter
                         if (empty($footer[$key])) continue;
                         $sheet->mergeCells("A{$line}:{$last}{$line}");
                         $sheet->setCellValue("A{$line}", $footer[$key]);
+                        $sheet->getStyle("A{$line}:{$last}{$line}")->getAlignment()->setWrapText(true);
+                        $sheet->getRowDimension($line)->setRowHeight(-1);
                         $line++;
                     }
                 }
