@@ -186,4 +186,22 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('Border::BORDER_HAIR : Border::BORDER_THIN', $writer);
         $this->assertStringContainsString("'D8DEE8' : '333333'", $writer);
     }
+
+    public function test_report_header_footer_and_logo_are_portable_in_profile_json(): void
+    {
+        $profiles = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString("'report_header' =>", $profiles);
+        $this->assertStringContainsString("'report_footer' =>", $profiles);
+        $this->assertStringContainsString('getimagesizefromstring', $profiles);
+        $this->assertStringContainsString("['report_header']", $writer);
+        $this->assertStringContainsString("['report_footer']", $writer);
+        $this->assertStringContainsString('WorksheetDrawing', $writer);
+        $this->assertStringContainsString('public function exportProfileJson', $component);
+        $this->assertStringContainsString('wire:model="logoUpload"', $view);
+        $this->assertStringContainsString('wire:click="exportProfileJson"', $view);
+    }
 }
