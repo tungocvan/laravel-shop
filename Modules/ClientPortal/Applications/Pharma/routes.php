@@ -124,6 +124,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')
             ->middleware('client.feature:pharma,commissions')
             ->name('commissions.show');
+        Route::get('/inventory/excel-config/{report}', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryExcelProfileController::class, 'index'])->whereIn('report', ['stock', 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.excel-config');
+        Route::post('/inventory/excel-config/{report}', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryExcelProfileController::class, 'save'])->whereIn('report', ['stock', 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.excel-config.save');
+        Route::delete('/inventory/excel-config/{report}/{profile}', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryExcelProfileController::class, 'delete'])->whereIn('report', ['stock', 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.excel-config.delete');
         Route::get('/inventory/movements', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements');
         Route::get('/inventory/movements/export', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'exportMovements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements.export');
         Route::get('/inventory/export', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'exportStock'])->middleware('client.feature:pharma,inventory')->name('inventory.export');
