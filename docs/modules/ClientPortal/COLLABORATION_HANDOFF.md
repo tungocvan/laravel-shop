@@ -1,3 +1,12 @@
+## Checkpoint — Excel Fit to Page and border toggle — 2026-11-04
+
+- Shared Pharma Excel Designer V4 adds `settings.fit_to_page` checkbox (default false), saved per profile. ClientPortal configured XLSX export enables fit-to-page 1 page wide × 1 page tall only when checked; unchecked leaves fit-to-page disabled.
+- `settings.body_border` now selects between hairline gray `D8DEE8` when checked and normal thin dark `333333` when unchecked. Both header and data cells retain borders.
+- These settings are in existing JSON profile settings; no migration. The Admin Excel Designer uses the shared controls, but Admin's legacy export writer is not yet modified: confirm separate export parity before assuming the Admin XLSX reflects them.
+- Focused contract updated; runtime tests and UI NOT RUN/VERIFIED by assistant. Check Excel Page Setup scaling and border style after exporting; large datasets may become unreadably small with one-page-tall enabled. No merge/deploy.
+
+---
+
 ## Checkpoint — Excel width and print page alignment — 2026-11-04
 
 - Excel Designer V4 now exposes margins (top/bottom/left/right/header/footer in cm, default 0.8) and horizontal/vertical page centering (default horizontal on, vertical off). Settings are validated and saved in existing profile JSON; no database migration required.
