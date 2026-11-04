@@ -33,6 +33,22 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.edit', \$master->id)", $view);
     }
 
+    public function test_roundtrip_excel_export_uses_staging_import_headers_and_permission(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineExcelController.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/products.blade.php'));
+
+        $this->assertStringContainsString('function roundtripExport(', $controller);
+        $this->assertStringContainsString("'client.pharma.products.export'", $controller);
+        $this->assertStringContainsString("'danh-muc-thuoc-import-lai.xlsx'", $controller);
+        $this->assertStringContainsString("'Giấy phép lưu hành sản phẩm'", $controller);
+        $this->assertStringContainsString("'Nồng độ - Hàm lượng'", $controller);
+        $this->assertStringContainsString("'/products/export/roundtrip'", $routes);
+        $this->assertStringContainsString("route('client.pharma.products.export.roundtrip')", $view);
+        $this->assertStringContainsString('chưa cập nhật Medicine Master', $view);
+    }
+
     public function test_explicit_sku_creation_is_guarded_and_does_not_autocreate_on_medicine_save(): void
     {
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
