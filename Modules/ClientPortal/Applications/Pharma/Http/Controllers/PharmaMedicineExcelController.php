@@ -60,6 +60,80 @@ final class PharmaMedicineExcelController extends Controller
         ]);
     }
 
+    /**
+     * Round-trip workbook: every exported data header is recognized by the staging mapper.
+     * Medicine code / SKU are reference columns, never trusted as write targets on import.
+     */
+    public function roundtripExport(Request $request, ApplicationRegistry $registry): \Symfony\Component\HttpFoundation\StreamedResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.export'), 403);
+
+        return response()->streamDownload(static function (): void {
+            $headers = [
+                'Mã thuốc (tham khảo)', 'SKU (tham khảo)', 'Loại sản phẩm', 'Tên thuốc',
+                'Tên hoạt chất', 'Nồng độ - Hàm lượng', 'Dạng bào chế', 'Đường dùng',
+                'Đơn vị tính', 'Quy cách đóng gói', 'Giấy phép lưu hành sản phẩm',
+                'Nhóm thuốc', 'Thuốc KSĐB', 'Hạn dùng', 'Cơ sở sản xuất',
+                'Nước sản xuất', 'Giá kê khai',
+            ];
+            $book = new \PhpOffice\PhpSpreadsheet\Spreadsheet;
+            try {
+                $sheet = $book->getActiveSheet();
+                $sheet->setTitle('Danh muc thuoc');
+                $sheet->fromArray($headers, null, 'A1');
+                $row = 2;
+                \Modules\Pharma\Models\Medicine::query()
+                    ->with(['variants' => fn ($query) => $query->orderByDesc('is_default')->orderBy('id')])
+                    ->orderBy('id')
+                    ->chunkById(250, static function ($medicines) use ($sheet, &$row): void {
+                        foreach ($medicines as $medicine) {
+                            $sheet->fromArray([
+                                $medicine->medicine_code,
+                                $medicine->variants->first()?->sku,
+                                $medicine->product_type,
+                                $medicine->name,
+                                $medicine->active_ingredients,
+                                $medicine->concentration,
+                                $medicine->dosage_form,
+                                $medicine->route_of_administration,
+                                $medicine->unit,
+                                $medicine->packaging_specification,
+                                $medicine->registration_number,
+                                $medicine->circular_group,
+                                $medicine->is_special_control ? 'Có' : 'Không',
+                                $medicine->shelf_life,
+                                $medicine->manufacturing_company,
+                                $medicine->manufacturing_country,
+                                $medicine->declared_price,
+                            ], null, 'A'.$row);
+                            $row++;
+                        }
+                    });
+                $lastColumn = 'Q';
+                $sheet->getStyle("A1:{$lastColumn}1")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+                $sheet->getStyle("A1:{$lastColumn}1")->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('1E3A8A');
+                $sheet->getStyle("A1:{$lastColumn}1")->getAlignment()->setWrapText(true);
+                $sheet->getRowDimension(1)->setRowHeight(36);
+                $sheet->freezePane('D2');
+                $sheet->setAutoFilter("A1:{$lastColumn}1");
+                foreach (range('A', 'Q') as $column) {
+                    $sheet->getColumnDimension($column)->setWidth(in_array($column, ['D', 'E', 'J'], true) ? 34 : 23);
+                }
+                $sheet->getStyle('A2:B'.max(2, $row))->getNumberFormat()->setFormatCode('@');
+                $sheet->getStyle('K2:K'.max(2, $row))->getNumberFormat()->setFormatCode('@');
+                (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save('php://output');
+            } finally {
+                $book->disconnectWorksheets();
+            }
+        }, 'danh-muc-thuoc-import-lai.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
     public function import(Request $request, ApplicationRegistry $registry, MedicineCatalogUploadService $upload): RedirectResponse
     {
         $user = $request->user('web');
