@@ -16,7 +16,7 @@ class PharmaMedicineEditorContractTest extends TestCase
             $this->assertStringContainsString($route, $routes);
         }
         $this->assertStringContainsString("'client.pharma.products.'.$action", $controller);
-        $this->assertStringContainsString("MedicineService $service", $controller);
+        $this->assertStringContainsString('MedicineService $service', $controller);
         $this->assertStringContainsString("'client.pharma.products.create'", $manifest);
         $this->assertStringContainsString("'client.pharma.products.edit'", $manifest);
     }
