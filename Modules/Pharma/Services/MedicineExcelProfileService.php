@@ -67,6 +67,7 @@ class MedicineExcelProfileService
                 'body_font_size' => 11,
                 'header_fill' => 'EFF4FA',
                 'body_border' => true,
+                'fit_to_page' => false,
                 'margin_top_cm' => 0.8, 'margin_bottom_cm' => 0.8,
                 'margin_left_cm' => 0.8, 'margin_right_cm' => 0.8,
                 'margin_header_cm' => 0.8, 'margin_footer_cm' => 0.8,
@@ -130,6 +131,7 @@ class MedicineExcelProfileService
         $settings['body_font_size'] = max(8, min(20, (int) $settings['body_font_size']));
         $settings['header_fill'] = in_array($settings['header_fill'], ['EFF4FA', 'F1F5F9', 'FFFFFF', 'EDE9FE'], true) ? $settings['header_fill'] : 'EFF4FA';
         $settings['body_border'] = (bool) $settings['body_border'];
+        $settings['fit_to_page'] = (bool) ($settings['fit_to_page'] ?? false);
         foreach (['top', 'bottom', 'left', 'right', 'header', 'footer'] as $side) {
             $key = 'margin_'.$side.'_cm';
             $settings[$key] = max(0, min(5, (float) ($settings[$key] ?? 0.8)));
