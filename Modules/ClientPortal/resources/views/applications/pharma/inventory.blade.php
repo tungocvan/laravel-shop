@@ -21,6 +21,14 @@
         <p class="mt-1.5 max-w-3xl text-sm leading-5 text-slate-300 sm:leading-6">{{ $featurePresentation['page_description'] ?? 'Theo dõi số lượng tồn, giá trị, lô và hạn dùng.' }}</p>
     </section>
 
+    <nav aria-label="Báo cáo tồn kho" class="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-3">
+        <a href="{{ route('client.pharma.inventory.movements') }}" class="rounded-xl border border-indigo-200 px-4 py-2 text-sm font-bold text-indigo-700">Xuất–Nhập–Tồn</a>
+        <a href="{{ route('client.pharma.inventory.export') }}" class="rounded-xl border border-emerald-200 px-4 py-2 text-sm font-bold text-emerald-700">↓ Export tồn kho XLSX</a>
+        @can('client.pharma.inventory.opening.manage')
+            <a href="{{ route('client.pharma.inventory.opening') }}" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700">Tồn đầu kỳ</a>
+        @endcan
+    </nav>
+
     @if($canViewCosts)
         <section class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <div class="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
