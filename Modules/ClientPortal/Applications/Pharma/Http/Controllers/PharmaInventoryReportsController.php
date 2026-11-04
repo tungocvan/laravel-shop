@@ -126,6 +126,22 @@ final class PharmaInventoryReportsController extends Controller
         return $this->configuredDownload($request, $registry, 'stock', $rows, 'client-pharma-ton-kho-'.now()->format('Ymd-His').'.xlsx');
     }
 
+    private function configuredDownload(Request $request, ApplicationRegistry $registry, string $report, iterable $rows, string $filename): StreamedResponse
+    {
+        $id = (int) $request->user('web')->id;
+        $profileId = $request->validate(['profile_id' => 'nullable|integer'])['profile_id'] ?? null;
+        $profile = PharmaInventoryExcelProfileController::profile($id, $report, $profileId);
+        $allowed = PharmaInventoryExcelProfileController::allowed($report, $registry->userCan($request->user('web'), 'client.pharma.inventory.costs'));
+        $columns = $profile ? array_values(array_intersect($profile->columns ?? [], array_keys($allowed))) : array_keys($allowed);
+        abort_if($columns === [], 422, 'Mẫu Excel không có cột hợp lệ.');
+        return app(\Modules\ClientPortal\Applications\Pharma\Services\InventoryConfiguredExcelExporter::class)->download(
+            $rows, $columns, array_replace($allowed, $profile?->headers ?? []),
+            $profile?->widths ?? [], $profile?->alignments ?? [],
+            array_replace(['title' => $report === 'stock' ? 'BÁO CÁO TỒN KHO' : 'BÁO CÁO XUẤT NHẬP TỒN'], $profile?->settings ?? []),
+            $filename
+        );
+    }
+
     public function opening(Request $request, ApplicationRegistry $registry): View
     {
         $this->authorizeInventory($request, $registry, true);
