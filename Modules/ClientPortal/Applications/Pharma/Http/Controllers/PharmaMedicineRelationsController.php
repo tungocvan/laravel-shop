@@ -228,7 +228,7 @@ final class PharmaMedicineRelationsController extends Controller
             'start_date' => ['nullable', 'date'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'status' => ['required', 'in:active,inactive,pending'],
-            'import_price' => ['nullable', 'numeric', 'min:0'],
+            'import_price' => ['required', 'numeric', 'min:0'],
             'selling_price' => ['nullable', 'numeric', 'min:0'],
             'invoice_price' => ['nullable', 'numeric', 'min:0'],
             'committed_quantity' => ['nullable', 'numeric', 'min:0'],
@@ -245,6 +245,14 @@ final class PharmaMedicineRelationsController extends Controller
             'supplier_representative' => ['nullable', 'string', 'max:255'],
             'note' => ['nullable', 'string', 'max:5000'],
             'contract' => ['nullable', 'file', 'mimes:pdf,doc,docx,jpg,jpeg,png', 'max:10240'],
+        ], [
+            'partner_id.required' => 'Vui lòng chọn nhà cung cấp.',
+            'partner_id.exists' => 'Nhà cung cấp không tồn tại.',
+            'import_price.required' => 'Vui lòng nhập Giá nhập NCC ở tab Điều kiện thương mại.',
+            'import_price.numeric' => 'Giá nhập NCC phải là số.',
+            'import_price.min' => 'Giá nhập NCC không được âm.',
+            'end_date.after_or_equal' => 'Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.',
+            'distribution_scope.required' => 'Vui lòng chọn phạm vi phân phối.',
         ]);
         $partner = Partner::query()->findOrFail($data['partner_id']);
         if (! $partner->hasPartnerType('supplier')) {
