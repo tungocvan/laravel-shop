@@ -19,6 +19,24 @@
     }
     $settings = $profile?->settings ?? [];
 @endphp
+<style>
+    /* Scoped Excel designer controls: subtle 1px borders, without affecting the application. */
+    #inventory-excel-designer input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    #inventory-excel-designer select,
+    #inventory-excel-designer textarea {
+        border: 1px solid #cbd5e1 !important;
+        box-shadow: none !important;
+        outline: none;
+        background-color: #fff;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+    #inventory-excel-designer input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+    #inventory-excel-designer select:focus,
+    #inventory-excel-designer textarea:focus {
+        border-color: #818cf8 !important;
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, .12) !important;
+    }
+</style>
 <div class="fixed inset-0 z-40 overflow-hidden bg-slate-950/60 p-3 sm:p-6" id="inventory-excel-designer">
     <div class="mx-auto flex h-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         <header class="flex shrink-0 items-center justify-between border-b px-5 py-4">
