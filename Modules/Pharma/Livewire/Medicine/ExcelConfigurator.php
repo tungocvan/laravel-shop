@@ -246,6 +246,22 @@ class ExcelConfigurator extends Component
         $this->save($service);
     }
 
+    public function exportProfileJson(MedicineExcelProfileService $service)
+    {
+        $userId = $this->assertOwner();
+        $profile = $service->forUser($userId, $this->profileId, $this->ownerGuard);
+        $payload = array_intersect_key($profile, array_flip(['name', 'is_default', 'columns', 'headers', 'widths', 'alignments', 'settings']));
+        $payload = ['schema_version' => 1] + $payload;
+
+        return response()->streamDownload(
+            static function () use ($payload): void {
+                echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            },
+            'medicine-excel-profile-'.($this->profileId ?? 'default').'.json',
+            ['Content-Type' => 'application/json; charset=utf-8']
+        );
+    }
+
     public function removeReportLogo(): void
     {
         $this->assertOwner();
