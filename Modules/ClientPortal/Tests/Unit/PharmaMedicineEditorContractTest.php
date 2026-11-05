@@ -280,7 +280,7 @@ class PharmaMedicineEditorContractTest extends TestCase
 
         $this->assertStringContainsString("'selling_price'", $model);
         $this->assertStringContainsString('normalizeSellingPrice($data', $service);
-        $this->assertStringContainsString('selling > (float) $declared', $service);
+        $this->assertStringContainsString('(float) $selling > (float) $declared', $service);
         $this->assertStringContainsString("'lte:declared_price'", $controller);
         $this->assertStringContainsString('data-vnd-price="declared"', $form);
         $this->assertStringContainsString('data-vnd-price="selling"', $form);
