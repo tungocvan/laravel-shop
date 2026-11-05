@@ -66,29 +66,39 @@ class GdtPosRequestTransportContractTest extends TestCase
             $this->assertStringContainsString('Không coi là 0 hóa đơn', $exception->getMessage());
         }
 
-        Http::assertSent(function ($request) {
-            if (! str_contains($request->url(), '/sco-query/invoices/purchase')) {
-                return false;
-            }
+        // A single compound assertSent hides which field differs. Inspect the fake
+        // request in isolated assertions, without printing token/CAPTCHA/cookie values.
+        $requests = Http::recorded(fn ($request) => str_contains(
+            $request->url(), '/sco-query/invoices/purchase'
+        ));
+        $this->assertCount(1, $requests, 'Expected exactly one fake POS purchase request.');
+        $request = $requests->first()[0];
 
-            $query = [];
-            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
-
-            return ($query['sort'] ?? null) === 'tdlap:desc'
-                && (string) ($query['size'] ?? '') === '15'
-                && ($query['search'] ?? null) === 'tdlap=ge=01/07/2026T00:00:00;tdlap=le=31/07/2026T23:59:59;ttxly==8'
-                && ($query['ckey'] ?? null) === 'SECRET_CKEY'
-                && ($query['cvalue'] ?? null) === 'SECRET_CVALUE'
-                && $request->hasHeader('Authorization')
-                && $request->header('User-Agent')[0] === 'GDT-Transport-Contract-Test/1.0'
-                && $request->header('Accept-Language')[0] === 'vi'
-                && $request->header('End-Point')[0] === '/tra-cuu/tra-cuu-hoa-don'
-                && $request->header('ckey')[0] === 'SECRET_CKEY'
-                && $request->header('cvalue')[0] === 'SECRET_CVALUE'
-                && $request->header('Action')[0] === rawurlencode('Tìm kiếm (hóa đơn máy tính tiền mua vào)')
-                && $request->header('Referer')[0] === 'https://gdt-test.invalid/tra-cuu/tra-cuu-hoa-don'
-                && $request->hasHeader('request-id');
-        });
+        $query = [];
+        parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+        $this->assertSame('tdlap:desc', $query['sort'] ?? null);
+        $this->assertSame('15', (string) ($query['size'] ?? ''));
+        $this->assertSame(
+            'tdlap=ge=01/07/2026T00:00:00;tdlap=le=31/07/2026T23:59:59;ttxly==8',
+            $query['search'] ?? null
+        );
+        $this->assertSame('SECRET_CKEY', $query['ckey'] ?? null);
+        $this->assertSame('SECRET_CVALUE', $query['cvalue'] ?? null);
+        $this->assertTrue($request->hasHeader('Authorization'));
+        $this->assertSame('GDT-Transport-Contract-Test/1.0', $request->header('User-Agent')[0] ?? null);
+        $this->assertSame('vi', $request->header('Accept-Language')[0] ?? null);
+        $this->assertSame('/tra-cuu/tra-cuu-hoa-don', $request->header('End-Point')[0] ?? null);
+        $this->assertTrue($request->hasHeader('ckey'), 'Missing ckey request header.');
+        $this->assertTrue($request->hasHeader('cvalue'), 'Missing cvalue request header.');
+        $this->assertSame(
+            rawurlencode('Tìm kiếm (hóa đơn máy tính tiền mua vào)'),
+            $request->header('Action')[0] ?? null
+        );
+        $this->assertSame(
+            'https://gdt-test.invalid/tra-cuu/tra-cuu-hoa-don',
+            $request->header('Referer')[0] ?? null
+        );
+        $this->assertTrue($request->hasHeader('request-id'));
 
         Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
             if ($message !== 'GDT POS invoice query response metadata.') {
