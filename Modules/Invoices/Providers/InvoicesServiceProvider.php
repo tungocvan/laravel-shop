@@ -6,6 +6,7 @@ use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\ServiceProvider;
 use Modules\Invoices\Console\Commands\BackupInvoiceFilesCommand;
 use Modules\Invoices\Console\Commands\DiagnoseGdtAuthenticationCommand;
+use Modules\Invoices\Console\Commands\DiagnoseGdtPosQueryCommand;
 use Modules\Invoices\Console\Commands\RecoverGdtDuplicatesCommand;
 use Modules\Invoices\Console\Commands\ImportLegacyGdtSettingsCommand;
 use Modules\Invoices\Services\GdtConfigService;
@@ -33,6 +34,7 @@ class InvoicesServiceProvider extends ServiceProvider
             $this->commands([
                 BackupInvoiceFilesCommand::class,
                 DiagnoseGdtAuthenticationCommand::class,
+                DiagnoseGdtPosQueryCommand::class,
                 RecoverGdtDuplicatesCommand::class,
                 ImportLegacyGdtSettingsCommand::class,
             ]);
