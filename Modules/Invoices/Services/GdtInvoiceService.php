@@ -503,6 +503,11 @@ class GdtInvoiceService
             'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
             'redirect_count' => $this->safeRedirectCount($response),
             'html_response_class' => $this->safeHtmlResponseClass($response),
+            'html_response_kind' => $this->safeHtmlResponseKind($response),
+            'response_has_set_cookie' => $response->header('Set-Cookie') !== null,
+            'response_has_www_authenticate' => $response->header('WWW-Authenticate') !== null,
+            'response_has_cache_control' => $response->header('Cache-Control') !== null,
+            'response_has_content_length' => $response->header('Content-Length') !== null,
             'action' => $action,
             'page' => $page,
             'http_status' => $response->status(),
@@ -548,6 +553,27 @@ class GdtInvoiceService
         return 'NOT_HTML';
     }
 
+    /**
+     * Header-only response classification. Do not read, parse, hash or log HTML bodies.
+     * A login page cannot be identified reliably from headers alone.
+     */
+    private function safeHtmlResponseKind($response): string
+    {
+        if (! str_contains(strtolower((string) $response->header('Content-Type', '')), 'html')) {
+            return 'NOT_HTML';
+        }
+
+        if ($response->header('WWW-Authenticate') !== null) {
+            return 'HTML_AUTH_CHALLENGE_HEADER';
+        }
+
+        if ($this->safeRedirectCount($response) > 0) {
+            return 'HTML_AFTER_REDIRECT';
+        }
+
+        return 'HTML_UNCLASSIFIED';
+    }
+
     /** Never expose query parameters, host, or credentials from a redirect Location. */
     private function safeRedirectPath(?string $location): ?string
     {
@@ -573,6 +599,11 @@ class GdtInvoiceService
             'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
             'redirect_count' => $this->safeRedirectCount($response),
             'html_response_class' => $this->safeHtmlResponseClass($response),
+            'html_response_kind' => $this->safeHtmlResponseKind($response),
+            'response_has_set_cookie' => $response->header('Set-Cookie') !== null,
+            'response_has_www_authenticate' => $response->header('WWW-Authenticate') !== null,
+            'response_has_cache_control' => $response->header('Cache-Control') !== null,
+            'response_has_content_length' => $response->header('Content-Length') !== null,
             'endpoint' => $path,
             'action' => $action,
             'page' => $page,
