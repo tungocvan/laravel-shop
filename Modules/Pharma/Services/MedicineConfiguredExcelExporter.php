@@ -157,6 +157,7 @@ final class MedicineConfiguredExcelExporter
                 'unit' => $medicine->unit,
                 'packaging_specification' => $medicine->packaging_specification,
                 'declared_price' => $variant?->declared_price ?? $medicine->declared_price,
+                'selling_price' => $medicine->selling_price ?? $medicine->declared_price,
                 'registered_company' => $medicine->registered_company,
                 'manufacturing_company' => $medicine->manufacturing_company,
                 'manufacturing_country' => $medicine->manufacturing_country,
@@ -167,7 +168,7 @@ final class MedicineConfiguredExcelExporter
             foreach ($columns as $i => $key) {
                 $cell = Coordinate::stringFromColumnIndex($i + 1).$dataRow;
                 $value = $values[$key] ?? '';
-                if (in_array($key, ['stt', 'declared_price', 'cost_price', 'winning_price', 'allocated_quantity'], true) && is_numeric($value)) {
+                if (in_array($key, ['stt', 'declared_price', 'selling_price', 'cost_price', 'winning_price', 'allocated_quantity'], true) && is_numeric($value)) {
                     $sheet->setCellValue($cell, (float) $value);
                     if ($key !== 'stt') $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
                 } else {
