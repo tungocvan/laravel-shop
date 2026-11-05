@@ -97,7 +97,7 @@ class GdtInvoiceService
         return $stats;
     }
 
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all', ?string $syncId = null): ?string
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all', ?string $syncId = null, ?array $posCaptcha = null): ?string
     {
         $show = fn ($message) => $cb ? $cb($message) : null;
         if (! in_array($source, ['all', 'regular', 'pos'], true)) {
@@ -156,7 +156,7 @@ class GdtInvoiceService
                     $pos = $checkpoint['pos'];
                     $show('[GDT] POS full-month checkpoint reused.');
                 } else {
-                    $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true);
+                    $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha);
                     if ($checkpointKey) {
                         $checkpoint['pos'] = $pos;
                         Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
@@ -267,13 +267,16 @@ class GdtInvoiceService
         return $file;
     }
 
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false): array
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false, ?array $posCaptcha = null): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $pageSize = 50;
         if ($cashRegister) {
-            $search .= ';ttxly==8';
+            $search .= ';ttxly==5';
+            if (! is_array($posCaptcha) || blank($posCaptcha['ckey'] ?? null) || blank($posCaptcha['cvalue'] ?? null)) {
+                throw new \\RuntimeException('Tra cứu POS cần CAPTCHA riêng. Vui lòng nhập CAPTCHA trước khi đồng bộ.');
+            }
         }
         $endpoint = $cashRegister ? '/sco-query/invoices/' : '/query/invoices/';
         $result = [];
@@ -287,7 +290,14 @@ class GdtInvoiceService
                 $query = ['sort' => 'tdlap:desc', 'size' => $pageSize, 'search' => $search];
                 if ($state) {
                     $query['state'] = $state;
-                }$res = $this->client($token)->get($this->url($endpoint.$action), $query);
+                }
+                if ($cashRegister) {
+                    $query['ckey'] = $posCaptcha['ckey'];
+                    $query['cvalue'] = $posCaptcha['cvalue'];
+                }
+                $res = $this->client($token)
+                    ->withHeaders($cashRegister ? ['Action' => 'Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')', 'End-Point' => '/tra-cuu/tra-cuu-hoa-don'] : [])
+                    ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
                 throw new \RuntimeException("Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.', previous: $exception);
