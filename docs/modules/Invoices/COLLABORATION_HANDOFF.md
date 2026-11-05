@@ -371,3 +371,5 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added `GdtPosCaptchaFlowTest`, adjusted existing POS HTTP fake diagnostics/retry tests. Checkpoint DELL: focused tests first, module regression only after PASS, UI verification required before merge. No live GDT request, no PR/merge/deploy. Verify whether GDT requires additional session context, CAPTCHA reuse across pages, and 200 schema with manual UI; if not, stop and investigate, do not auto-bypass CAPTCHA.
 
 - Checkpoint follow-up: focused tests initially 3 FAIL / 3 PASS. Root cause in tests: POS fake URL matched overlapping regular substring first; retry test omitted fresh POS CAPTCHA. Fixed fake matching order and second-attempt challenge in commits `3ff19cf34` and `c3c6e80fe`. Await DELL focused retest; no PASS claimed.
+
+- Second focused checkpoint: 2 FAIL / 4 PASS. Root cause confirmed in service diagnostics: `search_has_pos_filter` still checked obsolete `ttxly==8` after POS query switched to `ttxly==5`; Mockery log assertion threw before expected HTTP 500 exception. Fixed service metadata predicate (commit `7e69b20df2`). Await retest; no TEST PASS claimed.
