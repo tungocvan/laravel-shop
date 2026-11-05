@@ -342,7 +342,7 @@ class GdtInvoiceService
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
         $pageSize = 50;
         if ($cashRegister) {
-            $search .= ';ttxly==5';
+            $search .= ';ttxly==8';
             if (! is_array($posCaptcha) || blank($posCaptcha['ckey'] ?? null) || blank($posCaptcha['cvalue'] ?? null)) {
                 throw new \RuntimeException('Tra cứu POS cần CAPTCHA riêng. Vui lòng nhập CAPTCHA trước khi đồng bộ.');
             }
@@ -437,7 +437,7 @@ class GdtInvoiceService
             'page' => $page,
             'http_status' => $response->status(),
             'response_format' => $format,
-            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==5'),
+            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==8'),
             'page_size' => (int) ($query['size'] ?? 0),
             'has_pagination_state' => filled($query['state'] ?? null),
         ]);
