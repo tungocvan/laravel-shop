@@ -11,12 +11,26 @@ use Tests\TestCase;
 
 class GdtPosHttpDiagnosticsTest extends TestCase
 {
-    public function test_pos_http_failure_logs_only_allowlisted_metadata_without_leaking_response(): void
+    public function test_json_pos_http_failure_logs_only_allowlisted_metadata(): void
     {
-        foreach ([
-            ['content_type' => 'application/json', 'body' => '{"message":"SECRET_INVOICE_123","token":"SECRET_TOKEN"}', 'format' => 'json'],
-            ['content_type' => 'text/html', 'body' => '<html>SECRET_INVOICE_123 SECRET_TOKEN</html>', 'format' => 'html'],
-        ] as $case) {
+        $this->assertPosFailureDiagnostics([
+            'content_type' => 'application/json',
+            'body' => '{"message":"SECRET_INVOICE_123","token":"SECRET_TOKEN"}',
+            'format' => 'json',
+        ]);
+    }
+
+    public function test_html_pos_http_failure_logs_only_allowlisted_metadata(): void
+    {
+        $this->assertPosFailureDiagnostics([
+            'content_type' => 'text/html',
+            'body' => '<html>SECRET_INVOICE_123 SECRET_TOKEN</html>',
+            'format' => 'html',
+        ]);
+    }
+
+    private function assertPosFailureDiagnostics(array $case): void
+    {
             config()->set('invoices.gdt.cache_key', 'gdt-diagnostics-test-token');
             config()->set('invoices.gdt.base_url', 'https://gdt-test.invalid/api');
             Cache::put('gdt-diagnostics-test-token', 'SECRET_TOKEN', 600);
@@ -56,21 +70,22 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                 })
             );
 
+            $thrown = null;
             try {
                 app(GdtInvoiceService::class)->processRange(
                     '2026-11-01', '2026-11-02', null, true, 'all', uniqid('diagnostics-', true)
                 );
-                $this->fail('POS HTTP 500 must propagate.');
             } catch (\RuntimeException $exception) {
-                $this->assertStringContainsString('HTTP 500', $exception->getMessage());
-                $this->assertStringContainsString('Không tạo file thiếu', $exception->getMessage());
+                $thrown = $exception;
             }
+            $this->assertInstanceOf(\RuntimeException::class, $thrown, 'POS HTTP 500 must propagate.');
+            $this->assertStringContainsString('HTTP 500', $thrown->getMessage());
+            $this->assertStringContainsString('Không tạo file thiếu', $thrown->getMessage());
 
             Http::assertSent(function ($request) {
                 return str_contains($request->url(), '/sco-query/invoices/purchase')
                     && str_contains(urldecode($request->url()), 'ttxly==8');
             });
 
-        }
     }
 }
