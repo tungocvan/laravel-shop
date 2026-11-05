@@ -475,3 +475,8 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Actual application request at 22:47:33: purchase, cookie eligible, 4 jar cookies, User-Agent parity; HTTP 200 HTML without tracked redirect. Authentication/session acceptance remains unproven.
 - Added fixed-label `html_response_kind` and allowlisted booleans for Set-Cookie, WWW-Authenticate, Cache-Control, Content-Length presence in POS response metadata and HTTP failure metadata. No raw header values, HTML body, CAPTCHA values, tokens, cookies, URLs or invoice data logged. Classification is header-only; `HTML_UNCLASSIFIED` does **not** mean login page or access denial.
 - Added fake HTTP regression for HTML fail-closed behavior and safe diagnostics. No CAPTCHA bypass, retry, parsing relaxation, persistence or production changes. Focused tests pending user checkpoint, then module regression and UI verification.
+
+### 2026-11-05 — Header absence regression correction
+
+- Focused checkpoint: 17 passed, 1 failed (211 assertions); HTML fixture expected `HTML_UNCLASSIFIED` but received `HTML_AUTH_CHALLENGE_HEADER` because Laravel response header accessor can yield empty string for absent header.
+- Updated safe response-header presence checks (Set-Cookie, WWW-Authenticate, Cache-Control, Content-Length) and authentication-challenge classification to require nonempty trimmed values, not merely non-null. No sensitive values logged. Re-run focused tests before module regression; no TEST/UI PASS claimed.
