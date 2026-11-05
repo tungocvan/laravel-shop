@@ -415,12 +415,10 @@ class GdtInvoiceService
                         'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
                     ])->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
                 }
-                // Remove the generic headers before applying POS page-specific values.
-                // PendingRequest::withHeaders can retain an earlier value for an existing
-                // header key; POS must send the observed search-page contract instead.
-                $requestClient = $cashRegister
-                    ? $client->withoutHeader('Referer')->withoutHeader('Action')->withoutHeader('End-Point')
-                    : $client;
+                // PendingRequest::withHeaders merges header arrays. Build the POS
+                // request with a fresh client so generic page-context headers
+                // cannot survive the POS-specific override.
+                $requestClient = $cashRegister ? $this->clientForPos($token, $jar) : $client;
                 $res = $requestClient
                     ->withHeaders($cashRegister ? [
                         // Match the observed GDT POS search page context, not the homepage.
@@ -741,6 +739,30 @@ class GdtInvoiceService
                 'Action' => '',
                 'End-Point' => '/',
                 'request-id' => (string) Str::uuid(),
+            ]);
+    }
+
+    /**
+     * POS uses a distinct page context; do not inherit generic Referer,
+     * Action or End-Point headers from the regular invoice client.
+     */
+    private function clientForPos(string $token, CookieJar $jar)
+    {
+        $origin = rtrim((string) config('invoices.gdt.base_url'), '/');
+        $origin = preg_replace('#/api$#', '', $origin) ?: $origin;
+
+        return Http::withOptions([
+            'verify' => (bool) config('invoices.gdt.verify_ssl', true),
+            'cookies' => $jar,
+            'allow_redirects' => ['track_redirects' => true],
+        ])
+            ->timeout((int) config('invoices.gdt.timeout', 15))
+            ->withToken($token)
+            ->withHeaders([
+                'Accept' => 'application/json, text/plain, */*',
+                'Origin' => $origin,
+                'request-id' => (string) Str::uuid(),
+                'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
             ]);
     }
 
