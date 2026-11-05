@@ -469,3 +469,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Local focused output: 12 failed, 5 passed (49 assertions), all failures at `GdtInvoiceService.php:396`: `CookieJar::getCookieHeader()` does not exist.
 - Replaced with supported `CookieJar::withCookieHeader(new Request('GET', ...))` and checked `hasHeader('Cookie')` on returned PSR-7 request. No cookie values logged, no HTTP request added, no canonical changes.
 - Await local focused tests before module regression or UI. No TEST PASS asserted, no PR/merge/deploy.
+
+### 2026-11-05 — POS HTML header-only diagnostics checkpoint
+
+- Actual application request at 22:47:33: purchase, cookie eligible, 4 jar cookies, User-Agent parity; HTTP 200 HTML without tracked redirect. Authentication/session acceptance remains unproven.
+- Added fixed-label `html_response_kind` and allowlisted booleans for Set-Cookie, WWW-Authenticate, Cache-Control, Content-Length presence in POS response metadata and HTTP failure metadata. No raw header values, HTML body, CAPTCHA values, tokens, cookies, URLs or invoice data logged. Classification is header-only; `HTML_UNCLASSIFIED` does **not** mean login page or access denial.
+- Added fake HTTP regression for HTML fail-closed behavior and safe diagnostics. No CAPTCHA bypass, retry, parsing relaxation, persistence or production changes. Focused tests pending user checkpoint, then module regression and UI verification.
