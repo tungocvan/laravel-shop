@@ -17,6 +17,23 @@
             <div><label class="text-sm font-medium text-gray-700">Từ ngày</label><input type="date" wire:model.live="start_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('start_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
             <div><label class="text-sm font-medium text-gray-700">Đến ngày</label><input type="date" wire:model.live="end_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('end_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
             <div class="md:col-span-3"><label for="invoice-source" class="text-sm font-medium text-gray-700">Nguồn hóa đơn</label><select id="invoice-source" wire:model.live="invoiceSource" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="all">Tất cả hóa đơn — đồng bộ canonical vào database</option><option value="regular">Chỉ hóa đơn thông thường — đồng bộ canonical</option><option value="pos">Chỉ hóa đơn máy tính tiền — đồng bộ canonical</option></select>@error('invoiceSource')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
+            @if($invoiceSource !== 'regular')
+                <div class="md:col-span-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-sm font-semibold text-amber-900">Xác minh CAPTCHA tra cứu hóa đơn máy tính tiền (POS)</p>
+                    <p class="mt-1 text-xs text-amber-800">GDT yêu cầu mã xác minh riêng khi tìm kiếm POS. Vui lòng bỏ chọn xử lý qua queue, tải CAPTCHA và nhập mã trước khi đồng bộ. Hóa đơn Regular không cần CAPTCHA.</p>
+                    <div class="mt-3 flex flex-wrap items-center gap-3">
+                        @if($posCaptchaImage)
+                            <img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT cho tra cứu POS" width="200" height="40" class="rounded border border-amber-200 bg-white" />
+                        @endif
+                        <button type="button" wire:click="refreshPosCaptcha" wire:loading.attr="disabled" class="min-h-11 rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-900">Tải / làm mới CAPTCHA</button>
+                        <label class="min-w-0 flex-1 text-sm font-medium text-gray-700">Mã CAPTCHA
+                            <input type="text" wire:model="posCaptchaAnswer" autocomplete="off" maxlength="20" class="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Nhập mã nhìn thấy trong ảnh" />
+                        </label>
+                    </div>
+                    @if($posCaptchaError)<p role="alert" class="mt-2 text-sm text-red-700">{{ $posCaptchaError }}</p>@endif
+                    @error('posCaptchaAnswer')<p role="alert" class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
+                </div>
+            @endif
             <div><label class="text-sm font-medium text-gray-700">Loại hóa đơn</label><select wire:model.live="vatIn" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="0">Bán ra</option><option value="1">Mua vào</option></select></div>
         </div>
         <div class="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
