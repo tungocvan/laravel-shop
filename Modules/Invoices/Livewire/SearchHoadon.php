@@ -35,6 +35,9 @@ class SearchHoadon extends Component
     public string $posCaptchaImage = '';
     public string $posCaptchaAnswer = '';
     public ?string $posCaptchaError = null;
+    public bool $posCaptchaModalOpen = false;
+    public ?string $posCaptchaPurpose = null;
+    public ?string $posCaptchaFingerprint = null;
     public array $sourceResults = [];
     public ?array $detailResults = null;
     public array $logs = [];
@@ -81,6 +84,9 @@ class SearchHoadon extends Component
         $this->posCaptchaError = null;
         $this->posCaptchaAnswer = '';
         $this->posCaptchaImage = '';
+        $this->posCaptchaModalOpen = false;
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -93,6 +99,11 @@ class SearchHoadon extends Component
 
     private function clearSearchPreview(): void
     {
+        $this->posCaptchaModalOpen = false;
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaImage = '';
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -102,6 +113,69 @@ class SearchHoadon extends Component
     private function searchFingerprint(): string
     {
         return hash('sha256', implode('|', [$this->invoiceSource, $this->start_date, $this->end_date, (int) $this->vatIn]));
+    }
+
+    public function openPosCaptcha(string $purpose = 'search'): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'invoiceSource' => ['required', 'in:pos'],
+            'vatIn' => ['boolean'],
+        ]);
+        if (substr($this->start_date, 0, 7) !== substr($this->end_date, 0, 7)) {
+            $this->addError('end_date', 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần.');
+            return;
+        }
+        if (! in_array($purpose, ['search', 'sync'], true)) {
+            return;
+        }
+        if ($purpose === 'sync' && ($this->searchState !== 'completed'
+            || $this->searchedFingerprint !== $this->searchFingerprint()
+            || (int) ($this->searchPreview['count'] ?? 0) <= 0)) {
+            $this->addError('invoiceSource', 'Cần có kết quả tra cứu hợp lệ trước khi đồng bộ.');
+            return;
+        }
+        $this->posCaptchaPurpose = $purpose;
+        $this->posCaptchaFingerprint = $this->searchFingerprint();
+        $this->posCaptchaModalOpen = true;
+        $this->refreshPosCaptcha();
+    }
+
+    public function closePosCaptcha(): void
+    {
+        $this->posCaptchaModalOpen = false;
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
+        $this->posCaptchaImage = '';
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaError = null;
+    }
+
+    public function submitPosCaptcha(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if (! $this->posCaptchaModalOpen || $this->invoiceSource !== 'pos'
+            || $this->posCaptchaFingerprint !== $this->searchFingerprint()) {
+            $this->closePosCaptcha();
+            $this->addError('invoiceSource', 'Bộ lọc đã thay đổi. Vui lòng tìm kiếm lại.');
+            return;
+        }
+        if (! $this->posCaptchaImage) {
+            $this->posCaptchaError = 'Vui lòng tải CAPTCHA trước khi xác nhận.';
+            return;
+        }
+        $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
+        $purpose = $this->posCaptchaPurpose;
+        $this->posCaptchaModalOpen = false;
+        if ($purpose === 'search') {
+            $this->searchInvoices();
+        } elseif ($purpose === 'sync') {
+            $this->run();
+        }
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
     }
 
     public function searchInvoices(): void
