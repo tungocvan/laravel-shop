@@ -15,8 +15,12 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
     {
         $service = file_get_contents((new \ReflectionClass(GdtInvoiceService::class))->getFileName());
         $this->assertStringContainsString("['all', 'regular', 'pos']", $service);
-        $this->assertStringContainsString("$"."source !== 'pos' ?", $service);
-        $this->assertStringContainsString("$"."source !== 'regular' ?", $service);
+        $this->assertStringContainsString("if (\$source !== 'pos')", $service);
+        $this->assertStringContainsString("isset(\$checkpoint['regular'])", $service);
+        $this->assertStringContainsString("persistInvoices(\$regular, \$vatIn)", $service);
+        $this->assertStringContainsString("if (\$source === 'regular')", $service);
+        $this->assertStringContainsString("isset(\$checkpoint['pos'])", $service);
+        $this->assertStringContainsString("fetchInvoicesByMonth(\$token, \$chunkStart, \$chunkEnd, \$show, \$vatIn, true)", $service);
         $this->assertStringContainsString('persistInvoices($all, $vatIn)', $service);
         $this->assertStringContainsString('acquireMissingDetails($stats[', $service);
     }
