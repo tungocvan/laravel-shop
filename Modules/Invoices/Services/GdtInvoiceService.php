@@ -78,6 +78,45 @@ class GdtInvoiceService
         return ['items' => $invoices, 'total' => $total ?? count($invoices)];
     }
 
+    /**
+     * Read-only GDT search preview. Does not persist invoices, RAW records or exports.
+     * POS requires a fresh user-supplied challenge for each request.
+     */
+    public function previewSource(string $fromDate, string $toDate, bool $vatIn, string $source, ?array $posCaptcha = null): array
+    {
+        if (! in_array($source, ['regular', 'pos'], true)) {
+            throw new \InvalidArgumentException('Nguồn tra cứu không hợp lệ.');
+        }
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to)) {
+            throw new \InvalidArgumentException('Khoảng ngày tra cứu không hợp lệ.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+        }
+        $rows = [];
+        $show = static function (string $message): void {};
+        for ($cursor = $from->copy(); $cursor->lte($to);) {
+            $chunkEnd = $cursor->copy()->endOfMonth();
+            if ($chunkEnd->gt($to)) {
+                $chunkEnd = $to->copy();
+            }
+            $rows = array_merge($rows, $this->fetchInvoicesByMonth($token, $cursor, $chunkEnd, $show, $vatIn, $source === 'pos', $posCaptcha));
+            $cursor = $chunkEnd->addDay();
+        }
+
+        return ['source' => $source, 'count' => count($rows), 'sample' => array_slice(array_map(
+            static fn (array $row): array => [
+                'number' => (string) ($row['Số hóa đơn'] ?? ''),
+                'symbol' => (string) ($row['Ký hiệu'] ?? ''),
+                'date' => (string) ($row['Ngày lập'] ?? ''),
+            ],
+            $rows,
+        ), 0, 20)];
+    }
+
     public function expectedExportPath(string $startDate, string $endDate, bool $vatIn = false): string
     {
         $start = Carbon::parse($startDate);
