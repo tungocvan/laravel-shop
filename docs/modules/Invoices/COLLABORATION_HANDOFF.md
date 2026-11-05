@@ -351,3 +351,8 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Existing POS HTTP 500 reproduced with size=1, date range 2026-10-12..2026-10-31, filter `ttxly==8`. Root cause still unverified.
 - Diagnostic command now supports `--without-pos-filter` as a comparison option only. Default remains filtered and dry-run. Never enable automatic fallback in production sync based on this test alone; compare response status and schema first. No changes to GdtInvoiceService or Excel sandbox.
 - Fake-HTTP test covers one GET and absent filter; awaiting DELL focused/module tests. No live comparison request performed, no PR/merge/deploy.
+
+### 2026-11-05 — Safe POS JSON error-shape diagnostics
+
+- After POS HTTP 500 persisted with size=1 both with and without `ttxly==8`, extended `invoices:gdt-pos-diagnose` to report only whether top-level `code`, `status`, `error`, `message` fields exist and their primitive type. Does not print ANY remote field values, nested data, response body, identifiers, or token. No request changes and no runtime sync changes.
+- Added fake HTTP regression with sensitive-looking response content; focused tests and module regression pending DELL. Existing UI login PASS previously reported. Keep explicit `--execute` separate from dry-run; no automatic live request, PR, merge or deploy.
