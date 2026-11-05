@@ -145,7 +145,13 @@ class GdtApiService
             throw new RuntimeException('CAPTCHA tra cứu POS không hợp lệ hoặc GDT không phản hồi.');
         }
 
-        Cache::put($this->posCaptchaKey($adminId), ['key' => $payload['key'], 'cookies' => $cookies->toArray()], now()->addMinutes(5));
+        $cookieSnapshot = $cookies->toArray();
+        Cache::put($this->posCaptchaKey($adminId), ['key' => $payload['key'], 'cookies' => $cookieSnapshot], now()->addMinutes(5));
+        Log::info('GDT POS captcha cookie lifecycle.', [
+            'stage' => 'loaded',
+            'cookie_count' => count($cookieSnapshot),
+            'has_cookie' => $cookieSnapshot !== [],
+        ]);
 
         // Render as an image data URL, never inject untrusted SVG markup into HTML.
         return ['image' => 'data:image/svg+xml;base64,'.base64_encode($payload['content'])];
@@ -163,7 +169,14 @@ class GdtApiService
             throw new RuntimeException('CAPTCHA POS đã hết hạn. Vui lòng tải mã mới.');
         }
 
-        return ['ckey' => $key, 'cvalue' => $answer, 'cookies' => (array) ($challenge['cookies'] ?? [])];
+        $storedCookies = is_array($challenge['cookies'] ?? null) ? $challenge['cookies'] : [];
+        Log::info('GDT POS captcha cookie lifecycle.', [
+            'stage' => 'consumed',
+            'cookie_count' => count($storedCookies),
+            'has_cookie' => $storedCookies !== [],
+        ]);
+
+        return ['ckey' => $key, 'cvalue' => $answer, 'cookies' => $storedCookies];
     }
 
     private function posCaptchaKey(int $adminId): string
