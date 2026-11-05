@@ -4,6 +4,7 @@ namespace Tests\Feature\Invoices;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\GdtInvoiceService;
 use Tests\TestCase;
@@ -26,6 +27,44 @@ class GdtPosCaptchaFlowTest extends TestCase
         $this->assertSame('ABCD', $challenge['cvalue']);
         $this->expectException(\RuntimeException::class);
         $service->consumePosCaptcha(456, 'ABCD');
+    }
+
+    public function test_pos_cookie_snapshot_survives_consume_and_is_restored_into_request_jar(): void
+    {
+        config()->set('invoices.gdt.cache_key', 'gdt-pos-cookie-transport-test-token');
+        config()->set('invoices.gdt.base_url', 'https://gdt-test.invalid/api');
+        Cache::put('gdt-pos-cookie-transport-test-token', 'fake-token', 600);
+        Log::spy();
+        Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200)]);
+
+        $cookies = [[
+            'Name' => 'gdt-session-fixture',
+            'Value' => 'PRIVATE_COOKIE_VALUE',
+            'Domain' => 'gdt-test.invalid',
+            'Path' => '/',
+            'Secure' => true,
+            'HttpOnly' => true,
+        ]];
+        Cache::put('invoices:gdt:pos-captcha:987654', [
+            'key' => 'exampleKey123456',
+            'cookies' => $cookies,
+        ], now()->addMinutes(5));
+
+        $challenge = app(GdtApiService::class)->consumePosCaptcha(987654, 'ABCD');
+        $this->assertSame($cookies, $challenge['cookies']);
+        $this->assertNull(Cache::get('invoices:gdt:pos-captcha:987654'));
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos', $challenge,
+        );
+        $this->assertSame(0, $result['count']);
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            return $message === 'GDT POS captcha cookie lifecycle.'
+                && ($context['stage'] ?? null) === 'request'
+                && ($context['action'] ?? null) === 'purchase'
+                && ($context['stored_cookie_count'] ?? null) === 1
+                && ($context['jar_cookie_count'] ?? null) === 1;
+        })->once();
+        Http::assertSentCount(1);
     }
 
     public function test_pos_without_captcha_does_not_call_pos_endpoint(): void
