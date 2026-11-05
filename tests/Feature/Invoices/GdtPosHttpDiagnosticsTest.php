@@ -73,7 +73,7 @@ class GdtPosHttpDiagnosticsTest extends TestCase
             $thrown = null;
             try {
                 app(GdtInvoiceService::class)->processRange(
-                    '2026-11-01', '2026-11-02', null, true, 'all', uniqid('diagnostics-', true)
+                    '2026-11-01', '2026-11-02', null, true, 'all', uniqid('diagnostics-', true), ['ckey' => 'fake-key', 'cvalue' => 'fake-value']
                 );
             } catch (\RuntimeException $exception) {
                 $thrown = $exception;
@@ -93,7 +93,9 @@ class GdtPosHttpDiagnosticsTest extends TestCase
 
                 return ($query['sort'] ?? null) === 'tdlap:desc'
                     && (string) ($query['size'] ?? '') === '50'
-                    && str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
+                    && str_contains((string) ($query['search'] ?? ''), 'ttxly==5')
+                    && ($query['ckey'] ?? '') === 'fake-key'
+                    && ($query['cvalue'] ?? '') === 'fake-value'
                     && ! array_key_exists('state', $query)
                     && $request->hasHeader('Authorization')
                     && $request->hasHeader('Origin')
@@ -103,7 +105,7 @@ class GdtPosHttpDiagnosticsTest extends TestCase
 
             Http::assertSent(function ($request) {
                 return str_contains($request->url(), '/sco-query/invoices/purchase')
-                    && str_contains(urldecode($request->url()), 'ttxly==8');
+                    && str_contains(urldecode($request->url()), 'ttxly==5');
             });
 
     }
