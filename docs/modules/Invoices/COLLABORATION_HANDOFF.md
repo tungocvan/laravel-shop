@@ -450,3 +450,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Read-only GitHub audit found `SearchHoadon::$vatIn = false` (sold) while Blade `wire:model.live="vatIn"` lists `<option value="1">Mua vào</option>` first. This mismatched initial UI selection and server-side request direction; the observed application trace went to `sold` and returned HTML.
 - Set default `$vatIn = true` to align first visible option with purchase endpoint. Explicitly selecting Bán ra remains supported; source tabs Regular/POS, CAPTCHA, parser, API query and canonical persistence remain unchanged.
 - Added default-direction/option-order contract regression. Focused tests, module regression and manual UI verification pending on DELL. Do not claim 10 POS purchase invoices or UI PASS until observed. No PR/merge/deploy.
+
+### 2026-11-05 — POS HTTP 200 HTML redirect-count diagnostics (checkpoint pending)
+
+- Verified application purchase trace at 22:40:55: HTTP 200, HTML, no datas/total; cookie jar contained 4 items. Correct purchase mapping does not resolve HTML upstream response.
+- POS requests now enable Guzzle redirect-history tracking and log only `redirect_count` (bounded 0..20) and `html_response_class` (`HTML_AFTER_REDIRECT`, `HTML_DIRECT_OR_UNTRACKED`, `NOT_HTML`). No redirect URL, HTML body, token, CAPTCHA, cookie value, query string or headers are logged. Existing safe Location-path diagnostic remains.
+- Redirect tracking does not change redirect-follow behavior and cannot prove a cookie was sent or accepted. HTTP fake tests cover direct HTML and synthetic tracked redirects, with fail-closed schema guard. No live request executed by assistant.
+- Checkpoint: focused `GdtPosRateLimitSafeSearchTest`, `GdtPosHttpDiagnosticsTest`, `GdtTabSearchContractTest`; then module regression only after focused PASS; user UI verification required. Investigate authenticated session/cookie/header differences only after observing a fresh application purchase trace. No PR/merge/deploy.
