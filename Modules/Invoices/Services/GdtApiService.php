@@ -145,7 +145,7 @@ class GdtApiService
             throw new RuntimeException('CAPTCHA tra cứu POS không hợp lệ hoặc GDT không phản hồi.');
         }
 
-        Cache::put($this->posCaptchaKey($adminId), $payload['key'], now()->addMinutes(5));
+        Cache::put($this->posCaptchaKey($adminId), ['key' => $payload['key'], 'cookies' => $cookies->toArray()], now()->addMinutes(5));
 
         // Render as an image data URL, never inject untrusted SVG markup into HTML.
         return ['image' => 'data:image/svg+xml;base64,'.base64_encode($payload['content'])];
@@ -157,12 +157,13 @@ class GdtApiService
         if ($answer === '' || strlen($answer) > 20 || preg_match('/[\\r\\n]/', $answer)) {
             throw new RuntimeException('Vui lòng nhập mã CAPTCHA POS hợp lệ.');
         }
-        $key = Cache::pull($this->posCaptchaKey($adminId));
+        $challenge = Cache::pull($this->posCaptchaKey($adminId));
+        $key = is_array($challenge) ? ($challenge['key'] ?? null) : null;
         if (! is_string($key) || $key === '') {
             throw new RuntimeException('CAPTCHA POS đã hết hạn. Vui lòng tải mã mới.');
         }
 
-        return ['ckey' => $key, 'cvalue' => $answer];
+        return ['ckey' => $key, 'cvalue' => $answer, 'cookies' => (array) ($challenge['cookies'] ?? [])];
     }
 
     private function posCaptchaKey(int $adminId): string
