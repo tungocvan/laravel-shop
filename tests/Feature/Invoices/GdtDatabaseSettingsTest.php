@@ -34,4 +34,18 @@ class GdtDatabaseSettingsTest extends TestCase
         $this->assertStringContainsString('--dry-run', $source);
         $this->assertStringContainsString("->where('key', \$key)->exists()", $source);
     }
+    public function test_gdt_configuration_inputs_are_deferred_until_explicit_save(): void
+    {
+        $blade = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/gdt-login.blade.php'));
+
+        foreach (['base_url', 'username', 'password', 'timeout', 'token_ttl', 'cache_key', 'verify_ssl'] as $field) {
+            $this->assertStringContainsString('wire:model="gdtConfig.'.$field.'"', $blade);
+            $this->assertStringNotContainsString('wire:model.live="gdtConfig.'.$field.'"', $blade);
+        }
+
+        $this->assertStringContainsString('wire:submit="saveGdtConfig"', $blade);
+        $this->assertStringContainsString('wire:click="refreshCaptcha"', $blade);
+        $this->assertStringContainsString('wire:submit="login"', $blade);
+    }
+
 }
