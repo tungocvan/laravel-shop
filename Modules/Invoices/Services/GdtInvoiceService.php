@@ -275,7 +275,7 @@ class GdtInvoiceService
         if ($cashRegister) {
             $search .= ';ttxly==5';
             if (! is_array($posCaptcha) || blank($posCaptcha['ckey'] ?? null) || blank($posCaptcha['cvalue'] ?? null)) {
-                throw new \\RuntimeException('Tra cứu POS cần CAPTCHA riêng. Vui lòng nhập CAPTCHA trước khi đồng bộ.');
+                throw new \RuntimeException('Tra cứu POS cần CAPTCHA riêng. Vui lòng nhập CAPTCHA trước khi đồng bộ.');
             }
         }
         $endpoint = $cashRegister ? '/sco-query/invoices/' : '/query/invoices/';
