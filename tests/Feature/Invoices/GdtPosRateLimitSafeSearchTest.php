@@ -139,7 +139,7 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
                     '/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i',
                     $context['trace_id'],
                 );
-                $traceIds[] = $context['trace_id'];
+                $traceIds[$event] = $context['trace_id'];
                 $encoded = json_encode($context);
                 foreach (['SECRET_BODY', 'SECRET_QUERY', 'SECRET_KEY', 'SECRET_ANSWER'] as $secret) {
                     $this->assertStringNotContainsString($secret, $encoded);
@@ -153,7 +153,10 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             })->once();
         }
         $this->assertCount(2, $traceIds);
-        $this->assertSame($traceIds[0], $traceIds[1]);
+        $this->assertSame(
+            $traceIds['GDT POS request metadata.'],
+            $traceIds['GDT POS invoice query response metadata.'],
+        );
         Http::assertSentCount(1);
     }
 
