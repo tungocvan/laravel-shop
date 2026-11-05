@@ -112,6 +112,38 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
         })->once();
     }
 
+    public function test_pos_search_headers_match_observed_browser_context_without_logging_captcha(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200)]);
+
+        app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos',
+            ['ckey' => 'SECRET_KEY', 'cvalue' => 'SECRET_ANSWER'],
+        );
+
+        Http::assertSent(function ($request) {
+            return $request->hasHeader('Referer', 'https://gdt-test.invalid/tra-cuu/tra-cuu-hoa-don')
+                && $request->hasHeader('End-Point', '/tra-cuu/tra-cuu-hoa-don')
+                && $request->hasHeader('Action', rawurlencode('Tìm kiếm (hóa đơn máy tính tiền mua vào)'))
+                && $request->hasHeader('ckey', 'SECRET_KEY')
+                && $request->hasHeader('cvalue', 'SECRET_ANSWER')
+                && $request->hasHeader('Accept-Language', 'vi');
+        });
+
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS request metadata.') {
+                return false;
+            }
+
+            $encoded = json_encode($context);
+            $this->assertStringNotContainsString('SECRET_KEY', $encoded);
+            $this->assertStringNotContainsString('SECRET_ANSWER', $encoded);
+
+            return true;
+        })->once();
+    }
+
     public function test_pos_uses_captcha_client_user_agent_and_reports_cookie_eligibility_only(): void
     {
         config()->set('invoices.gdt.user_agent', 'GDT-DIAGNOSTIC-AGENT');
