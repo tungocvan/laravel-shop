@@ -486,3 +486,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User-supplied successful July 2026 purchase request confirms GET `/api/sco-query/invoices/purchase`, `size=15`, `sort=tdlap:desc`, `ttxly==8`. Browser additionally sends search-page Referer, URL-encoded Action, End-Point, ckey/cvalue headers and Accept-Language=vi. Browser includes multiple session cookies; these were **not** copied or stored in repository.
 - Scoped POS-only adjustment: send search-page Referer, encoded Action, ckey/cvalue request headers and Accept-Language; preserve query parameters, CookieJar, bearer token, fail-closed validation, and canonical behavior. Existing configured User-Agent unchanged. Header presence and values are asserted only in HTTP fake tests; secrets never logged.
 - No claim that headers alone resolve HTTP 200 HTML. Need local focused tests, then module regression, then UI verification with fresh CAPTCHA. No PR/merge/deploy.
+
+### 2026-11-06 — POS authentication-to-CAPTCHA cookie continuity
+
+- Read-only audit found `GdtApiService::login()` persists authenticated cookies under `<cache_key>:auth-session-cookies`, but `loadPosCaptcha()` previously started with a fresh CookieJar, severing the authenticated cookie lineage. POS search only inherited the CAPTCHA snapshot.
+- Changed `loadPosCaptcha()` to start from `restoreSessionCookies()`; GDT /captcha response may update that jar, and its snapshot is still cached for the existing single-use `consumePosCaptcha()` flow. Added safe count `auth_cookie_count_before_captcha` to loaded-stage metadata (no names/values). No forced retries, no CAPTCHA bypass, no change to canonical or regular invoice path.
+- Added focused fake test `GdtPosAuthSessionContinuityTest` for authenticated snapshot continuity and log secrecy. This is a plausible session-break correction, not proof GDT will return JSON. Await local focused tests before module regression and UI. No merge/deploy.
