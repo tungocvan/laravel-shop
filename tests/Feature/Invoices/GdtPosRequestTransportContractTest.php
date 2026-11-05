@@ -147,6 +147,92 @@ class GdtPosRequestTransportContractTest extends TestCase
         $this->assertSame(1, \Modules\Invoices\Models\Invoices::query()->where('invoice_type', 'sold')->count());
     }
 
+    public function test_pos_october_replay_preserves_september_invoice_date_boundary(): void
+    {
+        // POS responses may include an invoice issued in the preceding month.
+        // Keep the source-issued date; do not coerce it to the query month.
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver required for isolated canonical integration test.');
+        }
+
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+        \Illuminate\Support\Facades\DB::purge('sqlite');
+
+        $schema = \Illuminate\Support\Facades\Schema::connection('sqlite');
+        $schema->create('invoices', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+            $table->string('lookup_code')->nullable();
+            $table->string('symbol')->nullable();
+            $table->string('invoice_number')->nullable();
+            $table->string('type')->nullable();
+            $table->date('issued_date')->nullable();
+            $table->string('tax_code')->nullable();
+            $table->string('name')->nullable();
+            $table->string('address')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->decimal('tax_rate', 10, 2)->nullable();
+            $table->decimal('vat_amount', 18, 2)->nullable();
+            $table->decimal('amount_before_vat', 18, 2)->nullable();
+            $table->decimal('total_amount', 18, 2)->nullable();
+            $table->string('invoice_type');
+            $table->timestamps();
+        });
+        $schema->create('invoice_source_records', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+            $table->foreignId('invoice_id');
+            $table->string('provider');
+            $table->string('source_version')->nullable();
+            $table->json('header_payload')->nullable();
+            $table->string('header_hash')->nullable();
+            $table->timestamp('header_fetched_at')->nullable();
+            $table->string('business_classification')->nullable();
+            $table->string('classification_scope')->nullable();
+            $table->timestamps();
+        });
+
+        $rows = [
+            [
+                'Mã tra cứu' => 'POS-OCT-898',
+                'Ký hiệu' => '1/C26MDC',
+                'Số hóa đơn' => '898',
+                'Ngày lập' => '26/10/2026',
+                'Mã số thuế' => '0100000000',
+                'Thành tiền' => 1000,
+                '_gdt_raw_payload' => ['id' => 'oct-898', 'shdon' => '898'],
+            ],
+            [
+                'Mã tra cứu' => 'POS-SEP-1017685',
+                'Ký hiệu' => '1/C26MDV',
+                'Số hóa đơn' => '1017685',
+                'Ngày lập' => '30/09/2026',
+                'Mã số thuế' => '0100000000',
+                'Thành tiền' => 2000,
+                '_gdt_raw_payload' => ['id' => 'sep-1017685', 'shdon' => '1017685'],
+            ],
+        ];
+
+        $persist = new \ReflectionMethod(GdtInvoiceService::class, 'persistInvoices');
+        $service = app(GdtInvoiceService::class);
+
+        $first = $persist->invoke($service, $rows, true);
+        $this->assertSame(2, $first['created']);
+        $this->assertSame(1, \Modules\Invoices\Models\Invoices::query()
+            ->where('invoice_type', 'purchase')
+            ->whereBetween('issued_date', ['2026-10-01', '2026-10-31'])->count());
+        $this->assertSame(1, \Modules\Invoices\Models\Invoices::query()
+            ->where('invoice_type', 'purchase')
+            ->whereBetween('issued_date', ['2026-09-01', '2026-09-30'])->count());
+
+        $replay = $persist->invoke($service, $rows, true);
+        $this->assertSame(0, $replay['created']);
+        $this->assertSame(2, $replay['unchanged']);
+        $this->assertSame($first['invoice_ids'], $replay['invoice_ids']);
+        $this->assertSame(2, \Modules\Invoices\Models\InvoiceSourceRecord::query()
+            ->where('provider', 'gdt')->count());
+    }
+
     public function test_cookie_snapshot_is_eligible_for_pos_endpoint_without_network(): void
     {
         $jar = new CookieJar;
