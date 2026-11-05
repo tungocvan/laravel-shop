@@ -75,7 +75,7 @@ class SearchHoadon extends Component
         $this->posCaptchaError = null;
         try {
             $this->posCaptchaImage = $this->apiService->loadPosCaptcha((int) auth('admin')->id())['image'];
-        } catch (\\Throwable) {
+        } catch (\Throwable) {
             $this->posCaptchaError = 'Không tải được CAPTCHA POS. Vui lòng thử lại.';
         }
     }
@@ -108,7 +108,7 @@ class SearchHoadon extends Component
             $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
             try {
                 $posCaptcha = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
-            } catch (\\Throwable) {
+            } catch (\Throwable) {
                 $this->posCaptchaError = 'CAPTCHA POS đã hết hạn hoặc không hợp lệ. Vui lòng tải mã mới.';
                 $this->posCaptchaAnswer = '';
                 return;
