@@ -92,6 +92,9 @@ class GdtInvoiceService
         if ($from->gt($to)) {
             throw new \InvalidArgumentException('Khoảng ngày tra cứu không hợp lệ.');
         }
+        if ($source === 'pos' && $from->format('Y-m') !== $to->format('Y-m')) {
+            throw new \InvalidArgumentException('Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Vui lòng chọn ngày bắt đầu và kết thúc trong cùng tháng để hạn chế HTTP 429.');
+        }
         $token = Cache::get(config('invoices.gdt.cache_key'));
         if (! $token) {
             throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
@@ -384,6 +387,13 @@ class GdtInvoiceService
                 }throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
             } if (! $res->successful()) {
                 $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query);
+                if ($res->status() === 429) {
+                    $retryAfter = trim((string) $res->header('Retry-After', ''));
+                    $wait = preg_match('/^[0-9]{1,5}$/D', $retryAfter)
+                        ? ' GDT đề nghị chờ '.$retryAfter.' giây.'
+                        : ' Vui lòng chờ trước khi thử lại.';
+                    throw new \RuntimeException("GDT giới hạn tần suất truy vấn (HTTP 429) ở trang {$page}.{$wait} Không tự động thử lại; không tạo file thiếu.");
+                }
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
             $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
