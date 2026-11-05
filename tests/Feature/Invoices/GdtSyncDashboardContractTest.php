@@ -16,9 +16,9 @@ class GdtSyncDashboardContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
         $component = file_get_contents((new \ReflectionClass(SearchHoadon::class))->getFileName());
 
-        $this->assertStringContainsString("['regular' => 'Hóa đơn thông thường", $view);
-        $this->assertStringContainsString("isset(\$metric['count'])", $view);
-        $this->assertStringContainsString("'—'", $view);
+        $this->assertStringContainsString('role="tablist"', $view);
+        $this->assertStringContainsString("searchPreview['count']", $view);
+        $this->assertStringContainsString('Chưa tìm kiếm', $view);
         $this->assertStringContainsString('sourceResults', $component);
         $this->assertStringContainsString('lastSourceStats()', $component);
         $this->assertStringContainsString('updatedInvoiceSource', $component);
