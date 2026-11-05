@@ -84,7 +84,9 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
         $this->assertStringContainsString("abort_if((\$filter === 'supplier-priced' || filled(\$validated['supplier_price'] ?? null)) && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
-        $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
+        // ClientPortal catalog now supports permission-gated Medicine Master CRUD.
+        $this->assertStringContainsString("route('client.pharma.products.create')", $view);
+        $this->assertStringContainsString("@can('client.pharma.products.create')", $view);
         $this->assertStringNotContainsString('name="per_page"', $view);
         $this->assertStringNotContainsString('->links()', $view);
         $this->assertStringContainsString('data-pwa-load-more-targets', $view);
@@ -216,7 +218,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("['required', 'file', 'mimes:xlsx,csv', 'max:10240']", $controller);
         $this->assertStringContainsString("['source' => 'clientportal_pharma']", $controller);
         $this->assertStringNotContainsString('->commit(', $controller);
-        $this->assertStringContainsString('name="file"', $view);
+        // Import was moved to a dedicated page; the catalog only links to it.
+        $importView = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/import.blade.php'));
+        $this->assertStringContainsString("route('client.pharma.products.import.page')", $view);
+        $this->assertStringContainsString('name="file"', $importView);
         $this->assertStringContainsString('id="medicine-export-form"', $view);
         $this->assertStringContainsString("data.append('ids[]', id)", $view);
         $this->assertStringContainsString("credentials: 'same-origin'", $view);
