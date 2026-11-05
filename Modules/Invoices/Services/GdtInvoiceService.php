@@ -610,7 +610,40 @@ class GdtInvoiceService
             'title_class' => $titleClass,
             'server_class' => $serverClass,
             'has_meta_refresh' => preg_match('/<meta\\b[^>]*http-equiv\\s*=\\s*["\\x27]?refresh/i', $sample) === 1,
+            'error_category' => $this->safePosHtmlErrorCategory($sample),
+            'gateway_header_class' => $this->safePosGatewayHeaderClass($response),
         ];
+    }
+
+    /**
+     * Heuristic, fixed-label signals only. Never emit matched HTML text or URLs.
+     * Classification does not establish that an upstream security system blocked us.
+     */
+    private function safePosHtmlErrorCategory(string $sample): string
+    {
+        return match (true) {
+            preg_match('/(?:502 bad gateway|503 service unavailable|504 gateway timeout|upstream connect error|proxy error)/i', $sample) === 1 => 'GATEWAY_OR_UPSTREAM',
+            preg_match('/(?:access denied|request blocked|web application firewall|checking your browser|security challenge)/i', $sample) === 1 => 'ACCESS_OR_CHALLENGE',
+            preg_match('/(?:session expired|session timeout|please log in|please sign in|phiên đăng nhập|hết phiên đăng nhập)/iu', $sample) === 1 => 'SESSION_OR_LOGIN',
+            preg_match('/(?:internal server error|unexpected error|application error|server error|exception)/i', $sample) === 1 => 'APPLICATION_OR_SERVER',
+            default => 'UNCLASSIFIED',
+        };
+    }
+
+    /** Header values are never logged, only coarse provider-neutral categories. */
+    private function safePosGatewayHeaderClass($response): string
+    {
+        if (trim((string) $response->header('CF-Ray', '')) !== '') {
+            return 'CF_RAY_PRESENT';
+        }
+        if (trim((string) $response->header('Via', '')) !== '') {
+            return 'VIA_PRESENT';
+        }
+        if (trim((string) $response->header('X-Cache', '')) !== '') {
+            return 'X_CACHE_PRESENT';
+        }
+
+        return 'NO_RECOGNIZED_GATEWAY_HEADER';
     }
 
     private function safeHtmlResponseKind($response): string
