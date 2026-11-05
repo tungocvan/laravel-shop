@@ -407,23 +407,37 @@ class GdtApiService
     private function restoreSessionCookies(): CookieJar
     {
         $jar = new CookieJar;
-        $stored = Cache::get($this->sessionCacheKey(), []);
+        $cacheKey = $this->sessionCacheKey();
+        $entryPresent = Cache::has($cacheKey);
+        $stored = Cache::get($cacheKey, []);
+        $snapshotIsArray = is_array($stored);
+        $snapshotCount = $snapshotIsArray ? count($stored) : 0;
+        $failures = 0;
 
-        if (! is_array($stored)) {
-            return $jar;
+        if ($snapshotIsArray) {
+            foreach ($stored as $cookie) {
+                if (! is_array($cookie)) {
+                    $failures++;
+
+                    continue;
+                }
+
+                try {
+                    $jar->setCookie(new SetCookie($cookie));
+                } catch (\\Throwable) {
+                    // Preserve the existing fail-safe behavior without exposing cookie contents.
+                    $failures++;
+                }
+            }
         }
 
-        foreach ($stored as $cookie) {
-            if (! is_array($cookie)) {
-                continue;
-            }
-
-            try {
-                $jar->setCookie(new SetCookie($cookie));
-            } catch (\Throwable) {
-                // Ignore one malformed upstream cookie instead of breaking authentication.
-            }
-        }
+        Log::info('GDT authentication cookie restore diagnostics.', [
+            'cache_entry_present' => $entryPresent,
+            'snapshot_is_array' => $snapshotIsArray,
+            'snapshot_cookie_count' => $snapshotCount,
+            'restored_cookie_count' => count($jar->toArray()),
+            'restore_failure_count' => $failures,
+        ]);
 
         return $jar;
     }
