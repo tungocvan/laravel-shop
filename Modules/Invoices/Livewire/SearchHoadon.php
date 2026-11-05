@@ -135,7 +135,7 @@ class SearchHoadon extends Component
             $this->searchState = 'completed';
             $this->searchedFingerprint = $this->searchFingerprint();
             $this->searchMessage = $result['count'] === 0
-                ? 'GDT trả về 0 hóa đơn trong khoảng ngày đã chọn.'
+                ? 'Không tìm thấy hóa đơn trong khoảng ngày đã chọn. Không cần đồng bộ canonical.'
                 : 'GDT trả về '.number_format($result['count']).' hóa đơn. Chưa ghi dữ liệu canonical.';
         } catch (\Throwable $exception) {
             $this->searchState = 'failed';
@@ -175,6 +175,11 @@ class SearchHoadon extends Component
         }
         if ($this->searchedFingerprint !== $this->searchFingerprint() || $this->searchState !== 'completed') {
             $this->addError('invoiceSource', 'Vui lòng Tìm kiếm thành công với bộ lọc hiện tại trước khi đồng bộ.');
+            return;
+        }
+
+        if ((int) ($this->searchPreview['count'] ?? 0) <= 0) {
+            $this->addError('invoiceSource', 'Không có hóa đơn để đồng bộ canonical.');
             return;
         }
 
