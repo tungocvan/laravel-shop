@@ -166,7 +166,7 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             $this->assertSame('null', $context['total_type']);
             $this->assertSame('text/html', $context['content_type']);
             $this->assertSame('purchase', $context['request_action']);
-            $this->assertSame(50, $context['page_size']);
+            $this->assertSame(15, $context['page_size']);
             $json = json_encode($context);
             foreach (['PRIVATE_BODY', 'PRIVATE_KEY', 'PRIVATE_ANSWER'] as $secret) {
                 $this->assertStringNotContainsString($secret, $json);
