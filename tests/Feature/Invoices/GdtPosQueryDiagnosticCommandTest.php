@@ -70,4 +70,26 @@ class GdtPosQueryDiagnosticCommandTest extends TestCase
                 && $request->hasHeader('request-id');
         });
     }
+    public function test_comparison_mode_omits_pos_filter_and_keeps_single_request(): void
+    {
+        Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200)]);
+
+        $this->artisan('invoices:gdt-pos-diagnose', [
+            '--from' => '2026-10-12',
+            '--to' => '2026-10-31',
+            '--without-pos-filter' => true,
+            '--execute' => true,
+        ])->expectsOutput('HTTP status: 200')->assertExitCode(0);
+
+        Http::assertSentCount(1);
+        Http::assertSent(function ($request) {
+            $query = [];
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+            return str_contains($request->url(), '/sco-query/invoices/purchase')
+                && ! str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
+                && (string) ($query['size'] ?? '') === '1';
+        });
+    }
+
 }
