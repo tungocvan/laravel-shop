@@ -123,6 +123,54 @@ class GdtApiService
     }
 
     /**
+     * Separate human-verified POS search challenge. Do not replace the login captcha session.
+     * Only the key is kept server-side; never cache the user's answer.
+     */
+    public function loadPosCaptcha(int $adminId): array
+    {
+        $cookies = new CookieJar;
+        $transfer = [];
+        try {
+            $response = $this->sessionClient($cookies, $transfer)->get($this->url('/captcha'));
+        } catch (ConnectionException) {
+            throw new RuntimeException('Không thể tải CAPTCHA tra cứu POS từ GDT.');
+        }
+
+        $payload = $response->json();
+        if (! $response->successful() || ! is_array($payload)
+            || ! is_string($payload['key'] ?? null) || ! is_string($payload['content'] ?? null)
+            || ! preg_match('/^[a-zA-Z0-9_-]{8,128}$/D', $payload['key'])
+            || ! str_starts_with(trim($payload['content']), '<svg')
+            || strlen($payload['content']) > 100000) {
+            throw new RuntimeException('CAPTCHA tra cứu POS không hợp lệ hoặc GDT không phản hồi.');
+        }
+
+        Cache::put($this->posCaptchaKey($adminId), $payload['key'], now()->addMinutes(5));
+
+        // Render as an image data URL, never inject untrusted SVG markup into HTML.
+        return ['image' => 'data:image/svg+xml;base64,'.base64_encode($payload['content'])];
+    }
+
+    public function consumePosCaptcha(int $adminId, string $answer): array
+    {
+        $answer = trim($answer);
+        if ($answer === '' || strlen($answer) > 20 || preg_match('/[\\r\\n]/', $answer)) {
+            throw new RuntimeException('Vui lòng nhập mã CAPTCHA POS hợp lệ.');
+        }
+        $key = Cache::pull($this->posCaptchaKey($adminId));
+        if (! is_string($key) || $key === '') {
+            throw new RuntimeException('CAPTCHA POS đã hết hạn. Vui lòng tải mã mới.');
+        }
+
+        return ['ckey' => $key, 'cvalue' => $answer];
+    }
+
+    private function posCaptchaKey(int $adminId): string
+    {
+        return 'invoices:gdt:pos-captcha:'.$adminId;
+    }
+
+    /**
      * Authenticate & lấy token.
      * Diagnostic logging intentionally excludes username, password, captcha, cookie values and token.
      */
