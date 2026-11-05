@@ -415,7 +415,13 @@ class GdtInvoiceService
                         'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
                     ])->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
                 }
-                $res = $client
+                // Remove the generic headers before applying POS page-specific values.
+                // PendingRequest::withHeaders can retain an earlier value for an existing
+                // header key; POS must send the observed search-page contract instead.
+                $requestClient = $cashRegister
+                    ? $client->withoutHeader('Referer')->withoutHeader('Action')->withoutHeader('End-Point')
+                    : $client;
+                $res = $requestClient
                     ->withHeaders($cashRegister ? [
                         // Match the observed GDT POS search page context, not the homepage.
                         'Referer' => rtrim((string) preg_replace('#/api$#', '', rtrim((string) config('invoices.gdt.base_url'), '/')), '/').'/tra-cuu/tra-cuu-hoa-don',
