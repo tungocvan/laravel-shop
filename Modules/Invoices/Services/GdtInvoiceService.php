@@ -297,6 +297,7 @@ class GdtInvoiceService
                     Cache::forget(config('invoices.gdt.cache_key'));
                 }throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
             } if (! $res->successful()) {
+                $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query);
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
             $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
@@ -321,6 +322,29 @@ class GdtInvoiceService
         }$show("✅ Đã nhận đủ {$processed}/{$total} hóa đơn");
 
         return $result;
+    }
+
+    /**
+     * Log only allowlisted response metadata. Never log response bodies, messages,
+     * query values, invoice identifiers, request URLs or authentication headers.
+     */
+    private function logInvoiceQueryFailure($response, string $path, string $action, int $page, bool $cashRegister, array $query): void
+    {
+        $contentType = strtolower((string) $response->header('Content-Type', ''));
+        $format = str_contains($contentType, 'json') ? 'json'
+            : (str_contains($contentType, 'html') ? 'html' : 'other');
+
+        Log::warning('GDT invoice source HTTP failure.', [
+            'source' => $cashRegister ? 'pos' : 'regular',
+            'endpoint' => $path,
+            'action' => $action,
+            'page' => $page,
+            'http_status' => $response->status(),
+            'response_format' => $format,
+            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==8'),
+            'page_size' => (int) ($query['size'] ?? 0),
+            'has_pagination_state' => filled($query['state'] ?? null),
+        ]);
     }
 
     private function logRejectedQuery($response, string $action, int $page): void
