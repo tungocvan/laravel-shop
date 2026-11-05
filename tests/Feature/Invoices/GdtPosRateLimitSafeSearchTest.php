@@ -68,6 +68,37 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
         });
     }
 
+    public function test_pos_uses_captcha_client_user_agent_and_reports_cookie_eligibility_only(): void
+    {
+        config()->set('invoices.gdt.user_agent', 'GDT-DIAGNOSTIC-AGENT');
+        Log::spy();
+        Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200)]);
+
+        app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos',
+            ['ckey' => 'SECRET_KEY', 'cvalue' => 'SECRET_ANSWER', 'cookies' => [
+                ['Name' => 'session', 'Value' => 'SECRET_COOKIE', 'Domain' => 'gdt-test.invalid', 'Path' => '/', 'Secure' => true],
+            ]],
+        );
+
+        Http::assertSent(function ($request) {
+            return $request->hasHeader('User-Agent', 'GDT-DIAGNOSTIC-AGENT');
+        });
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS request metadata.') {
+                return false;
+            }
+            $this->assertSame('purchase', $context['action']);
+            $this->assertTrue($context['cookie_eligible_for_endpoint']);
+            $this->assertTrue($context['user_agent_matches_captcha_client']);
+            $encoded = json_encode($context);
+            foreach (['SECRET_COOKIE', 'SECRET_KEY', 'SECRET_ANSWER'] as $secret) {
+                $this->assertStringNotContainsString($secret, $encoded);
+            }
+            return true;
+        })->once();
+    }
+
     public function test_pos_http_200_logs_only_safe_response_counts(): void
     {
         Log::spy();
