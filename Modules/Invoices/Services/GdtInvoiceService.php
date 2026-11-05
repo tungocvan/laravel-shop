@@ -97,7 +97,7 @@ class GdtInvoiceService
         return $stats;
     }
 
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all'): ?string
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all', ?string $syncId = null): ?string
     {
         $show = fn ($message) => $cb ? $cb($message) : null;
         if (! in_array($source, ['all', 'regular', 'pos'], true)) {
@@ -121,15 +121,48 @@ class GdtInvoiceService
             $monthEnd = $start->copy()->endOfMonth();
             $chunkEnd = $monthEnd->lt($end) ? $monthEnd : $end->copy();
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
-            $regular = $source !== 'pos' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn) : [];
-            // Persist a fully paginated regular source before requesting POS. A POS outage
-            // must not discard canonical regular headers already verified by GDT.
-            if ($source === 'all' && $regular !== []) {
-                $regularStats = $this->persistInvoices($regular, $vatIn);
-                $show(sprintf('[GDT] Regular canonical checkpoint: tạo mới %d · cập nhật %d · không đổi %d.', $regularStats['created'], $regularStats['updated'], $regularStats['unchanged']));
+            // A checkpoint is scoped to the exact sync request, direction and monthly window.
+            // It contains the complete source rows, so retries can still build an exact combined export.
+            $checkpointKey = $source === 'all' && filled($syncId)
+                ? 'invoices:gdt-source-chunk:'.hash('sha256', implode('|', [
+                    $syncId, $vatIn ? 'purchase' : 'sold',
+                    Carbon::parse($startDate)->toDateString(), Carbon::parse($endDate)->toDateString(),
+                    $chunkStart->toDateString(), $chunkEnd->toDateString(),
+                ]))
+                : null;
+            $checkpoint = $checkpointKey ? Cache::get($checkpointKey, []) : [];
+            $regular = [];
+            if ($source !== 'pos') {
+                if (isset($checkpoint['regular']) && is_array($checkpoint['regular'])) {
+                    $regular = $checkpoint['regular'];
+                    $show('[GDT] Regular canonical checkpoint: tái sử dụng nguồn đã hoàn tất, không gọi lại API.');
+                } else {
+                    $regular = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
+                    if ($source === 'all' && $regular !== []) {
+                        $regularStats = $this->persistInvoices($regular, $vatIn);
+                        $show(sprintf('[GDT] Regular canonical checkpoint: tạo mới %d · cập nhật %d · không đổi %d.', $regularStats['created'], $regularStats['updated'], $regularStats['unchanged']));
+                    }
+                    if ($checkpointKey) {
+                        $checkpoint['regular'] = $regular;
+                        Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
+                        $show('[GDT] Regular full-month checkpoint completed.');
+                    }
+                }
             }
             try {
-                $pos = $source !== 'regular' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true) : [];
+                if ($source === 'regular') {
+                    $pos = [];
+                } elseif (isset($checkpoint['pos']) && is_array($checkpoint['pos'])) {
+                    $pos = $checkpoint['pos'];
+                    $show('[GDT] POS full-month checkpoint reused.');
+                } else {
+                    $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true);
+                    if ($checkpointKey) {
+                        $checkpoint['pos'] = $pos;
+                        Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
+                        $show('[GDT] POS full-month checkpoint completed.');
+                    }
+                }
             } catch (\Throwable $exception) {
                 if ($source === 'all') {
                     $show('[GDT] POS thất bại; regular canonical đã lưu. Đồng bộ all chưa hoàn tất và không xuất Excel thiếu.');
