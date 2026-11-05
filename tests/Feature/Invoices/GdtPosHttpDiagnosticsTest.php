@@ -65,6 +65,9 @@ class GdtPosHttpDiagnosticsTest extends TestCase
             Log::shouldReceive('warning')->once()->with(
                 'GDT invoice source HTTP failure.',
                 Mockery::on(function ($context) use ($case) {
+                    $this->assertSame('test', $context['runtime']);
+                    $this->assertNotEmpty($context['trace_id']);
+                    $this->assertNull($context['redirect_location_path']);
                     $this->assertSame([
                         'source' => 'pos',
                         'endpoint' => '/sco-query/invoices/purchase',
@@ -75,7 +78,11 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                         'search_has_pos_filter' => true,
                         'page_size' => 15,
                         'has_pagination_state' => false,
-                    ], $context);
+                    ], array_intersect_key($context, array_flip([
+                        'source', 'endpoint', 'action', 'page', 'http_status',
+                        'response_format', 'search_has_pos_filter', 'page_size',
+                        'has_pagination_state',
+                    ])));
 
                     $encoded = json_encode($context);
                     $this->assertStringNotContainsString('SECRET_INVOICE_123', $encoded);
