@@ -32,8 +32,11 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
         $view = file_get_contents(resource_path('../Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
         $this->assertStringContainsString("'in:all,regular,pos'", $component);
         $this->assertStringNotContainsString('exportCashRegisterPreview(', $component);
-        $this->assertStringContainsString('value="regular"', $view);
-        $this->assertStringContainsString('value="pos"', $view);
+        $this->assertStringContainsString('role="tablist"', $view);
+        $this->assertStringContainsString('wire:click="$set(\'invoiceSource\', \'regular\')"', $view);
+        $this->assertStringContainsString('wire:click="$set(\'invoiceSource\', \'pos\')"', $view);
+        $this->assertStringContainsString('wire:click="searchInvoices"', $view);
+        $this->assertStringContainsString('wire:click="run"', $view);
         $this->assertStringContainsString('KHÔNG cần Import lại', $view);
     }
 
