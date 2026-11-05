@@ -1,3 +1,12 @@
+## 2026-11-05 — POS HTTP diagnostics checkpoint
+
+- Branch: `feat/invoices-gdt-independent-sources-20261105`; additive diagnostics only.
+- `GdtInvoiceService::fetchInvoicesByMonth()` logs allowlisted metadata for non-2xx/non-401/403 HTTP responses: source, relative endpoint, direction, page, status, response content type classification (JSON/HTML/other), presence of POS filter, page size and pagination-state presence. No response body, response error message, full query/search, invoice payload, request URL, credentials, or token is logged.
+- Preserves POS endpoint `/sco-query/invoices/`, `ttxly==8`, existing 401/403 handling, Regular checkpoint, retry, failure propagation and incomplete-Excel guard. HTTP 500 root cause remains unverified.
+- New HTTP-fake test `tests/Feature/Invoices/GdtPosHttpDiagnosticsTest.php` covers JSON/HTML failure responses, allowlisted log context and HTTP 500 propagation.
+- Focused: `php artisan test tests/Feature/Invoices/GdtPosHttpDiagnosticsTest.php tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php`. Only after PASS run module regression `php artisan test tests/Feature/Invoices`.
+- Tests not executed by GitHub connector; UI NOT VERIFIED. No PR, merge, production change or worker restart.
+
 ## 2026-11-05 — Integration/Regression checkpoint (HTTP fake)
 
 - Added `tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php` to execute real `GdtInvoiceService::processRange` control flow with Laravel `Http::fake` and `Cache`: empty Regular completes, POS first responds HTTP 500, retry reuses Regular checkpoint, POS succeeds, no incomplete Excel produced.
