@@ -24,6 +24,8 @@ class GdtTabSearchContractTest extends TestCase
         $this->assertStringContainsString('public function searchInvoices(): void', $component);
         $this->assertStringContainsString('searchedFingerprint', $component);
         $this->assertStringContainsString('consumePosCaptcha', $component);
+        $this->assertStringContainsString("$"."submittedPosCaptchaAnswer = $"."this->invoiceSource === 'pos' ? $"."this->posCaptchaAnswer : '';", $component);
+        $this->assertStringContainsString("consumePosCaptcha((int) auth('admin')->id(), $"."submittedPosCaptchaAnswer)", $component);
         $this->assertStringContainsString('public function openPosCaptcha(', $component);
         $this->assertStringContainsString('public function submitPosCaptcha(): void', $component);
         $this->assertStringContainsString('public function openPosSyncCaptcha(): void', $component);
