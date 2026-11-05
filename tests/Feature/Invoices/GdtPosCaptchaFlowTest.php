@@ -61,7 +61,7 @@ class GdtPosCaptchaFlowTest extends TestCase
             $query = [];
             parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
             return str_contains($request->url(), '/sco-query/invoices/purchase')
-                && str_contains((string) ($query['search'] ?? ''), 'ttxly==5')
+                && str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
                 && ($query['ckey'] ?? null) === 'exampleKey123456'
                 && ($query['cvalue'] ?? null) === 'ABCD';
         });
