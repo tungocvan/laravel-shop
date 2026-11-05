@@ -82,6 +82,25 @@ class GdtPosHttpDiagnosticsTest extends TestCase
             $this->assertStringContainsString('HTTP 500', $thrown->getMessage());
             $this->assertStringContainsString('Không tạo file thiếu', $thrown->getMessage());
 
+            // Verify the POS request profile without contacting GDT or exposing credentials.
+            Http::assertSent(function ($request) {
+                if (! str_contains($request->url(), '/sco-query/invoices/purchase')) {
+                    return false;
+                }
+
+                $query = [];
+                parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+
+                return ($query['sort'] ?? null) === 'tdlap:desc'
+                    && (string) ($query['size'] ?? '') === '50'
+                    && str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
+                    && ! array_key_exists('state', $query)
+                    && $request->hasHeader('Authorization')
+                    && $request->hasHeader('Origin')
+                    && $request->hasHeader('Referer')
+                    && $request->hasHeader('request-id');
+            });
+
             Http::assertSent(function ($request) {
                 return str_contains($request->url(), '/sco-query/invoices/purchase')
                     && str_contains(urldecode($request->url()), 'ttxly==8');
