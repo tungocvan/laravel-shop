@@ -103,6 +103,8 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             $this->assertSame('UNDER_1KB', $context['html_fingerprint']['body_size_band']);
             $this->assertTrue($context['html_fingerprint']['has_html_tag']);
             $this->assertSame('UNSPECIFIED', $context['html_fingerprint']['server_class']);
+            $this->assertSame('UNCLASSIFIED', $context['html_fingerprint']['error_category']);
+            $this->assertSame('NO_RECOGNIZED_GATEWAY_HEADER', $context['html_fingerprint']['gateway_header_class']);
             $this->assertTrue($context['response_has_set_cookie']);
             $this->assertFalse($context['response_has_www_authenticate']);
             $this->assertTrue($context['response_has_cache_control']);
@@ -110,6 +112,43 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             $serialized = json_encode($context);
             foreach (['SECRET_HTML_BODY', 'SECRET_TOKEN', 'SECRET_COOKIE', 'SECRET_HEADER', 'SECRET_KEY', 'SECRET_ANSWER'] as $secret) {
                 $this->assertStringNotContainsString($secret, $serialized);
+            }
+
+            return true;
+        })->once();
+    }
+
+    public function test_pos_html_error_fingerprint_classifies_gateway_without_leaking_body_or_headers(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response(
+            '<!DOCTYPE html><html><head><title>Error</title></head><body>502 Bad Gateway SECRET_TOKEN SECRET_CAPTCHA</body></html>',
+            200,
+            ['Content-Type' => 'text/html', 'Via' => 'SECRET_PROXY', 'Set-Cookie' => 'session=SECRET_COOKIE']
+        )]);
+
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-07-01', '2026-07-31', true, 'pos',
+                ['ckey' => 'SECRET_KEY', 'cvalue' => 'SECRET_ANSWER'],
+            );
+            $this->fail('Expected POS HTML fail-closed rejection.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
+        }
+
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS invoice query response metadata.') {
+                return false;
+            }
+
+            $fingerprint = $context['html_fingerprint'];
+            $this->assertSame('ERROR', $fingerprint['title_class']);
+            $this->assertSame('GATEWAY_OR_UPSTREAM', $fingerprint['error_category']);
+            $this->assertSame('VIA_PRESENT', $fingerprint['gateway_header_class']);
+            $this->assertTrue($fingerprint['has_html_doctype']);
+            foreach (['SECRET_TOKEN', 'SECRET_CAPTCHA', 'SECRET_PROXY', 'SECRET_COOKIE', 'SECRET_KEY', 'SECRET_ANSWER'] as $secret) {
+                $this->assertStringNotContainsString($secret, json_encode($context));
             }
 
             return true;
