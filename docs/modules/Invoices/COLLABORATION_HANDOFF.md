@@ -421,3 +421,8 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User confirmed target is POS **purchase**. Recent `purchase` metadata with `has_captcha_cookie=false` may be from HTTP fake tests; do not infer live GDT behavior. The latest `sold` record is not proof of purchase behavior.
 - POS-only HTTP 200 guard now requires `datas` to be a list and `total` to be a nonnegative integer >= current page count. Otherwise throw a clear exception, never return false 0 or persist canonical. Regular behavior untouched. HTTP 429 and CAPTCHA flow unchanged.
 - HTTP fake tests added for malformed success and ten-row purchase; existing empty-list test covers legitimate zero. Focused tests and module regression pending DELL; no UI PASS or merge.
+
+### 2026-11-05 — POS response shape diagnostics
+
+- Added allowlisted metadata `response_shape`, `datas_type`, `total_type`, normalized `content_type`, and `request_action` to existing POS HTTP 200 diagnostic. MIME is normalized to json/html/other, not logged raw. No response body, token, CAPTCHA, cookie or invoice fields. No request/page-size behavior changes.
+- Added HTTP fake test for HTML 200 and extended JSON 200 assertions; focused/module regression and UI pending local execution. Investigate **purchase** after tests; do not merge/deploy.
