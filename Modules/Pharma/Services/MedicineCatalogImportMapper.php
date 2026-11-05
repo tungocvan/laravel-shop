@@ -20,6 +20,9 @@ class MedicineCatalogImportMapper
         $specialControlRaw = $value(['Thuốc KSĐB', 'Thuốc kiểm soát đặc biệt', 'KSĐB', 'is_special_control']);
 
         return [
+            // Round-trip references are used for matching only, never for direct writes.
+            'medicine_code_reference' => $this->clean($value(['Mã thuốc (tham khảo)', 'medicine_code_reference'])),
+            'sku_reference' => $this->clean($value(['SKU (tham khảo)', 'sku_reference'])),
             'product_type' => $this->productType($value(['Loại sản phẩm', 'product_type'])),
             'circular_order_number' => $this->clean($value(['STT TT20/2022', 'Số thứ tự theo thông tư', 'circular_order_number'])),
             'circular_group' => $this->clean($value(['Nhóm thuốc', 'Nhóm thuốc theo thông tư', 'Phân nhóm theo thông tư', 'circular_group'])),

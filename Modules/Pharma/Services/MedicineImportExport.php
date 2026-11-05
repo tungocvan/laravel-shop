@@ -144,6 +144,46 @@ class MedicineImportExport extends BaseImportExportService
             ->get();
     }
 
+    /**
+     * ClientPortal detailed export reuses Pharma's canonical base row mapping.
+     * Supplier data is added only when the caller has the explicit pricing capability.
+     * Related-data preview intentionally selects one latest supplier and one active award.
+     */
+    public function exportDetailedCatalog(array $medicineIds, bool $includeSupplierPricing = false): string
+    {
+        $path = $this->makeExportPath('medicine-catalog-detailed');
+        $related = app(MedicineExcelRelatedDataService::class);
+        $rows = Medicine::query()
+            ->whereKey($medicineIds)
+            ->orderBy('id')
+            ->cursor()
+            ->map(function (Medicine $medicine) use ($related, $includeSupplierPricing): array {
+                $row = $this->mapExportRow($medicine);
+                $variant = $medicine->variants()->orderByDesc('is_default')->orderBy('id')->first();
+                $row = ['Mã thuốc' => $medicine->medicine_code, 'SKU' => $variant?->sku] + $row;
+                $preview = $related->preview($medicine);
+                $row['Hồ sơ sản phẩm (HSSP)'] = $preview['hssp_status'];
+                $row['Trúng thầu'] = $medicine->drugBidAwards()->exists() ? 'Có' : 'Không';
+                $row['Công ty trúng thầu'] = $preview['winning_company_name'];
+                $row['Nơi trúng thầu'] = $preview['investor_name'];
+                $row['Số quyết định trúng thầu'] = $preview['decision_number'];
+                $row['Ngày quyết định'] = $preview['decision_date'];
+                $row['Thời gian trúng thầu'] = $preview['contract_period_text'];
+                $row['Giá trúng thầu'] = $preview['winning_price'];
+                $row['Số lượng phân bổ'] = $preview['allocated_quantity'];
+                if ($includeSupplierPricing) {
+                    $row['Nhà cung cấp'] = $preview['supplier_name'];
+                    $row['Giá vốn NCC'] = $preview['cost_price'];
+                    $row['Giá nhập NCC'] = $medicine->supplierTrackings()->orderByDesc('working_date')->orderByDesc('id')->value('import_price');
+                }
+                return $row;
+            });
+
+        (new \Rap2hpoutre\FastExcel\FastExcel($rows))->export($this->exportAbsolutePath($path));
+
+        return $path;
+    }
+
     protected function mapExportRow(Model $model): array
     {
         return [

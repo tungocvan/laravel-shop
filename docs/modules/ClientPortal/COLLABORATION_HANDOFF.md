@@ -1,3 +1,138 @@
+## Checkpoint — Configurable medicine Excel selling price — 2026-11-05
+
+- UI PASS reported by user for Medicine Master declared/selling price create/edit; focused contract test previously reported PASS (15 tests), full Pharma products capability test still needs rerun after earlier fixes.
+- Added `selling_price` to shared `MedicineExcelProfileService::BASE_COLUMNS` so ClientPortal Excel configuration and Admin configurator can select/reorder/rename the field; new default templates include it, existing persisted profile selections are unchanged.
+- `MedicineConfiguredExcelExporter` reads Medicine Master selling price (falls back to declared price for legacy NULL values) and writes numeric cells with `#,##0` format. SKU-specific declared price remains unchanged.
+- Focused tests to run: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelProfileContractTest.php`, `php artisan test Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php`, `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. UI: configure/select Giá bán, export Excel, inspect value/format and saved profile compatibility.
+- No tests executed by assistant for this batch; no merge/deploy.
+
+---
+
+## Checkpoint — Medicine Master selling price — 2026-11-05
+
+- Feature branch: `feat/clientportal-pharma-products-crud-20261104`. Add nullable `pharma_medicines.selling_price` (decimal 15,2); no backfill, no changes to SKU or historical transaction prices. New Medicine Master defaults selling price to declared price. Existing medicines with null selling price display declared price as fallback in the ClientPortal editor until saved.
+- Shared `MedicineService::normalizeSellingPrice()` rejects selling price above declared price; ClientPortal create/edit validates integer VND, normalizes dot-separated values and formats inputs with native JS.
+- Checkpoint: `php artisan migrate --pretend` to review migration, then `php artisan migrate` on the authorized development environment; focused tests `php artisan test Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php` and `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. UI verify create default, edit persisted price, > declared rejection, thousands separators, mobile.
+- No tests/UI executed by assistant; do not claim PASS. No merge/deploy. Rollback only with separate approval and impact review because rollback drops the new column.
+
+---
+
+## Checkpoint — Portable Excel report Header/Footer with optional logo — 2026-11-04
+
+- Shared Pharma Excel Designer V4 (Admin + ClientPortal) has opt-in report header/footer fields, optional PNG/JPEG logo upload (max 256 KB, max 2000px per side), adjustable logo width, and signature fields. Header/footer blocks are stored inside existing `settings.report_header` and `settings.report_footer` JSON, including embedded `data:image/png|jpeg;base64` logo; no hardcoded organization contact data, no new migration.
+- Shared Livewire designer offers `Xuất JSON` for the last **saved** profile. ClientPortal existing `Nhập mẫu JSON` accepts schema_version=1 and creates a new profile; save the designer first, then export JSON. Existing legacy profiles continue using their original two-line header unless the new report header is explicitly enabled.
+- Configured XLSX exporter draws the optional logo on the worksheet, dynamically merges company details, title, recipient/intro, and appends footer after the last medicine row. It cleans up temporary logo file after save. Excel page header/footer in Page Setup remains separate.
+- **Known limitations/checks:** XLSX layout with fewer than 4 selected columns intentionally skips logo placement; very long intro is fixed-height and needs visual review; Excel page breaks and print preview require manual review. Admin legacy XLSX export writer is not yet wired to this configured exporter. Import/export JSON for Admin requires a separate entry point if requested.
+- Tests/UI not executed by assistant. Run focused tests and verify save → JSON export → import → XLSX for logo/no-logo and many medicines. No merge/deploy.
+
+---
+
+## Checkpoint — Excel Fit to Page and border toggle — 2026-11-04
+
+- Shared Pharma Excel Designer V4 adds `settings.fit_to_page` checkbox (default false), saved per profile. ClientPortal configured XLSX export enables fit-to-page 1 page wide × 1 page tall only when checked; unchecked leaves fit-to-page disabled.
+- `settings.body_border` now selects between hairline gray `D8DEE8` when checked and normal thin dark `333333` when unchecked. Both header and data cells retain borders.
+- These settings are in existing JSON profile settings; no migration. The Admin Excel Designer uses the shared controls, but Admin's legacy export writer is not yet modified: confirm separate export parity before assuming the Admin XLSX reflects them.
+- Focused contract updated; runtime tests and UI NOT RUN/VERIFIED by assistant. Check Excel Page Setup scaling and border style after exporting; large datasets may become unreadably small with one-page-tall enabled. No merge/deploy.
+
+---
+
+## Checkpoint — Excel width and print page alignment — 2026-11-04
+
+- Excel Designer V4 now exposes margins (top/bottom/left/right/header/footer in cm, default 0.8) and horizontal/vertical page centering (default horizontal on, vertical off). Settings are validated and saved in existing profile JSON; no database migration required.
+- Configured XLSX writer now uses PhpSpreadsheet `Drawing::pixelsToCellDimension` with configured default font instead of manual `(pixels-5)/7`. Excel's reported pixel width can still vary with font and display zoom; validate against a newly exported XLSX.
+- Existing no-filter, wrap text, subtle borders and per-column alignments remain unchanged. Admin and ClientPortal share Designer settings, but Admin's legacy export writer may require a separate parity batch.
+- Added focused source contract. Tests and UI NOT RUN/VERIFIED by assistant. Run focused tests first, compare column width and print preview, then consider Admin writer parity only after audit. No merge/deploy.
+
+---
+
+## Checkpoint — Excel sample JSON import and column widths — 2026-11-04
+
+- User-supplied XLSX has 14 configured columns, with widths expressed in Excel character units, not UI pixels. Converted sample widths to UI pixel values with `round(excelWidth * 7 + 5)` and changed ClientPortal writer to `(pixels - 5) / 7`. This is an approximation at Excel's default font/96dpi; actual display may differ by font, zoom and Excel renderer.
+- ClientPortal configured export now centers/wraps every column header, vertically centers, and repeats header row on printed pages. Data-cell alignment remains profile-specific.
+- Added versioned JSON import POST under existing Excel configuration permission; validates allowed column keys and settings, creates new web-owned profile, does not overwrite existing profiles. JSON sample is delivered as a conversation artifact, not committed to repository.
+- Added focused source contract; runtime tests/UI NOT RUN. No merge or deploy.
+
+---
+
+## Checkpoint — Reuse original Pharma Excel Designer V4 — 2026-11-04
+
+- ClientPortal Excel configuration page now mounts the **existing** `pharma.medicine.excel-configurator` Livewire component with `ownerGuard=web` and `openOnMount=true`; includes Livewire styles/scripts only on that page. The Admin component and its Blade remain the canonical V4 designer.
+- Component supports admin default behavior, web-scoped profile ownership and per-action authorization. Guard identity is a locked Livewire property. Supplier columns/groups are omitted when web user lacks `client.pharma.products.supplier-pricing`; saving only permits allowed columns.
+- The previous ClientPortal form-only Excel config view was replaced, not duplicated. Existing ClientPortal route, permission, profile service, export and migration remain unchanged.
+- Added focused contract assertions. Runtime focused tests NOT RUN; UI regression NOT VERIFIED. Verify Admin designer unchanged, web modal opens, save/duplicate/reorder/inspector/page settings, desktop/mobile PWA, and unauthorized guard/price isolation before pre-merge regression.
+- No merge/deploy. Do not run migration on production without production safety workflow.
+
+---
+
+## Checkpoint — ClientPortal Pharma configurable Excel templates — 2026-11-04
+
+- Added web-guard-scoped Excel templates using the canonical Pharma `MedicineExcelProfileService`. Migration adds `owner_guard` default `admin` to preserve existing Admin templates and updates uniqueness to guard+user+name. Do not run migration on production without production workflow approval.
+- Added separate `client.pharma.products.excel-config` permission, protected GET/POST/DELETE routes and responsive Blade designer for columns, order, headings, width, alignment, company/title and page settings.
+- Catalog exposes a template selector and configuration button by capability. Export resolves web user's template and uses Pharma `MedicineConfiguredExcelExporter`; server filters supplier cost/name columns without supplier-pricing permission.
+- This is a first shared-profile/shared-field-bank implementation. Admin ExcelController still retains its existing formatter to avoid unverified Admin behavior changes. Review parity and shared renderer extraction in a separate controlled batch.
+- No local runtime tests/UI verification performed by assistant. Run focused tests, inspect migration and verify UI; module regression deferred until pre-merge. No merge/deploy.
+
+---
+
+## Checkpoint — Detailed Pharma medicine Excel export — 2026-11-04
+
+- Branch: `feat/clientportal-pharma-catalog-filters-20261103`; no merge/deploy.
+- Connected `PharmaMedicineExcelController::export()` to Pharma-owned `MedicineImportExport::exportDetailedCatalog($ids, $canPrice)`. Selected IDs and full filtered results continue to be resolved in the controller.
+- Detailed export reuses canonical medicine columns and adds Medicine code, representative default SKU, KSDB, HSSP yes/no, bid-award yes/no and representative latest active award details (winner, investor, decision number/date, period, winning price and allocated quantity). The existing `MedicineExcelRelatedDataService` selects one active award and one latest supplier: this is NOT a one-row-per-award or one-row-per-supplier report.
+- Supplier name, cost price and import price are appended only when `client.pharma.products.supplier-pricing` is granted. Export permission remains independently required. Import staging and PWA handoff remain unchanged.
+- Updated focused `tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. Runtime tests NOT RUN and UI NOT VERIFIED. Run only focused tests at checkpoint. No full module regression until pre-merge gate.
+
+---
+
+## Pharma Excel export and import staging checkpoint — 2026-11-03
+
+- Added separate web permissions `client.pharma.products.export` and `client.pharma.products.import` to the Pharma ClientPortal manifest. Both POST endpoints enforce their own permissions server-side.
+- Export uses Pharma MedicineCatalog browse to collect all matching medicine IDs across pages when none are selected, or uses the selected Medicine IDs. The Excel output uses Pharma-owned MedicineImportExport. Supplier-price filters retain their existing capability guard.
+- Installed PWA export uses authenticated same-origin fetch, temporary File, explicit second-gesture native share; normal browser uses POST download. No public artifact URL or service-worker cache.
+- Import validates XLSX/CSV <=10 MB and invokes Pharma MedicineCatalogUploadService staging only. It labels batches `clientportal_pharma` and displays classification summary. There is intentionally NO ClientPortal commit/review action yet: staged data is not written to Medicine Master. Implement permission-gated review/approval before enabling commit.
+- Focused source contract updated; tests NOT RUN in runtime and UI NOT VERIFIED for this batch. Do not claim full Import workflow PASS. Do not merge/deploy. Full module regression deferred until pre-merge by operator instruction.
+
+---
+
+## Medicine selection UI fix — 2026-11-03
+
+- User UI reported checked select-all with zero selected. Root cause: ClientPortal application layout does not load Alpine, so x-data/x-on directives were inert.
+- Replaced selection state with page-local native JavaScript via application-scripts stack. Syncs visible desktop/mobile checkboxes, selected count, clear button and select-all. MutationObserver handles PWA load-more appended results.
+- Updated focused source contract; focused runtime tests and UI confirmation pending. Excel import/export and medicine CRUD not yet implemented.
+
+---
+
+## Pharma catalog selection checkpoint — 2026-11-03
+
+- Added mobile and desktop selection by medicine ID, select-all for loaded records, and clear-selection.
+- Added focused contract coverage in PharmaProductsCapabilityTest.
+- Selection is page-local; export, import and create/edit remain pending.
+- Focused tests and UI review pending. No merge or deploy.
+
+---
+
+## Checkpoint — Pharma catalog three independent combobox filters — 2026-11-03
+
+- Branch: `feat/clientportal-pharma-catalog-filters-20261103`. Replaces legacy pill filter UI with three independent selectors: HSSP with/without, supplier price with/without (permission-gated), bid award with/without. Default for each is All.
+- ClientPortal validates `hssp`, `supplier_price`, `bid_award` and rejects supplier-price filtering without `client.pharma.products.supplier-pricing`. Canonical `MedicineCatalog::browse()` applies conjunctive `whereHas` / `whereDoesntHave` clauses. Old `filter` parameter remains accepted for compatibility.
+- Existing search, circular group, product type, special control, mobile progressive loading and focused PWA shell remain in place. No schema change, Admin mutation or production operation.
+- Updated focused source contract `tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. Runtime tests NOT RUN; UI NOT VERIFIED. Run focused tests only at this batch checkpoint. Full Pharma module regression deferred to pre-merge gate by operator request.
+- Manual acceptance: all/with/without for each filter, combined AND conditions, reset, mobile/desktop, and supplier-price permission/403 guard. Do not merge without operator approval.
+
+---
+
+## Checkpoint — Pharma PWA catalog filters (batch 1) — 2026-11-03
+
+- Branch: `feat/clientportal-pharma-catalog-filters-20261103`, based on `main@403de90248662bf56a8608485c19a283939444fc`. No merge/deploy.
+- Implemented: product-type and special-control selectors in `/apps/pharma/products`, validated in the web controller and applied to the canonical Pharma `MedicineCatalog::browse()` query; active filter state survives filter-link navigation.
+- Existing SKU/variant listing, feature guard, supplier pricing permission and PWA browse shell preserved. No database migration.
+- Added focused source contract to `tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`.
+- NOT implemented in this batch: Medicine Master create/edit and Import/Export; those require separate permission/validation/file-handoff implementation and regression.
+- Tests NOT RUN on Laravel runtime; UI NOT VERIFIED. Focused test then impacted Pharma regression and manual responsive/PWA UI acceptance required.
+- Do not merge until all gates and explicit user approval.
+
+---
+
 ## Checkpoint — Price-list manual lot POST 404 fix — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge or deployment performed.

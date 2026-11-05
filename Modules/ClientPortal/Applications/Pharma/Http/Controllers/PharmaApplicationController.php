@@ -712,6 +712,11 @@ final class PharmaApplicationController extends Controller
             'page' => ['nullable', 'integer', 'min:1'],
             'filter' => ['nullable', 'in:awarded,profile,supplier-priced'],
             'group' => ['nullable', 'string', 'max:100'],
+            'product_type' => ['nullable', 'string', 'max:50'],
+            'special_control' => ['nullable', 'in:yes,no'],
+            'hssp' => ['nullable', 'in:with,without'],
+            'supplier_price' => ['nullable', 'in:with,without'],
+            'bid_award' => ['nullable', 'in:with,without'],
         ]);
 
         $application = $registry->find('pharma');
@@ -725,7 +730,7 @@ final class PharmaApplicationController extends Controller
         $canViewSupplierPricing = $registry->userCan($user, 'client.pharma.products.supplier-pricing');
         $filter = $validated['filter'] ?? null;
         $circularGroup = trim((string) ($validated['group'] ?? ''));
-        abort_if($filter === 'supplier-priced' && ! $canViewSupplierPricing, 403);
+        abort_if(($filter === 'supplier-priced' || filled($validated['supplier_price'] ?? null)) && ! $canViewSupplierPricing, 403);
 
         return view('ClientPortal::applications.pharma.products', [
             'application' => $application,
@@ -738,12 +743,53 @@ final class PharmaApplicationController extends Controller
                 filter: $filter,
                 allowSupplierPricing: $canViewSupplierPricing,
                 circularGroup: $circularGroup !== '' ? $circularGroup : null,
+                productType: $validated['product_type'] ?? null,
+                specialControl: $validated['special_control'] ?? null,
+                hssp: $validated['hssp'] ?? null,
+                supplierPrice: $validated['supplier_price'] ?? null,
+                bidAward: $validated['bid_award'] ?? null,
             )->withQueryString(),
             'filter' => $filter,
             'filterCounts' => $catalog->filterCounts($canViewSupplierPricing),
+            'masterOnlyMedicines' => \Modules\Pharma\Models\Medicine::query()
+                ->whereDoesntHave('variants')
+                ->with(['currentProfile', 'drugBidAwards', 'supplierTrackings'])
+                ->when(filled($validated['q'] ?? null), function ($query) use ($validated): void {
+                    $term = trim((string) $validated['q']);
+                    $query->where(function ($nested) use ($term): void {
+                        $nested->where('name', 'like', "%{$term}%")
+                            ->orWhere('medicine_code', 'like', "%{$term}%")
+                            ->orWhere('active_ingredients', 'like', "%{$term}%")
+                            ->orWhere('registration_number', 'like', "%{$term}%");
+                    });
+                })
+                ->when(filled($validated['product_type'] ?? null), fn ($query) => $query->where('product_type', $validated['product_type']))
+                ->when(filled($validated['group'] ?? null), fn ($query) => $query->where('circular_group', $validated['group']))
+                ->when(($validated['special_control'] ?? null) === 'yes', fn ($query) => $query->where('is_special_control', true))
+                ->when(($validated['special_control'] ?? null) === 'no', fn ($query) => $query->where('is_special_control', false))
+                ->when(($validated['filter'] ?? null) === 'awarded' || ($validated['bid_award'] ?? null) === 'with', fn ($query) => $query->whereHas('drugBidAwards'))
+                ->when(($validated['bid_award'] ?? null) === 'without', fn ($query) => $query->whereDoesntHave('drugBidAwards'))
+                ->when(($validated['filter'] ?? null) === 'profile' || ($validated['hssp'] ?? null) === 'with', fn ($query) => $query->whereHas('currentProfile'))
+                ->when(($validated['hssp'] ?? null) === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
+                ->when((($validated['filter'] ?? null) === 'supplier-priced' || ($validated['supplier_price'] ?? null) === 'with') && $canViewSupplierPricing, fn ($query) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
+                ->when(($validated['supplier_price'] ?? null) === 'without' && $canViewSupplierPricing, fn ($query) => $query->whereDoesntHave('supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
+                ->latest('id')
+                ->paginate(10, ['*'], 'master_page')
+                ->withQueryString(),
+
             'circularGroups' => $catalog->circularGroups(),
             'circularGroup' => $circularGroup,
+            'productTypeOptions' => \Modules\Pharma\Models\Medicine::productTypeOptions(),
+            'selectedProductType' => $validated['product_type'] ?? '',
+            'selectedSpecialControl' => $validated['special_control'] ?? '',
+            'selectedHssp' => $validated['hssp'] ?? '',
+            'selectedSupplierPrice' => $validated['supplier_price'] ?? '',
+            'selectedBidAward' => $validated['bid_award'] ?? '',
             'canViewSupplierPricing' => $canViewSupplierPricing,
+            'canExportMedicines' => $registry->userCan($user, 'client.pharma.products.export'),
+            'canConfigureMedicineExcel' => $registry->userCan($user, 'client.pharma.products.excel-config'),
+            'medicineExcelProfiles' => $registry->userCan($user, 'client.pharma.products.export') ? app(\Modules\Pharma\Services\MedicineExcelProfileService::class)->listForUser((int) $user->id, 'web') : [],
+            'canImportMedicines' => $registry->userCan($user, 'client.pharma.products.import'),
             'search' => trim((string) ($validated['q'] ?? '')),
             'perPage' => (int) ($validated['per_page'] ?? 25),
         ]);

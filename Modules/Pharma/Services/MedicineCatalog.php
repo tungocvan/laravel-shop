@@ -6,10 +6,11 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Modules\Pharma\DTOs\MedicineCatalogItem;
 use Modules\Pharma\Models\MedicineVariant;
+use Modules\Pharma\Models\Medicine;
 
 class MedicineCatalog
 {
-    public function browse(?string $search = null, int $perPage = 25, int $page = 1, ?string $filter = null, bool $allowSupplierPricing = false, ?string $circularGroup = null): LengthAwarePaginator
+    public function browse(?string $search = null, int $perPage = 25, int $page = 1, ?string $filter = null, bool $allowSupplierPricing = false, ?string $circularGroup = null, ?string $productType = null, ?string $specialControl = null, ?string $hssp = null, ?string $supplierPrice = null, ?string $bidAward = null): LengthAwarePaginator
     {
         $search = trim((string) $search);
         $perPage = in_array($perPage, [25, 50, 100], true) ? $perPage : 25;
@@ -25,6 +26,14 @@ class MedicineCatalog
             ->when($filter === 'awarded', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
             ->when($filter === 'profile', fn ($query) => $query->whereHas('medicine.currentProfile'))
             ->when($filter === 'supplier-priced' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
+            ->when($hssp === 'with', fn ($query) => $query->whereHas('medicine.currentProfile'))
+            ->when($hssp === 'without', fn ($query) => $query->whereDoesntHave('medicine.currentProfile'))
+            ->when($supplierPrice === 'with' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
+            ->when($supplierPrice === 'without' && $allowSupplierPricing, fn ($query) => $query->whereDoesntHave('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
+            ->when($bidAward === 'with', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
+            ->when($bidAward === 'without', fn ($query) => $query->whereDoesntHave('medicine.drugBidAwards'))
+            ->when(filled($productType) && array_key_exists($productType, Medicine::productTypeOptions()), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('product_type', $productType)))
+            ->when(in_array($specialControl, ['yes', 'no'], true), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('is_special_control', $specialControl === 'yes')))
             ->when(filled($circularGroup), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('circular_group', $circularGroup)))
             ->when($search !== '', function ($query) use ($search): void {
                 $query->where(function ($nested) use ($search): void {

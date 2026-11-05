@@ -34,8 +34,9 @@ final class UserInventoryWorkspace
 
         if ($canViewCosts) {
             $query->leftJoinSub($this->activeSupplierCostSubquery(), 'supplier_costs', fn ($join) => $join->on('supplier_costs.medicine_id', '=', 'pharma_inventory_balances.medicine_id'))
-                ->selectRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) as average_cost_price')
-                ->selectRaw('(pharma_inventory_balances.quantity_on_hand * COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price)) as inventory_value');
+                ->selectRaw('COALESCE(NULLIF(pharma_inventory_balances.manual_cost_price, 0), supplier_costs.average_cost_price) as average_cost_price')
+                ->selectRaw('(pharma_inventory_balances.quantity_on_hand * COALESCE(NULLIF(pharma_inventory_balances.manual_cost_price, 0), supplier_costs.average_cost_price)) as inventory_value')
+                ->addSelect('supplier_costs.average_cost_price as supplier_reference_cost');
         }
 
         $query
@@ -93,7 +94,7 @@ final class UserInventoryWorkspace
             $supplier = $this->activeSupplierCosts()->get($balance->medicine_id)?->average_cost_price;
             $averageCost = $supplier !== null ? (float) $supplier : null;
             $inventoryValue = $balances->sum(function (InventoryBalance $lot) use ($averageCost): float {
-                $cost = $lot->manual_cost_price !== null ? (float) $lot->manual_cost_price : $averageCost;
+                $cost = $lot->manual_cost_price !== null && (float) $lot->manual_cost_price > 0 ? (float) $lot->manual_cost_price : $averageCost;
 
                 return $cost === null ? 0.0 : (float) $lot->quantity_on_hand * $cost;
             });
@@ -242,14 +243,14 @@ final class UserInventoryWorkspace
 
         $value = function (InventoryBalance $row) use ($costs): float {
             $supplier = $costs->get($row->medicine_id)?->average_cost_price;
-            $cost = $row->manual_cost_price !== null ? (float) $row->manual_cost_price : ($supplier !== null ? (float) $supplier : null);
+            $cost = $row->manual_cost_price !== null && (float) $row->manual_cost_price > 0 ? (float) $row->manual_cost_price : ($supplier !== null ? (float) $supplier : null);
 
             return $cost === null ? 0.0 : (float) $row->quantity_on_hand * $cost;
         };
 
         $unpriced = $balances->filter(function (InventoryBalance $row) use ($costs): bool {
             $supplier = $costs->get($row->medicine_id)?->average_cost_price;
-            $cost = $row->manual_cost_price !== null ? (float) $row->manual_cost_price : ($supplier !== null ? (float) $supplier : null);
+            $cost = $row->manual_cost_price !== null && (float) $row->manual_cost_price > 0 ? (float) $row->manual_cost_price : ($supplier !== null ? (float) $supplier : null);
 
             return $cost === null || $cost <= 0;
         });
@@ -274,9 +275,9 @@ final class UserInventoryWorkspace
         $today = now()->toDateString();
 
         return SupplierTracking::query()
-            ->select('medicine_id', DB::raw('AVG(cost_price) as average_cost_price'))
+            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price'))
             ->where('status', 'active')
-            ->whereNotNull('cost_price')
+            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
             ->groupBy('medicine_id');
@@ -287,9 +288,9 @@ final class UserInventoryWorkspace
         $today = now()->toDateString();
 
         return SupplierTracking::query()
-            ->select('medicine_id', DB::raw('AVG(cost_price) as average_cost_price'))
+            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price'))
             ->where('status', 'active')
-            ->whereNotNull('cost_price')
+            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
             ->groupBy('medicine_id')
@@ -314,11 +315,11 @@ final class UserInventoryWorkspace
     private function applyCostFilter(Builder $query, string $status): void
     {
         match ($status) {
-            'priced' => $query->whereRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) > 0'),
+            'priced' => $query->whereRaw('COALESCE(NULLIF(pharma_inventory_balances.manual_cost_price, 0), supplier_costs.average_cost_price) > 0'),
             'unpriced' => $query->where(fn ($query) => $query
                 ->whereNull('pharma_inventory_balances.manual_cost_price')
                 ->whereNull('supplier_costs.average_cost_price')
-                ->orWhereRaw('COALESCE(pharma_inventory_balances.manual_cost_price, supplier_costs.average_cost_price) <= 0')),
+                ->orWhereRaw('COALESCE(NULLIF(pharma_inventory_balances.manual_cost_price, 0), supplier_costs.average_cost_price) <= 0')),
             default => null,
         };
     }

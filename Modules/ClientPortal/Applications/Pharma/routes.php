@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineRelationsController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelProfileController;
 
 if ((bool) config('modules.registry.Pharma.enabled', false)) {
     Route::middleware([
@@ -16,6 +20,58 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
+        Route::get('/products/create', [PharmaMedicineEditorController::class, 'create'])
+            ->middleware('client.feature:pharma,products')->name('products.create');
+        Route::post('/products', [PharmaMedicineEditorController::class, 'store'])
+            ->middleware('client.feature:pharma,products')->name('products.store');
+        Route::get('/products/{medicine}/variants/create', [PharmaMedicineEditorController::class, 'createVariant'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.create');
+        Route::post('/products/{medicine}/variants', [PharmaMedicineEditorController::class, 'storeVariant'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.store');
+        Route::get('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'hssp'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp');
+        Route::put('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'updateHssp'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp.update');
+        Route::post('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'createHssp'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp.store');
+        Route::get('/products/{medicine}/supplier-conditions', [PharmaMedicineRelationsController::class, 'supplierConditions'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.supplier-conditions');
+        Route::post('/products/{medicine}/supplier-conditions', [PharmaMedicineRelationsController::class, 'saveSupplierConditions'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.supplier-conditions.save');
+        Route::get('/products/{medicine}/edit', [PharmaMedicineEditorController::class, 'edit'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.edit');
+        Route::delete('/products/{medicine}', [PharmaMedicineEditorController::class, 'destroy'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.destroy');
+        Route::put('/products/{medicine}', [PharmaMedicineEditorController::class, 'update'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.update');
+        Route::post('/products/excel-config/import-json', [PharmaMedicineExcelProfileController::class, 'importJson'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.excel-config.import-json');
+        Route::get('/products/excel-config', [PharmaMedicineExcelProfileController::class, 'index'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.excel-config');
+        Route::post('/products/excel-config', [PharmaMedicineExcelProfileController::class, 'save'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.excel-config.save');
+        Route::delete('/products/excel-config/{profile}', [PharmaMedicineExcelProfileController::class, 'delete'])
+            ->whereNumber('profile')->middleware('client.feature:pharma,products')
+            ->name('products.excel-config.delete');
+        Route::get('/products/export/roundtrip', [PharmaMedicineExcelController::class, 'roundtripExport'])
+            ->middleware('client.feature:pharma,products')->name('products.export.roundtrip');
+        Route::get('/products/import', [PharmaMedicineExcelController::class, 'importPage'])
+            ->middleware('client.feature:pharma,products')->name('products.import.page');
+        Route::get('/products/import/batches/{batch}', [PharmaMedicineExcelController::class, 'importBatch'])
+            ->whereNumber('batch')->middleware('client.feature:pharma,products')->name('products.import.batch');
+        Route::post('/products/import/batches/{batch}/approve-new', [PharmaMedicineExcelController::class, 'approveNew'])
+            ->whereNumber('batch')->middleware('client.feature:pharma,products')->name('products.import.approve-new');
+        Route::get('/products/import/template', [PharmaMedicineExcelController::class, 'template'])
+            ->middleware('client.feature:pharma,products')->name('products.import.template');
+        Route::post('/products/import', [PharmaMedicineExcelController::class, 'import'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.import');
+        Route::post('/products/export', [PharmaMedicineExcelController::class, 'export'])
+            ->middleware('client.feature:pharma,products')
+            ->name('products.export');
         Route::get('/bid-awards', [PharmaApplicationController::class, 'bidAwards'])
             ->middleware('client.feature:pharma,bid-awards')
             ->name('bid-awards');
@@ -68,6 +124,16 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('issue')
             ->middleware('client.feature:pharma,commissions')
             ->name('commissions.show');
+        Route::get('/inventory/excel-config/{report}', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryExcelProfileController::class, 'index'])->whereIn('report', ['stock', 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.excel-config');
+        Route::post('/inventory/excel-config/{report}', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryExcelProfileController::class, 'save'])->whereIn('report', ['stock', 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.excel-config.save');
+        Route::delete('/inventory/excel-config/{report}/{profile}', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryExcelProfileController::class, 'delete'])->whereIn('report', ['stock', 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.excel-config.delete');
+        Route::get('/inventory/movements', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'movements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements');
+        Route::get('/inventory/movements/export', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'exportMovements'])->middleware('client.feature:pharma,inventory')->name('inventory.movements.export');
+        Route::get('/inventory/export', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'exportStock'])->middleware('client.feature:pharma,inventory')->name('inventory.export');
+        Route::get('/inventory/opening', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'opening'])->middleware('client.feature:pharma,inventory')->name('inventory.opening');
+        Route::get('/inventory/opening/template', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'openingTemplate'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.template');
+        Route::post('/inventory/opening/manual', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'storeOpeningManual'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.manual');
+        Route::post('/inventory/opening/import', [\Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaInventoryReportsController::class, 'importOpening'])->middleware('client.feature:pharma,inventory')->name('inventory.opening.import');
         Route::get('/inventory', [PharmaApplicationController::class, 'inventory'])
             ->middleware('client.feature:pharma,inventory')
             ->name('inventory');

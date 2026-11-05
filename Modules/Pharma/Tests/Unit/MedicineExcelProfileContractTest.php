@@ -9,6 +9,16 @@ use Tests\TestCase;
 class MedicineExcelProfileContractTest extends TestCase
 {
     #[Test]
+    public function configured_export_supports_medicine_master_selling_price_as_numeric_vnd(): void
+    {
+        $exporter = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+
+        $this->assertStringContainsString("'selling_price' => \$medicine->selling_price ?? \$medicine->declared_price", $exporter);
+        $this->assertStringContainsString("'declared_price', 'selling_price', 'cost_price'", $exporter);
+        $this->assertStringContainsString("setFormatCode('#,##0')", $exporter);
+    }
+
+    #[Test]
     public function medicine_excel_profile_has_independent_schema_and_product_type(): void
     {
         $service = new MedicineExcelProfileService();
@@ -19,6 +29,8 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertContains('medicine_code', $defaults['columns']);
         $this->assertContains('sku', $defaults['columns']);
         $this->assertSame('Hạn dùng sản phẩm', MedicineExcelProfileService::COLUMNS['shelf_life']);
+        $this->assertSame('Giá bán', MedicineExcelProfileService::COLUMNS['selling_price']);
+        $this->assertContains('selling_price', $defaults['columns']);
         $this->assertSame('Times New Roman', $defaults['settings']['font_family']);
         $this->assertSame(12, $defaults['settings']['header_font_size']);
         $this->assertSame(11, $defaults['settings']['body_font_size']);
@@ -133,7 +145,10 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString("this.draft.headers[key] = this.labels[key]", $view);
         $this->assertStringContainsString('public int $designerRevision = 0;', $component);
         $this->assertStringContainsString('$this->designerRevision++;', $component);
-        $this->assertStringContainsString('service->delete((int) auth(\'admin\')->id(), $this->profileId);', $component);
+        $this->assertStringContainsString('$service->delete($this->assertOwner(), $this->profileId, $this->ownerGuard);', $component);
+        $this->assertStringContainsString('public string $ownerGuard = \'admin\';', $component);
+        $this->assertStringContainsString('#[Locked]', $component);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.products.excel-config')", $component);
         $this->assertStringContainsString('$this->profileId = null;', $component);
         $this->assertStringContainsString('x-on:click="add(@js($key))"', $view);
     }
@@ -150,4 +165,60 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertStringContainsString('$letter.($headerRow + 1)', $source);
     }
 
+
+    public function test_configured_export_uses_font_aware_width_and_print_page_settings(): void
+    {
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $profiles = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $designer = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString('Drawing::pixelsToCellDimension(', $writer);
+        $this->assertStringContainsString("margin_'.\$side.'_cm", $writer);
+        $this->assertStringContainsString('setHorizontalCentered', $writer);
+        $this->assertStringContainsString('setVerticalCentered', $writer);
+        $this->assertStringContainsString("'center_horizontally' => true", $profiles);
+        $this->assertStringContainsString("'center_vertically' => false", $profiles);
+        $this->assertStringContainsString('wire:model="settings.margin_{{ $side }}_cm"', $designer);
+        $this->assertStringContainsString('wire:model="settings.center_horizontally"', $designer);
+    }
+
+    public function test_configured_excel_supports_fit_to_page_and_two_border_weights(): void
+    {
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString("'fit_to_page' => false", $service);
+        $this->assertStringContainsString("'settings.fit_to_page' => 'nullable|boolean'", $component);
+        $this->assertStringContainsString('wire:model="settings.fit_to_page"', $view);
+        $this->assertStringContainsString('setFitToPage(', $writer);
+        $this->assertStringContainsString('setFitToWidth(1)', $writer);
+        $this->assertStringContainsString('setFitToHeight(1)', $writer);
+        $this->assertStringContainsString('Border::BORDER_HAIR : Border::BORDER_THIN', $writer);
+        $this->assertStringContainsString("'D8DEE8' : '333333'", $writer);
+    }
+
+    public function test_report_header_footer_and_logo_are_portable_in_profile_json(): void
+    {
+        $profiles = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelProfileService.php'));
+        $writer = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+        $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
+        $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
+
+        $this->assertStringContainsString("'report_header' =>", $profiles);
+        $this->assertStringContainsString("'report_footer' =>", $profiles);
+        $this->assertStringContainsString('getimagesizefromstring', $profiles);
+        $this->assertStringContainsString("['report_header']", $writer);
+        $this->assertStringContainsString("['report_footer']", $writer);
+        $this->assertStringContainsString('WorksheetDrawing', $writer);
+        $this->assertStringContainsString("'Kính gửi: '", $writer);
+        $this->assertStringContainsString("str_starts_with(mb_strtolower(trim(", $writer);
+        $this->assertStringContainsString("now(config('app.timezone'))", $writer);
+        $this->assertStringContainsString("' tháng '", $writer);
+        $this->assertStringContainsString("' năm '", $writer);
+        $this->assertStringContainsString('public function exportProfileJson', $component);
+        $this->assertStringContainsString('wire:model="logoUpload"', $view);
+        $this->assertStringContainsString('wire:click="exportProfileJson"', $view);
+    }
 }
