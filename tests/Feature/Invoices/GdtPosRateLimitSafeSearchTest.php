@@ -90,6 +90,11 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             $this->assertSame('pos', $context['source']);
             $this->assertSame('purchase', $context['action']);
             $this->assertSame(200, $context['http_status']);
+            $this->assertSame('object', $context['response_shape']);
+            $this->assertSame('array', $context['datas_type']);
+            $this->assertSame('integer', $context['total_type']);
+            $this->assertSame('application/json', $context['content_type']);
+            $this->assertSame('purchase', $context['request_action']);
             $this->assertSame(1, $context['response_total']);
             $this->assertSame(1, $context['response_datas_count']);
             $this->assertTrue($context['response_datas_is_array']);
@@ -133,6 +138,41 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
             $this->assertStringContainsString('Không coi là 0 hóa đơn', $exception->getMessage());
         }
+        Http::assertSentCount(1);
+    }
+
+    public function test_pos_html_http_200_logs_safe_shape_before_rejection(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response('<html>PRIVATE_BODY</html>', 200, [
+            'Content-Type' => 'text/html; charset=utf-8',
+        ])]);
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-07-01', '2026-07-31', true, 'pos',
+                ['ckey' => 'PRIVATE_KEY', 'cvalue' => 'PRIVATE_ANSWER'],
+            );
+            $this->fail('HTML success must be rejected.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
+        }
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS invoice query response metadata.') {
+                return false;
+            }
+            $this->assertSame('html', $context['response_format']);
+            $this->assertSame('scalar', $context['response_shape']);
+            $this->assertSame('null', $context['datas_type']);
+            $this->assertSame('null', $context['total_type']);
+            $this->assertSame('text/html', $context['content_type']);
+            $this->assertSame('purchase', $context['request_action']);
+            $this->assertSame(50, $context['page_size']);
+            $json = json_encode($context);
+            foreach (['PRIVATE_BODY', 'PRIVATE_KEY', 'PRIVATE_ANSWER'] as $secret) {
+                $this->assertStringNotContainsString($secret, $json);
+            }
+            return true;
+        })->once();
         Http::assertSentCount(1);
     }
 
