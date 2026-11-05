@@ -393,9 +393,10 @@ class GdtInvoiceService
                     ]);
                     // Check domain/path/expiry matching without logging the cookie header.
                     // This predicts CookieJar eligibility, not actual upstream acceptance.
-                    $cookieEligible = $jar->getCookieHeader(
+                    $cookieRequest = $jar->withCookieHeader(
                         new Request('GET', $this->url($endpoint.$action))
-                    ) !== '';
+                    );
+                    $cookieEligible = $cookieRequest->hasHeader('Cookie');
                     Log::info('GDT POS request metadata.', [
                         'trace_id' => $posTraceId,
                         'runtime' => app()->runningUnitTests() ? 'test' : 'application',
