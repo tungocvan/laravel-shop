@@ -20,7 +20,7 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
         $this->assertStringContainsString("persistInvoices(\$regular, \$vatIn)", $service);
         $this->assertStringContainsString("if (\$source === 'regular')", $service);
         $this->assertStringContainsString("isset(\$checkpoint['pos'])", $service);
-        $this->assertStringContainsString("fetchInvoicesByMonth(\$token, \$chunkStart, \$chunkEnd, \$show, \$vatIn, true)", $service);
+        $this->assertStringContainsString("fetchInvoicesByMonth(\$token, \$chunkStart, \$chunkEnd, \$show, \$vatIn, true, \$posCaptcha)", $service);
         $this->assertStringContainsString('persistInvoices($all, $vatIn)', $service);
         $this->assertStringContainsString('acquireMissingDetails($stats[', $service);
     }
