@@ -209,12 +209,21 @@ final class PharmaMedicineEditorController extends Controller
 
     private function validated(Request $request): array
     {
+        // Form inputs display thousands separators; normalize to integer VND before validation.
+        foreach (['declared_price', 'selling_price'] as $priceField) {
+            if ($request->exists($priceField)) {
+                $raw = trim((string) $request->input($priceField));
+                $request->merge([$priceField => $raw === '' ? null : str_replace(['.', ',', ' '], '', $raw)]);
+            }
+        }
+
         $fields = [
             'name' => ['required', 'string', 'max:255'],
             'product_type' => ['required', Rule::in(array_keys(Medicine::productTypeOptions()))],
             'category_ids' => ['sometimes', 'array'],
             'category_ids.*' => ['integer', 'distinct', Rule::exists('categories', 'id')->where('type', 'medicine')],
-            'declared_price' => ['nullable', 'numeric', 'min:0'],
+            'declared_price' => ['nullable', 'integer', 'min:0'],
+            'selling_price' => ['nullable', 'integer', 'min:0', 'lte:declared_price'],
             'is_special_control' => ['boolean'],
             'visa_validity_date' => ['nullable', 'date'],
             'gmp_certification_date' => ['nullable', 'date'],
