@@ -398,7 +398,7 @@ class GdtInvoiceService
             } $data = $res->json();
             if ($cashRegister) {
                 $this->logPosQuerySuccess($res, $data, $action, $page, $query, $posCaptcha);
-                if (! is_array($data) || ! array_is_list($data['datas'] ?? null)
+                if (! is_array($data) || ! is_array($data['datas'] ?? null) || ! array_is_list($data['datas'])
                     || ! isset($data['total']) || ! is_int($data['total'])
                     || $data['total'] < 0 || $data['total'] < count($data['datas'])) {
                     throw new \RuntimeException('GDT trả HTTP 200 nhưng cấu trúc danh sách POS không hợp lệ. Không coi là 0 hóa đơn; không đồng bộ canonical.');
