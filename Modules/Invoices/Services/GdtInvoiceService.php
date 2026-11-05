@@ -365,13 +365,26 @@ class GdtInvoiceService
                     $query['cvalue'] = $posCaptcha['cvalue'];
                 }
                 $client = $this->client($token);
-                if ($cashRegister && ! empty($posCaptcha['cookies'])) {
+                if ($cashRegister) {
                     $jar = new CookieJar;
-                    foreach ($posCaptcha['cookies'] as $cookie) {
-                        if (is_array($cookie)) {
+                    $storedCookies = is_array($posCaptcha['cookies'] ?? null) ? $posCaptcha['cookies'] : [];
+                    foreach ($storedCookies as $cookie) {
+                        if (! is_array($cookie)) {
+                            continue;
+                        }
+                        try {
                             $jar->setCookie(new SetCookie($cookie));
+                        } catch (\Throwable) {
+                            // A malformed cookie must not disclose values in logs.
                         }
                     }
+                    Log::info('GDT POS captcha cookie lifecycle.', [
+                        'stage' => 'request',
+                        'action' => $action,
+                        'stored_cookie_count' => count($storedCookies),
+                        'jar_cookie_count' => count($jar->toArray()),
+                        'has_cookie' => count($jar->toArray()) > 0,
+                    ]);
                     $client = $client->withOptions(['cookies' => $jar]);
                 }
                 $res = $client
