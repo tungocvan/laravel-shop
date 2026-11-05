@@ -142,7 +142,7 @@
         const declaredPrice = form.querySelector('[data-vnd-price="declared"]');
         const sellingPrice = form.querySelector('[data-vnd-price="selling"]');
         const digits = value => value.replace(/[^0-9]/g, '');
-        const formatVnd = value => digits(value).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');
+        const formatVnd = value => digits(value).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         let sellingTouched = Boolean(sellingPrice.value && digits(sellingPrice.value) !== digits(declaredPrice.value));
         [declaredPrice, sellingPrice].forEach(input => {
             input.addEventListener('input', () => {
