@@ -27,7 +27,11 @@ class SearchHoadon extends Component
     public $end_date;
     public $vatIn = false;
     public $useQueue = true;
-    public string $invoiceSource = 'all';
+    public string $invoiceSource = 'regular';
+    public string $searchState = 'idle';
+    public ?string $searchMessage = null;
+    public array $searchPreview = [];
+    public ?string $searchedFingerprint = null;
     public string $posCaptchaImage = '';
     public string $posCaptchaAnswer = '';
     public ?string $posCaptchaError = null;
@@ -76,6 +80,64 @@ class SearchHoadon extends Component
         }
         $this->posCaptchaError = null;
         $this->posCaptchaAnswer = '';
+        $this->posCaptchaImage = '';
+        $this->searchState = 'idle';
+        $this->searchMessage = null;
+        $this->searchPreview = [];
+        $this->searchedFingerprint = null;
+    }
+
+    public function updatedStartDate(): void { $this->clearSearchPreview(); }
+    public function updatedEndDate(): void { $this->clearSearchPreview(); }
+    public function updatedVatIn(): void { $this->clearSearchPreview(); $this->refreshAvailableFiles(); }
+
+    private function clearSearchPreview(): void
+    {
+        $this->searchState = 'idle';
+        $this->searchMessage = null;
+        $this->searchPreview = [];
+        $this->searchedFingerprint = null;
+    }
+
+    private function searchFingerprint(): string
+    {
+        return hash('sha256', implode('|', [$this->invoiceSource, $this->start_date, $this->end_date, (int) $this->vatIn]));
+    }
+
+    public function searchInvoices(): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'invoiceSource' => ['required', 'in:regular,pos'],
+            'vatIn' => ['boolean'],
+        ]);
+        $this->clearSearchPreview();
+        $this->searchState = 'searching';
+        try {
+            $challenge = null;
+            if ($this->invoiceSource === 'pos') {
+                $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
+                $challenge = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
+                $this->posCaptchaAnswer = '';
+                $this->posCaptchaImage = '';
+            }
+            $result = $this->invoiceService->previewSource(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, $this->invoiceSource, $challenge
+            );
+            $this->searchPreview = $result;
+            $this->searchState = 'completed';
+            $this->searchedFingerprint = $this->searchFingerprint();
+            $this->searchMessage = $result['count'] === 0
+                ? 'GDT trả về 0 hóa đơn trong khoảng ngày đã chọn.'
+                : 'GDT trả về '.number_format($result['count']).' hóa đơn. Chưa ghi dữ liệu canonical.';
+        } catch (\\Throwable $exception) {
+            $this->searchState = 'failed';
+            $this->searchMessage = $exception->getMessage();
+            $this->posCaptchaAnswer = '';
+            $this->posCaptchaImage = '';
+        }
     }
 
     public function refreshPosCaptcha(): void
@@ -101,6 +163,15 @@ class SearchHoadon extends Component
             'useQueue' => ['boolean'],
             'invoiceSource' => ['required', 'in:all,regular,pos'],
         ]);
+
+        if ($this->invoiceSource === 'all') {
+            $this->addError('invoiceSource', 'Vui lòng chọn một tab nguồn hóa đơn.');
+            return;
+        }
+        if ($this->searchedFingerprint !== $this->searchFingerprint() || $this->searchState !== 'completed') {
+            $this->addError('invoiceSource', 'Vui lòng Tìm kiếm thành công với bộ lọc hiện tại trước khi đồng bộ.');
+            return;
+        }
 
         if (! $this->apiService->hasToken()) {
             session()->flash('status', 'Phiên GDT chưa sẵn sàng hoặc token đã hết hạn. Vui lòng kết nối lại trước khi chạy đồng bộ.');
@@ -259,11 +330,6 @@ class SearchHoadon extends Component
 
         $availableTokens = array_column($this->availableFiles, 'token');
         $this->selectedFiles = array_values(array_intersect($this->selectedFiles, $availableTokens));
-    }
-
-    public function updatedVatIn(): void
-    {
-        $this->refreshAvailableFiles();
     }
 
     public function selectAllAvailableFiles(): void
