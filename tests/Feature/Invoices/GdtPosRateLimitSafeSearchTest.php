@@ -120,6 +120,37 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
         )->once();
     }
 
+    public function test_pos_http_200_without_datas_is_rejected_not_reported_as_zero(): void
+    {
+        Http::fake(['*' => Http::response(['message' => 'upstream schema mismatch'], 200)]);
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-07-01', '2026-07-31', true, 'pos',
+                ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+            );
+            $this->fail('Malformed POS response must fail closed.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
+            $this->assertStringContainsString('Không coi là 0 hóa đơn', $exception->getMessage());
+        }
+        Http::assertSentCount(1);
+    }
+
+    public function test_pos_http_200_with_valid_ten_invoice_response_returns_ten(): void
+    {
+        Http::fake(['*' => Http::response([
+            'datas' => array_fill(0, 10, ['dummy' => 'safe-fixture']),
+            'total' => 10,
+            'state' => null,
+        ], 200)]);
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos',
+            ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+        );
+        $this->assertSame(10, $result['count']);
+        Http::assertSentCount(1);
+    }
+
     public function test_pos_http_429_stops_without_retry_and_shows_retry_after(): void
     {
         Http::fake(['*' => Http::response(['message' => 'rate limited'], 429, ['Retry-After' => '120'])]);
