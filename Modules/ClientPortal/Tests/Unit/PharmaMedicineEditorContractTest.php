@@ -270,4 +270,20 @@ class PharmaMedicineEditorContractTest extends TestCase
         $this->assertStringContainsString('panels[i].hidden = !active', $form);
         $this->assertStringNotContainsString('x-show=', $form);
     }
+
+    public function test_medicine_master_selling_price_has_shared_validation_and_integer_vnd_form(): void
+    {
+        $model = file_get_contents(base_path('Modules/Pharma/Models/Medicine.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/MedicineService.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaMedicineEditorController.php'));
+        $form = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/medicine-editor.blade.php'));
+
+        $this->assertStringContainsString("'selling_price'", $model);
+        $this->assertStringContainsString('normalizeSellingPrice($data', $service);
+        $this->assertStringContainsString('selling > (float) $declared', $service);
+        $this->assertStringContainsString("'lte:declared_price'", $controller);
+        $this->assertStringContainsString('data-vnd-price="declared"', $form);
+        $this->assertStringContainsString('data-vnd-price="selling"', $form);
+        $this->assertStringContainsString('inputmode="numeric"', $form);
+    }
 }
