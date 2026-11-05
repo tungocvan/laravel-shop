@@ -28,6 +28,9 @@ class SearchHoadon extends Component
     public $vatIn = false;
     public $useQueue = true;
     public string $invoiceSource = 'all';
+    public string $posCaptchaImage = '';
+    public string $posCaptchaAnswer = '';
+    public ?string $posCaptchaError = null;
     public array $logs = [];
     public ?string $syncId = null;
     public string $syncState = 'idle';
@@ -64,6 +67,19 @@ class SearchHoadon extends Component
         $this->dispatch('scroll-bottom');
     }
 
+    public function refreshPosCaptcha(): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->posCaptchaImage = '';
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaError = null;
+        try {
+            $this->posCaptchaImage = $this->apiService->loadPosCaptcha((int) auth('admin')->id())['image'];
+        } catch (\\Throwable) {
+            $this->posCaptchaError = 'Không tải được CAPTCHA POS. Vui lòng thử lại.';
+        }
+    }
+
     public function run(): void
     {
         $this->authorizePermission('invoices-create');
@@ -80,6 +96,26 @@ class SearchHoadon extends Component
             $this->redirectRoute('admin.invoices.create-token');
 
             return;
+        }
+
+        $posCaptcha = null;
+        if ($this->invoiceSource !== 'regular') {
+            // POS requires interactive verification. Do not put CAPTCHA answers in queue payloads.
+            if ($this->useQueue) {
+                $this->posCaptchaError = 'Đồng bộ POS hiện cần bỏ chọn Xử lý qua queue để nhập CAPTCHA trực tiếp.';
+                return;
+            }
+            $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
+            try {
+                $posCaptcha = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
+            } catch (\\Throwable) {
+                $this->posCaptchaError = 'CAPTCHA POS đã hết hạn hoặc không hợp lệ. Vui lòng tải mã mới.';
+                $this->posCaptchaAnswer = '';
+                return;
+            }
+            $this->posCaptchaAnswer = '';
+            $this->posCaptchaImage = '';
+            $this->posCaptchaError = null;
         }
 
         $this->logs = [];
@@ -113,6 +149,8 @@ class SearchHoadon extends Component
                 fn ($msg) => $this->log($msg),
                 (bool) $this->vatIn,
                 $this->invoiceSource,
+                null,
+                $posCaptcha,
             );
 
             if ($file === null) {
