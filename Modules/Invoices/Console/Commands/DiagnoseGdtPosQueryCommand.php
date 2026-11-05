@@ -129,14 +129,7 @@ class DiagnoseGdtPosQueryCommand extends Command
                     };
                     $this->line('Error field '.$field.': present ('.$kind.').');
 
-                    // Only strictly numeric codes or uppercase symbolic codes can be printed.
-                    // Never display a free-form error/message or nested data.
-                    if ($field === 'code' && (is_string($value) || is_int($value))) {
-                        $code = (string) $value;
-                        if (preg_match('/^(?:[0-9]{1,6}|[A-Z][A-Z0-9_]{0,31})$/D', $code)) {
-                            $this->line('Safe error code: '.$code);
-                        }
-                    }
+
                 }
             } else {
                 $this->line('JSON response is not an object.');
