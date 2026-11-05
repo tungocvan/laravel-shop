@@ -36,12 +36,12 @@ class GdtPosHttpDiagnosticsTest extends TestCase
             Cache::put('gdt-diagnostics-test-token', 'SECRET_TOKEN', 600);
 
             Http::fake(function ($request) use ($case) {
-                if (str_contains($request->url(), '/query/invoices/purchase')) {
-                    return Http::response(['datas' => [], 'total' => 0], 200);
-                }
-
                 if (str_contains($request->url(), '/sco-query/invoices/purchase')) {
                     return Http::response($case['body'], 500, ['Content-Type' => $case['content_type']]);
+                }
+
+                if (str_contains($request->url(), '/query/invoices/purchase')) {
+                    return Http::response(['datas' => [], 'total' => 0], 200);
                 }
 
                 return Http::response([], 404);
