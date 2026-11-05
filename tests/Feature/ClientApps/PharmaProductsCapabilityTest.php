@@ -88,7 +88,9 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.products.create')", $view);
         $this->assertStringContainsString("@can('client.pharma.products.create')", $view);
         $this->assertStringNotContainsString('name="per_page"', $view);
-        $this->assertStringNotContainsString('->links()', $view);
+        // SKU results use PWA load-more; master-only medicines have their own paginator.
+        $this->assertStringNotContainsString('$products->links()', $view);
+        $this->assertStringContainsString('$masterOnlyMedicines->links()', $view);
         $this->assertStringContainsString('data-pwa-load-more-targets', $view);
         $this->assertStringContainsString('Xem thêm', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
