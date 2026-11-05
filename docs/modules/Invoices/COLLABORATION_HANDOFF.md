@@ -1,3 +1,15 @@
+## 2026-11-05 — GDT config form typing/re-render checkpoint
+
+- Branch: `fix/invoices-gdt-config-input-reload-20261105`, based on `main` at `fa274157ca3e5ffcef394111080935eb90f42553`.
+- Report: typing one character into `GDT_API_USERNAME` or `GDT_API_PASSWORD` on `/admin/invoices/create-token` causes apparent page/component reload.
+- Audit: seven GDT configuration inputs used `wire:model.live`, triggering network synchronization during typing. The exact full-page reload mechanism has not been independently reproduced; this is the targeted suspected trigger.
+- Change: switch only the seven configuration bindings to `wire:model` (Livewire 3 deferred), retaining explicit `wire:submit=saveGdtConfig`, validation, DB encrypted password persistence, captcha and login bindings. No schema, service, route, .env, token or production changes.
+- Focused test: `php artisan test tests/Feature/Invoices/GdtDatabaseSettingsTest.php`; impacted regression: `php artisan test tests/Feature/Invoices/GdtAuthenticationSafetyContractTest.php tests/Feature/Invoices/GdtQuickConnectModalContractTest.php` after focused PASS.
+- TEST PENDING on Admin runtime; UI PENDING desktop/mobile. Verify username/password can accept multiple characters without navigation; save applies once; password remains blank on reload; captcha/login remain functional. Stop and investigate if page still reloads.
+- Next: Git pull feature branch, run focused then impacted tests, obtain user UI PASS, review PR before merge; no merge/deploy authorized at this checkpoint.
+
+---
+
 # Invoices Collaboration Handoff
 
 ## Final status — Structured Lot / Expiry Canonical Mapping
