@@ -514,3 +514,11 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - UI evidence: 05:58:22 POS purchase HTTP 200 HTML, 1KB–10KB, doctype, title class ERROR, server class UNSPECIFIED. Cookies were restored 4/4 in the preceding session; upstream reason remains unknown.
 - Extended `safePosHtmlFingerprint()` with `error_category` (GATEWAY_OR_UPSTREAM, ACCESS_OR_CHALLENGE, SESSION_OR_LOGIN, APPLICATION_OR_SERVER, UNCLASSIFIED) and `gateway_header_class` (fixed-label header-presence classification). No HTML/body/header values, credentials, cookies or CAPTCHA are logged. Existing fail-closed canonical behavior unchanged.
 - Added focused regression for synthetic 502 HTML served with HTTP 200 and sensitive marker strings; tests must be run locally before module regression. No PR, merge or deployment; UI PASS pending.
+
+
+### 2026-11-06 — POS request transport contract focused checkpoint
+
+- User-approved diagnostic-only batch after read-only audit of Chrome successful JSON vs Laravel HTTP 200 HTML ERROR. Local PHP 8.3.6, libcurl 8.5.0, OpenSSL 3.0.13, HTTP/2 capability and Guzzle 7.15.3 verified by user; actual on-wire HTTP protocol and upstream reason remain unknown.
+- Added `tests/Feature/Invoices/GdtPosRequestTransportContractTest.php` with no-network checks for Guzzle cookie eligibility/domain isolation, POS purchase query/header contract, safe metadata and HTTP 200 HTML fail-closed. This is a Laravel HTTP-fake contract, not a proof of actual wire-level cookie delivery or browser transport equivalence.
+- No changes to production, GDT credentials, service behavior, User-Agent, CAPTCHA, canonical persistence or regular invoice source. No live GDT request from assistant.
+- Checkpoint pending user local focused test results. If focused PASS, run Invoices module regression; UI PASS requires explicit user confirmation. No PR/merge/deploy.
