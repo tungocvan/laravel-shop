@@ -109,6 +109,54 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
         })->once();
     }
 
+    public function test_pos_purchase_request_and_response_share_safe_trace_id(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response('<html>SECRET_BODY</html>', 200, [
+            'Content-Type' => 'text/html',
+            'Location' => 'https://gdt-test.invalid/login?token=SECRET_QUERY',
+        ])]);
+
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-07-01', '2026-07-31', true, 'pos',
+                ['ckey' => 'SECRET_KEY', 'cvalue' => 'SECRET_ANSWER'],
+            );
+            $this->fail('Expected POS schema rejection.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
+        }
+
+        $traceIds = [];
+        foreach (['GDT POS request metadata.', 'GDT POS invoice query response metadata.'] as $event) {
+            Log::shouldHaveReceived('info')->withArgs(function ($message, $context) use ($event, &$traceIds) {
+                if ($message !== $event) {
+                    return false;
+                }
+                $this->assertSame('test', $context['runtime']);
+                $this->assertSame('purchase', $context['action']);
+                $this->assertMatchesRegularExpression(
+                    '/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i',
+                    $context['trace_id'],
+                );
+                $traceIds[] = $context['trace_id'];
+                $encoded = json_encode($context);
+                foreach (['SECRET_BODY', 'SECRET_QUERY', 'SECRET_KEY', 'SECRET_ANSWER'] as $secret) {
+                    $this->assertStringNotContainsString($secret, $encoded);
+                }
+                if ($event === 'GDT POS invoice query response metadata.') {
+                    $this->assertSame('/login', $context['redirect_location_path']);
+                    $this->assertSame('html', $context['response_format']);
+                }
+
+                return true;
+            })->once();
+        }
+        $this->assertCount(2, $traceIds);
+        $this->assertSame($traceIds[0], $traceIds[1]);
+        Http::assertSentCount(1);
+    }
+
     public function test_pos_http_200_empty_response_is_distinguishable_from_invalid_schema(): void
     {
         Log::spy();
