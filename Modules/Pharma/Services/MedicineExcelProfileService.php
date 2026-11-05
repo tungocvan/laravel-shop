@@ -26,6 +26,7 @@ class MedicineExcelProfileService
         'unit' => 'Đơn vị tính',
         'packaging_specification' => 'Quy cách',
         'declared_price' => 'Giá kê khai',
+        'selling_price' => 'Giá bán',
         'registered_company' => 'Cơ sở đăng ký',
         'manufacturing_company' => 'Cơ sở sản xuất',
         'manufacturing_country' => 'Nước sản xuất',
