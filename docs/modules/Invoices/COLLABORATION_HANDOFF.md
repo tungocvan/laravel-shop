@@ -344,3 +344,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Uses existing cached token, HTTPS-only base URL, bounded connect/total timeouts. Prints only status and response format; never prints response body, token, invoice IDs, query values or raw exception messages. Does not persist invoices, export Excel, alter config, or update cache.
 - Focused fake-HTTP tests: `tests/Feature/Invoices/GdtPosQueryDiagnosticCommandTest.php`. Tests pending; no real GDT request has been sent.
 - Checkpoint: run focused test and prior GDT diagnostics tests; only after PASS run `tests/Feature/Invoices`. Keep `--execute` off until separately approved for the specific environment. No PR/merge/deploy.
+
+### 2026-11-05 — POS endpoint/filter evidence and comparison
+
+- Public community implementations reference `/sco-query/invoices/purchase` for POS purchase, so an endpoint typo is not established. Sources: https://www.giaiphapexcel.com/diendan/threads/t%E1%BA%A3i-h%C3%B3a-%C4%91%C6%A1n-%C4%91i%E1%BB%87n-t%E1%BB%AD-https-hoadondientu-gdt-gov-vn-excel-vba.171723/page-7 and https://gist.github.com/lesslucifer/168f0fd84a1efbed4a0c102043ef1d31 . These are community references, not official API contracts.
+- Existing POS HTTP 500 reproduced with size=1, date range 2026-10-12..2026-10-31, filter `ttxly==8`. Root cause still unverified.
+- Diagnostic command now supports `--without-pos-filter` as a comparison option only. Default remains filtered and dry-run. Never enable automatic fallback in production sync based on this test alone; compare response status and schema first. No changes to GdtInvoiceService or Excel sandbox.
+- Fake-HTTP test covers one GET and absent filter; awaiting DELL focused/module tests. No live comparison request performed, no PR/merge/deploy.
