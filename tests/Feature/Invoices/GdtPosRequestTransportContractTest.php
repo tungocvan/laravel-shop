@@ -220,10 +220,10 @@ class GdtPosRequestTransportContractTest extends TestCase
         $this->assertSame(2, $first['created']);
         $this->assertSame(1, \Modules\Invoices\Models\Invoices::query()
             ->where('invoice_type', 'purchase')
-            ->whereBetween('issued_date', ['2026-10-01', '2026-10-31'])->count());
+            ->whereDate('issued_date', '2026-10-26')->count());
         $this->assertSame(1, \Modules\Invoices\Models\Invoices::query()
             ->where('invoice_type', 'purchase')
-            ->whereBetween('issued_date', ['2026-09-01', '2026-09-30'])->count());
+            ->whereDate('issued_date', '2026-09-30')->count());
 
         $replay = $persist->invoke($service, $rows, true);
         $this->assertSame(0, $replay['created']);
