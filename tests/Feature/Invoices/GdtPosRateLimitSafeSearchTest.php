@@ -99,6 +99,10 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             }
 
             $this->assertSame('HTML_UNCLASSIFIED', $context['html_response_kind']);
+            $this->assertSame('NO_SIMPLE_TITLE', $context['html_fingerprint']['title_class']);
+            $this->assertSame('UNDER_1KB', $context['html_fingerprint']['body_size_band']);
+            $this->assertTrue($context['html_fingerprint']['has_html_tag']);
+            $this->assertSame('UNSPECIFIED', $context['html_fingerprint']['server_class']);
             $this->assertTrue($context['response_has_set_cookie']);
             $this->assertFalse($context['response_has_www_authenticate']);
             $this->assertTrue($context['response_has_cache_control']);
