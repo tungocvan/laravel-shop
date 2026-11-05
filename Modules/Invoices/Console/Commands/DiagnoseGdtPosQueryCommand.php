@@ -129,6 +129,10 @@ class DiagnoseGdtPosQueryCommand extends Command
                     };
                     $this->line('Error field '.$field.': present ('.$kind.').');
 
+                    if ($field === 'message' && is_string($value)) {
+                        $this->line('Message category: '.self::classifyErrorMessage($value));
+                    }
+
 
                 }
             } else {
@@ -139,5 +143,31 @@ class DiagnoseGdtPosQueryCommand extends Command
         $this->line('No raw response body, identifiers, tokens, or query values were output.');
 
         return $response->successful() ? self::SUCCESS : self::FAILURE;
+    }
+    /**
+     * Conservative, fixed-label classification. Never return untrusted response text.
+     */
+    private static function classifyErrorMessage(string $message): string
+    {
+        // Bound processing cost; never log or display message content.
+        $message = strtolower(substr($message, 0, 2048));
+
+        if (preg_match('/\\b(?:404|not found|no route|route not found|endpoint not found)\\b/', $message)) {
+            return 'ENDPOINT_NOT_FOUND';
+        }
+
+        if (preg_match('/\\b(?:401|403|unauthorized|unauthorised|forbidden|access denied|permission denied|token expired|invalid token)\\b/', $message)) {
+            return 'AUTHORIZATION_ERROR';
+        }
+
+        if (preg_match('/\\b(?:400|422|bad request|invalid (?:query|parameter|filter|search)|malformed (?:query|parameter|filter)|validation failed)\\b/', $message)) {
+            return 'INVALID_QUERY';
+        }
+
+        if (preg_match('/\\b(?:502|503|504|bad gateway|service unavailable|gateway timeout|upstream|connection refused|connection timed out)\\b/', $message)) {
+            return 'UPSTREAM_ERROR';
+        }
+
+        return 'UNKNOWN';
     }
 }
