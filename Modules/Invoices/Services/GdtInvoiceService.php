@@ -354,6 +354,7 @@ class GdtInvoiceService
         $page = 1;
         $state = null;
         $total = null;
+        $posTraceId = $cashRegister ? (string) Str::uuid() : null;
         do {
             $show('[GDT] '.($cashRegister ? 'Máy tính tiền' : 'Thông thường')." · page {$page}...");
             try {
@@ -382,9 +383,23 @@ class GdtInvoiceService
                     Log::info('GDT POS captcha cookie lifecycle.', [
                         'stage' => 'request',
                         'action' => $action,
+                        'trace_id' => $posTraceId,
+                        'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+                        'page' => $page,
                         'stored_cookie_count' => count($storedCookies),
                         'jar_cookie_count' => count($jar->toArray()),
                         'has_cookie' => count($jar->toArray()) > 0,
+                    ]);
+                    Log::info('GDT POS request metadata.', [
+                        'trace_id' => $posTraceId,
+                        'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+                        'action' => $action,
+                        'page' => $page,
+                        'endpoint' => $endpoint.$action,
+                        'page_size' => $pageSize,
+                        'search_has_pos_filter' => str_contains($search, 'ttxly==8'),
+                        'has_pagination_state' => filled($state),
+                        'jar_cookie_count' => count($jar->toArray()),
                     ]);
                     $client = $client->withOptions(['cookies' => $jar]);
                 }
@@ -400,7 +415,7 @@ class GdtInvoiceService
                     Cache::forget(config('invoices.gdt.cache_key'));
                 }throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
             } if (! $res->successful()) {
-                $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query);
+                $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query, $posTraceId);
                 if ($res->status() === 429) {
                     $retryAfter = trim((string) $res->header('Retry-After', ''));
                     $wait = preg_match('/^[0-9]{1,5}$/D', $retryAfter)
@@ -411,7 +426,7 @@ class GdtInvoiceService
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
             if ($cashRegister) {
-                $this->logPosQuerySuccess($res, $data, $action, $page, $query, $posCaptcha);
+                $this->logPosQuerySuccess($res, $data, $action, $page, $query, $posCaptcha, $posTraceId);
                 if (! is_array($data) || ! is_array($data['datas'] ?? null) || ! array_is_list($data['datas'])
                     || ! isset($data['total']) || ! is_int($data['total'])
                     || $data['total'] < 0 || $data['total'] < count($data['datas'])) {
@@ -446,7 +461,7 @@ class GdtInvoiceService
      * Diagnose successful POS responses using allowlisted scalar metadata only.
      * Never log invoice contents, CAPTCHA values/keys, cookies, token or full URL.
      */
-    private function logPosQuerySuccess($response, $data, string $action, int $page, array $query, ?array $posCaptcha): void
+    private function logPosQuerySuccess($response, $data, string $action, int $page, array $query, ?array $posCaptcha, ?string $traceId): void
     {
         $contentType = strtolower((string) $response->header('Content-Type', ''));
         $format = str_contains($contentType, 'json') ? 'json'
@@ -471,6 +486,9 @@ class GdtInvoiceService
         };
         Log::info('GDT POS invoice query response metadata.', [
             'source' => 'pos',
+            'trace_id' => $traceId,
+            'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+            'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
             'action' => $action,
             'page' => $page,
             'http_status' => $response->status(),
@@ -494,7 +512,19 @@ class GdtInvoiceService
      * Log only allowlisted response metadata. Never log response bodies, messages,
      * query values, invoice identifiers, request URLs or authentication headers.
      */
-    private function logInvoiceQueryFailure($response, string $path, string $action, int $page, bool $cashRegister, array $query): void
+    /** Never expose query parameters, host, or credentials from a redirect Location. */
+    private function safeRedirectPath(?string $location): ?string
+    {
+        if (! is_string($location) || $location === '') {
+            return null;
+        }
+        $path = parse_url($location, PHP_URL_PATH);
+
+        return is_string($path) && preg_match('#^/[a-zA-Z0-9/_-]{1,160}$#D', $path)
+            ? $path : null;
+    }
+
+    private function logInvoiceQueryFailure($response, string $path, string $action, int $page, bool $cashRegister, array $query, ?string $traceId = null): void
     {
         $contentType = strtolower((string) $response->header('Content-Type', ''));
         $format = str_contains($contentType, 'json') ? 'json'
@@ -502,6 +532,9 @@ class GdtInvoiceService
 
         Log::warning('GDT invoice source HTTP failure.', [
             'source' => $cashRegister ? 'pos' : 'regular',
+            'trace_id' => $traceId,
+            'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+            'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
             'endpoint' => $path,
             'action' => $action,
             'page' => $page,
