@@ -4,6 +4,7 @@ namespace Tests\Feature\Invoices;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Modules\Invoices\Services\GdtInvoiceService;
 use Tests\TestCase;
 
@@ -64,6 +65,59 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
                 && str_contains((string) ($query['search'] ?? ''), 'tdlap=ge=01/07/2026T00:00:00')
                 && str_contains((string) ($query['search'] ?? ''), 'tdlap=le=31/07/2026T23:59:59');
         });
+    }
+
+    public function test_pos_http_200_logs_only_safe_response_counts(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response([
+            'datas' => [['nbmst' => 'SENSITIVE_INVOICE_FIXTURE']],
+            'total' => 1,
+            'state' => null,
+        ], 200, ['Content-Type' => 'application/json'])]);
+
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos',
+            ['ckey' => 'SECRET_CAPTCHA_KEY', 'cvalue' => 'SECRET_CAPTCHA_ANSWER'],
+        );
+
+        $this->assertSame(1, $result['count']);
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS invoice query response metadata.') {
+                return false;
+            }
+
+            $this->assertSame('pos', $context['source']);
+            $this->assertSame('purchase', $context['action']);
+            $this->assertSame(200, $context['http_status']);
+            $this->assertSame(1, $context['response_total']);
+            $this->assertSame(1, $context['response_datas_count']);
+            $this->assertTrue($context['response_datas_is_array']);
+            $this->assertTrue($context['search_has_pos_filter']);
+            $serialized = json_encode($context);
+            $this->assertStringNotContainsString('SENSITIVE_INVOICE_FIXTURE', $serialized);
+            $this->assertStringNotContainsString('SECRET_CAPTCHA_KEY', $serialized);
+            $this->assertStringNotContainsString('SECRET_CAPTCHA_ANSWER', $serialized);
+
+            return true;
+        })->once();
+    }
+
+    public function test_pos_http_200_empty_response_is_distinguishable_from_invalid_schema(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200, ['Content-Type' => 'application/json'])]);
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos',
+            ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+        );
+        $this->assertSame(0, $result['count']);
+        Log::shouldHaveReceived('info')->withArgs(fn ($message, $context) =>
+            $message === 'GDT POS invoice query response metadata.'
+            && $context['response_total'] === 0
+            && $context['response_datas_count'] === 0
+            && $context['response_datas_is_array'] === true
+        )->once();
     }
 
     public function test_pos_http_429_stops_without_retry_and_shows_retry_after(): void
