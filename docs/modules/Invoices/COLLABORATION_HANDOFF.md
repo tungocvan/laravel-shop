@@ -318,3 +318,13 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - **Gate:** Local focused tests NOT RUN, module regression NOT RUN, impacted tests NOT RUN, UI NOT VERIFIED. Do not merge or deploy. Database migration/import and .env cleanup require a separate approval checkpoint.
 
 - Follow-up commit: preserve password when Livewire nullable password field is absent; four advanced GDT tuning defaults no longer read GDT_* env variables. Await fresh focused/module tests after pulling.
+
+
+## 2026-11-05 — Integrate GDT configuration input reload fix into POS diagnostics branch
+
+- Branch: `feat/invoices-gdt-independent-sources-20261105` (existing feature branch; no merge to main).
+- Ported the already-reviewed deferred bindings from `fix/invoices-gdt-config-input-reload-20261105` into `Modules/Invoices/resources/views/livewire/gdt-login.blade.php`: seven GDT configuration fields use `wire:model` instead of `wire:model.live`, so typing no longer triggers per-keystroke Livewire updates; captcha retains its existing live binding.
+- Ported the focused binding regression contract to `tests/Feature/Invoices/GdtDatabaseSettingsTest.php`.
+- No changes to GDT password persistence, API endpoints, Regular canonical checkpoint, POS retry/HTTP diagnostics, database schema, .env or production configuration.
+- Local gate pending: `GdtDatabaseSettingsTest`, `GdtPosHttpDiagnosticsTest`, `GdtSourceRetryHttpIntegrationTest`; only after focused PASS run `tests/Feature/Invoices`; then manual UI verification on `/admin/invoices/create-token` for typing without reload, explicit save, password preservation, captcha/login and responsive layout.
+- Prior POS-focused and Invoices regression PASS was reported before this integration; rerun required. UI PASS not yet confirmed. No PR, merge or deploy authorized.
