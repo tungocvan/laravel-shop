@@ -25,7 +25,7 @@ class SearchHoadon extends Component
 
     public $start_date;
     public $end_date;
-    public $vatIn = false;
+    public $vatIn = true;
     public $useQueue = true;
     public string $invoiceSource = 'regular';
     public string $searchState = 'idle';
