@@ -61,6 +61,7 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
 
             return str_contains($request->url(), '/sco-query/invoices/purchase')
                 && ($query['sort'] ?? null) === 'tdlap:desc'
+                && (string) ($query['size'] ?? '') === '15'
                 && str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
                 && str_contains((string) ($query['search'] ?? ''), 'tdlap=ge=01/07/2026T00:00:00')
                 && str_contains((string) ($query['search'] ?? ''), 'tdlap=le=31/07/2026T23:59:59');
