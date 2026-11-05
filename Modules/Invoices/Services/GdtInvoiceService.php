@@ -363,7 +363,7 @@ class GdtInvoiceService
             'page' => $page,
             'http_status' => $response->status(),
             'response_format' => $format,
-            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==8'),
+            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==5'),
             'page_size' => (int) ($query['size'] ?? 0),
             'has_pagination_state' => filled($query['state'] ?? null),
         ]);
