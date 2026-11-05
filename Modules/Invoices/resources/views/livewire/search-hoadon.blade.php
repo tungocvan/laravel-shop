@@ -10,10 +10,22 @@
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-5 py-4 sm:px-6">
             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Bước 1</p>
-            <h2 class="mt-1 text-base font-semibold text-gray-900">Đồng bộ dữ liệu GDT</h2>
-            <p class="mt-1 text-sm text-gray-500">Chọn khoảng thời gian và loại hóa đơn. GDT sync ghi trực tiếp danh sách hóa đơn đồng thời lưu RAW canonical.</p>
+            <h2 class="mt-1 text-lg font-semibold text-gray-900">Dashboard đồng bộ hóa đơn GDT</h2>
+            <p class="mt-1 text-sm text-gray-500">Chọn nguồn, xác minh nếu cần và theo dõi kết quả riêng của Regular / POS. Số lượng chỉ xuất hiện khi có kết quả truy vấn thực tế.</p>
         </div>
         <div class="grid gap-4 p-5 md:grid-cols-3 sm:p-6">
+            <div class="md:col-span-3 grid gap-3 sm:grid-cols-2">
+                @foreach(['regular' => 'Hóa đơn thông thường · Regular', 'pos' => 'Hóa đơn máy tính tiền · POS'] as $key => $label)
+                    @php($metric = $sourceResults[$key] ?? null)
+                    @php($metricState = $metric['state'] ?? 'pending')
+                    @php($metricLabel = match($metricState) {'completed'=>'Đã xử lý','empty'=>'Đã tra cứu · 0 hóa đơn','partial'=>'Thiếu RAW detail','fetched'=>'Đã nhận từ GDT','failed'=>'Truy vấn thất bại','skipped'=>'Không chọn nguồn',default=>'Chưa có kết quả'})
+                    <div class="rounded-xl border border-slate-200 bg-slate-50 p-4" wire:key="gdt-metric-{{ $key }}">
+                        <div class="flex items-start justify-between gap-2"><p class="text-sm font-semibold text-slate-800">{{ $label }}</p><span class="text-xs text-slate-500">{{ $metricLabel }}</span></div>
+                        <p class="mt-3 text-2xl font-bold tabular-nums text-slate-900">{{ isset($metric['count']) ? number_format($metric['count']) : '—' }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Hóa đơn GDT trả về · không phải số bản ghi mới tạo</p>
+                    </div>
+                @endforeach
+            </div>
             <div><label class="text-sm font-medium text-gray-700">Từ ngày</label><input type="date" wire:model.live="start_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('start_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
             <div><label class="text-sm font-medium text-gray-700">Đến ngày</label><input type="date" wire:model.live="end_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('end_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
             <div class="md:col-span-3"><label for="invoice-source" class="text-sm font-medium text-gray-700">Nguồn hóa đơn</label><select id="invoice-source" wire:model.live="invoiceSource" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="all">Tất cả hóa đơn — đồng bộ canonical vào database</option><option value="regular">Chỉ hóa đơn thông thường — đồng bộ canonical</option><option value="pos">Chỉ hóa đơn máy tính tiền — đồng bộ canonical</option></select>@error('invoiceSource')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
@@ -37,7 +49,7 @@
             <div><label class="text-sm font-medium text-gray-700">Loại hóa đơn</label><select wire:model.live="vatIn" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="0">Bán ra</option><option value="1">Mua vào</option></select></div>
         </div>
         <div class="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" wire:model.live="useQueue" class="rounded border-gray-300"> Xử lý qua queue</label>
+            <div class="space-y-1"><label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" wire:model.live="useQueue" @disabled($invoiceSource !== 'regular') class="rounded border-gray-300 disabled:opacity-50"> Xử lý qua queue</label><p class="text-xs text-gray-500">{{ $invoiceSource === 'regular' ? 'Regular hỗ trợ queue hoặc trực tiếp.' : 'POS yêu cầu CAPTCHA: chỉ hỗ trợ chạy trực tiếp ở phiên bản này.' }}</p></div>
             <button wire:click="run" wire:loading.attr="disabled" class="h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="run">Chạy đồng bộ canonical</span><span wire:loading wire:target="run">Đang xử lý…</span></button>
         </div>
     </section>
@@ -51,6 +63,24 @@
         </div>
         @if(in_array($syncState,['queued','processing'],true))<div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div class="h-full w-2/3 animate-pulse rounded-full bg-indigo-500"></div></div>@endif
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <div class="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                <p class="text-sm font-semibold text-slate-900">Kết quả xác minh theo nguồn</p>
+                <p class="mt-1 text-xs text-slate-600">“Hoàn tất” chỉ mô tả tác vụ; kiểm tra số lượng và trạng thái từng nguồn để biết POS đã thực sự được tra cứu hay chưa.</p>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                    @foreach(['regular'=>'Regular', 'pos'=>'POS'] as $key=>$label)
+                        @php($metric=$sourceResults[$key] ?? null)
+                        @php($state=$metric['state'] ?? 'pending')
+                        <div class="rounded-lg border border-slate-200 bg-white p-3" wire:key="gdt-result-{{ $key }}">
+                            <p class="text-xs font-semibold uppercase text-slate-600">{{ $label }}</p>
+                            <p class="mt-1 text-sm font-semibold text-slate-900">{{ match($state) {'completed'=>'Đã xử lý canonical','empty'=>'Tra cứu thành công · không có hóa đơn','partial'=>'Còn thiếu RAW detail','fetched'=>'Đã truy vấn GDT','failed'=>'Thất bại','skipped'=>'Không được chọn',default=>'Chưa xác minh'} }}</p>
+                            <p class="mt-1 text-xs text-slate-500">GDT trả về: {{ isset($metric['count']) ? number_format($metric['count']).' hóa đơn' : 'chưa có số liệu' }}</p>
+                        </div>
+                    @endforeach
+                </div>
+                @if($detailResults !== null)
+                    <p class="mt-3 text-xs text-slate-700">RAW detail toàn phiên: đã có {{ (int) ($detailResults['reused'] ?? 0) }} · tải mới {{ (int) ($detailResults['fetched'] ?? 0) }} · lỗi {{ (int) ($detailResults['failed'] ?? 0) }}. Các số này không tách riêng theo nguồn.</p>
+                @endif
+            </div>
             <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-medium uppercase tracking-wide text-gray-500">Kết quả</p><p class="mt-1 text-sm font-semibold {{ $syncState==='partial'?'text-amber-800':'text-gray-800' }}">{{ $syncMessage ?: 'Chưa có phiên đồng bộ mới.' }}</p></div>
             <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-medium uppercase tracking-wide text-gray-500">File export</p><p class="mt-1 truncate text-sm font-semibold {{ $syncFile?'text-emerald-700':'text-gray-500' }}">{{ $syncFile ?: 'Chưa tạo file' }}</p></div>
         </div>
@@ -119,7 +149,7 @@
     </section>
 
     <details class="group rounded-2xl border border-gray-200 bg-gray-950 shadow-sm" @if(in_array($syncState,['processing','partial','failed'],true)) open @endif>
-        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-white"><div><p class="text-sm font-semibold">Nhật ký xử lý</p><p class="mt-1 text-xs text-gray-400">Tự mở khi đang xử lý, đồng bộ một phần hoặc có lỗi.</p></div><span class="text-xs font-semibold text-gray-300 group-open:hidden">Mở nhật ký</span><span class="hidden text-xs font-semibold text-gray-300 group-open:inline">Thu gọn</span></summary>
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-white"><div><p class="text-sm font-semibold">Nhật ký xử lý</p><p class="mt-1 text-xs text-gray-400">Mở để xem từng lần gọi GDT, số hóa đơn nhận và lỗi. Không hiển thị mã CAPTCHA.</p></div><span class="text-xs font-semibold text-gray-300 group-open:hidden">Mở nhật ký</span><span class="hidden text-xs font-semibold text-gray-300 group-open:inline">Thu gọn</span></summary>
         <div class="border-t border-gray-800 px-5 pb-5 pt-4 font-mono text-xs text-gray-200"><div class="max-h-80 space-y-1 overflow-y-auto">@forelse($logs as $line)<div>{{ $line }}</div>@empty<div class="text-gray-400">Chưa có tác vụ.</div>@endforelse</div></div>
     </details>
 </div>
