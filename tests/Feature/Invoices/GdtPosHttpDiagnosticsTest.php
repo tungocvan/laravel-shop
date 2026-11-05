@@ -71,7 +71,6 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                     && str_contains(urldecode($request->url()), 'ttxly==8');
             });
 
-            Mockery::close();
         }
     }
 }
