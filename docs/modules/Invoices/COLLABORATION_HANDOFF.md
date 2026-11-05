@@ -444,3 +444,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - POS fetch now generates one random trace_id per monthly request and logs request metadata, cookie-jar lifecycle and HTTP response metadata with the same trace_id. Logs mark runtime as test/application to distinguish HTTP fake fixtures from manual UI runs. Response Location is reduced to an allowlisted path (no host/query), when available; this is not a complete redirect history or proof of wire-level cookies.
 - POS page size remains 15; no changes to API query, CAPTCHA, canonical, retry policy or UI. HTTP 200 malformed payload remains fail-closed.
 - Added focused purchase correlation/security test; adapted HTTP 500 diagnostics mock to accept new safe fields. Focused tests and module regression pending local execution; no UI PASS, merge or deploy.
+
+### 2026-11-05 — POS purchase default-direction alignment
+
+- Read-only GitHub audit found `SearchHoadon::$vatIn = false` (sold) while Blade `wire:model.live="vatIn"` lists `<option value="1">Mua vào</option>` first. This mismatched initial UI selection and server-side request direction; the observed application trace went to `sold` and returned HTML.
+- Set default `$vatIn = true` to align first visible option with purchase endpoint. Explicitly selecting Bán ra remains supported; source tabs Regular/POS, CAPTCHA, parser, API query and canonical persistence remain unchanged.
+- Added default-direction/option-order contract regression. Focused tests, module regression and manual UI verification pending on DELL. Do not claim 10 POS purchase invoices or UI PASS until observed. No PR/merge/deploy.
