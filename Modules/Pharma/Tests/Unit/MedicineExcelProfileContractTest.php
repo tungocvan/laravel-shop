@@ -9,6 +9,16 @@ use Tests\TestCase;
 class MedicineExcelProfileContractTest extends TestCase
 {
     #[Test]
+    public function configured_export_supports_medicine_master_selling_price_as_numeric_vnd(): void
+    {
+        $exporter = file_get_contents(base_path('Modules/Pharma/Services/MedicineConfiguredExcelExporter.php'));
+
+        $this->assertStringContainsString("'selling_price' => \$medicine->selling_price ?? \$medicine->declared_price", $exporter);
+        $this->assertStringContainsString("'declared_price', 'selling_price', 'cost_price'", $exporter);
+        $this->assertStringContainsString("setFormatCode('#,##0')", $exporter);
+    }
+
+    #[Test]
     public function medicine_excel_profile_has_independent_schema_and_product_type(): void
     {
         $service = new MedicineExcelProfileService();
@@ -19,6 +29,8 @@ class MedicineExcelProfileContractTest extends TestCase
         $this->assertContains('medicine_code', $defaults['columns']);
         $this->assertContains('sku', $defaults['columns']);
         $this->assertSame('Hạn dùng sản phẩm', MedicineExcelProfileService::COLUMNS['shelf_life']);
+        $this->assertSame('Giá bán', MedicineExcelProfileService::COLUMNS['selling_price']);
+        $this->assertContains('selling_price', $defaults['columns']);
         $this->assertSame('Times New Roman', $defaults['settings']['font_family']);
         $this->assertSame(12, $defaults['settings']['header_font_size']);
         $this->assertSame(11, $defaults['settings']['body_font_size']);

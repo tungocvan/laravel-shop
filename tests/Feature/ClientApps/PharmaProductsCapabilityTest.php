@@ -84,9 +84,13 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("client.pharma.products.supplier-pricing", $controller);
         $this->assertStringContainsString("abort_if((\$filter === 'supplier-priced' || filled(\$validated['supplier_price'] ?? null)) && ! \$canViewSupplierPricing, 403)", $controller);
         $this->assertStringContainsString('$catalog->overview($variant, $canViewSupplierPricing)', $controller);
-        $this->assertStringContainsString('Danh mục thuốc · chỉ đọc', $view);
+        // ClientPortal catalog now supports permission-gated Medicine Master CRUD.
+        $this->assertStringContainsString("route('client.pharma.products.create')", $view);
+        $this->assertStringContainsString("@can('client.pharma.products.create')", $view);
         $this->assertStringNotContainsString('name="per_page"', $view);
-        $this->assertStringNotContainsString('->links()', $view);
+        // SKU results use PWA load-more; master-only medicines have their own paginator.
+        $this->assertStringNotContainsString('$products->links()', $view);
+        $this->assertStringContainsString('$masterOnlyMedicines->links()', $view);
         $this->assertStringContainsString('data-pwa-load-more-targets', $view);
         $this->assertStringContainsString('Xem thêm', $view);
         $this->assertStringContainsString('Xóa bộ lọc', $view);
@@ -141,16 +145,25 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$supplierPricingVisible && $suppliers->contains', $detail);
         $this->assertStringContainsString('@if($supplierPricingVisible)', $detail);
         $this->assertStringNotContainsString('Giá thương mại được bảo vệ theo quyền riêng.', $detail);
-        $this->assertStringNotContainsString('Medicine::query()', $controller);
+        // The SKU workspace uses MedicineCatalog; a separate scoped query lists
+        // Medicine Master records that have no SKU yet.
+        $this->assertStringContainsString('$catalog->browse(', $controller);
+        $this->assertStringContainsString('\\Modules\\Pharma\\Models\\Medicine::query()', $controller);
+        $this->assertStringContainsString("->whereDoesntHave('variants')", $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
-        // JavaScript Set.delete() only clears a local selection; it is not a server mutation.
-        foreach (['create', 'edit', 'destroy', 'verifyMaster'] as $mutation) {
-            $this->assertStringNotContainsString("route('client.pharma.products.{$mutation}'", $view);
+        // CRUD actions are allowed only behind explicit ClientPortal capabilities.
+        foreach (['create', 'edit', 'delete'] as $capability) {
+            $this->assertStringContainsString("@can('client.pharma.products.{$capability}')", $view);
         }
-        $this->assertStringNotContainsString("@method('DELETE')", $view);
+        $this->assertStringContainsString("route('client.pharma.products.create')", $view);
+        $this->assertStringContainsString("route('client.pharma.products.edit'", $view);
+        $this->assertStringContainsString("route('client.pharma.products.destroy'", $view);
+        $this->assertStringContainsString('@csrf', $view);
+        $this->assertStringContainsString("@method('DELETE')", $view);
+        $this->assertStringContainsString('onsubmit="return confirm(', $view);
         $this->assertStringNotContainsString('method="DELETE"', $view);
-        $this->assertStringNotContainsString('route(\'client.pharma.products.destroy\'', $view);
+        $this->assertStringNotContainsString("route('client.pharma.products.verifyMaster'", $view);
     }
 
     public function test_catalog_product_type_and_special_control_filters_use_pharma_owned_query(): void
@@ -216,7 +229,10 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("['required', 'file', 'mimes:xlsx,csv', 'max:10240']", $controller);
         $this->assertStringContainsString("['source' => 'clientportal_pharma']", $controller);
         $this->assertStringNotContainsString('->commit(', $controller);
-        $this->assertStringContainsString('name="file"', $view);
+        // Import was moved to a dedicated page; the catalog only links to it.
+        $importView = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/import.blade.php'));
+        $this->assertStringContainsString("route('client.pharma.products.import.page')", $view);
+        $this->assertStringContainsString('name="file"', $importView);
         $this->assertStringContainsString('id="medicine-export-form"', $view);
         $this->assertStringContainsString("data.append('ids[]', id)", $view);
         $this->assertStringContainsString("credentials: 'same-origin'", $view);

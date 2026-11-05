@@ -82,6 +82,7 @@ class Medicine extends Model
         'visa_validity_date',
         'gmp_certification_date',
         'declared_price',
+        'selling_price',
         'is_special_control',
         'profile_link',
         'notes',
@@ -93,6 +94,7 @@ class Medicine extends Model
         'gmp_certification_date' => 'date',
         'is_special_control' => 'boolean',
         'declared_price' => 'decimal:2',
+        'selling_price' => 'decimal:2',
         'shelf_life_months' => 'integer',
         'last_verified_at' => 'datetime',
     ];

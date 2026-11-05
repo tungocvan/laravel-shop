@@ -1,3 +1,22 @@
+## Checkpoint — Configurable medicine Excel selling price — 2026-11-05
+
+- UI PASS reported by user for Medicine Master declared/selling price create/edit; focused contract test previously reported PASS (15 tests), full Pharma products capability test still needs rerun after earlier fixes.
+- Added `selling_price` to shared `MedicineExcelProfileService::BASE_COLUMNS` so ClientPortal Excel configuration and Admin configurator can select/reorder/rename the field; new default templates include it, existing persisted profile selections are unchanged.
+- `MedicineConfiguredExcelExporter` reads Medicine Master selling price (falls back to declared price for legacy NULL values) and writes numeric cells with `#,##0` format. SKU-specific declared price remains unchanged.
+- Focused tests to run: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelProfileContractTest.php`, `php artisan test Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php`, `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. UI: configure/select Giá bán, export Excel, inspect value/format and saved profile compatibility.
+- No tests executed by assistant for this batch; no merge/deploy.
+
+---
+
+## Checkpoint — Medicine Master selling price — 2026-11-05
+
+- Feature branch: `feat/clientportal-pharma-products-crud-20261104`. Add nullable `pharma_medicines.selling_price` (decimal 15,2); no backfill, no changes to SKU or historical transaction prices. New Medicine Master defaults selling price to declared price. Existing medicines with null selling price display declared price as fallback in the ClientPortal editor until saved.
+- Shared `MedicineService::normalizeSellingPrice()` rejects selling price above declared price; ClientPortal create/edit validates integer VND, normalizes dot-separated values and formats inputs with native JS.
+- Checkpoint: `php artisan migrate --pretend` to review migration, then `php artisan migrate` on the authorized development environment; focused tests `php artisan test Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php` and `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. UI verify create default, edit persisted price, > declared rejection, thousands separators, mobile.
+- No tests/UI executed by assistant; do not claim PASS. No merge/deploy. Rollback only with separate approval and impact review because rollback drops the new column.
+
+---
+
 ## Checkpoint — Portable Excel report Header/Footer with optional logo — 2026-11-04
 
 - Shared Pharma Excel Designer V4 (Admin + ClientPortal) has opt-in report header/footer fields, optional PNG/JPEG logo upload (max 256 KB, max 2000px per side), adjustable logo width, and signature fields. Header/footer blocks are stored inside existing `settings.report_header` and `settings.report_footer` JSON, including embedded `data:image/png|jpeg;base64` logo; no hardcoded organization contact data, no new migration.
