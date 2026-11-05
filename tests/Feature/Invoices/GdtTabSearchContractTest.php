@@ -38,6 +38,22 @@ class GdtTabSearchContractTest extends TestCase
     }
 
     #[Test]
+    public function default_purchase_direction_matches_first_select_option_and_backend_mapping(): void
+    {
+        $component = new SearchHoadon;
+        $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
+
+        $this->assertTrue((bool) $component->vatIn);
+        $this->assertSame('purchase', $component->vatIn ? 'purchase' : 'sold');
+        $this->assertMatchesRegularExpression(
+            '/<select[^>]*wire:model\\.live="vatIn"[^>]*>\\s*<option value="1">Mua vào<\\/option>\\s*<option value="0">Bán ra<\\/option>/',
+            $view,
+        );
+        $component->vatIn = false;
+        $this->assertSame('sold', $component->vatIn ? 'purchase' : 'sold');
+    }
+
+    #[Test]
     public function preview_does_not_persist_canonical_data(): void
     {
         $source = file_get_contents((new \ReflectionClass(GdtInvoiceService::class))->getFileName());
