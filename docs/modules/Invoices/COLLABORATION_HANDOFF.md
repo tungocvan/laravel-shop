@@ -503,3 +503,8 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 
 - `GdtApiService::restoreSessionCookies()` now emits `GDT authentication cookie restore diagnostics.` with only five safe fields: `cache_entry_present`, `snapshot_is_array`, `snapshot_cookie_count`, `restored_cookie_count`, `restore_failure_count`. No cookie names/values, credentials, CAPTCHA, raw HTML or cache key are logged by this new event. Existing behavior for malformed entries is unchanged.
 - Added focused test with one valid and one malformed snapshot entry; verifies restoration counts and secret exclusion. Pending local test execution and UI validation. Keep POS HTTP 200 HTML fail-closed; do not merge or deploy until gates pass and user approves.
+
+### 2026-11-06 — POS HTML fingerprint diagnostic checkpoint
+
+- After confirming 4/4 authentication cookies restored and POS still returning HTTP 200 HTML, added `safePosHtmlFingerprint()` to the POS success-response metadata only when Content-Type is HTML. It emits bounded, fixed-label fields: body-size band, HTML doctype/tag presence, simple title category, coarse Server category, meta-refresh presence. No raw title, body, hash, URL, header value, token, cookie or CAPTCHA is logged; classifier is heuristic, not evidence of a specific upstream blocking mechanism.
+- Extended `GdtPosRateLimitSafeSearchTest` to assert fingerprint and secret exclusion. The existing HTML fail-closed behavior and canonical protection are unchanged. Focused tests, module regression and UI verification remain pending; no PR/merge/deploy.
