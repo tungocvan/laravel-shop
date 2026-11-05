@@ -12,9 +12,9 @@ class GdtRegularCanonicalCheckpointContractTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Invoices/Services/GdtInvoiceService.php'));
 
-        $regularFetch = strpos($source, '$regular = $source !== \'pos\'');
+        $regularFetch = strpos($source, "if (\$source !== 'pos')");
         $checkpoint = strpos($source, '$regularStats = $this->persistInvoices($regular, $vatIn)');
-        $posFetch = strpos($source, '$pos = $source !== \'regular\'');
+        $posFetch = strpos($source, "\$pos = \$this->fetchInvoicesByMonth(\$token, \$chunkStart, \$chunkEnd, \$show, \$vatIn, true)");
         $combinedExport = strpos($source, '$file = $this->exportExcel($all, $vatIn, $filename)');
 
         $this->assertNotFalse($regularFetch);
