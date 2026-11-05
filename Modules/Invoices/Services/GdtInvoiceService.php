@@ -513,6 +513,7 @@ class GdtInvoiceService
             'redirect_count' => $this->safeRedirectCount($response),
             'html_response_class' => $this->safeHtmlResponseClass($response),
             'html_response_kind' => $this->safeHtmlResponseKind($response),
+            'html_fingerprint' => $format === 'html' ? $this->safePosHtmlFingerprint($response) : null,
             'response_has_set_cookie' => trim((string) $response->header('Set-Cookie', '')) !== '',
             'response_has_www_authenticate' => trim((string) $response->header('WWW-Authenticate', '')) !== '',
             'response_has_cache_control' => trim((string) $response->header('Cache-Control', '')) !== '',
@@ -566,6 +567,52 @@ class GdtInvoiceService
      * Header-only response classification. Do not read, parse, hash or log HTML bodies.
      * A login page cannot be identified reliably from headers alone.
      */
+    /**
+     * Fixed-label, bounded classification only. Never log title text, HTML, hashes,
+     * server header values, or response URLs (they may contain secrets).
+     */
+    private function safePosHtmlFingerprint($response): array
+    {
+        $body = (string) $response->body();
+        $sample = strtolower(substr($body, 0, 32768));
+        $title = null;
+        if (preg_match('/<title\\b[^>]*>([^<]{0,200})<\\/title>/i', $sample, $matches)) {
+            $title = html_entity_decode(trim($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        $titleClass = match (true) {
+            $title === null => 'NO_SIMPLE_TITLE',
+            preg_match('/captcha|verify|verification|challenge|security|access denied|blocked|cloudflare/i', $title) === 1 => 'SECURITY_OR_CHALLENGE',
+            preg_match('/login|log in|sign in|đăng nhập|dang nhap/i', $title) === 1 => 'LOGIN',
+            preg_match('/error|exception|unavailable|lỗi|loi/i', $title) === 1 => 'ERROR',
+            default => 'OTHER_TITLE',
+        };
+
+        $server = strtolower((string) $response->header('Server', ''));
+        $serverClass = match (true) {
+            str_contains($server, 'cloudflare') => 'CLOUDFLARE',
+            str_contains($server, 'nginx') => 'NGINX',
+            str_contains($server, 'apache') => 'APACHE',
+            $server === '' => 'UNSPECIFIED',
+            default => 'OTHER',
+        };
+
+        return [
+            'body_size_band' => match (true) {
+                strlen($body) === 0 => 'EMPTY',
+                strlen($body) < 1024 => 'UNDER_1KB',
+                strlen($body) < 10240 => '1KB_TO_10KB',
+                strlen($body) < 102400 => '10KB_TO_100KB',
+                default => 'OVER_100KB',
+            },
+            'has_html_doctype' => str_contains(substr($sample, 0, 1024), '<!doctype html'),
+            'has_html_tag' => preg_match('/<html\\b/i', $sample) === 1,
+            'title_class' => $titleClass,
+            'server_class' => $serverClass,
+            'has_meta_refresh' => preg_match('/<meta\\b[^>]*http-equiv\\s*=\\s*["\\x27]?refresh/i', $sample) === 1,
+        ];
+    }
+
     private function safeHtmlResponseKind($response): string
     {
         if (! str_contains(strtolower((string) $response->header('Content-Type', '')), 'html')) {
