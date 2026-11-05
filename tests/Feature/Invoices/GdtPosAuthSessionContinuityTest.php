@@ -10,6 +10,31 @@ use Tests\TestCase;
 
 class GdtPosAuthSessionContinuityTest extends TestCase
 {
+    public function test_successful_login_preserves_authenticated_cookie_snapshot_for_pos(): void
+    {
+        config()->set('invoices.gdt.cache_key', 'gdt-pos-login-preservation-test');
+        config()->set('invoices.gdt.base_url', 'https://gdt-test.invalid/api');
+        config()->set('invoices.gdt.username', 'fake-user');
+        config()->set('invoices.gdt.password', 'fake-password');
+
+        $key = 'gdt-pos-login-preservation-test:auth-session-cookies';
+        Cache::put($key, [[
+            'Name' => 'auth-session',
+            'Value' => 'SECRET_AUTH_COOKIE',
+            'Domain' => 'gdt-test.invalid',
+            'Path' => '/',
+            'Secure' => true,
+        ]], 600);
+
+        Http::fake(['*' => Http::response(['token' => 'fake-token'], 200)]);
+
+        $result = app(GdtApiService::class)->login('answer', 'captcha-key');
+
+        $this->assertSame('success', $result['status']);
+        $this->assertSame('fake-token', Cache::get('gdt-pos-login-preservation-test'));
+        $this->assertSame('SECRET_AUTH_COOKIE', Cache::get($key)[0]['Value']);
+    }
+
     public function test_pos_captcha_reuses_authenticated_cookie_snapshot_without_logging_values(): void
     {
         config()->set('invoices.gdt.cache_key', 'gdt-pos-continuity-test');
