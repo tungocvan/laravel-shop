@@ -1,3 +1,13 @@
+## 2026-11-05 — GDT independent-source rollout, batch 1 (checkpoint)
+
+- Branch: `feat/invoices-gdt-independent-sources-20261105`.
+- Verified regular GDT pages are persisted as canonical headers before requesting POS within each monthly chunk in `source=all`.
+- If POS returns HTTP 500, the all-source job still fails, no incomplete Excel is emitted, and regular headers from that chunk are retained.
+- Existing canonical persistence is reused (idempotent invoice identity). No schema, environment, or production changes.
+- **Not yet implemented:** skip successful regular on retries, source-specific job status, full cross-month atomicity, and a source-complete combined export. These are follow-up architecture batches; do not describe this checkpoint as full option B.
+- Focused test: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php`.
+- Gates: focused tests NOT RUN; module regression NOT RUN; UI NOT VERIFIED; PR NOT CREATED; do not merge/deploy.
+
 # Invoices Collaboration Handoff
 
 ## Final status — Structured Lot / Expiry Canonical Mapping
