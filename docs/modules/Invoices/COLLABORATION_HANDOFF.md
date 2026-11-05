@@ -336,3 +336,11 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - No evidence that changing headers, endpoint, search filter, or timeout resolves upstream POS HTTP 500. No live API probe or production configuration change authorized.
 - Extended `GdtPosHttpDiagnosticsTest` with Laravel HTTP-fake assertions for POS query shape, first-page state absence and presence of expected request headers. Tests do not log token, query values, response body or invoice identifiers.
 - Checkpoint pending: focused `GdtPosHttpDiagnosticsTest`, `GdtSourceRetryHttpIntegrationTest`, `GdtDatabaseSettingsTest`; if PASS, run Invoices module regression. Manual UI PASS remains user-confirmed only. No PR/merge/deploy.
+
+
+### 2026-11-05 — Opt-in POS query diagnostics checkpoint
+
+- Added `invoices:gdt-pos-diagnose` (registered in InvoicesServiceProvider). Default is dry-run; `--execute` explicitly authorizes exactly one authenticated GET to `/sco-query/invoices/{purchase|sold}` with `size=1`, date range max 31 days, `ttxly==8`, no pagination, no retries.
+- Uses existing cached token, HTTPS-only base URL, bounded connect/total timeouts. Prints only status and response format; never prints response body, token, invoice IDs, query values or raw exception messages. Does not persist invoices, export Excel, alter config, or update cache.
+- Focused fake-HTTP tests: `tests/Feature/Invoices/GdtPosQueryDiagnosticCommandTest.php`. Tests pending; no real GDT request has been sent.
+- Checkpoint: run focused test and prior GDT diagnostics tests; only after PASS run `tests/Feature/Invoices`. Keep `--execute` off until separately approved for the specific environment. No PR/merge/deploy.
