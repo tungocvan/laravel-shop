@@ -15,6 +15,7 @@ class DiagnoseGdtPosQueryCommand extends Command
         {--from= : Start date YYYY-MM-DD}
         {--to= : End date YYYY-MM-DD}
         {--type=purchase : purchase or sold}
+        {--without-pos-filter : Diagnostic comparison only: omit ttxly==8}
         {--execute : Explicitly authorize one read-only GDT HTTP request}';
 
     protected $description = 'Inspect one POS list request; no invoice persistence, export, or response body output';
@@ -52,7 +53,8 @@ class DiagnoseGdtPosQueryCommand extends Command
         }
 
         $this->line('Source: POS; action: '.$type.'; first page only; size: 1; no persistence.');
-        $this->line('Range: '.$from.' to '.$to.'; search includes ttxly==8.');
+        $withoutFilter = (bool) $this->option('without-pos-filter');
+        $this->line('Range: '.$from.' to '.$to.'; search '.($withoutFilter ? 'omits' : 'includes').' ttxly==8.');
         if (! $this->option('execute')) {
             $this->warn('DRY RUN: no HTTP request sent. Add --execute to authorize one GET.');
 
@@ -75,7 +77,7 @@ class DiagnoseGdtPosQueryCommand extends Command
 
         $origin = preg_replace('#/api$#', '', $base) ?: $base;
         $search = 'tdlap=ge='.$start->format('d/m/Y').'T00:00:00;tdlap=le='
-            .$end->format('d/m/Y').'T23:59:59;ttxly==8';
+            .$end->format('d/m/Y').'T23:59:59'.($withoutFilter ? '' : ';ttxly==8');
 
         try {
             $response = Http::withOptions(['verify' => (bool) config('invoices.gdt.verify_ssl', true)])
