@@ -18,7 +18,7 @@ class DiagnoseGdtPosQueryCommand extends Command
         {--without-pos-filter : Diagnostic comparison only: omit ttxly==8}
         {--execute : Explicitly authorize one read-only GDT HTTP request}';
 
-    protected $description = 'Inspect one POS list request; no invoice persistence, export, or response body output';
+    protected $description = 'Inspect one POS list request; no invoice persistence, export, or raw response body output';
 
     public function handle(): int
     {
@@ -109,7 +109,41 @@ class DiagnoseGdtPosQueryCommand extends Command
 
         $this->line('HTTP status: '.$response->status());
         $this->line('Response format: '.$format);
-        $this->line('No response body, identifiers, tokens, or query values were output.');
+        // Inspect only top-level, allowlisted error fields. Never print arbitrary remote strings:
+        // even a "message" may contain invoice identifiers or credentials.
+        if ($format === 'json') {
+            $payload = $response->json();
+            if (is_array($payload)) {
+                foreach (['code', 'status', 'error', 'message'] as $field) {
+                    if (! array_key_exists($field, $payload)) {
+                        continue;
+                    }
+
+                    $value = $payload[$field];
+                    $kind = match (true) {
+                        is_string($value) => 'string',
+                        is_int($value), is_float($value) => 'number',
+                        is_bool($value) => 'boolean',
+                        is_null($value) => 'null',
+                        default => 'structured',
+                    };
+                    $this->line('Error field '.$field.': present ('.$kind.').');
+
+                    // Only strictly numeric codes or uppercase symbolic codes can be printed.
+                    // Never display a free-form error/message or nested data.
+                    if ($field === 'code' && (is_string($value) || is_int($value))) {
+                        $code = (string) $value;
+                        if (preg_match('/^(?:[0-9]{1,6}|[A-Z][A-Z0-9_]{0,31})$/D', $code)) {
+                            $this->line('Safe error code: '.$code);
+                        }
+                    }
+                }
+            } else {
+                $this->line('JSON response is not an object.');
+            }
+        }
+
+        $this->line('No raw response body, identifiers, tokens, or query values were output.');
 
         return $response->successful() ? self::SUCCESS : self::FAILURE;
     }
