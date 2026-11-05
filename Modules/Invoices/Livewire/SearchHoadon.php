@@ -69,6 +69,15 @@ class SearchHoadon extends Component
         $this->dispatch('scroll-bottom');
     }
 
+    public function updatedInvoiceSource(string $source): void
+    {
+        if ($source !== 'regular') {
+            $this->useQueue = false;
+        }
+        $this->posCaptchaError = null;
+        $this->posCaptchaAnswer = '';
+    }
+
     public function refreshPosCaptcha(): void
     {
         $this->authorizePermission('invoices-create');
