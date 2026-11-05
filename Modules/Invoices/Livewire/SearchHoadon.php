@@ -143,6 +143,11 @@ class SearchHoadon extends Component
         $this->refreshPosCaptcha();
     }
 
+    public function openPosSyncCaptcha(): void
+    {
+        $this->openPosCaptcha('sync');
+    }
+
     public function closePosCaptcha(): void
     {
         $this->posCaptchaModalOpen = false;
