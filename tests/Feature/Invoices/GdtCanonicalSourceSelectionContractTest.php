@@ -35,8 +35,10 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
         $this->assertStringContainsString('role="tablist"', $view);
         $this->assertStringContainsString('wire:click="$set(\'invoiceSource\', \'regular\')"', $view);
         $this->assertStringContainsString('wire:click="$set(\'invoiceSource\', \'pos\')"', $view);
-        $this->assertStringContainsString('wire:click="searchInvoices"', $view);
-        $this->assertStringContainsString('wire:click="run"', $view);
+        $this->assertStringContainsString("'openPosCaptcha' : 'searchInvoices'", $view);
+        $this->assertStringContainsString("'openPosSyncCaptcha' : 'run'", $view);
+        $this->assertStringContainsString('wire:click="submitPosCaptcha"', $view);
+        $this->assertStringContainsString('public function submitPosCaptcha(): void', $component);
         $this->assertStringContainsString('KHÔNG cần Import lại', $view);
     }
 
