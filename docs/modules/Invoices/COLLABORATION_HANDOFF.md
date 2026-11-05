@@ -426,3 +426,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 
 - Added allowlisted metadata `response_shape`, `datas_type`, `total_type`, normalized `content_type`, and `request_action` to existing POS HTTP 200 diagnostic. MIME is normalized to json/html/other, not logged raw. No response body, token, CAPTCHA, cookie or invoice fields. No request/page-size behavior changes.
 - Added HTTP fake test for HTML 200 and extended JSON 200 assertions; focused/module regression and UI pending local execution. Investigate **purchase** after tests; do not merge/deploy.
+
+### 2026-11-05 — POS cookie lifecycle investigation
+
+- Added safe count-only diagnostics at CAPTCHA loaded, consumed, and outgoing request jar stages. No cookie names/values, CAPTCHA key/answer, token or raw HTTP body logged. Cookie jar now constructed consistently for POS even when no cookies are supplied; does not invent session cookies. No changes to size=50, search filter, canonical, or Regular.
+- Added fake test asserting cached cookie snapshot survives one-time consume and reaches Guzzle CookieJar. HTTP fakes cannot prove a live upstream Set-Cookie or actual wire-level Cookie header; interpret logs accordingly.
+- User target is POS purchase July 2026 (official GDT browser 10, Laravel 0); previous zero-count log had has_captcha_cookie=false. Investigate whether GDT CAPTCHA GET emits Set-Cookie at all before concluding cookie loss. Focused/module tests pending; no UI PASS/merge/deploy.
