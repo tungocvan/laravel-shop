@@ -340,7 +340,8 @@ class GdtInvoiceService
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
-        $pageSize = 50;
+        // Match the official GDT POS search page size; regular invoices retain 50.
+        $pageSize = $cashRegister ? 15 : 50;
         if ($cashRegister) {
             $search .= ';ttxly==8';
             if (! is_array($posCaptcha) || blank($posCaptcha['ckey'] ?? null) || blank($posCaptcha['cvalue'] ?? null)) {
