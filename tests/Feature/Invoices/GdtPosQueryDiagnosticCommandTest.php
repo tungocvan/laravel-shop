@@ -88,8 +88,43 @@ class GdtPosQueryDiagnosticCommandTest extends TestCase
             ->expectsOutput('Error field status: present (number).')
             ->expectsOutput('Error field error: present (structured).')
             ->expectsOutput('Error field message: present (string).')
+            ->expectsOutput('Message category: UNKNOWN')
             ->doesntExpectOutput('Sensitive invoice and token content')
             ->doesntExpectOutput('SECRET_INVOICE_IDENTIFIER_123')
+            ->assertExitCode(1);
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_known_message_is_classified_without_exposing_response_text(): void
+    {
+        Http::fake(['*' => Http::response([
+            'message' => 'Invalid query parameter for invoice ID 123456789',
+        ], 500, ['Content-Type' => 'application/json'])]);
+
+        $this->artisan('invoices:gdt-pos-diagnose', [
+            '--from' => '2026-10-12',
+            '--to' => '2026-10-31',
+            '--execute' => true,
+        ])->expectsOutput('Message category: INVALID_QUERY')
+            ->doesntExpectOutput('Invalid query parameter for invoice ID 123456789')
+            ->assertExitCode(1);
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_non_string_message_does_not_trigger_classification(): void
+    {
+        Http::fake(['*' => Http::response([
+            'message' => ['private' => 'invalid token'],
+        ], 500, ['Content-Type' => 'application/json'])]);
+
+        $this->artisan('invoices:gdt-pos-diagnose', [
+            '--from' => '2026-10-12',
+            '--to' => '2026-10-31',
+            '--execute' => true,
+        ])->expectsOutput('Error field message: present (structured).')
+            ->doesntExpectOutput('Message category: AUTHORIZATION_ERROR')
             ->assertExitCode(1);
 
         Http::assertSentCount(1);
