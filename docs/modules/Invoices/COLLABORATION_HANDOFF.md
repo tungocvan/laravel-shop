@@ -1,3 +1,12 @@
+## 2026-11-05 — GDT independent-source rollout, batch 2 checkpoint
+
+- Adds cache status `source_progress.regular=persisted` after regular canonical checkpoint, `source_progress.pos=failed` on POS failure and `source_progress.pos=fetched` after a completed monthly POS fetch.
+- All-source job records `partial` during retries, retains exception propagation and final `failed` state after retries exhausted. These statuses describe progress, **not full-range source completion**.
+- No change to GDT POS query contract (`ttxly==8`), retry policy, database schema, or combined Excel safety.
+- **Outstanding:** full-range source completion markers, source-only retry without fetching regular again, end-to-end DB integration test, and source-aware combined export. Do not mark option B complete.
+- Focused tests NOT RUN: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php tests/Feature/Invoices/GdtSourceProgressContractTest.php`.
+- UI NOT VERIFIED; module regression NOT RUN; no PR/merge/deploy.
+
 ## 2026-11-05 — GDT independent-source rollout, batch 1 (checkpoint)
 
 - Branch: `feat/invoices-gdt-independent-sources-20261105`.
