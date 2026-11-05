@@ -47,6 +47,17 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                 return Http::response([], 404);
             });
 
+            Log::shouldReceive('info')->once()->with(
+                'GDT POS request metadata.',
+                Mockery::on(fn ($context) =>
+                    ($context['action'] ?? null) === 'purchase'
+                    && ($context['runtime'] ?? null) === 'test'
+                    && ($context['page_size'] ?? null) === 15
+                    && ($context['jar_cookie_count'] ?? null) === 0
+                    && ! empty($context['trace_id'])
+                )
+            );
+
             // POS now logs safe cookie-jar lifecycle metadata before an HTTP failure.
             // Allow that independent diagnostic without weakening the HTTP 500 warning assertion.
             Log::shouldReceive('info')->once()->with(
