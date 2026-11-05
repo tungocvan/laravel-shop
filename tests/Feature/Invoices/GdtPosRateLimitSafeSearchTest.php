@@ -147,6 +147,8 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
                 if ($event === 'GDT POS invoice query response metadata.') {
                     $this->assertSame('/login', $context['redirect_location_path']);
                     $this->assertSame('html', $context['response_format']);
+                    $this->assertSame(0, $context['redirect_count']);
+                    $this->assertSame('HTML_DIRECT_OR_UNTRACKED', $context['html_response_class']);
                 }
 
                 return true;
@@ -158,6 +160,39 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
             $traceIds['GDT POS invoice query response metadata.'],
         );
         Http::assertSentCount(1);
+    }
+
+    public function test_pos_html_response_records_only_redirect_count_not_history_urls(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response('<html>SECRET_HTML</html>', 200, [
+            'Content-Type' => 'text/html',
+            'X-Guzzle-Redirect-History' => 'https://gdt-test.invalid/login?secret=ONE, https://gdt-test.invalid/verify?secret=TWO',
+        ])]);
+
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-07-01', '2026-07-31', true, 'pos',
+                ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+            );
+            $this->fail('Expected POS schema rejection.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
+        }
+
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS invoice query response metadata.') {
+                return false;
+            }
+            $this->assertSame(2, $context['redirect_count']);
+            $this->assertSame('HTML_AFTER_REDIRECT', $context['html_response_class']);
+            $encoded = json_encode($context);
+            foreach (['SECRET_HTML', 'secret=ONE', 'secret=TWO'] as $secret) {
+                $this->assertStringNotContainsString($secret, $encoded);
+            }
+
+            return true;
+        })->once();
     }
 
     public function test_pos_http_200_empty_response_is_distinguishable_from_invalid_schema(): void
