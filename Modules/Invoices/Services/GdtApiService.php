@@ -424,7 +424,7 @@ class GdtApiService
 
                 try {
                     $jar->setCookie(new SetCookie($cookie));
-                } catch (\\Throwable) {
+                } catch (\Throwable) {
                     // Preserve the existing fail-safe behavior without exposing cookie contents.
                     $failures++;
                 }
