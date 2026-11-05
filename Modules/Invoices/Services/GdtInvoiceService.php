@@ -416,7 +416,16 @@ class GdtInvoiceService
                     ])->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
                 }
                 $res = $client
-                    ->withHeaders($cashRegister ? ['Action' => 'Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')', 'End-Point' => '/tra-cuu/tra-cuu-hoa-don'] : [])
+                    ->withHeaders($cashRegister ? [
+                        // Match the observed GDT POS search page context, not the homepage.
+                        'Referer' => rtrim((string) preg_replace('#/api$#', '', rtrim((string) config('invoices.gdt.base_url'), '/')), '/').'/tra-cuu/tra-cuu-hoa-don',
+                        'Action' => rawurlencode('Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')'),
+                        'End-Point' => '/tra-cuu/tra-cuu-hoa-don',
+                        // Browser sends these as headers as well as query parameters.
+                        'ckey' => $posCaptcha['ckey'],
+                        'cvalue' => $posCaptcha['cvalue'],
+                        'Accept-Language' => 'vi',
+                    ] : [])
                     ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
