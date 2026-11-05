@@ -546,3 +546,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added two HTTP-fake focused tests to existing `GdtPosRequestTransportContractTest`: preview of 10 POS rows does not enter DB transaction; incomplete POS pagination fails before canonical DB transaction. Tests do not contact GDT or use real credentials.
 - Read-only audit confirms `processRange` deduplicates before `persistInvoices`, and persistence tracks created/updated/unchanged in a transaction; this is source behavior, not evidence of successful repeated sync. Idempotency/database integration tests remain outstanding.
 - Await local focused tests then Invoices module regression if PASS. Manual canonical UI and repeat-sync verification required before PR/merge. No production actions, no merge/deploy.
+
+### 2026-11-06 — POS canonical idempotency SQLite focused checkpoint
+
+- User confirmed two-tier test PASS and clean tracked working tree at bb4e16135. This new batch has not been tested yet.
+- Added isolated in-memory SQLite regression in `GdtPosRequestTransportContractTest` exercising private `persistInvoices` through reflection with synthetic 10-row POS fixture: first insert, identical replay unchanged/no duplicates, GDT RAW source record linkage, one amount correction, and purchase/sold identity isolation. No live GDT call and no production database use.
+- SQLite PDO absence marks test skipped, which is NOT idempotency PASS; report skip explicitly. Test uses minimal SQLite schema and may need adjustment to match model hooks; stop on focused failure. Run focused tests before Invoices module regression. UI canonical sync still requires user confirmation. No PR/merge/deploy.
