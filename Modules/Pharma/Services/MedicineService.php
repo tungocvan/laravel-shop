@@ -144,6 +144,7 @@ class MedicineService
     public function store(array $data): Medicine
     {
         return DB::transaction(function () use ($data): Medicine {
+            $data = $this->normalizeSellingPrice($data);
             $categoryIds = $this->validatedMedicineCategoryIds($data);
             unset($data['category_ids']);
             $data = $this->normalizeQualityState($data);
@@ -167,6 +168,7 @@ class MedicineService
     {
         return DB::transaction(function () use ($id, $data) {
             $medicine = $this->findOrFail($id);
+            $data = $this->normalizeSellingPrice($data, $medicine);
             $categoryIds = $this->validatedMedicineCategoryIds($data);
             unset($data['category_ids']);
             $data = $this->normalizeQualityState($data, $medicine);
@@ -178,6 +180,40 @@ class MedicineService
 
             return $medicine->refresh();
         });
+    }
+
+    /**
+     * Selling price is owned by the canonical Medicine Master, not ClientPortal.
+     * Missing price on create inherits the declared price; partial updates retain it.
+     */
+    private function normalizeSellingPrice(array $data, ?Medicine $medicine = null): array
+    {
+        if (! array_key_exists('declared_price', $data) && ! array_key_exists('selling_price', $data)) {
+            return $data;
+        }
+
+        $declared = $data['declared_price'] ?? $medicine?->declared_price;
+        $selling = $data['selling_price'] ?? ($medicine?->selling_price ?? $declared);
+        if ($declared === null || $declared === '') {
+            if ($selling !== null && $selling !== '') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'selling_price' => 'Cần có giá kê khai trước khi nhập giá bán.',
+                ]);
+            }
+            $data['selling_price'] = null;
+            return $data;
+        }
+
+        if (! is_numeric($declared) || ! is_numeric($selling)
+            || (float) $declared < 0 || (float) $selling < 0
+            || (float) $selling > (float) $declared) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'selling_price' => 'Giá bán phải là số không âm và không được lớn hơn giá kê khai.',
+            ]);
+        }
+
+        $data['selling_price'] = $selling;
+        return $data;
     }
 
     public function verifyMaster(int $id): Medicine
