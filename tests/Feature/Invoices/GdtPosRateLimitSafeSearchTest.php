@@ -68,6 +68,50 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
         });
     }
 
+    public function test_pos_html_diagnostics_use_only_allowlisted_header_presence(): void
+    {
+        Log::spy();
+        Http::fake(['*' => Http::response(
+            '<html>SECRET_HTML_BODY SECRET_TOKEN</html>',
+            200,
+            [
+                'Content-Type' => 'text/html',
+                'Set-Cookie' => 'session=SECRET_COOKIE',
+                'Cache-Control' => 'no-store',
+                'Content-Length' => '37',
+                'X-Private-Token' => 'SECRET_HEADER',
+            ]
+        )]);
+
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-07-01', '2026-07-31', true, 'pos',
+                ['ckey' => 'SECRET_KEY', 'cvalue' => 'SECRET_ANSWER'],
+            );
+            $this->fail('Expected fail-closed POS HTML rejection.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('cấu trúc danh sách POS không hợp lệ', $exception->getMessage());
+        }
+
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT POS invoice query response metadata.') {
+                return false;
+            }
+
+            $this->assertSame('HTML_UNCLASSIFIED', $context['html_response_kind']);
+            $this->assertTrue($context['response_has_set_cookie']);
+            $this->assertFalse($context['response_has_www_authenticate']);
+            $this->assertTrue($context['response_has_cache_control']);
+            $this->assertTrue($context['response_has_content_length']);
+            $serialized = json_encode($context);
+            foreach (['SECRET_HTML_BODY', 'SECRET_TOKEN', 'SECRET_COOKIE', 'SECRET_HEADER', 'SECRET_KEY', 'SECRET_ANSWER'] as $secret) {
+                $this->assertStringNotContainsString($secret, $serialized);
+            }
+
+            return true;
+        })->once();
+    }
+
     public function test_pos_uses_captcha_client_user_agent_and_reports_cookie_eligibility_only(): void
     {
         config()->set('invoices.gdt.user_agent', 'GDT-DIAGNOSTIC-AGENT');
