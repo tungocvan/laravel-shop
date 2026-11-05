@@ -66,7 +66,17 @@
             </section>
             <section id="medicine-panel-pricing" role="tabpanel" aria-labelledby="medicine-tab-pricing" hidden class="space-y-6 p-5 sm:p-7">
                 <div><h2 class="text-lg font-bold text-slate-900">Giá & ghi chú</h2><p class="mt-1 text-sm text-slate-500">Thông tin giá kê khai và ghi chú nội bộ.</p></div>
-                <div class="grid gap-5 sm:grid-cols-2"><label class="block space-y-1.5"><span class="text-sm font-semibold text-slate-700">Giá kê khai</span><input name="declared_price" type="number"  step="any" min="0" value="{{ old('declared_price', $medicine?->declared_price) }}" class="w-full min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm focus:border-indigo-500 focus:ring-indigo-500">@error('declared_price')<span class="block text-xs text-rose-700">{{ $message }}</span>@enderror</label></div>
+                <div class="grid gap-5 sm:grid-cols-2">
+                    <label class="block space-y-1.5"><span class="text-sm font-semibold text-slate-700">Giá kê khai (VNĐ)</span>
+                        <input name="declared_price" data-vnd-price="declared" type="text" inputmode="numeric" autocomplete="off" value="{{ old('declared_price', $medicine?->declared_price !== null ? number_format((float) $medicine->declared_price, 0, ',', '.') : '') }}" class="w-full min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('declared_price')<span class="block text-xs text-rose-700">{{ $message }}</span>@enderror
+                    </label>
+                    <label class="block space-y-1.5"><span class="text-sm font-semibold text-slate-700">Giá bán (VNĐ)</span>
+                        <input name="selling_price" data-vnd-price="selling" type="text" inputmode="numeric" autocomplete="off" value="{{ old('selling_price', $medicine?->selling_price !== null ? number_format((float) $medicine->selling_price, 0, ',', '.') : ($medicine?->declared_price !== null ? number_format((float) $medicine->declared_price, 0, ',', '.') : '')) }}" class="w-full min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        @error('selling_price')<span class="block text-xs text-rose-700">{{ $message }}</span>@enderror
+                        <span class="block text-xs text-slate-500">Mặc định bằng giá kê khai; không được cao hơn giá kê khai.</span>
+                    </label>
+                </div>
                 <label class="block space-y-2"><span class="text-sm font-semibold text-slate-700">Ghi chú Medicine Master</span><textarea name="notes" rows="6" class="w-full rounded-xl border border-slate-300 p-3 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Thông tin bổ sung về thuốc...">{{ old('notes', $medicine?->notes) }}</textarea></label>
             </section>
             <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-7">
@@ -129,6 +139,23 @@
         previous.addEventListener('click', () => activate(current - 1, true));
         next.addEventListener('click', () => activate(current + 1, true));
         const form = root.closest('form');
+        const declaredPrice = form.querySelector('[data-vnd-price="declared"]');
+        const sellingPrice = form.querySelector('[data-vnd-price="selling"]');
+        const digits = value => value.replace(/[^0-9]/g, '');
+        const formatVnd = value => digits(value).replace(/\\B(?=(\\d{3})+(?!\\d))/g, '.');
+        let sellingTouched = Boolean(sellingPrice.value && digits(sellingPrice.value) !== digits(declaredPrice.value));
+        [declaredPrice, sellingPrice].forEach(input => {
+            input.addEventListener('input', () => {
+                input.value = formatVnd(input.value);
+                if (input === sellingPrice) sellingTouched = true;
+                if (input === declaredPrice && !sellingTouched) sellingPrice.value = input.value;
+                const declared = digits(declaredPrice.value);
+                const selling = digits(sellingPrice.value);
+                sellingPrice.setCustomValidity(selling && (!declared || Number(selling) > Number(declared))
+                    ? 'Giá bán không được lớn hơn giá kê khai.' : '');
+            });
+            input.value = formatVnd(input.value);
+        });
         form.addEventListener('invalid', event => {
             const panel = event.target.closest('[role="tabpanel"]');
             if (!panel) return;
