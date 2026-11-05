@@ -122,7 +122,20 @@ class GdtInvoiceService
             $chunkEnd = $monthEnd->lt($end) ? $monthEnd : $end->copy();
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
             $regular = $source !== 'pos' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn) : [];
-            $pos = $source !== 'regular' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true) : [];
+            // Persist a fully paginated regular source before requesting POS. A POS outage
+            // must not discard canonical regular headers already verified by GDT.
+            if ($source === 'all' && $regular !== []) {
+                $regularStats = $this->persistInvoices($regular, $vatIn);
+                $show(sprintf('[GDT] Regular canonical checkpoint: tạo mới %d · cập nhật %d · không đổi %d.', $regularStats['created'], $regularStats['updated'], $regularStats['unchanged']));
+            }
+            try {
+                $pos = $source !== 'regular' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true) : [];
+            } catch (\Throwable $exception) {
+                if ($source === 'all') {
+                    $show('[GDT] POS thất bại; regular canonical đã lưu. Đồng bộ all chưa hoàn tất và không xuất Excel thiếu.');
+                }
+                throw $exception;
+            }
             $show('[GDT] Tháng này: thông thường '.count($regular).' · máy tính tiền '.count($pos));
             $all = array_merge($all, $regular, $pos);
             $start = $chunkEnd->copy()->addDay();
