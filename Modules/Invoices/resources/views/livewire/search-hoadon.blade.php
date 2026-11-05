@@ -7,6 +7,32 @@
         </div>
     </div>
 
+    @if($posCaptchaModalOpen && $invoiceSource === 'pos')
+        <div class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 px-4 py-6" role="presentation">
+            <div role="dialog" aria-modal="true" aria-labelledby="pos-captcha-title" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+                <h3 id="pos-captcha-title" class="text-lg font-semibold text-slate-900">Xác minh CAPTCHA GDT</h3>
+                <p class="mt-2 text-sm text-slate-600">{{ $posCaptchaPurpose === 'sync' ? 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.' }}</p>
+                <div class="mt-4 space-y-3">
+                    @if($posCaptchaImage)
+                        <img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-slate-200 bg-white p-1">
+                    @else
+                        <p class="text-sm text-amber-800">Chưa tải được CAPTCHA. Vui lòng tải lại.</p>
+                    @endif
+                    <button type="button" wire:click="refreshPosCaptcha" wire:loading.attr="disabled" wire:target="refreshPosCaptcha" class="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-medium text-slate-800">Tải lại CAPTCHA</button>
+                    <label class="block text-sm font-medium text-slate-700">Mã xác minh
+                        <input type="text" wire:model="posCaptchaAnswer" autocomplete="off" maxlength="20" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-3" placeholder="Nhập ký tự trong ảnh">
+                    </label>
+                    @if($posCaptchaError)<p role="alert" class="text-sm text-red-700">{{ $posCaptchaError }}</p>@endif
+                    @error('posCaptchaAnswer')<p role="alert" class="text-sm text-red-700">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" wire:click="closePosCaptcha" class="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-medium">Hủy</button>
+                    <button type="button" wire:click="submitPosCaptcha" wire:loading.attr="disabled" wire:target="submitPosCaptcha" class="min-h-11 rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white disabled:opacity-50">Xác nhận {{ $posCaptchaPurpose === 'sync' ? 'và đồng bộ' : 'và tra cứu' }}</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-5 py-4 sm:px-6">
             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Bước 1</p>
@@ -28,22 +54,12 @@
                 <div><label class="text-sm font-medium text-slate-700">Đến ngày</label><input type="date" wire:model.live="end_date" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">@error('end_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
             </div>
             @if($invoiceSource === 'pos')
-                <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
-                    <p class="text-sm font-semibold text-amber-950">Xác minh CAPTCHA của GDT</p>
-                    <p class="mt-1 text-xs text-amber-800">Chỉ tra cứu POS trong một tháng dương lịch mỗi lần để giảm nguy cơ HTTP 429. Nhập mã từ ảnh để Tìm kiếm; đồng bộ POS cần CAPTCHA mới. Không đưa mã vào queue.</p>
-                    <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
-                        @if($posCaptchaImage)<img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-amber-200 bg-white p-1">@endif
-                        <button type="button" wire:click="refreshPosCaptcha" wire:loading.attr="disabled" wire:target="refreshPosCaptcha" class="min-h-11 rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-900">Tải / làm mới CAPTCHA</button>
-                        <label class="flex-1 text-sm font-medium text-slate-700">Mã xác minh<input type="text" wire:model="posCaptchaAnswer" autocomplete="off" maxlength="20" placeholder="Nhập ký tự trong ảnh" class="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm"></label>
-                    </div>
-                    @if($posCaptchaError)<p role="alert" class="mt-2 text-sm text-red-700">{{ $posCaptchaError }}</p>@endif
-                    @error('posCaptchaAnswer')<p role="alert" class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
-                </div>
+                <p class="mt-4 text-sm text-amber-800">Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Nhấn Tìm kiếm để mở CAPTCHA, nhập mã và xác nhận. Đồng bộ canonical cần CAPTCHA mới; không đưa mã vào queue.</p>
             @endif
             @error('invoiceSource')<p class="mt-3 text-sm text-red-600">{{ $message }}</p>@enderror
             <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-xs text-slate-500">Bước 1: Tìm kiếm trên GDT · Bước 2: Đồng bộ canonical nếu kết quả đúng.</p>
-                <button type="button" wire:click="searchInvoices" wire:loading.attr="disabled" wire:target="searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="searchInvoices">Đang tìm kiếm…</span></button>
+                <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosCaptcha' : 'searchInvoices' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="openPosCaptcha,searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="openPosCaptcha,searchInvoices">Đang tìm kiếm…</span></button>
             </div>
             <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-live="polite">
                 <div class="flex flex-wrap items-center justify-between gap-2"><h4 class="text-sm font-semibold text-slate-900">Kết quả tra cứu {{ $invoiceSource === 'pos' ? 'POS' : 'Regular' }}</h4><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $searchState === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($searchState === 'failed' ? 'bg-red-100 text-red-800' : 'bg-white text-slate-600') }}">{{ match($searchState) {'searching'=>'Đang tra cứu','completed'=>((int) ($searchPreview['count'] ?? 0) === 0 ? 'Không tìm thấy hóa đơn' : 'GDT đã phản hồi'),'failed'=>'Tra cứu thất bại',default=>'Chưa tìm kiếm'} }}</span></div>
@@ -61,7 +77,7 @@
         </div>
         <div class="flex flex-col gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div><label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="useQueue" @disabled($invoiceSource !== 'regular') class="rounded border-slate-300"> Xử lý qua queue</label><p class="mt-1 text-xs text-slate-500">{{ $invoiceSource === 'regular' ? 'Regular có thể xử lý qua queue.' : 'POS chỉ xử lý trực tiếp sau CAPTCHA.' }}</p></div>
-            <button type="button" wire:click="run" wire:loading.attr="disabled" wire:target="run" @disabled($searchState !== 'completed' || (int) ($searchPreview['count'] ?? 0) <= 0 || $searchedFingerprint !== hash('sha256', implode('|', [$invoiceSource, $start_date, $end_date, (int) $vatIn]))) class="min-h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="run">Đồng bộ canonical</span><span wire:loading wire:target="run">Đang đồng bộ…</span></button>
+            <button type="button" wire:click="{{ $invoiceSource === 'pos' ? "openPosCaptcha(\'sync\')" : 'run' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,run" @disabled($searchState !== 'completed' || (int) ($searchPreview['count'] ?? 0) <= 0 || $searchedFingerprint !== hash('sha256', implode('|', [$invoiceSource, $start_date, $end_date, (int) $vatIn]))) class="min-h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="run">Đồng bộ canonical</span><span wire:loading wire:target="run">Đang đồng bộ…</span></button>
         </div>
     </section>
 
