@@ -14,7 +14,7 @@ class GdtRegularCanonicalCheckpointContractTest extends TestCase
 
         $regularFetch = strpos($source, "if (\$source !== 'pos')");
         $checkpoint = strpos($source, '$regularStats = $this->persistInvoices($regular, $vatIn)');
-        $posFetch = strpos($source, "\$pos = \$this->fetchInvoicesByMonth(\$token, \$chunkStart, \$chunkEnd, \$show, \$vatIn, true)");
+        $posFetch = strpos($source, "\$pos = \$this->fetchInvoicesByMonth(\$token, \$chunkStart, \$chunkEnd, \$show, \$vatIn, true, \$posCaptcha)");
         $combinedExport = strpos($source, '$file = $this->exportExcel($all, $vatIn, $filename)');
 
         $this->assertNotFalse($regularFetch);
