@@ -5,6 +5,7 @@ namespace Modules\Invoices\Services;
 use Carbon\Carbon;
 use GuzzleHttp\Cookie\CookieJar;
 use GuzzleHttp\Cookie\SetCookie;
+use GuzzleHttp\Psr7\Request;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -390,6 +391,11 @@ class GdtInvoiceService
                         'jar_cookie_count' => count($jar->toArray()),
                         'has_cookie' => count($jar->toArray()) > 0,
                     ]);
+                    // Check domain/path/expiry matching without logging the cookie header.
+                    // This predicts CookieJar eligibility, not actual upstream acceptance.
+                    $cookieEligible = $jar->getCookieHeader(
+                        new Request('GET', $this->url($endpoint.$action))
+                    ) !== '';
                     Log::info('GDT POS request metadata.', [
                         'trace_id' => $posTraceId,
                         'runtime' => app()->runningUnitTests() ? 'test' : 'application',
@@ -400,8 +406,13 @@ class GdtInvoiceService
                         'search_has_pos_filter' => str_contains($search, 'ttxly==8'),
                         'has_pagination_state' => filled($state),
                         'jar_cookie_count' => count($jar->toArray()),
+                        'cookie_eligible_for_endpoint' => $cookieEligible,
+                        'user_agent_matches_captcha_client' => true,
                     ]);
-                    $client = $client->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
+                    // CAPTCHA client explicitly sends this configured User-Agent; keep POS consistent.
+                    $client = $client->withHeaders([
+                        'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
+                    ])->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
                 }
                 $res = $client
                     ->withHeaders($cashRegister ? ['Action' => 'Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')', 'End-Point' => '/tra-cuu/tra-cuu-hoa-don'] : [])
