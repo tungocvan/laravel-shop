@@ -401,7 +401,7 @@ class GdtInvoiceService
                         'has_pagination_state' => filled($state),
                         'jar_cookie_count' => count($jar->toArray()),
                     ]);
-                    $client = $client->withOptions(['cookies' => $jar]);
+                    $client = $client->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
                 }
                 $res = $client
                     ->withHeaders($cashRegister ? ['Action' => 'Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')', 'End-Point' => '/tra-cuu/tra-cuu-hoa-don'] : [])
@@ -489,6 +489,8 @@ class GdtInvoiceService
             'trace_id' => $traceId,
             'runtime' => app()->runningUnitTests() ? 'test' : 'application',
             'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
+            'redirect_count' => $this->safeRedirectCount($response),
+            'html_response_class' => $this->safeHtmlResponseClass($response),
             'action' => $action,
             'page' => $page,
             'http_status' => $response->status(),
@@ -512,6 +514,28 @@ class GdtInvoiceService
      * Log only allowlisted response metadata. Never log response bodies, messages,
      * query values, invoice identifiers, request URLs or authentication headers.
      */
+    /**
+     * Guzzle redirect tracking is opt-in for POS. Never log redirect URLs,
+     * locations, query strings, response bodies or credentials.
+     */
+    private function safeRedirectCount($response): int
+    {
+        $history = trim((string) $response->header('X-Guzzle-Redirect-History', ''));
+
+        return $history === '' ? 0 : min(20, count(explode(',', $history)));
+    }
+
+    /** Fixed metadata labels only: never inspect or persist raw HTML. */
+    private function safeHtmlResponseClass($response): string
+    {
+        $contentType = strtolower((string) $response->header('Content-Type', ''));
+        if (str_contains($contentType, 'html')) {
+            return $this->safeRedirectCount($response) > 0 ? 'HTML_AFTER_REDIRECT' : 'HTML_DIRECT_OR_UNTRACKED';
+        }
+
+        return 'NOT_HTML';
+    }
+
     /** Never expose query parameters, host, or credentials from a redirect Location. */
     private function safeRedirectPath(?string $location): ?string
     {
@@ -535,6 +559,8 @@ class GdtInvoiceService
             'trace_id' => $traceId,
             'runtime' => app()->runningUnitTests() ? 'test' : 'application',
             'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
+            'redirect_count' => $this->safeRedirectCount($response),
+            'html_response_class' => $this->safeHtmlResponseClass($response),
             'endpoint' => $path,
             'action' => $action,
             'page' => $page,
