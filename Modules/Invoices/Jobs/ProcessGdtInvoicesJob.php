@@ -73,7 +73,26 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         if(is_file($expectedFile)&&is_readable($expectedFile)&&!$canonicalReady)$this->appendLog('File Excel đã tồn tại nhưng RAW canonical chưa đầy đủ; tiếp tục gọi GDT để hoàn thiện phần còn thiếu.');
         if($drive->isConnected()){try{if($drive->exists($fileName)&&$canonicalReady){$this->appendLog('Google Drive đã có file và RAW canonical local đầy đủ; bỏ qua gọi GDT.');$this->completeWithoutGdt($fileName,'google_drive','Dữ liệu nguồn canonical đã đầy đủ; không cần đồng bộ lại GDT.');return;}if($drive->exists($fileName)&&!$canonicalReady)$this->appendLog('Google Drive đã có file nhưng RAW canonical local chưa đầy đủ; không dùng file backup làm lý do bỏ qua GDT.');}catch(Throwable $exception){Log::warning('[GDT JOB] Không thể xác minh file hóa đơn trên Google Drive.',['sync_id'=>$this->syncId,'file'=>$fileName,'error'=>$exception->getMessage()]);$this->appendLog('Không xác minh được file Google Drive; tiếp tục dựa trên trạng thái RAW canonical local.');}}
 
-        $file=$service->processRange($this->start,$this->end,fn(string $message)=>$this->appendLog($message),$this->vatIn);
+        try {
+            $file = $service->processRange($this->start, $this->end, function (string $message): void {
+                $this->appendLog($message);
+                if (str_contains($message, 'Regular canonical checkpoint:')) {
+                    $this->updateSourceProgress('regular', 'persisted');
+                }
+                if (str_contains($message, 'POS thất bại;')) {
+                    $this->updateSourceProgress('pos', 'failed');
+                }
+                if (str_contains($message, 'Tháng này:')) {
+                    $this->updateSourceProgress('pos', 'fetched');
+                }
+            }, $this->vatIn);
+        } catch (Throwable $exception) {
+            $this->updateStatus('partial', 'Đồng bộ chưa hoàn tất: '.$exception->getMessage(), [
+                'source' => 'all',
+                'retry_pending' => $this->attempts() < $this->tries,
+            ]);
+            throw $exception;
+        }
         if($file===null){$this->updateStatus('completed','Không có hóa đơn trong khoảng thời gian đã chọn. Hệ thống không tạo file Excel.',['file'=>null,'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'gdt','sync_skipped'=>false,'no_data'=>true,'finished_at'=>now()->toIso8601String()]);return;}
         if(!is_file($file)||!is_readable($file))throw new RuntimeException('Đồng bộ kết thúc nhưng không tạo được file Excel trên server.');
 
@@ -82,6 +101,18 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         if($missingDetail>0){$this->scheduleAutoRecovery($missingDetail);Log::warning('[GDT JOB] Đồng bộ canonical còn thiếu detail; đã xếp lịch auto recovery.',['sync_id'=>$this->syncId,'file'=>$file,'coverage'=>$finalCoverage,'missing_detail'=>$missingDetail]);return;}
 
         $this->updateStatus('completed','Đồng bộ hoàn tất: RAW canonical đầy đủ và đã được lưu trên server.',['file'=>basename($file),'direction'=>$this->vatIn?'vat_in':'vat_out','source'=>'gdt','sync_skipped'=>false,'no_data'=>false,'missing_detail'=>0,'finished_at'=>now()->toIso8601String()]);Log::info('[GDT JOB] Hoàn tất xử lý hóa đơn.',['sync_id'=>$this->syncId,'file'=>$file,'coverage'=>$finalCoverage]);
+    }
+
+    private function updateSourceProgress(string $source, string $state): void
+    {
+        $key = $this->statusKey();
+        if (! $key) {
+            return;
+        }
+        $status = Cache::get($key, []);
+        $status['source_progress'] ??= [];
+        $status['source_progress'][$source] = $state;
+        Cache::put($key, $status, now()->addHours(24));
     }
 
     public function failed(Throwable $exception):void{$this->updateStatus('failed','Đồng bộ thất bại: '.$exception->getMessage(),['finished_at'=>now()->toIso8601String()]);Log::error('[GDT JOB] Xử lý hóa đơn thất bại.',['sync_id'=>$this->syncId,'error'=>$exception->getMessage()]);}
