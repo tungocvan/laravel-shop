@@ -85,9 +85,9 @@ class GdtPosQueryDiagnosticCommandTest extends TestCase
             '--to' => '2026-10-31',
             '--execute' => true,
         ])->expectsOutput('Error field code: present (string).')
-            ->expectsOutput('Error field message: present (string).')
-            ->expectsOutput('Error field error: present (structured).')
             ->expectsOutput('Error field status: present (number).')
+            ->expectsOutput('Error field error: present (structured).')
+            ->expectsOutput('Error field message: present (string).')
             ->doesntExpectOutput('Sensitive invoice and token content')
             ->doesntExpectOutput('SECRET_INVOICE_IDENTIFIER_123')
             ->assertExitCode(1);
