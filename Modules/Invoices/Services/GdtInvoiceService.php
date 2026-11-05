@@ -18,6 +18,13 @@ use Throwable;
 
 class GdtInvoiceService
 {
+    private array $lastSourceStats = [];
+
+    public function lastSourceStats(): array
+    {
+        return $this->lastSourceStats;
+    }
+
     private array $lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
 
     public function lastDetailStats(): array
@@ -106,6 +113,7 @@ class GdtInvoiceService
             throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
         }
         $this->lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
+        $this->lastSourceStats = ['regular' => ['state' => $source === 'pos' ? 'skipped' : 'pending', 'count' => null], 'pos' => ['state' => $source === 'regular' ? 'skipped' : 'pending', 'count' => null]];
         $show('[GDT] Bắt đầu đồng bộ nguồn canonical: '.$source);
         $vatIn = (bool) $vatIn;
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
@@ -151,6 +159,10 @@ class GdtInvoiceService
                     }
                 }
             }
+            if ($source !== 'pos') {
+                $this->lastSourceStats['regular']['state'] = 'fetched';
+                $this->lastSourceStats['regular']['count'] = ($this->lastSourceStats['regular']['count'] ?? 0) + count($regular);
+            }
             try {
                 if ($source === 'regular') {
                     $pos = [];
@@ -165,7 +177,12 @@ class GdtInvoiceService
                         $show('[GDT] POS full-month checkpoint completed.');
                     }
                 }
+                if ($source !== 'regular') {
+                    $this->lastSourceStats['pos']['state'] = 'fetched';
+                    $this->lastSourceStats['pos']['count'] = ($this->lastSourceStats['pos']['count'] ?? 0) + count($pos);
+                }
             } catch (\Throwable $exception) {
+                $this->lastSourceStats['pos']['state'] = 'failed';
                 if ($source === 'all') {
                     $show('[GDT] POS thất bại; regular canonical đã lưu. Đồng bộ all chưa hoàn tất và không xuất Excel thiếu.');
                 }
@@ -192,6 +209,10 @@ class GdtInvoiceService
         })->all());
         $show('[GDT] Tổng cộng sau loại trùng: '.count($all).' hóa đơn');
         if ($all === []) {
+            foreach ($this->lastSourceStats as &$sourceStat) {
+                if ($sourceStat['state'] === 'fetched') $sourceStat['state'] = 'empty';
+            }
+            unset($sourceStat);
             $show('[GDT] Không có hóa đơn trong khoảng thời gian đã chọn. Không tạo file Excel.');
 
             return null;
@@ -215,6 +236,10 @@ class GdtInvoiceService
         $show(sprintf('[DB] Đồng bộ header hoàn tất: tạo mới %d · cập nhật %d · không đổi %d · RAW header %d.', $stats['created'], $stats['updated'], $stats['unchanged'], count($stats['invoice_ids'])));
         $detailStats = $this->acquireMissingDetails($stats['invoice_ids'], $show);
         $this->lastDetailStats = $detailStats;
+        foreach ($this->lastSourceStats as &$sourceStat) {
+            if ($sourceStat['state'] === 'fetched') $sourceStat['state'] = $detailStats['failed'] > 0 ? 'partial' : 'completed';
+        }
+        unset($sourceStat);
         $show(sprintf('[RAW] Detail: đã có %d · tải mới %d · lỗi %d.', $detailStats['reused'], $detailStats['fetched'], $detailStats['failed']));
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);
