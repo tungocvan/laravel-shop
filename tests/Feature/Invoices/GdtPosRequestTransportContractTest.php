@@ -67,6 +67,86 @@ class GdtPosRequestTransportContractTest extends TestCase
         );
     }
 
+    public function test_pos_canonical_replay_preserves_identity_raw_link_and_regular_isolation(): void
+    {
+        // This regression runs only against an isolated in-memory SQLite database.
+        if (! in_array('sqlite', \PDO::getAvailableDrivers(), true)) {
+            $this->markTestSkipped('SQLite PDO driver required for isolated canonical integration test.');
+        }
+        config()->set('database.default', 'sqlite');
+        config()->set('database.connections.sqlite.database', ':memory:');
+        \Illuminate\Support\Facades\DB::purge('sqlite');
+        $schema = \Illuminate\Support\Facades\Schema::connection('sqlite');
+        $schema->create('invoices', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+            $table->string('lookup_code')->nullable();
+            $table->string('symbol')->nullable();
+            $table->string('invoice_number')->nullable();
+            $table->string('type')->nullable();
+            $table->date('issued_date')->nullable();
+            $table->string('tax_code')->nullable();
+            $table->string('name')->nullable();
+            $table->string('address')->nullable();
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+            $table->decimal('tax_rate', 10, 2)->nullable();
+            $table->decimal('vat_amount', 18, 2)->nullable();
+            $table->decimal('amount_before_vat', 18, 2)->nullable();
+            $table->decimal('total_amount', 18, 2)->nullable();
+            $table->string('invoice_type');
+            $table->timestamps();
+        });
+        $schema->create('invoice_source_records', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+            $table->foreignId('invoice_id');
+            $table->string('provider');
+            $table->string('source_version')->nullable();
+            $table->json('header_payload')->nullable();
+            $table->string('header_hash')->nullable();
+            $table->timestamp('header_fetched_at')->nullable();
+            $table->string('business_classification')->nullable();
+            $table->string('classification_scope')->nullable();
+            $table->timestamps();
+        });
+
+        $rows = [];
+        for ($number = 1; $number <= 10; $number++) {
+            $rows[] = [
+                'Mã tra cứu' => 'POS-'. $number,
+                'Ký hiệu' => '1/C26TEST',
+                'Số hóa đơn' => (string) $number,
+                'Ngày lập' => '15/07/2026',
+                'Mã số thuế' => '0100000000',
+                'Thành tiền' => 1000,
+                '_gdt_raw_payload' => ['id' => 'fixture-'. $number, 'shdon' => (string) $number],
+            ];
+        }
+        $service = app(GdtInvoiceService::class);
+        $persist = new \ReflectionMethod(GdtInvoiceService::class, 'persistInvoices');
+
+        $first = $persist->invoke($service, $rows, true);
+        $this->assertSame(10, $first['created']);
+        $this->assertCount(10, $first['invoice_ids']);
+
+        $replay = $persist->invoke($service, $rows, true);
+        $this->assertSame(0, $replay['created']);
+        $this->assertSame(10, $replay['unchanged']);
+        $this->assertSame($first['invoice_ids'], $replay['invoice_ids']);
+        $this->assertSame(10, \Modules\Invoices\Models\Invoices::query()->where('invoice_type', 'purchase')->count());
+        $this->assertSame(10, \Modules\Invoices\Models\InvoiceSourceRecord::query()->where('provider', 'gdt')->count());
+
+        $rows[0]['Thành tiền'] = 1200;
+        $changed = $persist->invoke($service, $rows, true);
+        $this->assertSame(0, $changed['created']);
+        $this->assertSame(1, $changed['updated']);
+        $this->assertSame(9, $changed['unchanged']);
+
+        $regular = $persist->invoke($service, [$rows[0]], false);
+        $this->assertSame(1, $regular['created']);
+        $this->assertSame(10, \Modules\Invoices\Models\Invoices::query()->where('invoice_type', 'purchase')->count());
+        $this->assertSame(1, \Modules\Invoices\Models\Invoices::query()->where('invoice_type', 'sold')->count());
+    }
+
     public function test_cookie_snapshot_is_eligible_for_pos_endpoint_without_network(): void
     {
         $jar = new CookieJar;
