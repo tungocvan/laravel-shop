@@ -27,11 +27,14 @@ class GdtPosPreviewOnlyContractTest extends TestCase
     {
         $component = file_get_contents(base_path('Modules/Invoices/Livewire/SearchHoadon.php'));
         $view = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
-        $this->assertStringContainsString("public string \$invoiceSource = 'all'", $component);
+        $this->assertStringContainsString("public string \$invoiceSource = 'regular'", $component);
         $this->assertStringContainsString("'in:all,regular,pos'", $component);
         $this->assertStringNotContainsString('exportCashRegisterPreview(', $component);
-        $this->assertStringContainsString('wire:model.live="invoiceSource"', $view);
-        $this->assertStringContainsString('Chỉ hóa đơn máy tính tiền', $view);
+        $this->assertStringContainsString('role="tablist"', $view);
+        $this->assertStringContainsString('wire:click="$set(\'invoiceSource\', \'regular\')"', $view);
+        $this->assertStringContainsString('wire:click="$set(\'invoiceSource\', \'pos\')"', $view);
+        $this->assertStringContainsString('wire:click="searchInvoices"', $view);
+        $this->assertStringContainsString('wire:click="run"', $view);
         $this->assertStringContainsString('importSelectedFile', $view);
     }
 }
