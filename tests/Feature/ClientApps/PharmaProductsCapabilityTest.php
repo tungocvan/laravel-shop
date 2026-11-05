@@ -152,13 +152,18 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString("->whereDoesntHave('variants')", $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
-        // JavaScript Set.delete() only clears a local selection; it is not a server mutation.
-        foreach (['create', 'edit', 'destroy', 'verifyMaster'] as $mutation) {
-            $this->assertStringNotContainsString("route('client.pharma.products.{$mutation}'", $view);
+        // CRUD actions are allowed only behind explicit ClientPortal capabilities.
+        foreach (['create', 'edit', 'delete'] as $capability) {
+            $this->assertStringContainsString("@can('client.pharma.products.{$capability}')", $view);
         }
-        $this->assertStringNotContainsString("@method('DELETE')", $view);
+        $this->assertStringContainsString("route('client.pharma.products.create')", $view);
+        $this->assertStringContainsString("route('client.pharma.products.edit'", $view);
+        $this->assertStringContainsString("route('client.pharma.products.destroy'", $view);
+        $this->assertStringContainsString('@csrf', $view);
+        $this->assertStringContainsString("@method('DELETE')", $view);
+        $this->assertStringContainsString('onsubmit="return confirm(', $view);
         $this->assertStringNotContainsString('method="DELETE"', $view);
-        $this->assertStringNotContainsString('route(\'client.pharma.products.destroy\'', $view);
+        $this->assertStringNotContainsString("route('client.pharma.products.verifyMaster'", $view);
     }
 
     public function test_catalog_product_type_and_special_control_filters_use_pharma_owned_query(): void
