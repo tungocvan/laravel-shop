@@ -522,3 +522,8 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added `tests/Feature/Invoices/GdtPosRequestTransportContractTest.php` with no-network checks for Guzzle cookie eligibility/domain isolation, POS purchase query/header contract, safe metadata and HTTP 200 HTML fail-closed. This is a Laravel HTTP-fake contract, not a proof of actual wire-level cookie delivery or browser transport equivalence.
 - No changes to production, GDT credentials, service behavior, User-Agent, CAPTCHA, canonical persistence or regular invoice source. No live GDT request from assistant.
 - Checkpoint pending user local focused test results. If focused PASS, run Invoices module regression; UI PASS requires explicit user confirmation. No PR/merge/deploy.
+
+### 2026-11-06 — POS request contract assertion isolation
+
+- User focused checkpoint: 24 passed, 1 failed (299 assertions); new `GdtPosRequestTransportContractTest` failed at a compound `Http::assertSent()` predicate. This does not prove the HTTP request was absent; the predicate combined many conditions.
+- Changed only the new test to select the fake POS request and assert each query/header separately, so the next failure identifies the mismatched field without dumping request headers or secrets. No service or production changes. Await focused rerun; module regression remains blocked until PASS.
