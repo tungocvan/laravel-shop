@@ -118,6 +118,11 @@ class SearchHoadon extends Component
         try {
             $challenge = null;
             if ($this->invoiceSource === 'pos') {
+                if (substr($this->start_date, 0, 7) !== substr($this->end_date, 0, 7)) {
+                    $this->searchState = 'failed';
+                    $this->searchMessage = 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Vui lòng thu hẹp khoảng ngày trước khi tải hoặc nhập CAPTCHA.';
+                    return;
+                }
                 $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
                 $challenge = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
                 $this->posCaptchaAnswer = '';
