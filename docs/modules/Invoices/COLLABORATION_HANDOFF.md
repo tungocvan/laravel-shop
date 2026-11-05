@@ -375,3 +375,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Second focused checkpoint: 2 FAIL / 4 PASS. Root cause confirmed in service diagnostics: `search_has_pos_filter` still checked obsolete `ttxly==8` after POS query switched to `ttxly==5`; Mockery log assertion threw before expected HTTP 500 exception. Fixed service metadata predicate (commit `7e69b20df2`). Await retest; no TEST PASS claimed.
 
 - Module regression checkpoint: 95 PASS, 3 FAIL (795 assertions), all stale source-text contracts in `GdtCanonicalPosSyncContractTest`, `GdtCanonicalSourceSelectionContractTest`, and `GdtRegularCanonicalCheckpointContractTest`. Updated expected POS call signature to include `$posCaptcha` and filter to `ttxly==5`; kept checkpoint ordering and canonical persistence assertions. Await focused retest of three contract tests and module regression, then UI confirmation. No merge/deploy.
+
+### 2026-11-05 — Source-aware GDT sync dashboard (UI checkpoint pending)
+
+- Approved UI redesign: `SearchHoadon` now displays separate Regular/POS cards with GDT-reported counts (or em dash when not verified), explicit state per source, and aggregate RAW detail results. No fabricated counts, no database migration.
+- `GdtInvoiceService::lastSourceStats()` tracks per-source query results, zero-result success, failure, skip, and post-processing state; counts accumulate across month chunks. Counts are API rows, not new DB inserts, and can overlap across sources. The queue's supported Regular-only source branch publishes source/detail results in cache for Livewire polling.
+- Changing source to POS/all switches to direct mode automatically; queue checkbox is disabled for POS-inclusive sources, preserving manual CAPTCHA gate. Regular retains queue. Existing file management/import/backup actions unchanged.
+- Added `GdtSyncDashboardContractTest`. Checkpoint: run focused tests (new contract + existing POS/canonical tests), then `tests/Feature/Invoices` only after focused PASS; manual desktop/mobile CAPTCHA and source-count UI acceptance required. No local execution or UI PASS claim, no PR/merge/deploy.
