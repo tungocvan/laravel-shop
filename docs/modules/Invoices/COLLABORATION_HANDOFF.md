@@ -1,3 +1,12 @@
+## 2026-11-05 — Batch 3: request-scoped monthly source retry checkpoint
+
+- For `source=all` with a `syncId`, each fully fetched month/source payload is cached for 24 hours, keyed by sync id, direction, requested range and monthly chunk.
+- Regular canonical headers persist before its completed monthly payload is cached. On POS HTTP 500, retry reuses completed Regular monthly payload without re-querying it. POS is cached only after a fully successful paginated fetch.
+- Combined Excel remains gated on successful completion of every month and both sources; cached payloads are reused for final deduplication and export.
+- For `syncId=null`, no cross-attempt payload reuse; existing behavior remains. Cache expiry can cause a safe refetch. The job retains existing three-attempt policy.
+- Limitations: this is a cache-backed retry checkpoint, not a durable audit ledger; cache loss causes refetch, and it does not provide integration-tested exactly-once semantics. The POS HTTP 500 upstream cause is still unresolved. No database schema change.
+- Tests NOT RUN: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php tests/Feature/Invoices/GdtSourceProgressContractTest.php tests/Feature/Invoices/GdtSourceChunkRetryContractTest.php`. Regression and UI NOT VERIFIED. No PR, merge or deploy.
+
 ## 2026-11-05 — GDT independent-source rollout, batch 2 checkpoint
 
 - Adds cache status `source_progress.regular=persisted` after regular canonical checkpoint, `source_progress.pos=failed` on POS failure and `source_progress.pos=fetched` after a completed monthly POS fetch.
