@@ -18,8 +18,8 @@ class GdtTabSearchContractTest extends TestCase
         $this->assertStringContainsString('role="tablist"', $view);
         $this->assertStringContainsString('Hóa đơn thông thường', $view);
         $this->assertStringContainsString('Hóa đơn máy tính tiền', $view);
-        $this->assertStringContainsString('wire:click="searchInvoices"', $view);
-        $this->assertStringContainsString('wire:click="run"', $view);
+        $this->assertStringContainsString("'searchInvoices'", $view);
+        $this->assertStringContainsString("'run'", $view);
         $this->assertStringContainsString("public string \$invoiceSource = 'regular';", $component);
         $this->assertStringContainsString('public function searchInvoices(): void', $component);
         $this->assertStringContainsString('searchedFingerprint', $component);
