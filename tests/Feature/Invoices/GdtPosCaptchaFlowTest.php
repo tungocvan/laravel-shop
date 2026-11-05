@@ -21,7 +21,9 @@ class GdtPosCaptchaFlowTest extends TestCase
         $service = app(GdtApiService::class);
         $image = $service->loadPosCaptcha(456);
         $this->assertStringStartsWith('data:image/svg+xml;base64,', $image['image']);
-        $this->assertSame(['ckey' => 'exampleKey123456', 'cvalue' => 'ABCD'], $service->consumePosCaptcha(456, 'ABCD'));
+        $challenge = $service->consumePosCaptcha(456, 'ABCD');
+        $this->assertSame('exampleKey123456', $challenge['ckey']);
+        $this->assertSame('ABCD', $challenge['cvalue']);
         $this->expectException(\RuntimeException::class);
         $service->consumePosCaptcha(456, 'ABCD');
     }
