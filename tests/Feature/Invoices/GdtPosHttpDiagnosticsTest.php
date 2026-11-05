@@ -47,6 +47,21 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                 return Http::response([], 404);
             });
 
+            // POS now logs safe cookie-jar lifecycle metadata before an HTTP failure.
+            // Allow that independent diagnostic without weakening the HTTP 500 warning assertion.
+            Log::shouldReceive('info')->once()->with(
+                'GDT POS captcha cookie lifecycle.',
+                Mockery::on(function ($context) {
+                    $this->assertSame('request', $context['stage']);
+                    $this->assertSame('purchase', $context['action']);
+                    $this->assertSame(0, $context['stored_cookie_count']);
+                    $this->assertSame(0, $context['jar_cookie_count']);
+                    $this->assertFalse($context['has_cookie']);
+
+                    return true;
+                })
+            );
+
             Log::shouldReceive('warning')->once()->with(
                 'GDT invoice source HTTP failure.',
                 Mockery::on(function ($context) use ($case) {
