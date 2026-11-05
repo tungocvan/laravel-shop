@@ -145,7 +145,11 @@ class PharmaProductsCapabilityTest extends TestCase
         $this->assertStringContainsString('$supplierPricingVisible && $suppliers->contains', $detail);
         $this->assertStringContainsString('@if($supplierPricingVisible)', $detail);
         $this->assertStringNotContainsString('Giá thương mại được bảo vệ theo quyền riêng.', $detail);
-        $this->assertStringNotContainsString('Medicine::query()', $controller);
+        // The SKU workspace uses MedicineCatalog; a separate scoped query lists
+        // Medicine Master records that have no SKU yet.
+        $this->assertStringContainsString('$catalog->browse(', $controller);
+        $this->assertStringContainsString('\\Modules\\Pharma\\Models\\Medicine::query()', $controller);
+        $this->assertStringContainsString("->whereDoesntHave('variants')", $controller);
         $this->assertStringNotContainsString('Admin::', $view);
 
         // JavaScript Set.delete() only clears a local selection; it is not a server mutation.
