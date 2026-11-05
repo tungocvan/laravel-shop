@@ -328,3 +328,11 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - No changes to GDT password persistence, API endpoints, Regular canonical checkpoint, POS retry/HTTP diagnostics, database schema, .env or production configuration.
 - Local gate pending: `GdtDatabaseSettingsTest`, `GdtPosHttpDiagnosticsTest`, `GdtSourceRetryHttpIntegrationTest`; only after focused PASS run `tests/Feature/Invoices`; then manual UI verification on `/admin/invoices/create-token` for typing without reload, explicit save, password preservation, captcha/login and responsive layout.
 - Prior POS-focused and Invoices regression PASS was reported before this integration; rerun required. UI PASS not yet confirmed. No PR, merge or deploy authorized.
+
+
+### 2026-11-05 — POS HTTP request-profile read-only audit and fake-based regression
+
+- Compared canonical GdtInvoiceService with GdtExcelSandboxService: both use Bearer authentication and the same Accept, Origin, Referer, Action, End-Point and request-id headers; sandbox additionally sets a connect timeout. Both send POS `/sco-query/invoices/purchase` with `ttxly==8`, `sort=tdlap:desc`, `size=50`.
+- No evidence that changing headers, endpoint, search filter, or timeout resolves upstream POS HTTP 500. No live API probe or production configuration change authorized.
+- Extended `GdtPosHttpDiagnosticsTest` with Laravel HTTP-fake assertions for POS query shape, first-page state absence and presence of expected request headers. Tests do not log token, query values, response body or invoice identifiers.
+- Checkpoint pending: focused `GdtPosHttpDiagnosticsTest`, `GdtSourceRetryHttpIntegrationTest`, `GdtDatabaseSettingsTest`; if PASS, run Invoices module regression. Manual UI PASS remains user-confirmed only. No PR/merge/deploy.
