@@ -31,6 +31,8 @@ class SearchHoadon extends Component
     public string $posCaptchaImage = '';
     public string $posCaptchaAnswer = '';
     public ?string $posCaptchaError = null;
+    public array $sourceResults = [];
+    public ?array $detailResults = null;
     public array $logs = [];
     public ?string $syncId = null;
     public string $syncState = 'idle';
@@ -119,6 +121,8 @@ class SearchHoadon extends Component
         }
 
         $this->logs = [];
+        $this->sourceResults = [];
+        $this->detailResults = null;
         $this->syncMessage = null;
         $this->syncFile = null;
         $this->log('Bắt đầu xử lý…');
@@ -153,6 +157,8 @@ class SearchHoadon extends Component
                 $posCaptcha,
             );
 
+            $this->sourceResults = $this->invoiceService->lastSourceStats();
+            $this->detailResults = $this->invoiceService->lastDetailStats();
             if ($file === null) {
                 $this->syncState = 'completed';
                 $this->syncMessage = 'Không có hóa đơn trong khoảng thời gian đã chọn. Hệ thống không tạo file Excel.';
@@ -176,6 +182,8 @@ class SearchHoadon extends Component
             $this->log('Hoàn tất xử lý!');
             $this->refreshAvailableFiles();
         } catch (\Throwable $exception) {
+            $this->sourceResults = $this->invoiceService->lastSourceStats();
+            $this->detailResults = $this->invoiceService->lastDetailStats();
             $this->syncState = 'failed';
             $this->syncMessage = $exception->getMessage();
             $this->log('❌ '.$exception->getMessage());
@@ -197,6 +205,8 @@ class SearchHoadon extends Component
         $this->syncMessage = $status['message'] ?? null;
         $this->syncFile = $status['file'] ?? null;
         $this->logs = array_values($status['logs'] ?? []);
+        $this->sourceResults = (array) ($status['source_results'] ?? []);
+        $this->detailResults = isset($status['detail_results']) ? (array) $status['detail_results'] : null;
 
         if (in_array($this->syncState, ['completed', 'partial', 'failed'], true)) {
             $this->refreshAvailableFiles();
