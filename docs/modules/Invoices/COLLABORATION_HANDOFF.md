@@ -539,3 +539,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User focused result: 16 failed, 9 passed (74 assertions); all 16 failures are BadMethodCallException because Laravel PendingRequest does not expose withoutHeader(). This is a code regression from the prior diagnostic fix, not evidence of upstream GDT behavior.
 - Replaced unsupported header-removal call with POS-only PendingRequest factory (clientForPos) that starts without generic Referer/Action/End-Point and retains token, SSL, timeout, Origin, Accept, request-id, configured User-Agent, CookieJar and redirect tracking. The POS-specific headers are then applied by the existing request flow. Regular invoice client unchanged.
 - No live API call, CAPTCHA bypass, canonical changes, PR, merge or deploy. Focused tests must rerun; module regression only after focused PASS. UI remains unverified.
+
+### 2026-11-06 — POS canonical admission focused regression checkpoint
+
+- User confirmed two-tier test PASS and POS UI preview displayed 10 purchase invoices for July 2026; canonical synchronization itself remains unverified.
+- Added two HTTP-fake focused tests to existing `GdtPosRequestTransportContractTest`: preview of 10 POS rows does not enter DB transaction; incomplete POS pagination fails before canonical DB transaction. Tests do not contact GDT or use real credentials.
+- Read-only audit confirms `processRange` deduplicates before `persistInvoices`, and persistence tracks created/updated/unchanged in a transaction; this is source behavior, not evidence of successful repeated sync. Idempotency/database integration tests remain outstanding.
+- Await local focused tests then Invoices module regression if PASS. Manual canonical UI and repeat-sync verification required before PR/merge. No production actions, no merge/deploy.
