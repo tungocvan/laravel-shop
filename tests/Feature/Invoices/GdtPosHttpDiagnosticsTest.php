@@ -73,7 +73,7 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                         'http_status' => 500,
                         'response_format' => $case['format'],
                         'search_has_pos_filter' => true,
-                        'page_size' => 50,
+                        'page_size' => 15,
                         'has_pagination_state' => false,
                     ], $context);
 
@@ -107,7 +107,7 @@ class GdtPosHttpDiagnosticsTest extends TestCase
                 parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
 
                 return ($query['sort'] ?? null) === 'tdlap:desc'
-                    && (string) ($query['size'] ?? '') === '50'
+                    && (string) ($query['size'] ?? '') === '15'
                     && str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
                     && ($query['ckey'] ?? '') === 'fake-key'
                     && ($query['cvalue'] ?? '') === 'fake-value'
