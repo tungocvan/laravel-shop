@@ -432,3 +432,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added safe count-only diagnostics at CAPTCHA loaded, consumed, and outgoing request jar stages. No cookie names/values, CAPTCHA key/answer, token or raw HTTP body logged. Cookie jar now constructed consistently for POS even when no cookies are supplied; does not invent session cookies. No changes to size=50, search filter, canonical, or Regular.
 - Added fake test asserting cached cookie snapshot survives one-time consume and reaches Guzzle CookieJar. HTTP fakes cannot prove a live upstream Set-Cookie or actual wire-level Cookie header; interpret logs accordingly.
 - User target is POS purchase July 2026 (official GDT browser 10, Laravel 0); previous zero-count log had has_captcha_cookie=false. Investigate whether GDT CAPTCHA GET emits Set-Cookie at all before concluding cookie loss. Focused/module tests pending; no UI PASS/merge/deploy.
+
+### 2026-11-05 — POS page-size parity experiment
+
+- Observed official GDT POS purchase request uses `size=15` while Laravel used `size=50`; POS only now uses 15, Regular retains 50. No change to endpoint, search, CAPTCHA, cookies, canonical or 429 handling.
+- Updated POS HTTP diagnostic tests and positive purchase query contract to assert 15. This is a controlled comparison, not proof that page size caused the observed 0-invoice discrepancy.
+- Focused tests, module regression and manual UI verification pending on local checkout. No merge/deploy.
