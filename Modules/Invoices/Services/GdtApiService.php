@@ -273,9 +273,14 @@ class GdtApiService
                 $cacheKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
                 $cachePutSucceeded = Cache::put($cacheKey, $token, $time);
                 $tokenPresentAfterPut = Cache::has($cacheKey);
-                Cache::forget($this->sessionCacheKey());
+                // Keep the authenticated cookie snapshot for subsequent POS CAPTCHA requests.
+                // Previously this deleted the snapshot just persisted above.
+                $authCookiesAfterLogin = Cache::get($this->sessionCacheKey(), []);
+                $authCookieCountAfterLogin = is_array($authCookiesAfterLogin) ? count($authCookiesAfterLogin) : 0;
 
                 Log::notice('GDT login succeeded.', $diagnostics + [
+                    'auth_cookie_count_after_login' => $authCookieCountAfterLogin,
+                    'auth_cookie_snapshot_present_after_login' => Cache::has($this->sessionCacheKey()),
                     'cache_store' => (string) config('cache.default'),
                     'cache_key' => $cacheKey,
                     'cache_put_succeeded' => $cachePutSucceeded,
