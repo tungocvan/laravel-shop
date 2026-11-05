@@ -396,6 +396,9 @@ class GdtInvoiceService
                 }
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
+            if ($cashRegister) {
+                $this->logPosQuerySuccess($res, $data, $action, $page, $query, $posCaptcha);
+            }
             $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
             $count = count($items);
             $total ??= (int) ($data['total'] ?? $count);
@@ -418,6 +421,33 @@ class GdtInvoiceService
         }$show("✅ Đã nhận đủ {$processed}/{$total} hóa đơn");
 
         return $result;
+    }
+
+    /**
+     * Diagnose successful POS responses using allowlisted scalar metadata only.
+     * Never log invoice contents, CAPTCHA values/keys, cookies, token or full URL.
+     */
+    private function logPosQuerySuccess($response, $data, string $action, int $page, array $query, ?array $posCaptcha): void
+    {
+        $contentType = strtolower((string) $response->header('Content-Type', ''));
+        $format = str_contains($contentType, 'json') ? 'json'
+            : (str_contains($contentType, 'html') ? 'html' : 'other');
+        $datas = is_array($data) ? ($data['datas'] ?? null) : null;
+        $total = is_array($data) ? ($data['total'] ?? null) : null;
+        Log::info('GDT POS invoice query response metadata.', [
+            'source' => 'pos',
+            'action' => $action,
+            'page' => $page,
+            'http_status' => $response->status(),
+            'response_format' => $format,
+            'response_total' => is_int($total) && $total >= 0 ? $total : null,
+            'response_datas_count' => is_array($datas) ? count($datas) : null,
+            'response_datas_is_array' => is_array($datas),
+            'page_size' => (int) ($query['size'] ?? 0),
+            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==8'),
+            'has_captcha_cookie' => ! empty($posCaptcha['cookies']),
+            'has_pagination_state' => filled($query['state'] ?? null),
+        ]);
     }
 
     /**
