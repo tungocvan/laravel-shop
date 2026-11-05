@@ -527,3 +527,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 
 - User focused checkpoint: 24 passed, 1 failed (299 assertions); new `GdtPosRequestTransportContractTest` failed at a compound `Http::assertSent()` predicate. This does not prove the HTTP request was absent; the predicate combined many conditions.
 - Changed only the new test to select the fake POS request and assert each query/header separately, so the next failure identifies the mismatched field without dumping request headers or secrets. No service or production changes. Await focused rerun; module regression remains blocked until PASS.
+
+### 2026-11-06 — POS End-Point header override focused fix
+
+- Local focused checkpoint: 24 passed, 1 failed (308 assertions). Isolated fake-request assertion proved POS `End-Point` resolved to generic `/` instead of browser-observed `/tra-cuu/tra-cuu-hoa-don` despite POS `withHeaders()` call. This is a concrete Laravel request-contract mismatch, not yet proof of the upstream HTML cause.
+- POS-only request now drops generic `Referer`, `Action`, `End-Point` before applying POS search-page values. Regular request client is unchanged. Existing focused contract checks all three headers and query, cookie eligibility, HTML fail-closed, and safe logs.
+- Pending local focused rerun, then module regression only on PASS; no UI PASS, PR, merge or deploy.
