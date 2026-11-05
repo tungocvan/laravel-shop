@@ -192,6 +192,9 @@ class SearchHoadon extends Component
             'invoiceSource' => ['required', 'in:regular,pos'],
             'vatIn' => ['boolean'],
         ]);
+        // Preserve the submitted answer before clearing preview/UI state.
+        // clearSearchPreview() intentionally resets CAPTCHA input on filter changes.
+        $submittedPosCaptchaAnswer = $this->invoiceSource === 'pos' ? $this->posCaptchaAnswer : '';
         $this->clearSearchPreview();
         $this->searchState = 'searching';
         try {
@@ -202,8 +205,10 @@ class SearchHoadon extends Component
                     $this->searchMessage = 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Vui lòng thu hẹp khoảng ngày trước khi tải hoặc nhập CAPTCHA.';
                     return;
                 }
-                $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
-                $challenge = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
+                if (trim($submittedPosCaptchaAnswer) === '' || mb_strlen($submittedPosCaptchaAnswer) > 20) {
+                    throw new RuntimeException('Vui lòng nhập mã CAPTCHA POS hợp lệ.');
+                }
+                $challenge = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $submittedPosCaptchaAnswer);
                 $this->posCaptchaAnswer = '';
                 $this->posCaptchaImage = '';
             }
