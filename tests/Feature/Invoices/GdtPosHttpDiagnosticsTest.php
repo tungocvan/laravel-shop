@@ -93,7 +93,7 @@ class GdtPosHttpDiagnosticsTest extends TestCase
 
                 return ($query['sort'] ?? null) === 'tdlap:desc'
                     && (string) ($query['size'] ?? '') === '50'
-                    && str_contains((string) ($query['search'] ?? ''), 'ttxly==5')
+                    && str_contains((string) ($query['search'] ?? ''), 'ttxly==8')
                     && ($query['ckey'] ?? '') === 'fake-key'
                     && ($query['cvalue'] ?? '') === 'fake-value'
                     && ! array_key_exists('state', $query)
@@ -105,7 +105,7 @@ class GdtPosHttpDiagnosticsTest extends TestCase
 
             Http::assertSent(function ($request) {
                 return str_contains($request->url(), '/sco-query/invoices/purchase')
-                    && str_contains(urldecode($request->url()), 'ttxly==5');
+                    && str_contains(urldecode($request->url()), 'ttxly==8');
             });
 
     }
