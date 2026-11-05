@@ -1,3 +1,11 @@
+## 2026-11-05 — Integration/Regression checkpoint (HTTP fake)
+
+- Added `tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php` to execute real `GdtInvoiceService::processRange` control flow with Laravel `Http::fake` and `Cache`: empty Regular completes, POS first responds HTTP 500, retry reuses Regular checkpoint, POS succeeds, no incomplete Excel produced.
+- This is an HTTP/cache integration test, **not a database persistence integration test**; non-empty canonical insert/dedup and Excel export remain unverified.
+- Run focused first: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php tests/Feature/Invoices/GdtSourceProgressContractTest.php tests/Feature/Invoices/GdtSourceChunkRetryContractTest.php tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php`.
+- Only if focused PASS, run module regression appropriate to existing Invoices tests, then impacted cross-module tests as needed. Stop on failure. UI requires user verification.
+- Test execution NOT RUN in GitHub environment; no PR, merge or production deployment.
+
 ## 2026-11-05 — Batch 3: request-scoped monthly source retry checkpoint
 
 - For `source=all` with a `syncId`, each fully fetched month/source payload is cached for 24 hours, keyed by sync id, direction, requested range and monthly chunk.
