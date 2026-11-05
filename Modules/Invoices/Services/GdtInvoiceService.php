@@ -504,10 +504,10 @@ class GdtInvoiceService
             'redirect_count' => $this->safeRedirectCount($response),
             'html_response_class' => $this->safeHtmlResponseClass($response),
             'html_response_kind' => $this->safeHtmlResponseKind($response),
-            'response_has_set_cookie' => $response->header('Set-Cookie') !== null,
-            'response_has_www_authenticate' => $response->header('WWW-Authenticate') !== null,
-            'response_has_cache_control' => $response->header('Cache-Control') !== null,
-            'response_has_content_length' => $response->header('Content-Length') !== null,
+            'response_has_set_cookie' => trim((string) $response->header('Set-Cookie', '')) !== '',
+            'response_has_www_authenticate' => trim((string) $response->header('WWW-Authenticate', '')) !== '',
+            'response_has_cache_control' => trim((string) $response->header('Cache-Control', '')) !== '',
+            'response_has_content_length' => trim((string) $response->header('Content-Length', '')) !== '',
             'action' => $action,
             'page' => $page,
             'http_status' => $response->status(),
@@ -563,7 +563,7 @@ class GdtInvoiceService
             return 'NOT_HTML';
         }
 
-        if ($response->header('WWW-Authenticate') !== null) {
+        if (trim((string) $response->header('WWW-Authenticate', '')) !== '') {
             return 'HTML_AUTH_CHALLENGE_HEADER';
         }
 
@@ -600,10 +600,10 @@ class GdtInvoiceService
             'redirect_count' => $this->safeRedirectCount($response),
             'html_response_class' => $this->safeHtmlResponseClass($response),
             'html_response_kind' => $this->safeHtmlResponseKind($response),
-            'response_has_set_cookie' => $response->header('Set-Cookie') !== null,
-            'response_has_www_authenticate' => $response->header('WWW-Authenticate') !== null,
-            'response_has_cache_control' => $response->header('Cache-Control') !== null,
-            'response_has_content_length' => $response->header('Content-Length') !== null,
+            'response_has_set_cookie' => trim((string) $response->header('Set-Cookie', '')) !== '',
+            'response_has_www_authenticate' => trim((string) $response->header('WWW-Authenticate', '')) !== '',
+            'response_has_cache_control' => trim((string) $response->header('Cache-Control', '')) !== '',
+            'response_has_content_length' => trim((string) $response->header('Content-Length', '')) !== '',
             'endpoint' => $path,
             'action' => $action,
             'page' => $page,
