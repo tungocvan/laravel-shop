@@ -533,3 +533,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Local focused checkpoint: 24 passed, 1 failed (308 assertions). Isolated fake-request assertion proved POS `End-Point` resolved to generic `/` instead of browser-observed `/tra-cuu/tra-cuu-hoa-don` despite POS `withHeaders()` call. This is a concrete Laravel request-contract mismatch, not yet proof of the upstream HTML cause.
 - POS-only request now drops generic `Referer`, `Action`, `End-Point` before applying POS search-page values. Regular request client is unchanged. Existing focused contract checks all three headers and query, cookie eligibility, HTML fail-closed, and safe logs.
 - Pending local focused rerun, then module regression only on PASS; no UI PASS, PR, merge or deploy.
+
+### 2026-11-06 — Fix unsupported PendingRequest::withoutHeader
+
+- User focused result: 16 failed, 9 passed (74 assertions); all 16 failures are BadMethodCallException because Laravel PendingRequest does not expose withoutHeader(). This is a code regression from the prior diagnostic fix, not evidence of upstream GDT behavior.
+- Replaced unsupported header-removal call with POS-only PendingRequest factory (clientForPos) that starts without generic Referer/Action/End-Point and retains token, SSL, timeout, Origin, Accept, request-id, configured User-Agent, CookieJar and redirect tracking. The POS-specific headers are then applied by the existing request flow. Regular invoice client unchanged.
+- No live API call, CAPTCHA bypass, canonical changes, PR, merge or deploy. Focused tests must rerun; module regression only after focused PASS. UI remains unverified.
