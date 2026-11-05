@@ -46,7 +46,7 @@ class GdtSourceRetryHttpIntegrationTest extends TestCase
         $this->assertSame(1, $regularCalls);
         $this->assertSame(1, $posCalls);
 
-        $result = $service->processRange('2026-11-01', '2026-11-02', null, true, 'all', $syncId);
+        $result = $service->processRange('2026-11-01', '2026-11-02', null, true, 'all', $syncId, ['ckey' => 'fake-key-retry', 'cvalue' => 'fake-value-retry']);
         $this->assertNull($result);
         $this->assertSame(1, $regularCalls, 'Regular must not be refetched after its full-month checkpoint.');
         $this->assertSame(2, $posCalls, 'POS must be retried.');
