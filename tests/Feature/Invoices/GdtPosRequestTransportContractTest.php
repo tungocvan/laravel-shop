@@ -13,6 +13,60 @@ use Tests\TestCase;
 
 class GdtPosRequestTransportContractTest extends TestCase
 {
+    public function test_pos_preview_ten_results_does_not_write_canonical(): void
+    {
+        config()->set('invoices.gdt.cache_key', 'gdt-pos-canonical-preview-token');
+        config()->set('invoices.gdt.base_url', 'https://gdt-test.invalid/api');
+        Cache::put('gdt-pos-canonical-preview-token', 'fake-token', 600);
+
+        $rows = [];
+        for ($number = 1; $number <= 10; $number++) {
+            $rows[] = [
+                'shdon' => (string) $number,
+                'khmshdon' => '1',
+                'khhdon' => 'C26TEST',
+                'tdlap' => '2026-07-15T10:00:00',
+            ];
+        }
+        Http::fake(['*' => Http::response(
+            ['datas' => $rows, 'total' => 10],
+            200,
+            ['Content-Type' => 'application/json']
+        )]);
+        \Illuminate\Support\Facades\DB::shouldReceive('transaction')->never();
+
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-07-01', '2026-07-31', true, 'pos',
+            ['ckey' => 'fake-key', 'cvalue' => 'fake-value', 'cookies' => []]
+        );
+
+        $this->assertSame('pos', $result['source']);
+        $this->assertSame(10, $result['count']);
+        $this->assertCount(10, $result['sample']);
+        Http::assertSentCount(1);
+    }
+
+    public function test_incomplete_pos_response_cannot_enter_canonical_transaction(): void
+    {
+        config()->set('invoices.gdt.cache_key', 'gdt-pos-canonical-incomplete-token');
+        config()->set('invoices.gdt.base_url', 'https://gdt-test.invalid/api');
+        Cache::put('gdt-pos-canonical-incomplete-token', 'fake-token', 600);
+
+        Http::fake(['*' => Http::response(
+            ['datas' => [['shdon' => '1', 'tdlap' => '2026-07-15T10:00:00']], 'total' => 10],
+            200,
+            ['Content-Type' => 'application/json']
+        )]);
+        \Illuminate\Support\Facades\DB::shouldReceive('transaction')->never();
+
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Không tạo file thiếu');
+        app(GdtInvoiceService::class)->processRange(
+            '2026-07-01', '2026-07-31', null, true, 'pos', null,
+            ['ckey' => 'fake-key', 'cvalue' => 'fake-value', 'cookies' => []]
+        );
+    }
+
     public function test_cookie_snapshot_is_eligible_for_pos_endpoint_without_network(): void
     {
         $jar = new CookieJar;
