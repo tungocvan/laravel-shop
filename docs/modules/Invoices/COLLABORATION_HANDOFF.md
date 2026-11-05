@@ -480,3 +480,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 
 - Focused checkpoint: 17 passed, 1 failed (211 assertions); HTML fixture expected `HTML_UNCLASSIFIED` but received `HTML_AUTH_CHALLENGE_HEADER` because Laravel response header accessor can yield empty string for absent header.
 - Updated safe response-header presence checks (Set-Cookie, WWW-Authenticate, Cache-Control, Content-Length) and authentication-challenge classification to require nonempty trimmed values, not merely non-null. No sensitive values logged. Re-run focused tests before module regression; no TEST/UI PASS claimed.
+
+### 2026-11-06 — Browser POS request parity checkpoint
+
+- User-supplied successful July 2026 purchase request confirms GET `/api/sco-query/invoices/purchase`, `size=15`, `sort=tdlap:desc`, `ttxly==8`. Browser additionally sends search-page Referer, URL-encoded Action, End-Point, ckey/cvalue headers and Accept-Language=vi. Browser includes multiple session cookies; these were **not** copied or stored in repository.
+- Scoped POS-only adjustment: send search-page Referer, encoded Action, ckey/cvalue request headers and Accept-Language; preserve query parameters, CookieJar, bearer token, fail-closed validation, and canonical behavior. Existing configured User-Agent unchanged. Header presence and values are asserted only in HTTP fake tests; secrets never logged.
+- No claim that headers alone resolve HTTP 200 HTML. Need local focused tests, then module regression, then UI verification with fresh CAPTCHA. No PR/merge/deploy.
