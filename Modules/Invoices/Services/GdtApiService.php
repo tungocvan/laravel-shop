@@ -128,7 +128,10 @@ class GdtApiService
      */
     public function loadPosCaptcha(int $adminId): array
     {
-        $cookies = new CookieJar;
+        // Reuse the authenticated GDT cookie session when requesting POS CAPTCHA.
+        // The previous fresh jar severed continuity with authenticate.
+        $cookies = $this->restoreSessionCookies();
+        $authCookieCount = count($cookies->toArray());
         $transfer = [];
         try {
             $response = $this->sessionClient($cookies, $transfer)->get($this->url('/captcha'));
@@ -149,6 +152,7 @@ class GdtApiService
         Cache::put($this->posCaptchaKey($adminId), ['key' => $payload['key'], 'cookies' => $cookieSnapshot], now()->addMinutes(5));
         Log::info('GDT POS captcha cookie lifecycle.', [
             'stage' => 'loaded',
+            'auth_cookie_count_before_captcha' => $authCookieCount,
             'cookie_count' => count($cookieSnapshot),
             'has_cookie' => $cookieSnapshot !== [],
         ]);
