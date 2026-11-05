@@ -3,6 +3,8 @@
 namespace Modules\Invoices\Services;
 
 use Carbon\Carbon;
+use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\SetCookie;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -295,7 +297,17 @@ class GdtInvoiceService
                     $query['ckey'] = $posCaptcha['ckey'];
                     $query['cvalue'] = $posCaptcha['cvalue'];
                 }
-                $res = $this->client($token)
+                $client = $this->client($token);
+                if ($cashRegister && ! empty($posCaptcha['cookies'])) {
+                    $jar = new CookieJar;
+                    foreach ($posCaptcha['cookies'] as $cookie) {
+                        if (is_array($cookie)) {
+                            $jar->setCookie(new SetCookie($cookie));
+                        }
+                    }
+                    $client = $client->withOptions(['cookies' => $jar]);
+                }
+                $res = $client
                     ->withHeaders($cashRegister ? ['Action' => 'Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')', 'End-Point' => '/tra-cuu/tra-cuu-hoa-don'] : [])
                     ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
