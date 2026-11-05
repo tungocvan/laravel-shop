@@ -438,3 +438,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Observed official GDT POS purchase request uses `size=15` while Laravel used `size=50`; POS only now uses 15, Regular retains 50. No change to endpoint, search, CAPTCHA, cookies, canonical or 429 handling.
 - Updated POS HTTP diagnostic tests and positive purchase query contract to assert 15. This is a controlled comparison, not proof that page size caused the observed 0-invoice discrepancy.
 - Focused tests, module regression and manual UI verification pending on local checkout. No merge/deploy.
+
+### 2026-11-05 — POS purchase trace correlation (diagnostic-only)
+
+- POS fetch now generates one random trace_id per monthly request and logs request metadata, cookie-jar lifecycle and HTTP response metadata with the same trace_id. Logs mark runtime as test/application to distinguish HTTP fake fixtures from manual UI runs. Response Location is reduced to an allowlisted path (no host/query), when available; this is not a complete redirect history or proof of wire-level cookies.
+- POS page size remains 15; no changes to API query, CAPTCHA, canonical, retry policy or UI. HTTP 200 malformed payload remains fail-closed.
+- Added focused purchase correlation/security test; adapted HTTP 500 diagnostics mock to accept new safe fields. Focused tests and module regression pending local execution; no UI PASS, merge or deploy.
