@@ -415,3 +415,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - POS HTTP 200 now emits one allowlisted `GDT POS invoice query response metadata.` log per page: source, action, page, HTTP status, content-type category, numeric response total, datas count/type, page size, POS filter presence, cookie presence, pagination-state presence. No raw payload, token, URL, CAPTCHA, cookie or invoice data. Regular unchanged.
 - Tests added to `GdtPosRateLimitSafeSearchTest` using HTTP fakes and log spy for populated and empty POS responses, asserting no sensitive fixture values in metadata. Focused and module regression pending actual DELL execution; UI still returns 0 vs GDT browser 10, root cause not yet confirmed. Do not merge or deploy.
 - Diagnostic checkpoint: after successful focused/module tests, make at most one user-initiated POS query and inspect only the allowlisted log line. Do not paste full application logs or secret values. Compare response_total/datas_count/page_size/cookie boolean to GDT browser result before changing query parameters.
+
+### 2026-11-05 — POS malformed-success fail-closed fix
+
+- User confirmed target is POS **purchase**. Recent `purchase` metadata with `has_captcha_cookie=false` may be from HTTP fake tests; do not infer live GDT behavior. The latest `sold` record is not proof of purchase behavior.
+- POS-only HTTP 200 guard now requires `datas` to be a list and `total` to be a nonnegative integer >= current page count. Otherwise throw a clear exception, never return false 0 or persist canonical. Regular behavior untouched. HTTP 429 and CAPTCHA flow unchanged.
+- HTTP fake tests added for malformed success and ten-row purchase; existing empty-list test covers legitimate zero. Focused tests and module regression pending DELL; no UI PASS or merge.
