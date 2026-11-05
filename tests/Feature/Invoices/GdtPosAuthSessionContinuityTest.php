@@ -35,6 +35,46 @@ class GdtPosAuthSessionContinuityTest extends TestCase
         $this->assertSame('SECRET_AUTH_COOKIE', Cache::get($key)[0]['Value']);
     }
 
+    public function test_restore_diagnostics_distinguish_cached_snapshot_from_restored_cookies(): void
+    {
+        config()->set('invoices.gdt.cache_key', 'gdt-pos-restore-diagnostics-test');
+        config()->set('invoices.gdt.base_url', 'https://gdt-test.invalid/api');
+
+        Cache::put('gdt-pos-restore-diagnostics-test:auth-session-cookies', [
+            [
+                'Name' => 'auth-session',
+                'Value' => 'SECRET_AUTH_COOKIE',
+                'Domain' => 'gdt-test.invalid',
+                'Path' => '/',
+                'Secure' => true,
+            ],
+            'invalid-cookie-entry',
+        ], 600);
+
+        Log::spy();
+        Http::fake(['*' => Http::response([
+            'key' => 'abcdefgh1234',
+            'content' => '<svg xmlns="http://www.w3.org/2000/svg"></svg>',
+        ], 200)]);
+
+        app(GdtApiService::class)->loadPosCaptcha(9877);
+
+        Log::shouldHaveReceived('info')->withArgs(function ($message, $context) {
+            if ($message !== 'GDT authentication cookie restore diagnostics.') {
+                return false;
+            }
+
+            $this->assertTrue($context['cache_entry_present']);
+            $this->assertTrue($context['snapshot_is_array']);
+            $this->assertSame(2, $context['snapshot_cookie_count']);
+            $this->assertSame(1, $context['restored_cookie_count']);
+            $this->assertSame(1, $context['restore_failure_count']);
+            $this->assertStringNotContainsString('SECRET_AUTH_COOKIE', json_encode($context));
+
+            return true;
+        })->once();
+    }
+
     public function test_pos_captcha_reuses_authenticated_cookie_snapshot_without_logging_values(): void
     {
         config()->set('invoices.gdt.cache_key', 'gdt-pos-continuity-test');
