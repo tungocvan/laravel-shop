@@ -463,3 +463,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Application trace `dc26b3af-...` showed POS purchase HTTP 200 HTML without tracked redirects. Read-only source audit found CAPTCHA `GdtApiService::baseClient()` explicitly sets `invoices.gdt.user_agent`, while POS `GdtInvoiceService::client()` did not; request behavior differed even when Origin/Referer/Accept matched.
 - POS only now uses the same configured User-Agent as the CAPTCHA client. Added safe `cookie_eligible_for_endpoint` boolean using Guzzle CookieJar matching against the POS URL; it checks whether a cookie header could be assembled, not actual wire delivery or upstream acceptance. Log also marks User-Agent parity without printing the value. Regular client untouched.
 - Focused fake test verifies configured POS User-Agent, cookie eligibility, and no cookie/CAPTCHA values in metadata. No HTML body parsing, CAPTCHA bypass, retry, canonical changes, or live GDT request. Pending focused and module regression and user UI PASS; no PR/merge/deploy.
+
+### 2026-11-05 — Fix unsupported CookieJar API (focused tests pending)
+
+- Local focused output: 12 failed, 5 passed (49 assertions), all failures at `GdtInvoiceService.php:396`: `CookieJar::getCookieHeader()` does not exist.
+- Replaced with supported `CookieJar::withCookieHeader(new Request('GET', ...))` and checked `hasHeader('Cookie')` on returned PSR-7 request. No cookie values logged, no HTTP request added, no canonical changes.
+- Await local focused tests before module regression or UI. No TEST PASS asserted, no PR/merge/deploy.
