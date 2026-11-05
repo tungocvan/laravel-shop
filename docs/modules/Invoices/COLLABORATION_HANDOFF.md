@@ -356,3 +356,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 
 - After POS HTTP 500 persisted with size=1 both with and without `ttxly==8`, extended `invoices:gdt-pos-diagnose` to report only whether top-level `code`, `status`, `error`, `message` fields exist and their primitive type. Does not print ANY remote field values, nested data, response body, identifiers, or token. No request changes and no runtime sync changes.
 - Added fake HTTP regression with sensitive-looking response content; focused tests and module regression pending DELL. Existing UI login PASS previously reported. Keep explicit `--execute` separate from dry-run; no automatic live request, PR, merge or deploy.
+
+### 2026-11-05 — Fixed-label POS error message classification
+
+- GDT POS diagnostic returned HTTP 500 JSON with top-level string `message`; actual text remains private.
+- Extended diagnostic command to classify up to 2048 bytes of that string into fixed labels: `ENDPOINT_NOT_FOUND`, `AUTHORIZATION_ERROR`, `INVALID_QUERY`, `UPSTREAM_ERROR`, or `UNKNOWN`. Labels are heuristics, not verified root cause. No raw message output or persistence; dry-run and single-request `--execute` unchanged.
+- Fake HTTP tests cover recognized invalid query, sensitive unknown message, and structured message. Await DELL focused and module regression; no production API request or merge.
