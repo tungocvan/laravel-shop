@@ -70,6 +70,31 @@ class GdtPosQueryDiagnosticCommandTest extends TestCase
                 && $request->hasHeader('request-id');
         });
     }
+    public function test_error_field_types_are_reported_without_remote_values(): void
+    {
+        Http::fake(['*' => Http::response([
+            'code' => 'SECRET_INVOICE_IDENTIFIER_123',
+            'message' => 'Sensitive invoice and token content',
+            'error' => ['invoice' => 'sensitive'],
+            'status' => 500,
+            'datas' => [['id' => 'sensitive']],
+        ], 500, ['Content-Type' => 'application/json'])]);
+
+        $this->artisan('invoices:gdt-pos-diagnose', [
+            '--from' => '2026-10-12',
+            '--to' => '2026-10-31',
+            '--execute' => true,
+        ])->expectsOutput('Error field code: present (string).')
+            ->expectsOutput('Error field message: present (string).')
+            ->expectsOutput('Error field error: present (structured).')
+            ->expectsOutput('Error field status: present (number).')
+            ->doesntExpectOutput('Sensitive invoice and token content')
+            ->doesntExpectOutput('SECRET_INVOICE_IDENTIFIER_123')
+            ->assertExitCode(1);
+
+        Http::assertSentCount(1);
+    }
+
     public function test_comparison_mode_omits_pos_filter_and_keeps_single_request(): void
     {
         Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200)]);
