@@ -37,7 +37,7 @@ class GdtSourceRetryHttpIntegrationTest extends TestCase
         $syncId = 'integration-'.uniqid('', true);
 
         try {
-            $service->processRange('2026-11-01', '2026-11-02', null, true, 'all', $syncId);
+            $service->processRange('2026-11-01', '2026-11-02', null, true, 'all', $syncId, ['ckey' => 'fake-key', 'cvalue' => 'fake-value']);
             $this->fail('Expected POS HTTP 500 to propagate.');
         } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('HTTP 500', $exception->getMessage());
