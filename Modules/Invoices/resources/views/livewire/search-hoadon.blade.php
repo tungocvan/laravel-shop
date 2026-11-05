@@ -30,7 +30,7 @@
             @if($invoiceSource === 'pos')
                 <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50/70 p-4">
                     <p class="text-sm font-semibold text-amber-950">Xác minh CAPTCHA của GDT</p>
-                    <p class="mt-1 text-xs text-amber-800">Nhập mã từ ảnh để Tìm kiếm POS. Mỗi lần đồng bộ POS cần CAPTCHA mới; không đưa mã vào queue.</p>
+                    <p class="mt-1 text-xs text-amber-800">Chỉ tra cứu POS trong một tháng dương lịch mỗi lần để giảm nguy cơ HTTP 429. Nhập mã từ ảnh để Tìm kiếm; đồng bộ POS cần CAPTCHA mới. Không đưa mã vào queue.</p>
                     <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
                         @if($posCaptchaImage)<img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-amber-200 bg-white p-1">@endif
                         <button type="button" wire:click="refreshPosCaptcha" wire:loading.attr="disabled" wire:target="refreshPosCaptcha" class="min-h-11 rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-900">Tải / làm mới CAPTCHA</button>
