@@ -76,16 +76,16 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         try {
             $file = $service->processRange($this->start, $this->end, function (string $message): void {
                 $this->appendLog($message);
-                if (str_contains($message, 'Regular canonical checkpoint:')) {
+                if (str_contains($message, 'Regular full-month checkpoint completed.') || str_contains($message, 'Regular canonical checkpoint: tái sử dụng')) {
                     $this->updateSourceProgress('regular', 'persisted');
                 }
                 if (str_contains($message, 'POS thất bại;')) {
                     $this->updateSourceProgress('pos', 'failed');
                 }
-                if (str_contains($message, 'Tháng này:')) {
+                if (str_contains($message, 'POS full-month checkpoint completed.') || str_contains($message, 'POS full-month checkpoint reused.')) {
                     $this->updateSourceProgress('pos', 'fetched');
                 }
-            }, $this->vatIn);
+            }, $this->vatIn, 'all', $this->syncId);
         } catch (Throwable $exception) {
             $this->updateStatus('partial', 'Đồng bộ chưa hoàn tất: '.$exception->getMessage(), [
                 'source' => 'all',
