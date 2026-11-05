@@ -132,7 +132,7 @@ class SearchHoadon extends Component
             $this->searchMessage = $result['count'] === 0
                 ? 'GDT trả về 0 hóa đơn trong khoảng ngày đã chọn.'
                 : 'GDT trả về '.number_format($result['count']).' hóa đơn. Chưa ghi dữ liệu canonical.';
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             $this->searchState = 'failed';
             $this->searchMessage = $exception->getMessage();
             $this->posCaptchaAnswer = '';
