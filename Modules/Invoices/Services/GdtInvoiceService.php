@@ -439,12 +439,33 @@ class GdtInvoiceService
             : (str_contains($contentType, 'html') ? 'html' : 'other');
         $datas = is_array($data) ? ($data['datas'] ?? null) : null;
         $total = is_array($data) ? ($data['total'] ?? null) : null;
+        $typeOf = static fn ($value): string => match (true) {
+            is_array($value) => 'array',
+            is_int($value) => 'integer',
+            is_string($value) => 'string',
+            is_bool($value) => 'boolean',
+            is_float($value) => 'float',
+            is_null($value) => 'null',
+            default => 'other',
+        };
+        $responseShape = ! is_array($data) ? 'scalar'
+            : (array_is_list($data) ? 'array' : 'object');
+        $mime = match ($format) {
+            'json' => 'application/json',
+            'html' => 'text/html',
+            default => 'other',
+        };
         Log::info('GDT POS invoice query response metadata.', [
             'source' => 'pos',
             'action' => $action,
             'page' => $page,
             'http_status' => $response->status(),
             'response_format' => $format,
+            'response_shape' => $responseShape,
+            'datas_type' => $typeOf($datas),
+            'total_type' => $typeOf($total),
+            'content_type' => $mime,
+            'request_action' => $action,
             'response_total' => is_int($total) && $total >= 0 ? $total : null,
             'response_datas_count' => is_array($datas) ? count($datas) : null,
             'response_datas_is_array' => is_array($datas),
