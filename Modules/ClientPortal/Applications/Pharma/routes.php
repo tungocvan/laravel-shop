@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineRelationsController;
@@ -17,6 +18,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,overview')
             ->name('dashboard');
 
+        Route::get('/dav-prices', [PharmaDavPriceController::class, 'index'])
+            ->middleware('client.feature:pharma,dav-prices')->name('dav-prices');
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
