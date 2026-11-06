@@ -145,7 +145,7 @@ return [
             'page_title' => 'Tra cứu giá thuốc đông dược',
             'page_description' => 'Giá bán buôn công bố là giá kê khai; các quy cách khác nhau phải được đối chiếu riêng.',
             'route' => 'client.pharma.traditional-prices',
-            'permission' => 'client.pharma.traditional-prices.view',
+            'permission' => 'client.pharma.dav-prices.view',
             'icon' => 'search',
             'sort_order' => 16,
         ],
