@@ -33,6 +33,23 @@ class GdtPosRateLimitSafeSearchTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_multi_month_pos_canonical_sync_fails_before_any_gdt_request(): void
+    {
+        Http::fake();
+
+        try {
+            app(GdtInvoiceService::class)->processRange(
+                '2026-01-01', '2026-02-28', null, true, 'pos', null,
+                ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+            );
+            $this->fail('Expected canonical POS date-range guard.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertStringContainsString('một tháng', $exception->getMessage());
+        }
+
+        Http::assertNothingSent();
+    }
+
     public function test_regular_preview_is_not_limited_to_one_month(): void
     {
         Http::fake(['*' => Http::response(['datas' => [], 'total' => 0], 200)]);
