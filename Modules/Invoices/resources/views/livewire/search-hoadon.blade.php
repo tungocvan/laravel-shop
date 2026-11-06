@@ -1,4 +1,10 @@
 <div class="space-y-5" @if ($syncId && in_array($syncState, ['queued', 'processing'], true)) wire:poll.2s="pollStatus" @endif>
+    @if($invoiceSource === 'pos' && $posSyncPhase === 'awaiting_captcha')
+        <div class="rounded-xl border border-amber-300 bg-amber-50 p-4" role="status">
+            <p class="text-sm font-semibold text-amber-900">{{ $syncMessage }}</p>
+            <button type="button" wire:click="continuePosSync" wire:loading.attr="disabled" wire:target="continuePosSync" class="mt-3 min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white">Tiếp tục đồng bộ trang 2 · CAPTCHA mới</button>
+        </div>
+    @endif
     <div wire:loading.flex wire:target="backupFilesToEmail" class="fixed inset-0 z-[120] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
             <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
@@ -11,7 +17,7 @@
         <div class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 px-4 py-6" role="presentation">
             <div role="dialog" aria-modal="true" aria-labelledby="pos-captcha-title" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
                 <h3 id="pos-captcha-title" class="text-lg font-semibold text-slate-900">Xác minh CAPTCHA GDT</h3>
-                <p class="mt-2 text-sm text-slate-600">{{ $posCaptchaPurpose === 'sync' ? 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.' : ($posCaptchaPurpose === 'page2' ? 'Nhập CAPTCHA mới để tiếp tục trang 2 từ checkpoint đã xác minh.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.') }}</p>
+                <p class="mt-2 text-sm text-slate-600">{{ in_array($posCaptchaPurpose, ['sync', 'sync_page2'], true) ? ($posCaptchaPurpose === 'sync_page2' ? 'CAPTCHA mới cho trang 2 đồng bộ POS; chỉ ghi canonical khi đủ hóa đơn.' : 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.') : ($posCaptchaPurpose === 'page2' ? 'Nhập CAPTCHA mới để tiếp tục trang 2 từ checkpoint đã xác minh.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.') }}</p>
                 <div class="mt-4 space-y-3">
                     @if($posCaptchaImage)
                         <img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-slate-200 bg-white p-1">
@@ -71,7 +77,7 @@
                     </div>
                 @endif
                 @if($searchState === 'completed' && $invoiceSource === 'pos' && $posMultiPagePreview)
-                    <p class="mt-2 text-sm text-amber-800" role="status">Đã xác minh đủ các trang để xem trước. Đồng bộ canonical nhiều trang vẫn bị khóa cho đến khi hoàn thiện luồng CAPTCHA đồng bộ riêng.</p>
+                    <p class="mt-2 text-sm text-amber-800" role="status">Đã xác minh đủ các trang để xem trước. Đồng bộ canonical sẽ yêu cầu CAPTCHA mới cho từng trang.</p>
                 @endif
                 @if($searchState === 'completed')
                     <p class="mt-3 text-2xl font-bold tabular-nums text-slate-900">{{ number_format((int) ($searchPreview['count'] ?? 0)) }} <span class="text-sm font-normal text-slate-500">hóa đơn</span></p>
