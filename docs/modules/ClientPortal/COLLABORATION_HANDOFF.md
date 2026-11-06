@@ -1,3 +1,9 @@
+## Award detail field parity fix — 2026-11-07
+
+- Compared read-only with `Modules/ClientPortal/resources/views/applications/muasamcong/drug-pricing-detail.blade.php` on main. Pharma had wrong keys for investor and dates: now `tenCdtBmt`, `ngayBanHanhQuyetDinh`, `ngayDangTaiKqlcnt`. `winningCode` is an array in source and must be joined to show bidder code instead of `—`.
+- Only Pharma detail Blade and focused contract test changed. Source adapter, catalog matching, preview/sync and Muasamcong are unchanged. Await focused test and UI regression confirmation; do not mark PASS yet.
+
+---
 ## Checkpoint — Pharma award detail and per-record sync — 2026-11-07
 
 - User requested Muasamcong-style dedicated detail page with a sync button inside. Implemented GET `/apps/pharma/award-prices/{sourceId}?keyword=...&page=...` (Pharma feature guard, web auth); source row is re-fetched/verified against keyword and page, not trusted from URL. Search "Xem chi tiết" links to this independent Pharma page.
