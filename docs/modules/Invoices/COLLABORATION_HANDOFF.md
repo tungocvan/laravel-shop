@@ -724,3 +724,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Changed `consume()` to `Cache::get()`, validate decrypted payload and fingerprint, then `Cache::forget()` only on success. Wrong admin/session/fingerprint no longer destroys valid checkpoint. Existing test checks this behavior.
 - **Concurrency limitation:** get+forget is not atomic; do not expose this as production-grade single-use resume until an atomic claim/lock mechanism is implemented and tested. Interactive page-2 and canonical multi-page sync remain unimplemented.
 - Tests NOT RUN after fix. First `php artisan test tests/Feature/Invoices/GdtPosSecureContinuationTest.php`; if PASS run `php artisan test tests/Feature/Invoices/GdtPosPageRequestTest.php`; then module regression. No UI PASS, merge or deploy.
+
+### 2026-11-06 — Batch 7B.2A atomic continuation claim checkpoint
+- Following user-reported three-layer PASS for Batch 7B.1, implemented a per-checkpoint `Cache::lock(...)->block(3)` guard around decrypt, fingerprint validation, and `Cache::forget` in `GdtPosSecureContinuation::consume`. Prevents concurrent consumers from both obtaining the same cursor/first-page rows when the cache backend supports shared atomic locks. Invalid fingerprint still does not consume the checkpoint.
+- Added focused lock-contention test to `GdtPosSecureContinuationTest`. Requires a shared cache/lock backend across workers for production use; do not assume an array/local cache is sufficient for multiple servers.
+- **NOT YET IMPLEMENTED:** interactive Livewire page-1 pause, CAPTCHA2 resume, GDT cookie continuity, canonical multi-page pipeline. No UI change, no claim of 17/17. Tests NOT RUN by GitHub connector.
+- Checkpoint: `php artisan test tests/Feature/Invoices/GdtPosSecureContinuationTest.php tests/Feature/Invoices/GdtPosPageRequestTest.php`; after PASS `php artisan test tests/Feature/Invoices`. Do not merge/deploy. Resume remaining Batch 7B.2 only after checkpoint.
