@@ -210,6 +210,48 @@ class SearchHoadon extends Component
         return hash('sha256', implode('|', [$this->invoiceSource, $this->start_date, $this->end_date, (int) $this->vatIn]));
     }
 
+    public function existingPosExcel(): ?string
+    {
+        if ($this->invoiceSource !== 'pos') {
+            return null;
+        }
+        try {
+            $file = app(GdtCompletedExport::class)->path(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, 'pos'
+            );
+
+            return is_file($file) && is_readable($file) && filesize($file) > 0 ? $file : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function selectExistingPosExcel(): void
+    {
+        $this->authorizePermission('invoices-create');
+        $file = $this->existingPosExcel();
+        if ($file === null) {
+            $this->addError('invoiceSource', 'Không tìm thấy file Excel phù hợp.');
+            return;
+        }
+        $this->refreshAvailableFiles();
+        $token = ((bool) $this->vatIn ? 'vat_in' : 'vat_out').'|'.basename($file);
+        if (! in_array($token, array_column($this->availableFiles, 'token'), true)) {
+            $this->addError('invoiceSource', 'File không nằm trong danh sách 50 file gần nhất. Vui lòng tìm tại kho file.');
+            return;
+        }
+        $this->selectedFiles = [$token];
+        $this->dispatch('pos-existing-file-selected');
+    }
+
+    public function allowPosGdtRefresh(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if ($this->existingPosExcel() !== null) {
+            $this->forceResync = true;
+        }
+    }
+
     public function completedCanonicalExport(): ?string
     {
         if (! in_array($this->invoiceSource, ['regular', 'pos'], true)) {
@@ -260,6 +302,10 @@ class SearchHoadon extends Component
             return;
         }
         if (! in_array($purpose, ['search', 'sync', 'page2', 'sync_page2'], true)) {
+            return;
+        }
+        if ($purpose === 'search' && $this->existingPosExcel() !== null && ! $this->forceResync) {
+            $this->searchMessage = 'File Excel đã tồn tại. Chọn file trong kho để xem/Import nếu là dữ liệu legacy; hoặc xác nhận tra cứu lại từ GDT.';
             return;
         }
         if ($purpose === 'sync' && $this->skipCompletedCanonical()) {
@@ -333,6 +379,10 @@ class SearchHoadon extends Component
             'invoiceSource' => ['required', 'in:regular,pos'],
             'vatIn' => ['boolean'],
         ]);
+        if ($this->invoiceSource === 'pos' && $this->existingPosExcel() !== null && ! $this->forceResync) {
+            $this->searchMessage = 'File Excel đã tồn tại. Không cần CAPTCHA; chọn file hoặc xác nhận tra cứu lại từ GDT.';
+            return;
+        }
         // Preserve the submitted answer before clearing preview/UI state.
         // clearSearchPreview() intentionally resets CAPTCHA input on filter changes.
         $submittedPosCaptchaAnswer = $this->invoiceSource === 'pos' ? $this->posCaptchaAnswer : '';
