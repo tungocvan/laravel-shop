@@ -359,6 +359,24 @@ class GdtInvoiceService
         $state = null;
         $total = null;
         $posTraceId = $cashRegister ? (string) Str::uuid() : null;
+        // Keep one mutable cookie jar for the whole POS pagination request.
+        // Rehydrating the original CAPTCHA snapshot per page discards Set-Cookie updates.
+        $posJar = null;
+        $storedCookies = [];
+        if ($cashRegister) {
+            $posJar = new CookieJar;
+            $storedCookies = is_array($posCaptcha['cookies'] ?? null) ? $posCaptcha['cookies'] : [];
+            foreach ($storedCookies as $cookie) {
+                if (! is_array($cookie)) {
+                    continue;
+                }
+                try {
+                    $posJar->setCookie(new SetCookie($cookie));
+                } catch (\Throwable) {
+                    // Do not log cookie values.
+                }
+            }
+        }
         do {
             $show('[GDT] '.($cashRegister ? 'Máy tính tiền' : 'Thông thường')." · page {$page}...");
             try {
@@ -372,18 +390,7 @@ class GdtInvoiceService
                 }
                 $client = $this->client($token);
                 if ($cashRegister) {
-                    $jar = new CookieJar;
-                    $storedCookies = is_array($posCaptcha['cookies'] ?? null) ? $posCaptcha['cookies'] : [];
-                    foreach ($storedCookies as $cookie) {
-                        if (! is_array($cookie)) {
-                            continue;
-                        }
-                        try {
-                            $jar->setCookie(new SetCookie($cookie));
-                        } catch (\Throwable) {
-                            // A malformed cookie must not disclose values in logs.
-                        }
-                    }
+                    $jar = $posJar;
                     Log::info('GDT POS captcha cookie lifecycle.', [
                         'stage' => 'request',
                         'action' => $action,
@@ -439,9 +446,19 @@ class GdtInvoiceService
                 throw new \RuntimeException("Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.', previous: $exception);
             } if (in_array($res->status(), [401, 403], true)) {
                 $this->logRejectedQuery($res, $action, $page);
-                if ($res->status() === 401) {
+                // A POS CAPTCHA rejection is not evidence that the auth token expired.
+                // Fail closed and require a new CAPTCHA; preserve the authenticated session.
+                $rejection = $res->json();
+                $rejectionMessage = is_array($rejection) ? (string) ($rejection['message'] ?? '') : '';
+                $isPosCaptchaRejection = $cashRegister && $res->status() === 401
+                    && preg_match('/captcha/i', $rejectionMessage) === 1;
+                if ($res->status() === 401 && ! $isPosCaptchaRejection) {
                     Cache::forget(config('invoices.gdt.cache_key'));
-                }throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
+                }
+                if ($isPosCaptchaRejection) {
+                    throw new \RuntimeException("GDT từ chối CAPTCHA POS tại trang {$page}. Vui lòng lấy CAPTCHA mới và tra cứu lại; không tạo file thiếu.");
+                }
+                throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
             } if (! $res->successful()) {
                 $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query, $posTraceId);
                 if ($res->status() === 429) {
