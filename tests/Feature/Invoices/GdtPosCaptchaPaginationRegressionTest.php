@@ -152,7 +152,7 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
                 ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
             );
             $this->fail('A 15/17 partial preview must not succeed.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('GDT POS lỗi phân trang tại trang 2 (HTTP 500)', $exception->getMessage());
             $this->assertStringContainsString('đã nhận 15/17 hóa đơn', $exception->getMessage());
             $this->assertStringContainsString('CAPTCHA mới', $exception->getMessage());
@@ -167,7 +167,7 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
 
     public function test_pos_http_500_diagnostics_never_log_upstream_json_message_or_payload(): void
     {
-        $source = file_get_contents((new \\ReflectionClass(GdtInvoiceService::class))->getFileName());
+        $source = file_get_contents((new \ReflectionClass(GdtInvoiceService::class))->getFileName());
 
         $this->assertStringContainsString("'pos_error_shape' => \\$posErrorShape", $source);
         $this->assertStringContainsString("'pos_error_message_category' => \\$posErrorMessageCategory", $source);
