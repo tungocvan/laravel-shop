@@ -8,11 +8,15 @@ use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Services\DavPublicPriceLookup;
+use Modules\Pharma\Services\DavMedicineCandidateMatcher;
+use Modules\Pharma\Services\MedicineService;
+use Modules\Pharma\Models\Medicine;
+use Illuminate\Validation\ValidationException;
 use RuntimeException;
 
 final class PharmaDavPriceController extends Controller
 {
-    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, DavPublicPriceLookup $lookup): View
+    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, DavPublicPriceLookup $lookup, DavMedicineCandidateMatcher $matcher): View
     {
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
@@ -37,6 +41,8 @@ final class PharmaDavPriceController extends Controller
             }
         }
 
+        $result['items'] = array_map(static fn (array $item): array => $item + ['match' => $matcher->inspect($item)], $result['items']);
+
         $feature = collect($application['features'] ?? [])->first(
             fn (array $item): bool => ($item['key'] ?? null) === 'dav-prices'
         );
@@ -52,4 +58,62 @@ final class PharmaDavPriceController extends Controller
             'error' => $error,
         ]);
     }
+    public function preview(Request $request, ApplicationRegistry $registry, DavPublicPriceLookup $lookup, DavMedicineCandidateMatcher $matcher): View
+    {
+        $this->authorizeImport($request, $registry);
+        $input = $request->validate(['q' => ['required', 'string', 'max:120'], 'page' => ['required', 'integer', 'between:1,1000'], 'source_id' => ['required', 'string', 'max:60']]);
+        $candidate = $this->sourceCandidate($lookup, $input);
+        $match = $matcher->inspect($candidate);
+
+        return view('ClientPortal::applications.pharma.dav-import-preview', compact('candidate', 'match', 'input'));
+    }
+
+    public function import(Request $request, ApplicationRegistry $registry, DavPublicPriceLookup $lookup, DavMedicineCandidateMatcher $matcher, MedicineService $medicines)
+    {
+        $this->authorizeImport($request, $registry);
+        $input = $request->validate(['q' => ['required', 'string', 'max:120'], 'page' => ['required', 'integer', 'between:1,1000'], 'source_id' => ['required', 'string', 'max:60'], 'confirmed' => ['accepted']]);
+        $candidate = $this->sourceCandidate($lookup, $input);
+        $match = $matcher->inspect($candidate);
+        if ($match['status'] !== 'new') {
+            throw ValidationException::withMessages(['medicine' => 'Thuốc đã tồn tại hoặc cần đối chiếu thủ công. Không tạo mới tự động.']);
+        }
+
+        $medicine = $medicines->store([
+            'name' => $candidate['name'],
+            'product_type' => Medicine::PRODUCT_TYPE_MODERN,
+            'registration_number' => $candidate['registration'],
+            'active_ingredients' => $candidate['ingredient'],
+            'concentration' => $candidate['strength'],
+            'dosage_form' => $candidate['dosage'],
+            'unit' => $candidate['unit'],
+            'packaging_specification' => mb_substr($candidate['package'], 0, 255),
+            'manufacturing_company' => mb_substr($candidate['manufacturer'], 0, 255),
+            'manufacturing_country' => mb_substr($candidate['country'], 0, 255),
+            'registered_company' => mb_substr($candidate['declarant'], 0, 255),
+            // DAV price is source information only; do not set commercial prices.
+            'declared_price' => null,
+            'selling_price' => null,
+        ]);
+
+        return redirect()->route('client.pharma.products.edit', $medicine->id)->with('success', 'Đã tạo thuốc từ DAV. Vui lòng kiểm tra và hoàn thiện hồ sơ.');
+    }
+
+    private function authorizeImport(Request $request, ApplicationRegistry $registry): void
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.dav-prices.view')
+            && $registry->userCan($user, 'client.pharma.products.create'), 403);
+    }
+
+    private function sourceCandidate(DavPublicPriceLookup $lookup, array $input): array
+    {
+        $items = $lookup->search($input['q'], (int) $input['page'])['items'];
+        $candidate = collect($items)->first(fn (array $row): bool => $row['source_id'] !== '' && hash_equals($row['source_id'], $input['source_id']));
+        if (! $candidate) {
+            throw ValidationException::withMessages(['source_id' => 'Không tìm thấy thuốc DAV tương ứng. Vui lòng tra cứu lại.']);
+        }
+
+        return $candidate;
+    }
+
 }
