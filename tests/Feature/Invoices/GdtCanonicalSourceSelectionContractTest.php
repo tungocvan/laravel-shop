@@ -50,13 +50,13 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
 
         $job = new ProcessGdtInvoicesJob('2026-10-01', '2026-10-30', true, null, 'pos');
 
-        $this->expectException(\\RuntimeException::class);
+        $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('chỉ được đồng bộ trực tiếp, không qua queue');
 
         $job->handle(
             $service,
-            $this->createMock(\\Modules\\Invoices\\Services\\GoogleDriveInvoiceExportService::class),
-            $this->createMock(\\Modules\\Invoices\\Services\\InvoiceSourceCoverageService::class),
+            $this->createMock(\Modules\Invoices\Services\GoogleDriveInvoiceExportService::class),
+            $this->createMock(\Modules\Invoices\Services\InvoiceSourceCoverageService::class),
         );
     }
 
