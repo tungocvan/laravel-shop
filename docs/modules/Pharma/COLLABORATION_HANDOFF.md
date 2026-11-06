@@ -1,3 +1,12 @@
+## Checkpoint — Independent Pharma tender award lookup — 2026-11-06
+
+- Replaces the earlier cross-app link: `/apps/pharma/award-prices` is owned by Pharma and ClientPortal Pharma. It works without Muasamcong app registration, feature permissions, routes, models, services or configuration; no migration or .env changes.
+- `Modules/Pharma/Services/PublicAwardPriceLookup.php` calls the public `muasamcong.mof.gov.vn` pricing endpoint directly with explicit allowlisted URL, SSL verification, 5-minute cache, and fixed 20-row first-page read-only search. The source is the public tender portal; **not** the Muasamcong module. This narrow adapter intentionally does not replicate Muasamcong's extended search, saved snapshots, syncing, wishlist, export, or complex fallback strategies. Source API compatibility and first-page limitation require UI verification.
+- `PharmaAwardPriceController`, Pharma feature manifest and guarded route, standalone Blade search/results; Pharma lookup hub now links internally. GMP placeholder unchanged. Existing Muasamcong feature untouched. Existing `client.pharma.dav-prices.view` permission reused.
+- Focused tests added, **not executed**. Need check live API shape, permission, responsive UI, and behavior when `modules.registry.Muasamcong.enabled=false` in isolated test context (do not alter production config). No UI PASS claimed. Branch `feat/pharma-independent-award-lookup-20261106` stacked on earlier unmerged branches; do not merge/deploy without approval.
+
+---
+
 ## Checkpoint — Pharma hub links Muasamcong award pricing — 2026-11-06
 
 - User reported UI PASS for traditional lookup. Enabled `Tra cứu thuốc trúng thầu` card in `/apps/pharma/lookups` to navigate to the existing `client.muasamcong.drug-pricing` route; no duplicate search/sync implementation or new route.
