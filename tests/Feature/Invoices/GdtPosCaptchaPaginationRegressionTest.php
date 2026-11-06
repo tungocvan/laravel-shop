@@ -153,7 +153,10 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
             );
             $this->fail('A 15/17 partial preview must not succeed.');
         } catch (\\RuntimeException $exception) {
-            $this->assertStringContainsString('HTTP 500 ở page 2', $exception->getMessage());
+            $this->assertStringContainsString('GDT POS lỗi phân trang tại trang 2 (HTTP 500)', $exception->getMessage());
+            $this->assertStringContainsString('đã nhận 15/17 hóa đơn', $exception->getMessage());
+            $this->assertStringContainsString('CAPTCHA mới', $exception->getMessage());
+            $this->assertStringContainsString('không kết luận CAPTCHA hết hạn', $exception->getMessage());
             $this->assertStringContainsString('Không tạo file thiếu', $exception->getMessage());
         }
 
