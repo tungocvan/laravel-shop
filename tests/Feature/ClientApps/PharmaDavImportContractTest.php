@@ -24,7 +24,13 @@ class PharmaDavImportContractTest extends TestCase
     public function test_candidate_matcher_requires_name_and_registration(): void
     {
         $matcher = app(DavMedicineCandidateMatcher::class);
-        $this->assertSame('incomplete', $matcher->inspect(['name' => 'METHYL 4 LEMED', 'registration' => '']));
-        $this->assertSame('incomplete', $matcher->inspect(['name' => '', 'registration' => '893110605624']));
+        foreach ([
+            ['name' => 'METHYL 4 LEMED', 'registration' => ''],
+            ['name' => '', 'registration' => '893110605624'],
+        ] as $candidate) {
+            $result = $matcher->inspect($candidate);
+            $this->assertSame('incomplete', $result['status']);
+            $this->assertNull($result['medicine_id']);
+        }
     }
 }
