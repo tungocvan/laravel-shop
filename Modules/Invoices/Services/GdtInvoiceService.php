@@ -474,6 +474,9 @@ class GdtInvoiceService
                         : ' Vui lòng chờ trước khi thử lại.';
                     throw new \RuntimeException("GDT giới hạn tần suất truy vấn (HTTP 429) ở trang {$page}.{$wait} Không tự động thử lại; không tạo file thiếu.");
                 }
+                if ($cashRegister && $page > 1 && $res->status() >= 500) {
+                    throw new \\RuntimeException("GDT POS lỗi phân trang tại trang {$page} (HTTP {$res->status()}); đã nhận {$processed}".($total !== null ? "/{$total}" : '')." hóa đơn. Không tạo file thiếu. Có thể tra cứu thủ công từng khoảng ngày ngắn hơn trong cùng tháng, mỗi lần dùng CAPTCHA mới; không kết luận CAPTCHA hết hạn từ HTTP 5xx.");
+                }
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
             if ($cashRegister) {
