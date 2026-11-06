@@ -15,15 +15,20 @@ final class PublicAwardPriceLookup
     private const ENDPOINT = 'https://muasamcong.mof.gov.vn/o/egp-portal-personal-page/services/smart/search_prc';
     private const REFERER = 'https://muasamcong.mof.gov.vn/web/guest/profile-info?menu=bid-pricing';
 
-    public function search(string $keyword): array
+    public function search(string $keyword, int $page = 1, bool $fresh = false): array
     {
         $keyword = trim($keyword);
         if (mb_strlen($keyword) < 2 || mb_strlen($keyword) > 200) {
             return ['success' => false, 'items' => [], 'total' => 0, 'message' => 'Từ khóa phải có 2–200 ký tự.'];
         }
 
+        $page = max(1, min(100, $page));
         try {
-            return Cache::remember('pharma:award-lookup:'.hash('sha256', mb_strtolower($keyword)), now()->addMinutes(5), function () use ($keyword): array {
+            $cacheKey = 'pharma:award-lookup:'.hash('sha256', mb_strtolower($keyword).'|'.$page);
+            if ($fresh) {
+                Cache::forget($cacheKey);
+            }
+            return Cache::remember($cacheKey, now()->addMinutes(5), function () use ($keyword, $page): array {
                 $response = Http::acceptJson()
                     ->asJson()
                     ->withHeaders([
@@ -34,7 +39,7 @@ final class PublicAwardPriceLookup
                     ->connectTimeout(5)->timeout(20)
                     ->post(self::ENDPOINT, [[
                         'pageSize' => 20,
-                        'pageNumber' => 0,
+                        'pageNumber' => $page - 1,
                         'query' => [[
                             'index' => 'es-smart-pricing',
                             'keyWord' => $keyword,
