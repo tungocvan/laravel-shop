@@ -1,3 +1,14 @@
+## Checkpoint — MOH Đông dược unit-aware identity — 2026-11-06
+
+- User confirmed search UI PASS after scoped MOH TLS workaround; import UI not yet revalidated.
+- New `MohTraditionalMedicineMatcher` isolates matching from DAV: normalized name + registration + ĐVT. Same triple existing => existing; duplicate triple => ambiguous; same triple with packaging mismatch or non-traditional type => review. Same name+registration with different ĐVT => eligible as distinct Medicine; missing identity => incomplete. Partial overlaps remain review.
+- ClientPortal import uses unit-aware matcher at list/preview/locked store, lock includes ĐVT, only blocks different package/price within the **same** name+registration+unit in current API page. Other pages may require manual source reconciliation; do not silently overwrite existing.
+- Import explicitly persists `product_type=Medicine::PRODUCT_TYPE_TRADITIONAL` (`dong_duoc`), and `giaBanBuon` to `declared_price` only; no `selling_price` writes, migrations, or global DAV matcher changes.
+- Focused tests added for same-unit conflict/different-unit allowance and static integration contract. Runtime DB persistence, broader regression and UI import confirmation **not yet executed**.
+- Branch `feat/pharma-traditional-unit-identity-20261106` stacked on unmerged traditional lookup parent. No merge/deploy.
+
+---
+
 ## Traditional medicine public price lookup — checkpoint 2026-11-06
 
 - Branch `feat/pharma-traditional-price-lookup-20261106` is stacked on `feat/pharma-lookup-hub-20261106` (itself stacked on unmerged DAV feature). Resolve parent dependencies before PR/merge; main was `36e43665a` at branch creation.
