@@ -54,4 +54,21 @@ class InvoicesPosPwaSyncContractTest extends TestCase
         $this->assertArrayHasKey('eyebrow', $manifest['features']['sync']);
         $this->assertArrayHasKey('page_description', $manifest['features']['sync']);
     }
+    #[Test]
+    public function completed_pos_sync_retains_filters_and_labels_source_after_redirect(): void
+    {
+        $workspace = file_get_contents((new \ReflectionClass(ClientInvoiceWorkspaceService::class))->getFileName());
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/invoices/sync.blade.php'));
+
+        foreach (["'source' => 'pos'", "'start' => \$start", "'end' => \$end", "'direction' => \$direction"] as $expected) {
+            $this->assertStringContainsString($expected, $workspace);
+        }
+        $this->assertStringContainsString("\$completedFilters = (\$syncStatus['source'] ?? null) === 'pos'", $view);
+        $this->assertStringContainsString("($completedFilters ?: [])", $view);
+        $this->assertStringContainsString("Nguồn: Máy POS", $view);
+        $this->assertStringContainsString("Thông tin tác vụ đồng bộ", $view);
+        $this->assertStringContainsString("\$syncStatus['start']", $view);
+        $this->assertStringContainsString("\$syncStatus['end']", $view);
+    }
+
 }
