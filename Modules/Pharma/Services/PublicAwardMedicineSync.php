@@ -65,7 +65,11 @@ final class PublicAwardMedicineSync
             throw ValidationException::withMessages(['selected' => 'Bản ghi nguồn thiếu mã định danh.']);
         }
 
-        $key = 'pharma:award-sync:'.hash('sha256', $sourceId);
+        $key = 'pharma:award-sync:'.hash('sha256', implode('|', [
+            $this->normalizer->text($this->string($item['tenThuoc'] ?? null)),
+            $this->registration($item),
+            $this->normalizer->text($this->string($item['donViTinh'] ?? null)),
+        ]));
         return Cache::lock($key, 30)->block(5, function () use ($item, $allowCreate, $sourceId): array {
             return DB::transaction(function () use ($item, $allowCreate, $sourceId): array {
                 $existingSource = MedicineSource::query()
