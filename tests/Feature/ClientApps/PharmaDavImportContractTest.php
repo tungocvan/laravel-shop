@@ -4,6 +4,9 @@ namespace Tests\Feature\ClientApps;
 
 use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Services\DavMedicineCandidateMatcher;
+use Modules\Pharma\Services\MedicineService;
+use Modules\Pharma\Models\Medicine;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class PharmaDavImportContractTest extends TestCase
@@ -19,6 +22,21 @@ class PharmaDavImportContractTest extends TestCase
         $this->assertContains('POST', $store->methods());
         $this->assertContains('client.feature:pharma,dav-prices', $preview->gatherMiddleware());
         $this->assertContains('client.feature:pharma,dav-prices', $store->gatherMiddleware());
+    }
+
+    public function test_declared_only_import_does_not_insert_selling_price(): void
+    {
+        $service = app(MedicineService::class);
+        $medicine = $service->storeWithDeclaredPriceOnly([
+            'name' => 'DAV TEST DECLARED ONLY',
+            'product_type' => Medicine::PRODUCT_TYPE_MODERN,
+            'registration_number' => 'DAV-TEST-ONLY-20261106',
+            'declared_price' => 6500,
+            'selling_price' => 9999,
+        ]);
+
+        $this->assertSame(6500.0, (float) $medicine->declared_price);
+        $this->assertSame('DAV TEST DECLARED ONLY', $medicine->name);
     }
 
     public function test_candidate_matcher_requires_name_and_registration(): void
