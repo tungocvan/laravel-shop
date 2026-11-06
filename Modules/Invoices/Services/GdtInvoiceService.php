@@ -110,6 +110,62 @@ class GdtInvoiceService
         ];
     }
 
+    /**
+     * Canonical sync may only consume a complete, separately verified POS
+     * response. The existing persistence/export pipeline remains authoritative.
+     */
+    public function processVerifiedPosRows(string $startDate, string $endDate, bool $vatIn, array $rows, int $expectedTotal, ?callable $cb = null): ?string
+    {
+        if ($expectedTotal < 1 || count($rows) !== $expectedTotal) {
+            throw new \RuntimeException('Dữ liệu POS chưa đầy đủ; không ghi canonical.');
+        }
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = $row['_gdt_raw_payload']['id'] ?? null;
+            if (! is_scalar($id) || trim((string) $id) === '' || isset($ids[(string) $id])) {
+                throw new \RuntimeException('Dữ liệu POS trùng ID hoặc thiếu ID; không ghi canonical.');
+            }
+            $ids[(string) $id] = true;
+        }
+        $this->verifiedPosRows = $rows;
+        try {
+            return $this->processRange($startDate, $endDate, $cb, $vatIn, 'pos');
+        } finally {
+            $this->verifiedPosRows = null;
+        }
+    }
+
+    private ?array $verifiedPosRows = null;
+
+    public function resumePosCanonicalRows(string $fromDate, string $toDate, bool $vatIn, array $captcha, array $checkpoint): array
+    {
+        // Use the same validation and page-two request as read-only preview.
+        // No persistence occurs until the complete set is returned.
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to) || $from->format('Y-m') !== $to->format('Y-m')
+            || ! is_array($checkpoint['first_page'] ?? null)
+            || count($checkpoint['first_page']) !== 15
+            || ! is_string($checkpoint['cursor'] ?? null)
+            || ! is_int($checkpoint['total'] ?? null)) {
+            throw new \RuntimeException('Checkpoint POS không hợp lệ.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên GDT đã hết hạn.');
+        }
+        $captcha['cookies'] = is_array($checkpoint['cookies'] ?? null) ? $checkpoint['cookies'] : [];
+        $rows = $this->fetchInvoicesByMonth(
+            $token, $from, $to, static function (string $message): void {},
+            $vatIn, true, $captcha, false, $checkpoint
+        );
+        if (count($rows) !== $checkpoint['total']) {
+            throw new \RuntimeException('GDT POS trả thiếu hóa đơn; không ghi canonical.');
+        }
+
+        return $rows;
+    }
+
     private array $lastSourceStats = [];
 
     public function lastSourceStats(): array
@@ -307,7 +363,9 @@ class GdtInvoiceService
                     $pos = $checkpoint['pos'];
                     $show('[GDT] POS full-month checkpoint reused.');
                 } else {
-                    $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha);
+                    $pos = $this->verifiedPosRows !== null
+                        ? $this->verifiedPosRows
+                        : $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha);
                     if ($checkpointKey) {
                         $checkpoint['pos'] = $pos;
                         Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
