@@ -103,7 +103,7 @@ final class PharmaTraditionalPriceController extends Controller
     private function authorizeView(Request $request, ApplicationRegistry $registry): void
     {
         abort_unless($registry->find('pharma') && $request->user('web') &&
-            $registry->userCan($request->user('web'), 'client.pharma.traditional-prices.view'), 403);
+            $registry->userCan($request->user('web'), 'client.pharma.dav-prices.view'), 403);
     }
 
     private function authorizeImport(Request $request, ApplicationRegistry $registry): void
