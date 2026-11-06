@@ -1,3 +1,12 @@
+## Checkpoint — Pharma hub links Muasamcong award pricing — 2026-11-06
+
+- User reported UI PASS for traditional lookup. Enabled `Tra cứu thuốc trúng thầu` card in `/apps/pharma/lookups` to navigate to the existing `client.muasamcong.drug-pricing` route; no duplicate search/sync implementation or new route.
+- Hub checks Muasamcong application and `drug-pricing` feature permissions before rendering an active link; otherwise displays a disabled card. Target route retains its own auth and feature middleware. GMP remains a placeholder.
+- Feature branch `feat/pharma-award-lookup-link-20261106` stacked on unmerged traditional-unit branch; parent branch integration required before PR/merge.
+- Focused tests updated but **not run**; manual cross-app UI access/denial not yet confirmed. No merge/deploy.
+
+---
+
 ## Checkpoint — MOH Đông dược unit-aware identity — 2026-11-06
 
 - User confirmed search UI PASS after scoped MOH TLS workaround; import UI not yet revalidated.
