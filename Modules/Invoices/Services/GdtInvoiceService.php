@@ -384,7 +384,11 @@ class GdtInvoiceService
                 if ($state) {
                     $query['state'] = $state;
                 }
-                if ($cashRegister) {
+                // CAPTCHA validates the initial POS search. Continuation uses the
+                // opaque pagination state returned by GDT; replaying the answer on
+                // page 2 was rejected upstream as an invalid CAPTCHA (401).
+                $initialPosPage = $cashRegister && $page === 1;
+                if ($initialPosPage) {
                     $query['ckey'] = $posCaptcha['ckey'];
                     $query['cvalue'] = $posCaptcha['cvalue'];
                 }
@@ -416,6 +420,7 @@ class GdtInvoiceService
                         'page_size' => $pageSize,
                         'search_has_pos_filter' => str_contains($search, 'ttxly==8'),
                         'has_pagination_state' => filled($state),
+                        'captcha_submitted' => $initialPosPage,
                         'jar_cookie_count' => count($jar->toArray()),
                         'cookie_eligible_for_endpoint' => $cookieEligible,
                         'user_agent_matches_captcha_client' => true,
@@ -436,10 +441,11 @@ class GdtInvoiceService
                         'Action' => rawurlencode('Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')'),
                         'End-Point' => '/tra-cuu/tra-cuu-hoa-don',
                         // Browser sends these as headers as well as query parameters.
+                        'Accept-Language' => 'vi',
+                    ] + ($initialPosPage ? [
                         'ckey' => $posCaptcha['ckey'],
                         'cvalue' => $posCaptcha['cvalue'],
-                        'Accept-Language' => 'vi',
-                    ] : [])
+                    ] : []) : [])
                     ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
