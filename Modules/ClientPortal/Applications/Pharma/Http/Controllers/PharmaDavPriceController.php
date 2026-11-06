@@ -82,7 +82,7 @@ final class PharmaDavPriceController extends Controller
                 throw ValidationException::withMessages(['medicine' => 'Thuốc đã tồn tại hoặc cần đối chiếu thủ công. Không tạo mới tự động.']);
             }
 
-            return $medicines->store([
+            return $medicines->storeWithDeclaredPriceOnly([
                 'name' => $candidate['name'],
                 'product_type' => Medicine::PRODUCT_TYPE_MODERN,
                 'registration_number' => $candidate['registration'],
@@ -94,7 +94,8 @@ final class PharmaDavPriceController extends Controller
                 'manufacturing_company' => mb_substr($candidate['manufacturer'], 0, 255),
                 'manufacturing_country' => mb_substr($candidate['country'], 0, 255),
                 'registered_company' => mb_substr($candidate['declarant'], 0, 255),
-                // Leave internal declared/planned prices unset; DAV prices are reference-only.
+                // DAV wholesale is the Medicine Master declared price; never set selling_price.
+                'declared_price' => $candidate['wholesale'],
             ]);
         });
 
