@@ -1,10 +1,5 @@
 <div class="space-y-5" @if ($syncId && in_array($syncState, ['queued', 'processing'], true)) wire:poll.2s="pollStatus" @endif>
-    @if($invoiceSource === 'pos' && $posSyncPhase === 'awaiting_captcha')
-        <div class="rounded-xl border border-amber-300 bg-amber-50 p-4" role="status">
-            <p class="text-sm font-semibold text-amber-900">{{ $syncMessage }}</p>
-            <button type="button" wire:click="continuePosSync" wire:loading.attr="disabled" wire:target="continuePosSync" class="mt-3 min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white">Tiếp tục đồng bộ trang 2 · CAPTCHA mới</button>
-        </div>
-    @endif
+
     <div wire:loading.flex wire:target="backupFilesToEmail" class="fixed inset-0 z-[120] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
             <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
@@ -104,13 +99,19 @@
         </div>
     </section>
 
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+    <section x-on:pos-sync-awaiting.window="$el.scrollIntoView({ behavior: 'smooth', block: 'start' })" class="scroll-mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Bước 2 · Sức khỏe dữ liệu</p><h2 class="mt-1 text-base font-semibold text-gray-900">Trạng thái đồng bộ</h2><p class="mt-1 text-sm text-gray-500">Theo dõi đến khi hoàn tất, hoàn tất một phần hoặc thất bại.</p></div>
-            @php($stateLabel=match($syncState){'queued'=>'Đang chờ queue','processing'=>'Đang xử lý','completed'=>'Hoàn tất','partial'=>'Hoàn tất một phần','failed'=>'Thất bại',default=>'Chưa chạy'})
-            @php($stateClass=match($syncState){'completed'=>'bg-emerald-50 text-emerald-700','partial'=>'bg-amber-50 text-amber-800','failed'=>'bg-red-50 text-red-700','queued','processing'=>'bg-amber-50 text-amber-700',default=>'bg-gray-100 text-gray-600'})
+            @php($stateLabel=match($syncState){'queued'=>'Đang chờ queue','processing'=>'Đang xử lý','completed'=>'Hoàn tất','partial'=>'Hoàn tất một phần','failed'=>'Thất bại','awaiting_captcha'=>'Chờ CAPTCHA trang 2',default=>'Chưa chạy'})
+            @php($stateClass=match($syncState){'completed'=>'bg-emerald-50 text-emerald-700','partial'=>'bg-amber-50 text-amber-800','failed'=>'bg-red-50 text-red-700','queued','processing','awaiting_captcha'=>'bg-amber-50 text-amber-700',default=>'bg-gray-100 text-gray-600'})
             <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $stateClass }}">{{ $stateLabel }}</span>
         </div>
+    @if($invoiceSource === 'pos' && $posSyncPhase === 'awaiting_captcha')
+        <div class="rounded-xl border border-amber-300 bg-amber-50 p-4" role="status">
+            <p class="text-sm font-semibold text-amber-900">{{ $syncMessage }}</p>
+            <button type="button" wire:click="continuePosSync" wire:loading.attr="disabled" wire:target="continuePosSync" class="mt-3 min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white">Tiếp tục đồng bộ trang 2 · CAPTCHA mới</button>
+        </div>
+    @endif
         @if(in_array($syncState,['queued','processing'],true))<div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div class="h-full w-2/3 animate-pulse rounded-full bg-indigo-500"></div></div>@endif
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
             <div class="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
