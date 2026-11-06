@@ -19,6 +19,51 @@ use Throwable;
 
 class GdtInvoiceService
 {
+    /** Page-one POS snapshot is request-local; never exposed to Livewire hydration. */
+    private ?array $posFirstPage = null;
+
+    public function takePosFirstPage(): ?array
+    {
+        $snapshot = $this->posFirstPage;
+        $this->posFirstPage = null;
+
+        return $snapshot;
+    }
+
+    /**
+     * Read-only POS page one. Returns a partial progress marker when more
+     * pages exist; never treats that marker as a complete search.
+     */
+    public function previewPosFirstPage(string $fromDate, string $toDate, bool $vatIn, array $captcha): array
+    {
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to) || $from->format('Y-m') !== $to->format('Y-m')) {
+            throw new \InvalidArgumentException('Tra cứu POS chỉ hỗ trợ khoảng ngày trong cùng một tháng.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+        }
+
+        $this->posFirstPage = null;
+        $rows = $this->fetchInvoicesByMonth($token, $from, $to, static function (string $message): void {}, $vatIn, true, $captcha, true);
+        $pending = $this->posFirstPage;
+        $count = count($rows);
+
+        return [
+            'source' => 'pos',
+            'count' => $count,
+            'total' => $pending['total'] ?? $count,
+            'incomplete' => $pending !== null,
+            'sample' => array_slice(array_map(static fn (array $row): array => [
+                'number' => (string) ($row['Số hóa đơn'] ?? ''),
+                'symbol' => (string) ($row['Ký hiệu'] ?? ''),
+                'date' => (string) ($row['Ngày lập'] ?? ''),
+            ], $rows), 0, 20),
+        ];
+    }
+
     private array $lastSourceStats = [];
 
     public function lastSourceStats(): array
@@ -340,7 +385,7 @@ class GdtInvoiceService
         return $file;
     }
 
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false, ?array $posCaptcha = null): array
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false, ?array $posCaptcha = null, bool $stopAfterFirstPosPage = false): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
@@ -510,6 +555,20 @@ class GdtInvoiceService
                 } catch (\InvalidArgumentException $exception) {
                     throw new \RuntimeException('GDT POS trả tiến độ phân trang không hợp lệ. Không tạo file thiếu.', previous: $exception);
                 }
+            }
+            if ($cashRegister && $stopAfterFirstPosPage && $page === 1 && $processed < $total) {
+                $nextState = $data['state'] ?? null;
+                if (! is_string($nextState) || $nextState === '') {
+                    throw new \RuntimeException('GDT POS thiếu state để tiếp tục phân trang. Không tạo file thiếu.');
+                }
+                $this->posFirstPage = [
+                    'rows' => $result,
+                    'cursor' => $nextState,
+                    'total' => $total,
+                    'cookies' => $posJar->toArray(),
+                ];
+
+                return $result;
             }
             $show("📦 Nhận {$processed}/{$total} hóa đơn");
             if ($cashRegister ? $posProgress->isComplete() : $processed >= $total) {
