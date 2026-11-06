@@ -175,4 +175,33 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
         $this->assertStringNotContainsString("'response_body' =>", $source);
     }
 
+
+    public function test_pos_rejects_page_two_overcount_instead_of_accepting_partial_or_inconsistent_result(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return Http::response([
+                'datas' => array_fill(0, $calls === 1 ? 15 : 3, ['nbmst' => 'fixture']),
+                'total' => 17,
+                'state' => $calls === 1 ? 'next-page' : null,
+            ], 200);
+        });
+
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-09-01', '2026-09-30', true, 'pos',
+                ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+            );
+            $this->fail('POS 18/17 must never be considered complete.');
+        } catch (\RuntimeException $exception) {
+            $this->assertStringContainsString('tiến độ phân trang không hợp lệ', $exception->getMessage());
+            $this->assertStringContainsString('Không tạo file thiếu', $exception->getMessage());
+        }
+
+        $this->assertSame(2, $calls);
+        $this->assertSame('fake-token', Cache::get('gdt-pos-pagination-test-token'));
+    }
+
 }
