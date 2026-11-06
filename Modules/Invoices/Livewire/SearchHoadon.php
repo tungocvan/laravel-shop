@@ -31,6 +31,7 @@ class SearchHoadon extends Component
     public string $invoiceSource = 'regular';
     public string $searchState = 'idle';
     public ?string $posContinuationId = null;
+    public bool $posMultiPagePreview = false;
     public ?string $searchMessage = null;
     public array $searchPreview = [];
     public ?string $searchedFingerprint = null;
@@ -90,6 +91,7 @@ class SearchHoadon extends Component
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
         $this->discardPosContinuation();
+        $this->posMultiPagePreview = false;
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -108,6 +110,7 @@ class SearchHoadon extends Component
         $this->posCaptchaFingerprint = null;
         $this->posCaptchaAnswer = '';
         $this->posCaptchaImage = '';
+        $this->posMultiPagePreview = false;
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -253,6 +256,7 @@ class SearchHoadon extends Component
                     $snapshot['rows'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies']
                 );
                 $this->searchPreview = $result;
+                $this->posMultiPagePreview = true;
                 $this->searchState = 'awaiting_captcha';
                 $this->searchMessage = 'Đã nhận '.count($snapshot['rows']).'/'.$snapshot['total'].' hóa đơn. Cần CAPTCHA mới để tiếp tục trang 2. Chưa đồng bộ canonical.';
 
@@ -333,6 +337,11 @@ class SearchHoadon extends Component
         }
         if ($this->searchedFingerprint !== $this->searchFingerprint() || $this->searchState !== 'completed') {
             $this->addError('invoiceSource', 'Vui lòng Tìm kiếm thành công với bộ lọc hiện tại trước khi đồng bộ.');
+            return;
+        }
+
+        if ($this->invoiceSource === 'pos' && $this->posMultiPagePreview) {
+            $this->addError('invoiceSource', 'Tra cứu nhiều trang đã hoàn tất, nhưng đồng bộ canonical nhiều trang chưa được hỗ trợ. Không ghi dữ liệu thiếu.');
             return;
         }
 
