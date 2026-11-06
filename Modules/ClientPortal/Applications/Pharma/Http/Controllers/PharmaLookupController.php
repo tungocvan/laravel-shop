@@ -23,15 +23,7 @@ final class PharmaLookupController extends Controller
         );
         abort_if($feature === null, 404);
 
-        $muasamcong = $registry->find('muasamcong');
-        $canViewAwardPricing = $muasamcong !== null
-            && $registry->userCan($user, $muasamcong['permission'] ?? 'client.muasamcong.access')
-            && collect($muasamcong['features'] ?? [])->contains(fn (array $item): bool =>
-                ($item['key'] ?? null) === 'drug-pricing'
-                && $registry->userCan($user, $item['permission'] ?? 'client.muasamcong.drug-pricing.view'));
-
         return view('ClientPortal::applications.pharma.lookups', [
-            'canViewAwardPricing' => $canViewAwardPricing,
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
