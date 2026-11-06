@@ -59,7 +59,7 @@ class PharmaAwardSyncContractTest extends TestCase
     {
         $source = file_get_contents(base_path('Modules/Pharma/Services/PublicAwardMedicineSync.php'));
         $this->assertStringContainsString('MedicineSource::query()->updateOrCreate', $source);
-        $this->assertStringContainsString("'source_record_key' => $sourceId", $source);
+        $this->assertStringContainsString("'source_record_key' => \$sourceId", $source);
         $this->assertStringNotContainsString("'declared_price' =>", $source);
         $this->assertStringNotContainsString("'selling_price' =>", $source);
         $this->assertStringNotContainsString("'stock' =>", $source);
