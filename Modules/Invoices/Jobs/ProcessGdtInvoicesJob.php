@@ -31,6 +31,10 @@ class ProcessGdtInvoicesJob implements ShouldQueue
         if (! in_array($this->source, ['all', 'regular', 'pos'], true)) {
             throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
         }
+        if ($this->source === 'pos') {
+            // POS requires a fresh interactive CAPTCHA; a queued job cannot carry it safely.
+            throw new RuntimeException('Nguồn POS yêu cầu CAPTCHA mới và chỉ được đồng bộ trực tiếp, không qua queue.');
+        }
         if ($this->source !== 'all') {
             // Source-scoped jobs must not use the all-sources Excel/coverage shortcut.
             $file = $service->processRange($this->start, $this->end, fn (string $message) => $this->appendLog($message), $this->vatIn, $this->source);
