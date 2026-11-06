@@ -41,15 +41,31 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringNotContainsString('muasamcong.drug-pricing', $detail);
     }
 
-    public function test_missing_registration_is_review_only(): void
+    public function test_missing_name_or_unit_requires_review(): void
     {
         $sync = app(PublicAwardMedicineSync::class);
         $this->assertSame('review', $sync->inspect([
-            'tenThuoc' => 'Unafen', 'gdklh_GPNK' => '', 'donViTinh' => 'Chai',
+            'tenThuoc' => '', 'gdklh_GPNK' => '893100307624', 'donViTinh' => 'Viên',
         ])['status']);
         $this->assertSame('review', $sync->inspect([
-            'tenThuoc' => 'Unafen', 'gdklh_GPNK' => 'GPNK-12345', 'donViTinh' => 'Chai',
+            'tenThuoc' => 'Dibulaxan', 'gdklh_GPNK' => '893100307624', 'donViTinh' => '',
         ])['status']);
+    }
+
+    public function test_unverified_registration_is_provisional_and_not_written_to_official_registration(): void
+    {
+        $source = file_get_contents(base_path('Modules/Pharma/Services/PublicAwardMedicineSync.php'));
+        $this->assertStringContainsString("'registration_number' => $this->registration($item) !== null ? $this->registrationRaw($item) : null", $source);
+        $this->assertStringContainsString("'registration_raw_unverified'", $source);
+        $this->assertStringContainsString("'requires_catalog_review'", $source);
+        $this->assertStringContainsString("Medicine::PROFILE_NEEDS_REVIEW", $source);
+        $this->assertStringContainsString("'provisional_source_record'", $source);
+        $this->assertStringNotContainsString('Partial matches require manual review', $source);
+
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-price-detail.blade.php'));
+        $preview = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-sync-preview.blade.php'));
+        $this->assertStringContainsString("!($match['registration_verified'] ?? false)", $detail);
+        $this->assertStringContainsString("SĐK chưa xác minh", $preview);
     }
 
     public function test_award_search_paginates_and_refreshes_only_its_cache(): void
