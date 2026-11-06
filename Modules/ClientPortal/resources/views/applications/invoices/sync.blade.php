@@ -23,8 +23,8 @@
     <div class="flex items-center gap-3">
         <a href="{{ route('client.invoices.dashboard') }}" class="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white font-bold text-slate-800 active:scale-[.97]" aria-label="Quay lại tổng quan">←</a>
         <div class="min-w-0 flex-1">
-            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">Hóa đơn / Đồng bộ</p>
-            <h1 class="text-xl font-black text-slate-950 sm:text-2xl">Đồng bộ hóa đơn</h1>
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $syncPresentation['eyebrow'] ?? 'Hóa đơn / Đồng bộ' }}</p>
+            <h1 class="text-xl font-black text-slate-950 sm:text-2xl">{{ $syncPresentation['page_title'] ?? 'Đồng bộ hóa đơn' }}</h1>
         </div>
         <span @class(['shrink-0 rounded-full px-3 py-2 text-xs font-bold', 'bg-emerald-50 text-emerald-800' => $tokenReady, 'bg-amber-50 text-amber-800' => ! $tokenReady])>{{ $tokenReady ? 'GDT đã kết nối' : 'Cần kết nối GDT' }}</span>
     </div>
@@ -69,7 +69,7 @@
         <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div class="mb-5">
                 <h2 class="text-lg font-black text-slate-950">Thiết lập đồng bộ</h2>
-                <p class="mt-1 text-sm text-slate-500">Chọn loại, nguồn dữ liệu và thời gian. POS cần xem trước và CAPTCHA riêng.</p>
+                <p class="mt-1 text-sm text-slate-500">{{ $syncPresentation['page_description'] ?? 'Chọn nguồn hóa đơn và thời gian. POS cần xem trước và CAPTCHA riêng.' }}</p>
             </div>
             <form id="invoice-sync-form" method="POST" action="{{ route('client.invoices.sync.start') }}" class="space-y-5">@csrf
                 <fieldset>
