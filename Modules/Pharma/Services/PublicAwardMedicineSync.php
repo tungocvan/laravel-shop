@@ -10,7 +10,8 @@ use Modules\Pharma\Models\MedicineSource;
 
 /**
  * Import public tender observations without modifying medicine master pricing.
- * Identity is name + verified registration + unit. Missing registration is review-only.
+ * Identity is name + verified registration + unit. Unverified registrations create
+ * provisional catalog entries only with explicit user confirmation.
  */
 final class PublicAwardMedicineSync
 {
@@ -19,48 +20,69 @@ final class PublicAwardMedicineSync
     public function inspect(array $item): array
     {
         $name = $this->normalizer->text($this->string($item['tenThuoc'] ?? null));
-        $registration = $this->registration($item);
         $unit = $this->normalizer->text($this->string($item['donViTinh'] ?? null));
-        if ($name === null || $registration === null || $unit === null) {
-            return ['status' => 'review', 'medicine_id' => null, 'reason' => 'Thiếu tên thuốc, số đăng ký hợp lệ hoặc ĐVT; cần xác minh thủ công.'];
+        $registration = $this->registration($item);
+        $rawRegistration = $this->registrationRaw($item);
+
+        if ($name === null || $unit === null) {
+            return ['status' => 'review', 'medicine_id' => null,
+                'reason' => 'Thiếu tên thuốc hoặc đơn vị tính; phải bổ sung trước khi tạo thuốc.'];
         }
 
-        // Exact normalization is performed in PHP; broad DB candidate selection is
-        // intentional to avoid depending on database collation for identity.
-        $rawName = $this->string($item['tenThuoc'] ?? null);
-        $rawRegistration = $this->registrationRaw($item);
-        $candidates = Medicine::query()
-            ->where(function ($query) use ($rawName, $rawRegistration): void {
-                $query->where('name', 'like', '%'.addcslashes($rawName, '%_\\').'%');
-                if ($rawRegistration !== '') {
+        $sourceId = $this->string($item['id'] ?? null);
+        if ($sourceId !== '') {
+            $source = MedicineSource::query()
+                ->where('source_system', 'public_tender')
+                ->where('source_record_type', 'award_price')
+                ->where('source_record_key', $sourceId)->first();
+            if ($source !== null) {
+                $medicine = $source->medicine;
+                $original = data_get($source->metadata, 'award.gdklh_GPNK');
+                if ($medicine !== null
+                    && $this->normalizer->text($medicine->name) === $name
+                    && $this->normalizer->text($medicine->unit) === $unit
+                    && $this->normalizer->registration($this->string($original)) === $this->normalizer->registration($rawRegistration)) {
+                    return ['status' => 'existing', 'medicine_id' => (int) $medicine->id,
+                        'reason' => null, 'registration_verified' => $registration !== null,
+                        'source_linked' => true];
+                }
+
+                return ['status' => 'review', 'medicine_id' => null,
+                    'reason' => 'Bản ghi nguồn đã liên kết với thuốc khác hoặc thông tin nguồn đã thay đổi.'];
+            }
+        }
+
+        // Only a verified registration can identify an existing medicine by the triple.
+        // Missing/unverified registration never silently matches by name and unit alone.
+        if ($registration !== null) {
+            $rawName = $this->string($item['tenThuoc'] ?? null);
+            $candidates = Medicine::query()
+                ->where(function ($query) use ($rawName, $rawRegistration): void {
+                    $query->where('name', 'like', '%'.addcslashes($rawName, '%_\\').'%');
                     $pattern = '%'.addcslashes($rawRegistration, '%_\\').'%';
                     $query->orWhere('registration_number', 'like', $pattern)
                         ->orWhere('registration_number_primary', 'like', $pattern)
                         ->orWhere('registration_number_raw', 'like', $pattern);
-                }
-            })->get(['id', 'name', 'unit', 'registration_number', 'registration_number_primary', 'registration_number_raw']);
+                })->get(['id', 'name', 'unit', 'registration_number', 'registration_number_primary', 'registration_number_raw']);
 
-        $matches = $candidates->filter(fn (Medicine $medicine): bool =>
-            $this->normalizer->text($medicine->name) === $name
-            && $this->normalizer->text($medicine->unit) === $unit
-            && collect([$medicine->registration_number, $medicine->registration_number_primary, $medicine->registration_number_raw])
-                ->contains(fn ($value): bool => $this->normalizer->registration($value) === $registration));
+            $matches = $candidates->filter(fn (Medicine $medicine): bool =>
+                $this->normalizer->text($medicine->name) === $name
+                && $this->normalizer->text($medicine->unit) === $unit
+                && collect([$medicine->registration_number, $medicine->registration_number_primary, $medicine->registration_number_raw])
+                    ->contains(fn ($value): bool => $this->normalizer->registration($value) === $registration));
 
-        if ($matches->count() > 1) {
-            return ['status' => 'review', 'medicine_id' => null, 'reason' => 'Nhiều thuốc trùng bộ ba định danh; cần đối chiếu thủ công.'];
-        }
-        if ($matches->count() === 1) {
-            return ['status' => 'existing', 'medicine_id' => (int) $matches->first()->id, 'reason' => null];
-        }
-
-        // Partial matches require manual review to avoid accidental duplicates.
-        if ($candidates->contains(fn (Medicine $medicine): bool =>
-            $this->normalizer->text($medicine->name) === $name
-            && $this->normalizer->text($medicine->unit) === $unit)) {
-            return ['status' => 'review', 'medicine_id' => null, 'reason' => 'Tên thuốc và ĐVT đã tồn tại nhưng số đăng ký khác; cần đối chiếu.'];
+            if ($matches->count() > 1) {
+                return ['status' => 'review', 'medicine_id' => null,
+                    'reason' => 'Nhiều thuốc trùng bộ ba định danh; cần đối chiếu thủ công.'];
+            }
+            if ($matches->count() === 1) {
+                return ['status' => 'existing', 'medicine_id' => (int) $matches->first()->id,
+                    'reason' => null, 'registration_verified' => true, 'source_linked' => false];
+            }
         }
 
-        return ['status' => 'new', 'medicine_id' => null, 'reason' => null];
+        return ['status' => 'new', 'medicine_id' => null, 'reason' => null,
+            'registration_verified' => $registration !== null, 'source_linked' => false];
     }
 
     public function sync(array $item, bool $allowCreate): array
@@ -101,7 +123,7 @@ final class PublicAwardMedicineSync
                     }
                     $medicine = Medicine::query()->create([
                         'name' => mb_substr($this->string($item['tenThuoc'] ?? null), 0, 255),
-                        'registration_number' => $this->registrationRaw($item),
+                        'registration_number' => $this->registration($item) !== null ? $this->registrationRaw($item) : null,
                         'unit' => mb_substr($this->string($item['donViTinh'] ?? null), 0, 255),
                         'product_type' => Medicine::PRODUCT_TYPE_MODERN,
                         'active_ingredients' => mb_substr($this->string($item['tenHoatChat'] ?? null), 0, 255),
@@ -121,9 +143,14 @@ final class PublicAwardMedicineSync
                     'observed_at' => now(),
                     'synced_at' => now(),
                     'is_active' => true,
-                    'match_method' => 'name_registration_unit',
-                    'match_confidence' => 100,
-                    'metadata' => ['award' => $item],
+                    'match_method' => ($match['registration_verified'] ?? false) ? 'name_registration_unit' : 'provisional_source_record',
+                    'match_confidence' => ($match['registration_verified'] ?? false) ? 100 : 0,
+                    'metadata' => [
+                        'award' => $item,
+                        'registration_raw_unverified' => ($match['registration_verified'] ?? false) ? null : $this->registrationRaw($item),
+                        'registration_verified' => (bool) ($match['registration_verified'] ?? false),
+                        'requires_catalog_review' => ! ($match['registration_verified'] ?? false),
+                    ],
                 ];
                 MedicineSource::query()->updateOrCreate([
                     'source_system' => 'public_tender',
