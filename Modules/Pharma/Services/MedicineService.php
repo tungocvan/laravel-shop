@@ -143,8 +143,23 @@ class MedicineService
 
     public function store(array $data): Medicine
     {
-        return DB::transaction(function () use ($data): Medicine {
-            $data = $this->normalizeSellingPrice($data);
+        return $this->createMedicine($data, false);
+    }
+
+    /** DAV provides declared price only; it must never populate planned selling_price. */
+    public function storeWithDeclaredPriceOnly(array $data): Medicine
+    {
+        unset($data['selling_price']);
+
+        return $this->createMedicine($data, true);
+    }
+
+    private function createMedicine(array $data, bool $declaredPriceOnly): Medicine
+    {
+        return DB::transaction(function () use ($data, $declaredPriceOnly): Medicine {
+            if (! $declaredPriceOnly) {
+                $data = $this->normalizeSellingPrice($data);
+            }
             $categoryIds = $this->validatedMedicineCategoryIds($data);
             unset($data['category_ids']);
             $data = $this->normalizeQualityState($data);
