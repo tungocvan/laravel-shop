@@ -1488,3 +1488,40 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Pharma owns partial approval/deferred supply and transactional multi-lot posting. Price-list orders now share the manual lot selection screen used by bid orders; multiple valid batches per medicine are supported.
 - Deferred quantity for price-list issues is recorded per medicine, approved quantity remains in issue items; duplicate medicine rows in a price-list partial approval are rejected to avoid ambiguous deferred accounting.
 - Pending gates: focused tests, Pharma and ClientPortal impacted regression, real desktop/mobile UI verification, tracked tree verification. No TEST PASS/UI PASS/merge claimed.
+
+
+## 2026-11-06 — ClientPortal Invoices PWA regular/POS sync checkpoint (PENDING TEST/UI)
+
+- Branch: `feat/client-invoices-pwa-pos-sync-20261106`, created from latest `main` after PR #362 merge. No production action.
+- Route `/apps/invoices/sync` reworked as a focused mobile-first PWA workspace with local back navigation, responsive direction/source/date controls, status, GDT login CAPTCHA and separate POS challenge. Uses shared `<x-pwa-date>` and ClientPortal layout; no new module/database tables.
+- ClientPortal remains the web-guard authorization/presentation adapter; canonical POS preview/persistence still belongs to `GdtInvoiceService`. Regular sync now explicitly dispatches `ProcessGdtInvoicesJob(source=regular)`; legacy `source=all` queue behavior is not modified in the domain job.
+- POS flow: web-user+session scoped ephemeral challenge; one-month guard; preview count in server session; fingerprint checked before sync; fresh CAPTCHA for preview and for direct canonical sync; no POS CAPTCHA/answer in queued jobs or browser persistent storage. The existing `GdtApiService` CAPTCHA key API accepts string scope while preserving admin integer callers.
+- PWA sync feature title/eyebrow/description flow through manifest + `ClientPortalSettingsService::featurePresentation()`; editable from `/admin/client-apps`. Existing application/feature permission remains `client.invoices.sync`.
+- Added `tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php` for web middleware, canonical source, queue guard, managed presentation and PWA date control.
+- **Known limitations**: POS direct synchronous request can hit PHP/web-server timeout on large upstream responses; keep range narrow and monitor GDT rate limiting. POS-generated Excel remains server-side; no new PWA download action is exposed in this batch. Existing regular queue status/download behavior otherwise remains unchanged. Do not infer UI PASS from source checks.
+- **Checkpoint**: first `php artisan test tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php tests/Feature/Invoices/GdtCanonicalSourceSelectionContractTest.php tests/Feature/Invoices/GdtPosRateLimitSafeSearchTest.php`. Only after PASS run `php artisan test tests/Feature/Invoices` and relevant ClientPortal/ClientApps regression. Manual UI acceptance on desktop/tablet/iPhone installed PWA: GDT login, regular sync, POS preview CAPTCHA, POS sync new CAPTCHA, month guard, permission denial, refresh, errors and navigation. No TEST PASS or UI PASS claimed; PR Draft until gates.
+
+
+### 2026-11-06 — POS result UI follow-up checkpoint (PENDING TEST/UI)
+- User screenshot confirmed POS preview displayed six invoices and subsequent POS sync returned `completed`; no independent DB deduplication check was provided.
+- Root cause: after `submitPosCaptcha()` consumes server preview state, the redirected PWA view previously defaulted source to `regular` and dates to readiness suggestions, despite the completed POS status.
+- Fix: `ClientInvoiceWorkspaceService::syncPos()` records `start`/`end` alongside existing `source=pos` and `direction` in server-side sync status. PWA Blade derives completed POS filters from `syncStatus` after redirect/refresh and displays a POS source/direction/date label in result panel. No new browser storage or CAPTCHA persistence.
+- Added focused contract assertion in `InvoicesPosPwaSyncContractTest`. **TEST PASS and UI PASS not claimed** for this follow-up until Admin verification. No production action, no merge.
+
+### 2026-11-06 — PR #363 ClientPortal POS UI regression follow-up
+- User confirmed Admin UI PASS but ClientPortal `/apps/invoices/sync` UI FAIL with generic POS/CAPTCHA error. Screenshot had 2026-10-30 → 2026-11-06 (cross-month); server already rejects cross-month via `posFilters()`, and generic exception also obscured page-two failures.
+- ClientPortal now reuses `GdtInvoiceService::previewPosFirstPage()`, `resumePosPreview()`, `resumePosCanonicalRows()`, `processVerifiedPosRows()`, and encrypted single-use `GdtPosSecureContinuation` for 15+ POS rows. Web guard user ID and browser session scope the checkpoint; no raw cursor or cookies in rendered HTML. A one-page canonical sync reuses request-local verified rows rather than consuming the CAPTCHA twice.
+- POS search checks exact existing Excel path before CAPTCHA; user must explicitly tick `force_refresh` to requery when file exists. Blade displays page-two CAPTCHA action. Canonical persistence remains owned by Invoices.
+- Added `tests/Feature/ClientApps/InvoicesPosPwaContinuationContractTest.php`. **No tests or UI acceptance run by GitHub connector**; require focused ClientPortal tests, then impacted Invoices regression, then real PWA UI acceptance. Do not merge or deploy before gates.
+- Remaining follow-up: server response exception still intentionally sanitized; diagnose from local Laravel logs if live CAPTCHA fails. Review concurrency before merge.
+
+### 2026-11-06 — ClientPortal POS CAPTCHA failure / filter reset
+- User screenshot shows ClientPortal POS September 1–30, 2026, CAPTCHA displayed then generic failure and UI resets to Regular / October 30–November 6. Admin UI previously PASS; ClientPortal remains FAIL.
+- Root cause for reset: submit handler `pull()`s POS filters and clears image; generic exception redirects without preserving source/date; Blade falls back to suggested Regular dates. Added session `client.invoices.pos.last_filters` persisted on CAPTCHA request/submission, passed to view and used in fallback. CAPTCHA remains single-use. Added `InvoicesPosPwaFilterRetentionContractTest`.
+- **Upstream CAPTCHA failure root cause remains unverified**: exception is reported to Laravel log but masked in UI. Read-only sanitized log review needed, no secrets/cookies/CAPTCHA answers. No production changes.
+- Checkpoint: `php artisan test tests/Feature/ClientApps/InvoicesPosPwaFilterRetentionContractTest.php tests/Feature/ClientApps/InvoicesPosPwaContinuationContractTest.php tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php`; UI test POS September 1–30 after failed CAPTCHA, confirm source/dates retained. No merge or deploy.
+
+### 2026-11-06 — POS page-one checkpoint contract mismatch (log-confirmed)
+- Local application logs show HTTP 200 JSON with 17 total/15 page-one rows and eligible CAPTCHA cookies, followed by `Undefined array key "first_page"` in `InvoicesApplicationController::submitPosCaptcha()` at line 270/275. This is a ClientPortal adapter bug, **not evidence of incorrect CAPTCHA**.
+- `GdtInvoiceService::takePosFirstPage()` returns a snapshot keyed `rows`, `cursor`, `total`, `cookies`; Admin Livewire already consumes `$snapshot['rows']`. ClientPortal preview and sync page-two continuation both incorrectly used `first_page`. Corrected both to `rows`; the encrypted continuation storage contract remains unchanged.
+- Added assertions in `InvoicesPosPwaContinuationContractTest` for both callers. **Focused tests/UI not yet run after this fix.** Next: ClientPortal focused tests, then POS impacted tests; manual 17-row page-two CAPTCHA. Do not merge/deploy before user confirms.

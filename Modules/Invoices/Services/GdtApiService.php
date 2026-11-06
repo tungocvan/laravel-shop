@@ -126,7 +126,7 @@ class GdtApiService
      * Separate human-verified POS search challenge. Do not replace the login captcha session.
      * Only the key is kept server-side; never cache the user's answer.
      */
-    public function loadPosCaptcha(int $adminId): array
+    public function loadPosCaptcha(int|string $adminId): array
     {
         // Reuse the authenticated GDT cookie session when requesting POS CAPTCHA.
         // The previous fresh jar severed continuity with authenticate.
@@ -161,7 +161,7 @@ class GdtApiService
         return ['image' => 'data:image/svg+xml;base64,'.base64_encode($payload['content'])];
     }
 
-    public function consumePosCaptcha(int $adminId, string $answer): array
+    public function consumePosCaptcha(int|string $adminId, string $answer): array
     {
         $answer = trim($answer);
         if ($answer === '' || strlen($answer) > 20 || preg_match('/[\\r\\n]/', $answer)) {
@@ -183,7 +183,7 @@ class GdtApiService
         return ['ckey' => $key, 'cvalue' => $answer, 'cookies' => $storedCookies];
     }
 
-    private function posCaptchaKey(int $adminId): string
+    private function posCaptchaKey(int|string $adminId): string
     {
         return 'invoices:gdt:pos-captcha:'.$adminId;
     }

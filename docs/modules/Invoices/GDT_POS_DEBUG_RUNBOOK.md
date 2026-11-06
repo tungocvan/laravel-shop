@@ -53,3 +53,12 @@
 - Không ghi log hoặc commit: token, cookie, CAPTCHA answer, `.env`, raw HTML phản hồi nhạy cảm, thông tin người mua/bán từ hóa đơn.
 - Khi lỗi tái phát, **bắt đầu từ contract request/response và session**, không đoán gateway, không sửa hàng loạt header, không disable SSL, không bỏ CAPTCHA, không queue POS để né lỗi.
 - Các gate còn lại trước merge: review toàn bộ diff PR, GitHub checks, impacted regression nếu có và manual UI acceptance tương ứng; không có production PASS.
+
+
+## 2026-11-06 — POS page 2 CAPTCHA 401 follow-up (chưa xác nhận UI)
+
+- Audit: GDT Admin logs show POS page 1 HTTP 200 (15/17), page 2 HTTP 401 `Mã captcha không đúng.`. The previous `End-Point` mismatch fix remains present; do not revert `clientForPos()`.
+- New working hypothesis: the `ckey`/`cvalue` CAPTCHA pair belongs to the **initial** search, while subsequent pages should use GDT's opaque `state` cursor without replaying CAPTCHA. This is **not yet proven against live GDT**; it is a controlled request-contract change, not a confirmed upstream specification.
+- On PR #363, page 1 still sends CAPTCHA as headers and query; page 2+ sends the opaque `state` only (with normal search/sort/size and POS headers), preserving the same cookie jar, authentication and fail-closed validation. No bypass of the first-page CAPTCHA, no partial canonical persistence.
+- HTTP-fake regression asserts page 1 CAPTCHA present, page 2 CAPTCHA absent, `state` preserved, 17/17 complete result; separate page-2 401 test requires fail-closed and login token retained. HTTP-fake cannot validate live GDT behavior.
+- Focused checkpoint: `php artisan test tests/Feature/Invoices/GdtPosCaptchaPaginationRegressionTest.php tests/Feature/Invoices/GdtPosRateLimitSafeSearchTest.php tests/Feature/Invoices/GdtPosRequestTransportContractTest.php tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php`. If PASS, proceed to Invoices regression, impacted ClientPortal tests and Admin UI >15 invoices with a fresh CAPTCHA. If 401 persists, stop and collect redacted page 1/page 2 metadata; do not auto-retry or relax fail-closed. **TEST/UI NOT VERIFIED.**

@@ -2,165 +2,183 @@
 
 @section('title', 'Đồng bộ hóa đơn')
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
-@section('app-subtitle', 'Đồng bộ thông minh có kiểm soát')
+@section('app-subtitle', 'Đồng bộ có kiểm soát')
 @section('app-dashboard-route', route('client.invoices.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 @php
     $tokenReady = (bool) ($syncReadiness['token_ready'] ?? false);
     $purchase = $syncReadiness['purchase'];
     $sold = $syncReadiness['sold'];
-    $selectedDirection = old('direction', 'purchase');
+    // The completed task is the source of truth after redirect/refresh.
+    // Never keep a stale preview active after a completed POS sync.
+    $completedFilters = ($syncStatus['source'] ?? null) === 'pos'
+        && isset($syncStatus['start'], $syncStatus['end'], $syncStatus['direction'])
+        ? ['start' => $syncStatus['start'], 'end' => $syncStatus['end'], 'direction' => $syncStatus['direction']]
+        : [];
+    $currentFilters = $posFilters ?? ($posPending['filters'] ?? ($posLastFilters ?? ($posPreview['filters'] ?? ($completedFilters ?: []))));
+    $selectedDirection = old('direction', $currentFilters['direction'] ?? 'purchase');
+    $selectedSource = old('source', ($posFilters || $posPending || $posLastFilters || $posPreview || $completedFilters) ? 'pos' : 'regular');
     $selected = $selectedDirection === 'sold' ? $sold : $purchase;
+    $selectedStart = old('start', $currentFilters['start'] ?? $selected['suggested_start']);
+    $selectedEnd = old('end', $currentFilters['end'] ?? $syncReadiness['today']);
 @endphp
-<div class="mx-auto max-w-5xl space-y-5">
-    <section class="rounded-[2rem] bg-slate-950 p-5 text-white shadow-sm sm:p-7">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">GDT Smart Sync</p>
-                <h1 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Đồng bộ hóa đơn</h1>
-                <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-300">Hệ thống tự đề xuất mốc từ dữ liệu mới nhất, kiểm tra Local → Google Drive → GDT và chỉ giữ thông tin xác thực ở server.</p>
-                <p class="mt-2 max-w-2xl text-xs font-semibold leading-5 text-slate-400">Token, mật khẩu và thông tin xác thực GDT không được đưa xuống trình duyệt.</p>
-            </div>
-            <span @class(['rounded-full px-3 py-2 text-xs font-black', 'bg-emerald-400/15 text-emerald-300' => $tokenReady, 'bg-amber-400/15 text-amber-200' => ! $tokenReady])>
-                {{ $tokenReady ? '● GDT đã kết nối' : '● GDT cần xác thực' }}
-            </span>
+<div class="mx-auto max-w-5xl space-y-4 pb-24 sm:space-y-5">
+    <div class="flex items-center gap-3">
+        <a href="{{ route('client.invoices.dashboard') }}" class="flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white font-bold text-slate-800 active:scale-[.97]" aria-label="Quay lại tổng quan">←</a>
+        <div class="min-w-0 flex-1">
+            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $syncPresentation['eyebrow'] ?? 'Hóa đơn / Đồng bộ' }}</p>
+            <h1 class="text-xl font-black text-slate-950 sm:text-2xl">{{ $syncPresentation['page_title'] ?? 'Đồng bộ hóa đơn' }}</h1>
         </div>
-    </section>
+        <span @class(['shrink-0 rounded-full px-3 py-2 text-xs font-bold', 'bg-emerald-50 text-emerald-800' => $tokenReady, 'bg-amber-50 text-amber-800' => ! $tokenReady])>{{ $tokenReady ? 'GDT đã kết nối' : 'Cần kết nối GDT' }}</span>
+    </div>
 
-    @if(session('status'))
-        <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{{ session('status') }}</div>
-    @endif
-    @if(session('error'))
-        <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-900">{{ session('error') }}</div>
+    @if(session('status')) <div role="status" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{{ session('status') }}</div> @endif
+    @if(session('error')) <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-900">{{ session('error') }}</div> @endif
+    @if($errors->any())
+        <div role="alert" class="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">{{ $errors->first() }}</div>
     @endif
 
     @unless($tokenReady)
-        <section class="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-6">
-            <div class="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                    <p class="text-xs font-black uppercase tracking-wider text-amber-700">Kết nối GDT</p>
-                    <h2 class="mt-1 text-lg font-black text-slate-950">Phiên GDT đã hết hạn hoặc chưa được kết nối</h2>
-                    <p class="mt-2 text-sm leading-6 text-slate-600">Tài khoản và mật khẩu GDT vẫn ở server. PWA chỉ dùng CAPTCHA để cấp lại phiên.</p>
-                </div>
-                <form method="POST" action="{{ route('client.invoices.sync.captcha') }}">
-                    @csrf
-                    <button class="min-h-11 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white">{{ $captchaSvg ? '↻ CAPTCHA mới' : 'Kết nối GDT' }}</button>
-                </form>
-            </div>
+        <section class="rounded-3xl border border-amber-200 bg-amber-50 p-4 sm:p-5">
+            <h2 class="font-black text-slate-950">Kết nối GDT</h2>
+            <p class="mt-1 text-sm text-slate-600">Thông tin đăng nhập được giữ trên server. Nhập CAPTCHA để làm mới phiên.</p>
+            <form method="POST" action="{{ route('client.invoices.sync.captcha') }}" class="mt-3">@csrf
+                <button class="min-h-11 rounded-xl bg-slate-950 px-5 font-bold text-white active:scale-[.98]">{{ $captchaSvg ? 'Tải CAPTCHA mới' : 'Kết nối GDT' }}</button>
+            </form>
             @if($captchaSvg)
-                <form method="POST" action="{{ route('client.invoices.sync.authenticate') }}" class="mt-5 grid gap-4 rounded-2xl bg-white p-4 sm:grid-cols-[auto_1fr_auto] sm:items-end">
-                    @csrf
-                    <div>
-                        <p class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">CAPTCHA</p>
-                        <img src="data:image/svg+xml;base64,{{ base64_encode($captchaSvg) }}" alt="CAPTCHA GDT" class="min-h-14 max-w-52 rounded-xl border border-slate-200 bg-white p-2">
-                    </div>
-                    <label class="text-sm font-bold text-slate-700">Nhập mã CAPTCHA
-                        <input name="cvalue" value="{{ old('cvalue') }}" autocomplete="off" maxlength="20" class="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-base uppercase outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200" required>
-                        @error('cvalue')
-                            <span class="mt-1 block text-xs text-rose-600">{{ $message }}</span>
-                        @enderror
+                <form method="POST" action="{{ route('client.invoices.sync.authenticate') }}" class="mt-3 flex flex-col gap-3 rounded-2xl bg-white p-4 sm:flex-row sm:items-end">@csrf
+                    <img src="data:image/svg+xml;base64,{{ base64_encode($captchaSvg) }}" alt="CAPTCHA đăng nhập GDT" class="max-h-20 max-w-52 rounded-xl border border-slate-200 p-2">
+                    <label class="min-w-0 flex-1 text-sm font-bold text-slate-700">Mã CAPTCHA
+                        <input name="cvalue" autocomplete="off" maxlength="20" required class="mt-1 block min-h-12 w-full rounded-xl border border-slate-300 px-3 text-base">
                     </label>
-                    <button class="min-h-12 rounded-2xl bg-emerald-600 px-5 text-sm font-black text-white">Xác thực & kết nối</button>
+                    <button class="min-h-12 rounded-xl bg-emerald-700 px-5 font-bold text-white active:scale-[.98]">Xác thực</button>
                 </form>
             @endif
         </section>
     @endunless
 
-    <section class="grid gap-3 sm:grid-cols-2">
+    <section class="grid grid-cols-2 gap-3">
         @foreach(['purchase' => ['Mua vào', $purchase], 'sold' => ['Bán ra', $sold]] as $key => [$label, $info])
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-                <div class="flex items-center justify-between">
-                    <h2 class="font-black text-slate-950">{{ $label }}</h2>
-                    <span class="text-xs font-bold text-slate-400">{{ $syncReadiness['year'] }}</span>
-                </div>
-                <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">HĐ mới nhất</p>
-                        <p class="mt-1 font-black text-slate-900">{{ $info['latest_invoice_date'] ? \Carbon\Carbon::parse($info['latest_invoice_date'])->format('d/m/Y') : 'Chưa có' }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Số HĐ năm</p>
-                        <p class="mt-1 font-black text-slate-900">{{ number_format($info['invoice_count']) }}</p>
-                    </div>
-                </div>
-                <p class="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600">Đề xuất: {{ \Carbon\Carbon::parse($info['suggested_start'])->format('d/m/Y') }} → {{ \Carbon\Carbon::parse($info['suggested_end'])->format('d/m/Y') }}</p>
+            <div class="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 sm:p-4">
+                <div class="text-sm font-black text-slate-950">{{ $label }} <span class="text-xs font-medium text-slate-400">{{ $syncReadiness['year'] }}</span></div>
+                <p class="mt-2 text-xl font-black tabular-nums text-slate-950">{{ number_format($info['invoice_count']) }}</p>
+                <p class="text-xs text-slate-500">Hóa đơn trong năm</p>
+                <p class="mt-2 text-xs text-slate-600">Mới nhất: {{ $info['latest_invoice_date'] ? \Carbon\Carbon::parse($info['latest_invoice_date'])->format('d/m/Y') : 'Chưa có' }}</p>
             </div>
         @endforeach
     </section>
 
-    <div class="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 class="text-lg font-black text-slate-950">Tạo tác vụ</h2>
-            <p class="mt-1 text-sm leading-6 text-slate-500">Chọn loại hóa đơn; ngày bắt đầu tự đổi theo hóa đơn mới nhất của loại đó. Bạn vẫn có thể sửa thủ công.</p>
-            <form method="POST" action="{{ route('client.invoices.sync.start') }}" class="mt-5 space-y-4" id="smart-sync-form">
-                @csrf
+    <div class="grid items-start gap-4 lg:grid-cols-[1.1fr_.9fr]">
+        <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <div class="mb-5">
+                <h2 class="text-lg font-black text-slate-950">Thiết lập đồng bộ</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ $syncPresentation['page_description'] ?? 'Chọn nguồn hóa đơn và thời gian. POS cần xem trước và CAPTCHA riêng.' }}</p>
+            </div>
+            <form id="invoice-sync-form" method="POST" action="{{ route('client.invoices.sync.start') }}" class="space-y-5">@csrf
                 <fieldset>
-                    <legend class="text-sm font-bold text-slate-700">Loại hóa đơn</legend>
-                    <div class="mt-2 grid grid-cols-2 gap-3">
+                    <legend class="text-sm font-bold text-slate-800">1. Loại hóa đơn</legend>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
                         @foreach(['purchase' => 'Mua vào', 'sold' => 'Bán ra'] as $value => $label)
-                            <label class="flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 p-4 has-[:checked]:border-slate-950 has-[:checked]:bg-slate-50">
+                            <label class="flex min-h-12 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 p-3 has-[:checked]:border-slate-900 has-[:checked]:bg-slate-50">
                                 <input type="radio" name="direction" value="{{ $value }}" class="h-5 w-5" @checked($selectedDirection === $value)>
-                                <span class="font-bold text-slate-900">{{ $label }}</span>
+                                <span class="text-sm font-bold">{{ $label }}</span>
                             </label>
                         @endforeach
                     </div>
                 </fieldset>
-                <div class="grid gap-4 sm:grid-cols-2">
-                    <label class="text-sm font-bold text-slate-700">Từ ngày
-                        <input id="sync-start" type="date" name="start" value="{{ old('start', $selected['suggested_start']) }}" class="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-base outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200" required>
-                        @error('start')
-                            <span class="mt-1 block text-xs font-semibold text-rose-600">{{ $message }}</span>
-                        @enderror
-                    </label>
-                    <label class="text-sm font-bold text-slate-700">Đến ngày
-                        <input type="date" name="end" value="{{ old('end', $syncReadiness['today']) }}" max="{{ $syncReadiness['today'] }}" class="mt-2 min-h-12 w-full rounded-2xl border border-slate-200 bg-white px-3 text-base outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-200" required>
-                        @error('end')
-                            <span class="mt-1 block text-xs font-semibold text-rose-600">{{ $message }}</span>
-                        @enderror
-                    </label>
+                <fieldset>
+                    <legend class="text-sm font-bold text-slate-800">2. Nguồn dữ liệu</legend>
+                    <div class="mt-2 grid grid-cols-2 gap-2">
+                        <label class="flex min-h-16 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 p-3 has-[:checked]:border-slate-900 has-[:checked]:bg-slate-50">
+                            <input type="radio" name="source" value="regular" class="h-5 w-5" @checked($selectedSource === 'regular')>
+                            <span><strong class="block text-sm">Thông thường</strong><small class="text-slate-500">Đồng bộ nền</small></span>
+                        </label>
+                        <label class="flex min-h-16 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 p-3 has-[:checked]:border-slate-900 has-[:checked]:bg-slate-50">
+                            <input type="radio" name="source" value="pos" class="h-5 w-5" @checked($selectedSource === 'pos')>
+                            <span><strong class="block text-sm">Máy POS</strong><small class="text-slate-500">CAPTCHA trực tiếp</small></span>
+                        </label>
+                    </div>
+                </fieldset>
+                <fieldset>
+                    <legend class="text-sm font-bold text-slate-800">3. Khoảng thời gian</legend>
+                    <div class="mt-2 grid min-w-0 grid-cols-2 gap-2">
+                        <x-pwa-date name="start" label="Từ ngày" :value="$selectedStart" required id="sync-start" :error="$errors->first('start')" />
+                        <x-pwa-date name="end" label="Đến ngày" :value="$selectedEnd" :max="$syncReadiness['today']" required :error="$errors->first('end')" />
+                    </div>
+                </fieldset>
+                <div id="regular-help" class="rounded-2xl bg-sky-50 p-3 text-xs leading-5 text-sky-900">Nguồn thông thường được xếp hàng trên server. Bạn có thể rời màn hình và quay lại theo dõi.</div>
+                <div id="pos-help" class="hidden rounded-2xl bg-amber-50 p-3 text-xs leading-5 text-amber-900">POS chỉ hỗ trợ ngày bắt đầu và kết thúc trong cùng tháng. Xem trước không ghi dữ liệu; đồng bộ cần CAPTCHA mới và xử lý trực tiếp, không qua queue.</div>
+                <button id="regular-submit" type="submit" @disabled(! $tokenReady) class="min-h-12 w-full rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-[.98]">Bắt đầu đồng bộ thông thường</button>
+                <div id="pos-actions" class="hidden space-y-2">
+                    <button type="submit" name="purpose" value="preview" formaction="{{ route('client.invoices.sync.pos.captcha') }}" @disabled(! $tokenReady) class="min-h-12 w-full rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:bg-slate-300 active:scale-[.98]">Tra cứu POS · CAPTCHA</button>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-xs font-semibold"><input type="checkbox" name="force_refresh" value="1"> Tôi xác nhận tra cứu lại nếu Excel POS đã tồn tại</label>
+                    @if(($posPreview['count'] ?? 0) > 0)
+                        <p class="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Đã xem trước {{ number_format($posPreview['count']) }} hóa đơn. Chỉ đồng bộ khi bộ lọc không đổi.</p>
+                        <button type="submit" name="purpose" value="sync" formaction="{{ route('client.invoices.sync.pos.captcha') }}" @disabled(! $tokenReady) class="min-h-12 w-full rounded-2xl bg-emerald-700 px-4 text-sm font-black text-white disabled:bg-slate-300 active:scale-[.98]">Đồng bộ POS · CAPTCHA mới</button>
+                    @endif
                 </div>
-                <div class="rounded-2xl bg-sky-50 p-3 text-xs font-semibold leading-5 text-sky-900">Khi chạy, server ưu tiên kiểm tra file Local, sau đó Google Drive; chỉ gọi GDT khi cần. Dữ liệu cùng ngày có thể được kiểm tra lại để không bỏ sót hóa đơn phát sinh sau lần trước.</div>
-                <button type="submit" @disabled(! $tokenReady) @class(['min-h-12 w-full rounded-2xl px-5 text-sm font-black text-white shadow-sm transition', 'bg-slate-950 hover:bg-slate-800' => $tokenReady, 'cursor-not-allowed bg-slate-300' => ! $tokenReady])>{{ $tokenReady ? 'Bắt đầu đồng bộ' : 'Kết nối GDT để đồng bộ' }}</button>
             </form>
-        </section>
-
-        <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <div class="flex items-start justify-between gap-3">
-                <div>
-                    <h2 class="text-lg font-black text-slate-950">Trạng thái gần nhất</h2>
-                    <p class="mt-1 text-sm text-slate-500">Local → Drive → GDT được ghi trong nhật ký tác vụ.</p>
+            @if(is_array($posPending) && isset($posPending['filters'], $posPending['purpose']))
+                <div class="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status">
+                    <p class="font-black">POS đang chờ xác minh trang 2</p>
+                    <p class="mt-1">Đã nhận trang 1. Cần CAPTCHA mới để xác minh đủ {{ number_format($posPending['total'] ?? 0) }} hóa đơn trước khi {{ $posPending['purpose'] === 'sync' ? 'ghi dữ liệu' : 'hoàn tất xem trước' }}.</p>
+                    <form method="POST" action="{{ route('client.invoices.sync.pos.captcha') }}" class="mt-3">
+                        @csrf
+                        <input type="hidden" name="start" value="{{ $posPending['filters']['start'] }}">
+                        <input type="hidden" name="end" value="{{ $posPending['filters']['end'] }}">
+                        <input type="hidden" name="direction" value="{{ $posPending['filters']['direction'] }}">
+                        <input type="hidden" name="purpose" value="{{ $posPending['purpose'] === 'sync' ? 'sync_page2' : 'preview_page2' }}">
+                        <button class="min-h-12 w-full rounded-xl bg-amber-800 px-4 font-bold text-white">Tải CAPTCHA trang 2</button>
+                    </form>
                 </div>
-                @if($syncId)
-                    <a href="{{ route('client.invoices.sync', ['sync_id' => $syncId]) }}" class="min-h-10 rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600">Làm mới</a>
-                @endif
+            @endif
+            @if($posCaptchaImage)
+                <form method="POST" action="{{ route('client.invoices.sync.pos.submit') }}" class="mt-4 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">@csrf
+                    <p class="text-sm font-black text-slate-900">Xác minh POS · {{ in_array(($posFilters['purpose'] ?? ''), ['sync', 'sync_page2'], true) ? 'Đồng bộ' : 'Xem trước' }}</p>
+                    <img src="{{ $posCaptchaImage }}" alt="CAPTCHA POS" class="max-h-24 max-w-56 rounded-xl border border-slate-200 bg-white p-2">
+                    <label class="block text-sm font-bold">Nhập mã CAPTCHA POS
+                        <input name="cvalue" autocomplete="off" maxlength="20" required class="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base">
+                    </label>
+                    <button class="min-h-12 w-full rounded-xl bg-slate-950 px-4 font-bold text-white active:scale-[.98]">Xác nhận {{ in_array(($posFilters['purpose'] ?? ''), ['sync', 'sync_page2'], true) ? 'đồng bộ POS' : 'tra cứu POS' }}</button>
+                </form>
+            @endif
+        </section>
+        <section class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <div class="flex items-center justify-between gap-2">
+                <h2 class="text-lg font-black text-slate-950">Tiến trình & kết quả</h2>
+                @if($syncId)<a href="{{ route('client.invoices.sync', ['sync_id' => $syncId]) }}" class="rounded-xl border border-slate-200 px-3 py-2 text-xs font-bold">Làm mới</a>@endif
             </div>
             @if($syncStatus)
                 @php($state = $syncStatus['state'] ?? 'queued')
-                <div class="mt-5 rounded-2xl bg-slate-50 p-4">
-                    <div class="flex items-center justify-between gap-3">
-                        <div>
-                            <p class="text-xs font-bold uppercase tracking-wider text-slate-400">Trạng thái</p>
-                            <p class="mt-1 text-base font-black text-slate-950">{{ ['queued' => 'Đang chờ', 'processing' => 'Đang đồng bộ', 'completed' => 'Hoàn tất', 'failed' => 'Thất bại'][$state] ?? $state }}</p>
+                <div class="mt-4 rounded-2xl bg-slate-50 p-4">
+                    <p class="text-xs font-bold uppercase text-slate-500">Trạng thái</p>
+                    <p class="mt-1 font-black text-slate-950">{{ ['queued' => 'Đang chờ', 'processing' => 'Đang đồng bộ', 'completed' => 'Hoàn tất', 'failed' => 'Thất bại'][$state] ?? $state }}</p>
+                    @if(($syncStatus['source'] ?? null) === 'pos')
+                        <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-700" aria-label="Thông tin tác vụ đồng bộ">
+                            <span class="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-indigo-800">Nguồn: Máy POS</span>
+                            <span class="rounded-lg bg-white px-2.5 py-1.5">{{ ($syncStatus['direction'] ?? '') === 'sold' ? 'Bán ra' : 'Mua vào' }}</span>
+                            @if(!empty($syncStatus['start']) && !empty($syncStatus['end']))
+                                <span class="rounded-lg bg-white px-2.5 py-1.5">Từ {{ \Carbon\Carbon::parse($syncStatus['start'])->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($syncStatus['end'])->format('d/m/Y') }}</span>
+                            @endif
                         </div>
-                        <span @class(['h-3 w-3 rounded-full', 'bg-amber-500' => $state === 'queued', 'bg-sky-500' => $state === 'processing', 'bg-emerald-500' => $state === 'completed', 'bg-rose-500' => $state === 'failed'])></span>
-                    </div>
-                    <p class="mt-3 text-sm leading-6 text-slate-600">{{ $syncStatus['message'] ?? 'Đang cập nhật trạng thái.' }}</p>
+                    @endif
+                    <p class="mt-2 text-sm leading-6 text-slate-600">{{ $syncStatus['message'] ?? 'Đang cập nhật.' }}</p>
                 </div>
-                @if(! empty($syncStatus['logs']))
-                    <div class="mt-4 max-h-72 overflow-y-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-300" aria-label="Nhật ký đồng bộ">
-                        @foreach(array_slice($syncStatus['logs'], -20) as $log)
-                            <div>{{ $log }}</div>
-                        @endforeach
+                @if(!empty($syncStatus['logs']))
+                    <div class="mt-3 max-h-64 overflow-auto rounded-2xl bg-slate-950 p-4 font-mono text-xs leading-6 text-slate-200" aria-label="Nhật ký đồng bộ">
+                        @foreach(array_slice($syncStatus['logs'], -20) as $log)<div>{{ $log }}</div>@endforeach
                     </div>
                 @endif
                 @if(in_array($state, ['queued', 'processing'], true))
-                    <p class="mt-4 rounded-2xl bg-sky-50 p-4 text-sm leading-6 text-sky-900">Tác vụ đang chạy trên server. Bạn có thể rời màn hình này và quay lại sau.</p>
+                    <p class="mt-3 text-sm text-sky-800">Tác vụ đang chạy trên server. Bạn có thể quay lại sau.</p>
                 @endif
             @else
-                <div class="mt-5 rounded-2xl border border-dashed border-slate-300 p-7 text-center">
-                    <h3 class="font-black text-slate-900">Chưa có tác vụ đang theo dõi</h3>
-                    <p class="mt-2 text-sm leading-6 text-slate-500">Sau khi gửi, queue chạy nền và trạng thái được lưu tạm trên server.</p>
+                <div class="mt-4 rounded-2xl border border-dashed border-slate-300 p-6 text-center">
+                    <p class="font-bold text-slate-800">Chưa có tác vụ đang theo dõi</p>
+                    <p class="mt-2 text-sm text-slate-500">Kết quả đồng bộ sẽ hiển thị tại đây.</p>
                 </div>
             @endif
         </section>
@@ -170,13 +188,24 @@
 
 @push('application-scripts')
 <script>
-document.querySelectorAll('#smart-sync-form input[name="direction"]').forEach((radio) => {
-    radio.addEventListener('change', (event) => {
+(() => {
+    const form = document.getElementById('invoice-sync-form');
+    if (!form) return;
+    const update = () => {
+        const pos = form.querySelector('input[name="source"]:checked')?.value === 'pos';
+        document.getElementById('regular-help').classList.toggle('hidden', pos);
+        document.getElementById('regular-submit').classList.toggle('hidden', pos);
+        document.getElementById('pos-help').classList.toggle('hidden', !pos);
+        document.getElementById('pos-actions').classList.toggle('hidden', !pos);
+    };
+    form.querySelectorAll('input[name="source"]').forEach(el => el.addEventListener('change', update));
+    form.querySelectorAll('input[name="direction"]').forEach(el => el.addEventListener('change', () => {
         const starts = @json(['purchase' => $purchase['suggested_start'], 'sold' => $sold['suggested_start']]);
-        const input = document.getElementById('sync-start');
-        if (input && starts[event.target.value]) input.value = starts[event.target.value];
-    });
-});
+        const start = document.getElementById('sync-start');
+        if (start && starts[el.value]) start.value = starts[el.value];
+    }));
+    update();
+})();
 @if($syncStatus && in_array($syncStatus['state'] ?? 'queued', ['queued', 'processing'], true))
 window.setTimeout(() => window.location.reload(), 8000);
 @endif

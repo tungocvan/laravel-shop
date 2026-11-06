@@ -19,6 +19,166 @@ use Throwable;
 
 class GdtInvoiceService
 {
+    /** Page-one POS snapshot is request-local; never exposed to Livewire hydration. */
+    private ?array $posFirstPage = null;
+    private ?array $posCompleteFirstPageRows = null;
+
+    public function takePosCompleteFirstPageRows(): ?array
+    {
+        $rows = $this->posCompleteFirstPageRows;
+        $this->posCompleteFirstPageRows = null;
+
+        return $rows;
+    }
+
+    public function takePosFirstPage(): ?array
+    {
+        $snapshot = $this->posFirstPage;
+        $this->posFirstPage = null;
+
+        return $snapshot;
+    }
+
+    /**
+     * Read-only POS page one. Returns a partial progress marker when more
+     * pages exist; never treats that marker as a complete search.
+     */
+    public function previewPosFirstPage(string $fromDate, string $toDate, bool $vatIn, array $captcha): array
+    {
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to) || $from->format('Y-m') !== $to->format('Y-m')) {
+            throw new \InvalidArgumentException('Tra cứu POS chỉ hỗ trợ khoảng ngày trong cùng một tháng.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+        }
+
+        $this->posFirstPage = null;
+        $this->posCompleteFirstPageRows = null;
+        $rows = $this->fetchInvoicesByMonth($token, $from, $to, static function (string $message): void {}, $vatIn, true, $captcha, true);
+        $pending = $this->posFirstPage;
+        $count = count($rows);
+        if ($pending === null) {
+            $this->posCompleteFirstPageRows = $rows;
+        }
+
+        return [
+            'source' => 'pos',
+            'count' => $count,
+            'total' => $pending['total'] ?? $count,
+            'incomplete' => $pending !== null,
+            'sample' => array_slice(array_map(static fn (array $row): array => [
+                'number' => (string) ($row['Số hóa đơn'] ?? ''),
+                'symbol' => (string) ($row['Ký hiệu'] ?? ''),
+                'date' => (string) ($row['Ngày lập'] ?? ''),
+            ], $rows), 0, 20),
+        ];
+    }
+
+    /** Resume an explicitly human-verified POS page 2 without canonical writes. */
+    public function resumePosPreview(string $fromDate, string $toDate, bool $vatIn, array $captcha, array $checkpoint): array
+    {
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to) || $from->format('Y-m') !== $to->format('Y-m')
+            || ! is_array($checkpoint['first_page'] ?? null)
+            || count($checkpoint['first_page']) !== 15
+            || ! is_string($checkpoint['cursor'] ?? null)
+            || ! is_int($checkpoint['total'] ?? null)) {
+            throw new \RuntimeException('Checkpoint POS không hợp lệ. Vui lòng tra cứu lại.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên GDT đã hết hạn.');
+        }
+        $captcha['cookies'] = is_array($checkpoint['cookies'] ?? null) ? $checkpoint['cookies'] : [];
+        $rows = $this->fetchInvoicesByMonth(
+            $token, $from, $to, static function (string $message): void {},
+            $vatIn, true, $captcha, false, $checkpoint
+        );
+        if (count($rows) !== $checkpoint['total']) {
+            throw new \RuntimeException('GDT POS trả thiếu hóa đơn. Không đồng bộ canonical.');
+        }
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = $row['_gdt_raw_payload']['id'] ?? null;
+            if (! is_scalar($id) || trim((string) $id) === '' || isset($ids[(string) $id])) {
+                throw new \RuntimeException('GDT POS có mã hóa đơn trùng hoặc không hợp lệ. Không đồng bộ canonical.');
+            }
+            $ids[(string) $id] = true;
+        }
+
+        return [
+            'source' => 'pos',
+            'count' => count($rows),
+            'total' => count($rows),
+            'incomplete' => false,
+            'sample' => array_slice(array_map(static fn (array $row): array => [
+                'number' => (string) ($row['Số hóa đơn'] ?? ''),
+                'symbol' => (string) ($row['Ký hiệu'] ?? ''),
+                'date' => (string) ($row['Ngày lập'] ?? ''),
+            ], $rows), 0, 20),
+        ];
+    }
+
+    /**
+     * Canonical sync may only consume a complete, separately verified POS
+     * response. The existing persistence/export pipeline remains authoritative.
+     */
+    public function processVerifiedPosRows(string $startDate, string $endDate, bool $vatIn, array $rows, int $expectedTotal, ?callable $cb = null): ?string
+    {
+        if ($expectedTotal < 1 || count($rows) !== $expectedTotal) {
+            throw new \RuntimeException('Dữ liệu POS chưa đầy đủ; không ghi canonical.');
+        }
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = $row['_gdt_raw_payload']['id'] ?? null;
+            if (! is_scalar($id) || trim((string) $id) === '' || isset($ids[(string) $id])) {
+                throw new \RuntimeException('Dữ liệu POS trùng ID hoặc thiếu ID; không ghi canonical.');
+            }
+            $ids[(string) $id] = true;
+        }
+        $this->verifiedPosRows = $rows;
+        try {
+            return $this->processRange($startDate, $endDate, $cb, $vatIn, 'pos');
+        } finally {
+            $this->verifiedPosRows = null;
+        }
+    }
+
+    private ?array $verifiedPosRows = null;
+
+    public function resumePosCanonicalRows(string $fromDate, string $toDate, bool $vatIn, array $captcha, array $checkpoint): array
+    {
+        // Use the same validation and page-two request as read-only preview.
+        // No persistence occurs until the complete set is returned.
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to) || $from->format('Y-m') !== $to->format('Y-m')
+            || ! is_array($checkpoint['first_page'] ?? null)
+            || count($checkpoint['first_page']) !== 15
+            || ! is_string($checkpoint['cursor'] ?? null)
+            || ! is_int($checkpoint['total'] ?? null)) {
+            throw new \RuntimeException('Checkpoint POS không hợp lệ.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên GDT đã hết hạn.');
+        }
+        $captcha['cookies'] = is_array($checkpoint['cookies'] ?? null) ? $checkpoint['cookies'] : [];
+        $rows = $this->fetchInvoicesByMonth(
+            $token, $from, $to, static function (string $message): void {},
+            $vatIn, true, $captcha, false, $checkpoint
+        );
+        if (count($rows) !== $checkpoint['total']) {
+            throw new \RuntimeException('GDT POS trả thiếu hóa đơn; không ghi canonical.');
+        }
+
+        return $rows;
+    }
+
     private array $lastSourceStats = [];
 
     public function lastSourceStats(): array
@@ -216,7 +376,9 @@ class GdtInvoiceService
                     $pos = $checkpoint['pos'];
                     $show('[GDT] POS full-month checkpoint reused.');
                 } else {
-                    $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha);
+                    $pos = $this->verifiedPosRows !== null
+                        ? $this->verifiedPosRows
+                        : $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha);
                     if ($checkpointKey) {
                         $checkpoint['pos'] = $pos;
                         Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
@@ -287,7 +449,18 @@ class GdtInvoiceService
         }
         unset($sourceStat);
         $show(sprintf('[RAW] Detail: đã có %d · tải mới %d · lỗi %d.', $detailStats['reused'], $detailStats['fetched'], $detailStats['failed']));
+        // Invalidate any previous completion marker before rewriting an export.
+        // A partial RAW-detail run must never inherit a completed marker.
+        if (in_array($source, ['regular', 'pos'], true)) {
+            $marker = app(GdtCompletedExport::class)->path($startDate, $endDate, $vatIn, $source).'.complete.json';
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+        }
         $file = $this->exportExcel($all, $vatIn, $filename);
+        if (in_array($source, ['regular', 'pos'], true) && $detailStats['failed'] === 0) {
+            app(GdtCompletedExport::class)->mark($startDate, $endDate, $vatIn, $source, $file);
+        }
         $show('[GDT] File Excel tạo ra: '.$file);
 
         return $file;
@@ -340,7 +513,7 @@ class GdtInvoiceService
         return $file;
     }
 
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false, ?array $posCaptcha = null): array
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false, ?array $posCaptcha = null, bool $stopAfterFirstPosPage = false, ?array $resume = null): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
@@ -353,12 +526,30 @@ class GdtInvoiceService
             }
         }
         $endpoint = $cashRegister ? '/sco-query/invoices/' : '/query/invoices/';
-        $result = [];
-        $processed = 0;
-        $page = 1;
-        $state = null;
-        $total = null;
+        $result = $resume['first_page'] ?? [];
+        $processed = count($result);
+        $page = $resume !== null ? 2 : 1;
+        $state = $resume['cursor'] ?? null;
+        $total = $resume['total'] ?? null;
         $posTraceId = $cashRegister ? (string) Str::uuid() : null;
+        // Keep one mutable cookie jar for the whole POS pagination request.
+        // Rehydrating the original CAPTCHA snapshot per page discards Set-Cookie updates.
+        $posJar = null;
+        $storedCookies = [];
+        if ($cashRegister) {
+            $posJar = new CookieJar;
+            $storedCookies = is_array($posCaptcha['cookies'] ?? null) ? $posCaptcha['cookies'] : [];
+            foreach ($storedCookies as $cookie) {
+                if (! is_array($cookie)) {
+                    continue;
+                }
+                try {
+                    $posJar->setCookie(new SetCookie($cookie));
+                } catch (\Throwable) {
+                    // Do not log cookie values.
+                }
+            }
+        }
         do {
             $show('[GDT] '.($cashRegister ? 'Máy tính tiền' : 'Thông thường')." · page {$page}...");
             try {
@@ -366,24 +557,23 @@ class GdtInvoiceService
                 if ($state) {
                     $query['state'] = $state;
                 }
-                if ($cashRegister) {
-                    $query['ckey'] = $posCaptcha['ckey'];
-                    $query['cvalue'] = $posCaptcha['cvalue'];
+                // A distinct CAPTCHA may be supplied explicitly for page 2.
+                // Never replay the page-1 answer as a page-2 challenge.
+                // Keep the GDT cursor until its continuation contract is verified.
+                $initialPosPage = $cashRegister && $page === 1;
+                $pageCaptcha = $initialPosPage ? $posCaptcha
+                    : ($cashRegister && $page === 2 ? ($resume !== null ? $posCaptcha : ($posCaptcha['page2'] ?? null)) : null);
+                if ($cashRegister && $pageCaptcha !== null) {
+                    try {
+                        // Match verified browser request: state + fresh CAPTCHA in query.
+                        $query = GdtPosPageRequest::query($search, $state, $pageCaptcha);
+                    } catch (\InvalidArgumentException $exception) {
+                        throw new \RuntimeException('CAPTCHA POS tại trang '.$page.' không hợp lệ. Không tạo file thiếu.', previous: $exception);
+                    }
                 }
                 $client = $this->client($token);
                 if ($cashRegister) {
-                    $jar = new CookieJar;
-                    $storedCookies = is_array($posCaptcha['cookies'] ?? null) ? $posCaptcha['cookies'] : [];
-                    foreach ($storedCookies as $cookie) {
-                        if (! is_array($cookie)) {
-                            continue;
-                        }
-                        try {
-                            $jar->setCookie(new SetCookie($cookie));
-                        } catch (\Throwable) {
-                            // A malformed cookie must not disclose values in logs.
-                        }
-                    }
+                    $jar = $posJar;
                     Log::info('GDT POS captcha cookie lifecycle.', [
                         'stage' => 'request',
                         'action' => $action,
@@ -409,6 +599,7 @@ class GdtInvoiceService
                         'page_size' => $pageSize,
                         'search_has_pos_filter' => str_contains($search, 'ttxly==8'),
                         'has_pagination_state' => filled($state),
+                        'captcha_submitted' => $pageCaptcha !== null,
                         'jar_cookie_count' => count($jar->toArray()),
                         'cookie_eligible_for_endpoint' => $cookieEligible,
                         'user_agent_matches_captcha_client' => true,
@@ -429,19 +620,30 @@ class GdtInvoiceService
                         'Action' => rawurlencode('Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')'),
                         'End-Point' => '/tra-cuu/tra-cuu-hoa-don',
                         // Browser sends these as headers as well as query parameters.
-                        'ckey' => $posCaptcha['ckey'],
-                        'cvalue' => $posCaptcha['cvalue'],
                         'Accept-Language' => 'vi',
-                    ] : [])
+                    ] + ($pageCaptcha !== null ? [
+                        'ckey' => $pageCaptcha['ckey'],
+                        'cvalue' => $pageCaptcha['cvalue'],
+                    ] : []) : [])
                     ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
                 throw new \RuntimeException("Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.', previous: $exception);
             } if (in_array($res->status(), [401, 403], true)) {
                 $this->logRejectedQuery($res, $action, $page);
-                if ($res->status() === 401) {
+                // A POS CAPTCHA rejection is not evidence that the auth token expired.
+                // Fail closed and require a new CAPTCHA; preserve the authenticated session.
+                $rejection = $res->json();
+                $rejectionMessage = is_array($rejection) ? (string) ($rejection['message'] ?? '') : '';
+                $isPosCaptchaRejection = $cashRegister && $res->status() === 401
+                    && preg_match('/captcha/i', $rejectionMessage) === 1;
+                if ($res->status() === 401 && ! $isPosCaptchaRejection) {
                     Cache::forget(config('invoices.gdt.cache_key'));
-                }throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
+                }
+                if ($isPosCaptchaRejection) {
+                    throw new \RuntimeException("GDT từ chối CAPTCHA POS tại trang {$page}. Vui lòng lấy CAPTCHA mới và tra cứu lại; không tạo file thiếu.");
+                }
+                throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
             } if (! $res->successful()) {
                 $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query, $posTraceId);
                 if ($res->status() === 429) {
@@ -450,6 +652,9 @@ class GdtInvoiceService
                         ? ' GDT đề nghị chờ '.$retryAfter.' giây.'
                         : ' Vui lòng chờ trước khi thử lại.';
                     throw new \RuntimeException("GDT giới hạn tần suất truy vấn (HTTP 429) ở trang {$page}.{$wait} Không tự động thử lại; không tạo file thiếu.");
+                }
+                if ($cashRegister && $page > 1 && $res->status() >= 500) {
+                    throw new \RuntimeException("GDT POS lỗi phân trang tại trang {$page} (HTTP {$res->status()}); đã nhận {$processed}".($total !== null ? "/{$total}" : '')." hóa đơn. Không tạo file thiếu. Có thể tra cứu thủ công từng khoảng ngày ngắn hơn trong cùng tháng, mỗi lần dùng CAPTCHA mới; không kết luận CAPTCHA hết hạn từ HTTP 5xx.");
                 }
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
@@ -463,14 +668,41 @@ class GdtInvoiceService
             }
             $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
             $count = count($items);
+            if ($cashRegister && $resume !== null && $data['total'] !== $total) {
+                throw new \RuntimeException('GDT POS thay đổi tổng số hóa đơn giữa hai trang. Không đồng bộ canonical.');
+            }
             $total ??= (int) ($data['total'] ?? $count);
             foreach ($items as $item) {
                 if (is_array($item)) {
                     $result[] = $this->mapInvoice($item, $vatIn);
                 }
             } $processed += $count;
+            // POS must never claim completion when upstream page totals are inconsistent.
+            // Keep the continuation contract unchanged until the successful browser
+            // page-2 request has been independently verified.
+            if ($cashRegister) {
+                try {
+                    $posProgress = new GdtPosPaginationProgress($processed, $total, $pageSize);
+                } catch (\InvalidArgumentException $exception) {
+                    throw new \RuntimeException('GDT POS trả tiến độ phân trang không hợp lệ. Không tạo file thiếu.', previous: $exception);
+                }
+            }
+            if ($cashRegister && $stopAfterFirstPosPage && $page === 1 && $processed < $total) {
+                $nextState = $data['state'] ?? null;
+                if (! is_string($nextState) || $nextState === '') {
+                    throw new \RuntimeException('GDT POS thiếu state để tiếp tục phân trang. Không tạo file thiếu.');
+                }
+                $this->posFirstPage = [
+                    'rows' => $result,
+                    'cursor' => $nextState,
+                    'total' => $total,
+                    'cookies' => $posJar->toArray(),
+                ];
+
+                return $result;
+            }
             $show("📦 Nhận {$processed}/{$total} hóa đơn");
-            if ($processed >= $total) {
+            if ($cashRegister ? $posProgress->isComplete() : $processed >= $total) {
                 break;
             }$nextState = $data['state'] ?? null;
             if (! $nextState || $nextState === $state) {
@@ -688,7 +920,31 @@ class GdtInvoiceService
         $format = str_contains($contentType, 'json') ? 'json'
             : (str_contains($contentType, 'html') ? 'html' : 'other');
 
+        // Classify only the shape of upstream JSON; never log response bodies,
+        // arbitrary JSON keys, CAPTCHA, invoice data or upstream message text.
+        $payload = $cashRegister && $response->status() >= 500 && $format === 'json'
+            ? $response->json() : null;
+        $posErrorShape = match (true) {
+            ! $cashRegister || $response->status() < 500 => null,
+            $format !== 'json' => 'non_json',
+            ! is_array($payload) => 'invalid_json_or_scalar',
+            array_is_list($payload) => 'json_list',
+            default => 'json_object',
+        };
+        $posErrorMessageCategory = null;
+        if ($posErrorShape === 'json_object') {
+            $message = $payload['message'] ?? $payload['error'] ?? null;
+            $posErrorMessageCategory = ! is_string($message) ? 'missing_or_non_string'
+                : (preg_match('/captcha/i', $message) ? 'captcha'
+                    : (preg_match('/state|paginat/i', $message) ? 'pagination'
+                        : (preg_match('/auth|token|login|đăng nhập/i', $message) ? 'authentication' : 'other')));
+        }
+
         Log::warning('GDT invoice source HTTP failure.', [
+            'pos_error_shape' => $posErrorShape,
+            'pos_error_message_category' => $posErrorMessageCategory,
+            'pos_error_has_message_field' => $posErrorShape === 'json_object' && array_key_exists('message', $payload),
+            'pos_error_has_error_field' => $posErrorShape === 'json_object' && array_key_exists('error', $payload),
             'source' => $cashRegister ? 'pos' : 'regular',
             'trace_id' => $traceId,
             'runtime' => app()->runningUnitTests() ? 'test' : 'application',

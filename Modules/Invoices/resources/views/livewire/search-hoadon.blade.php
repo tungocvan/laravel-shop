@@ -1,4 +1,5 @@
 <div class="space-y-5" @if ($syncId && in_array($syncState, ['queued', 'processing'], true)) wire:poll.2s="pollStatus" @endif>
+
     <div wire:loading.flex wire:target="backupFilesToEmail" class="fixed inset-0 z-[120] items-center justify-center bg-slate-950/40 px-4 backdrop-blur-sm">
         <div class="w-full max-w-md rounded-2xl bg-white p-6 text-center shadow-2xl">
             <div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"></div>
@@ -11,7 +12,7 @@
         <div class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 px-4 py-6" role="presentation">
             <div role="dialog" aria-modal="true" aria-labelledby="pos-captcha-title" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
                 <h3 id="pos-captcha-title" class="text-lg font-semibold text-slate-900">Xác minh CAPTCHA GDT</h3>
-                <p class="mt-2 text-sm text-slate-600">{{ $posCaptchaPurpose === 'sync' ? 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.' }}</p>
+                <p class="mt-2 text-sm text-slate-600">{{ in_array($posCaptchaPurpose, ['sync', 'sync_page2'], true) ? ($posCaptchaPurpose === 'sync_page2' ? 'CAPTCHA mới cho trang 2 đồng bộ POS; chỉ ghi canonical khi đủ hóa đơn.' : 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.') : ($posCaptchaPurpose === 'page2' ? 'Nhập CAPTCHA mới để tiếp tục trang 2 từ checkpoint đã xác minh.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.') }}</p>
                 <div class="mt-4 space-y-3">
                     @if($posCaptchaImage)
                         <img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-slate-200 bg-white p-1">
@@ -59,10 +60,38 @@
             @error('invoiceSource')<p class="mt-3 text-sm text-red-600">{{ $message }}</p>@enderror
             <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-xs text-slate-500">Bước 1: Tìm kiếm trên GDT · Bước 2: Đồng bộ canonical nếu kết quả đúng.</p>
-                <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosCaptcha' : 'searchInvoices' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="openPosCaptcha,searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="openPosCaptcha,searchInvoices">Đang tìm kiếm…</span></button>
+                @if($existingPosFile = $this->existingPosExcel())
+                <div class="w-full rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900" role="status">
+                    <p class="font-semibold">File Excel đã tồn tại: {{ basename($existingPosFile) }}</p>
+                    @if($this->completedCanonicalExport())
+                        <p class="mt-1">Đã xác nhận đồng bộ canonical hoàn tất. Không cần Import lại.</p>
+                    @else
+                        <p class="mt-1">Chưa có bằng chứng canonical hoàn tất. Chỉ Import nếu đây là file legacy/chưa được ghi canonical; không Import lại file do luồng canonical đã ghi database.</p>
+                    @endif
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" wire:click="selectExistingPosExcel" class="min-h-10 rounded-lg border border-sky-600 bg-white px-3 py-2 font-semibold">Chọn file trong kho / Import hiện có</button>
+                        @if(!$forceResync)
+                            <button type="button" wire:click="allowPosGdtRefresh" wire:confirm="File Excel đã tồn tại. Bạn muốn tra cứu lại GDT và có thể cập nhật dữ liệu khi đồng bộ?" class="min-h-10 rounded-lg border border-amber-600 bg-white px-3 py-2 font-semibold text-amber-900">Tra cứu lại từ GDT</button>
+                        @else
+                            <p class="self-center font-semibold text-amber-800">Đã xác nhận tra cứu lại. Có thể mở CAPTCHA.</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
+            <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosCaptcha' : 'searchInvoices' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="openPosCaptcha,searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="openPosCaptcha,searchInvoices">Đang tìm kiếm…</span></button>
             </div>
             <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-live="polite">
                 <div class="flex flex-wrap items-center justify-between gap-2"><h4 class="text-sm font-semibold text-slate-900">Kết quả tra cứu {{ $invoiceSource === 'pos' ? 'POS' : 'Regular' }}</h4><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $searchState === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($searchState === 'failed' ? 'bg-red-100 text-red-800' : 'bg-white text-slate-600') }}">{{ match($searchState) {'searching'=>'Đang tra cứu','completed'=>((int) ($searchPreview['count'] ?? 0) === 0 ? 'Không tìm thấy hóa đơn' : 'GDT đã phản hồi'),'failed'=>'Tra cứu thất bại',default=>'Chưa tìm kiếm'} }}</span></div>
+                @if($invoiceSource === 'pos' && $searchState === 'awaiting_captcha')
+                    <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3" role="status">
+                        <p class="text-sm font-semibold text-amber-900">Đã nhận {{ (int) ($searchPreview['count'] ?? 0) }}/{{ (int) ($searchPreview['total'] ?? 0) }} hóa đơn</p>
+                        <p class="mt-1 text-xs text-amber-900">Cần CAPTCHA mới cho trang tiếp theo. Chưa ghi canonical. Checkpoint hết hạn sau 5 phút.</p>
+                        <button type="button" wire:click="continuePosSearch" wire:loading.attr="disabled" wire:target="continuePosSearch" class="mt-3 min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white">Tiếp tục trang 2</button>
+                    </div>
+                @endif
+                @if($searchState === 'completed' && $invoiceSource === 'pos' && $posMultiPagePreview)
+                    <p class="mt-2 text-sm text-amber-800" role="status">Đã xác minh đủ các trang để xem trước. Đồng bộ canonical sẽ yêu cầu CAPTCHA mới cho từng trang.</p>
+                @endif
                 @if($searchState === 'completed')
                     <p class="mt-3 text-2xl font-bold tabular-nums text-slate-900">{{ number_format((int) ($searchPreview['count'] ?? 0)) }} <span class="text-sm font-normal text-slate-500">hóa đơn</span></p>
                     <p class="mt-1 text-sm text-slate-600">{{ $searchMessage }}</p>
@@ -72,22 +101,46 @@
                     @endif
                 @else
                     <p class="mt-2 text-sm {{ $searchState === 'failed' ? 'text-red-700' : 'text-slate-500' }}">{{ $searchMessage ?: 'Chọn bộ lọc và nhấn Tìm kiếm để xem kết quả thực tế.' }}</p>
+                    @if($invoiceSource === 'pos' && $searchState === 'failed')
+                        <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3" role="status">
+                            <p class="text-sm font-semibold text-amber-900">Tra cứu POS chưa hoàn tất</p>
+                            <p class="mt-1 text-xs leading-5 text-amber-900">Không thể tiếp tục từ trang lỗi trong phiên này. Dữ liệu một phần chưa được xác nhận và không được đồng bộ canonical. Bạn có thể tra cứu lại bằng CAPTCHA mới hoặc chia khoảng ngày nhỏ hơn trong cùng tháng.</p>
+                            <button type="button" wire:click="openPosCaptcha('search')" wire:loading.attr="disabled" wire:target="openPosCaptcha,refreshPosCaptcha,searchInvoices" class="mt-3 min-h-11 rounded-lg border border-amber-400 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50">Nhập CAPTCHA mới và tra cứu lại</button>
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>
         <div class="flex flex-col gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div><label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="useQueue" @disabled($invoiceSource !== 'regular') class="rounded border-slate-300"> Xử lý qua queue</label><p class="mt-1 text-xs text-slate-500">{{ $invoiceSource === 'regular' ? 'Regular có thể xử lý qua queue.' : 'POS chỉ xử lý trực tiếp sau CAPTCHA.' }}</p></div>
+            @if($completedCanonical = $this->completedCanonicalExport())
+                <div class="w-full rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900" role="status">
+                    <p class="font-semibold">Đã đồng bộ canonical hoàn tất — {{ basename($completedCanonical) }}</p>
+                    <p class="mt-1">Hệ thống sẽ bỏ qua lần đồng bộ trùng, không yêu cầu CAPTCHA.</p>
+                    @if(!$forceResync)
+                        <button type="button" wire:click="confirmCanonicalResync" wire:confirm="Đồng bộ lại sẽ truy vấn GDT và cập nhật canonical/Excel đã hoàn tất. Bạn chắc chắn muốn tiếp tục?" class="mt-2 min-h-10 rounded-lg border border-emerald-700 px-3 py-2 font-semibold">Đồng bộ lại</button>
+                    @else
+                        <p class="mt-2 font-semibold text-amber-800">Đã xác nhận đồng bộ lại. Nhấn Đồng bộ canonical để thực hiện.</p>
+                    @endif
+                </div>
+            @endif
             <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosSyncCaptcha' : 'run' }}" wire:loading.attr="disabled" wire:target="openPosSyncCaptcha,run" @disabled($searchState !== 'completed' || (int) ($searchPreview['count'] ?? 0) <= 0 || $searchedFingerprint !== hash('sha256', implode('|', [$invoiceSource, $start_date, $end_date, (int) $vatIn]))) class="min-h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="run">Đồng bộ canonical</span><span wire:loading wire:target="run">Đang đồng bộ…</span></button>
         </div>
     </section>
 
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+    <section x-on:pos-sync-awaiting.window="$el.scrollIntoView({ behavior: 'smooth', block: 'start' })" class="scroll-mt-6 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="flex flex-wrap items-start justify-between gap-4">
             <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Bước 2 · Sức khỏe dữ liệu</p><h2 class="mt-1 text-base font-semibold text-gray-900">Trạng thái đồng bộ</h2><p class="mt-1 text-sm text-gray-500">Theo dõi đến khi hoàn tất, hoàn tất một phần hoặc thất bại.</p></div>
-            @php($stateLabel=match($syncState){'queued'=>'Đang chờ queue','processing'=>'Đang xử lý','completed'=>'Hoàn tất','partial'=>'Hoàn tất một phần','failed'=>'Thất bại',default=>'Chưa chạy'})
-            @php($stateClass=match($syncState){'completed'=>'bg-emerald-50 text-emerald-700','partial'=>'bg-amber-50 text-amber-800','failed'=>'bg-red-50 text-red-700','queued','processing'=>'bg-amber-50 text-amber-700',default=>'bg-gray-100 text-gray-600'})
+            @php($stateLabel=match($syncState){'queued'=>'Đang chờ queue','processing'=>'Đang xử lý','completed'=>'Hoàn tất','partial'=>'Hoàn tất một phần','failed'=>'Thất bại','awaiting_captcha'=>'Chờ CAPTCHA trang 2',default=>'Chưa chạy'})
+            @php($stateClass=match($syncState){'completed'=>'bg-emerald-50 text-emerald-700','partial'=>'bg-amber-50 text-amber-800','failed'=>'bg-red-50 text-red-700','queued','processing','awaiting_captcha'=>'bg-amber-50 text-amber-700',default=>'bg-gray-100 text-gray-600'})
             <span class="rounded-full px-3 py-1 text-xs font-semibold {{ $stateClass }}">{{ $stateLabel }}</span>
         </div>
+    @if($invoiceSource === 'pos' && $posSyncPhase === 'awaiting_captcha')
+        <div class="rounded-xl border border-amber-300 bg-amber-50 p-4" role="status">
+            <p class="text-sm font-semibold text-amber-900">{{ $syncMessage }}</p>
+            <button type="button" wire:click="continuePosSync" wire:loading.attr="disabled" wire:target="continuePosSync" class="mt-3 min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white">Tiếp tục đồng bộ trang 2 · CAPTCHA mới</button>
+        </div>
+    @endif
         @if(in_array($syncState,['queued','processing'],true))<div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div class="h-full w-2/3 animate-pulse rounded-full bg-indigo-500"></div></div>@endif
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
             <div class="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
@@ -113,7 +166,7 @@
         </div>
     </section>
 
-    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section x-on:pos-existing-file-selected.window="$el.scrollIntoView({ behavior: 'smooth', block: 'start' })" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Bước 3</p><h2 class="mt-1 text-base font-semibold text-gray-900">Kho file hóa đơn</h2><p class="mt-1 text-sm text-gray-500">Quản lý export/backup. Xóa file không xóa dữ liệu hóa đơn, RAW canonical, Inventory hoặc Partner.</p></div>
             <button wire:click="refreshAvailableFiles" class="h-10 rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700">Làm mới</button>
