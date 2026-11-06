@@ -272,7 +272,7 @@ final class InvoicesApplicationController extends Controller
                     }
                     $id = app(GdtPosSecureContinuation::class)->store(
                         (int) $request->user('web')->getAuthIdentifier(), $request->session()->getId(), $fingerprint,
-                        $snapshot['first_page'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies'] ?? []
+                        $snapshot['rows'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies'] ?? []
                     );
                     $request->session()->put('client.invoices.pos.pending', [
                         'id' => $id, 'fingerprint' => $fingerprint, 'purpose' => 'preview',
@@ -300,7 +300,7 @@ final class InvoicesApplicationController extends Controller
                 }
                 $id = app(GdtPosSecureContinuation::class)->store(
                     (int) $request->user('web')->getAuthIdentifier(), $request->session()->getId(), $fingerprint,
-                    $snapshot['first_page'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies'] ?? []
+                    $snapshot['rows'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies'] ?? []
                 );
                 $request->session()->put('client.invoices.pos.pending', [
                     'id' => $id, 'fingerprint' => $fingerprint, 'purpose' => 'sync',
