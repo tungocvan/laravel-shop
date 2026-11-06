@@ -558,3 +558,12 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - DELL local MySQL read-only baseline for October 2026 purchase invoices: 117 canonical, 117 GDT RAW links, 0 duplicate legal-identity groups. User's POS preview for 2026-10-01 through 2026-10-31 returned six rows; one has source-issued date 2026-09-30. A symbol+number-only read-only lookup found four existing and two missing; this is not a complete legal-identity match.
 - Added isolated SQLite test `test_pos_october_replay_preserves_september_invoice_date_boundary`: two synthetic POS headers (October and September) persist to their respective issued-date months, replay unchanged with stable invoice IDs and RAW GDT linkage. Test does not contact GDT or write local MySQL; skips if SQLite PDO is absent.
 - No production action or source behavior change. Await local focused test PASS, then Invoices module regression. User-authorized manual POS canonical sync on DELL development/test still requires fresh CAPTCHA and UI execution; compare before/after October and September counts, RAW links, and repeat-sync idempotency. UI canonical PASS not yet claimed; no PR/merge/deploy.
+
+
+### 2026-11-06 — POS verified canonical recovery, idempotency and debug runbook
+
+- User-confirmed two-tier focused + Invoices module regression PASS after SQLite date assertion fix `dd9b9452b`; DELL local branch clean at that commit. New documentation commits need local pull; no tests were run by assistant.
+- Manual POS purchase canonical UI sync for 2026-10-01 through 2026-10-30: 6/6 returned, created 2, updated 0, unchanged 4, RAW header 6, details reused 4/fetched 2/failed 0. DB verified 2026-10 canonical/RAW 119/119 (previously 117/117); 2026-09 111/111 unchanged; two previously missing symbol+number records each matched once.
+- Second sync of same range: created 0, updated 0, unchanged 6, RAW detail reused 6/fetched 0/failed 0. POS idempotency verified by UI log. POS preview is read-only; POS requires fresh CAPTCHA for sync and does not use queue.
+- Added permanent root-cause investigation and operational troubleshooting reference: `docs/modules/Invoices/GDT_POS_DEBUG_RUNBOOK.md`. Includes HTTP 200 HTML fail-closed, POS End-Point header mismatch, unsupported PendingRequest::withoutHeader regression and POS-only client fix, safe session diagnostics, cross-month issued-date test, real-world sync evidence and no-secret logging rules.
+- PR review/GitHub checks and any applicable impacted regression remain gates; no production deployment or merge authorization.
