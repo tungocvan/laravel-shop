@@ -44,6 +44,15 @@ class PharmaTraditionalPriceLookupTest extends TestCase
             ! $request->hasHeader('X-XSRF-TOKEN'));
     }
 
+    public function test_legacy_tls_compatibility_is_scoped_to_moh_adapter_and_keeps_verification(): void
+    {
+        $source = file_get_contents(base_path('Modules/Pharma/Services/MohTraditionalPriceLookup.php'));
+
+        $this->assertStringContainsString("'verify' => true", $source);
+        $this->assertStringContainsString("CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'", $source);
+        $this->assertStringNotContainsString("'verify' => false", $source);
+    }
+
     public function test_traditional_lookup_routes_are_feature_guarded(): void
     {
         foreach ([
