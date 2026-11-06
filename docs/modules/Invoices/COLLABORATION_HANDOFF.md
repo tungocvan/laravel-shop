@@ -683,3 +683,8 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Added `GdtPosPaginationCheckpoint` for session-bound, 5-minute cache of allowlisted **progress metadata only** (received/total/next page/date range), UUID lookup and discard. No invoice payload, cursor, cookies, tokens or CAPTCHA are persisted; cross-session access fails. Added focused tests.
 - **This is NOT yet an interactive/resumable UI**: no controller, Blade/Livewire flow, secure pending invoice payload, or confirmed upstream page-selection protocol has been wired. Existing POS full-month UI 15/17 HTTP 500 remains FAIL; do not claim this fixes it or enables canonical. A metadata checkpoint alone cannot resume the upstream request.
 - Tests NOT RUN. Checkpoint: `php -l Modules/Invoices/Services/GdtPosPaginationCheckpoint.php`; `php -l tests/Feature/Invoices/GdtPosPaginationCheckpointTest.php`; `php artisan test tests/Feature/Invoices/GdtPosPaginationCheckpointTest.php tests/Feature/Invoices/GdtPosPaginationProgressTest.php tests/Feature/Invoices/GdtPosCaptchaPaginationRegressionTest.php`; module regression only if focused PASS. No merge/deploy.
+
+### 2026-11-06 — Checkpoint regression fix
+- User ran focused tests: 14 PASS, 1 FAIL (74 assertions). Failure: `GdtPosPaginationCheckpointTest` compares `create()` result including `id` against `find()` result omitting `id`.
+- Fixed `find()` to reconstruct `['id' => $id] + $value` after session-scoped cache lookup. Cache continues to hold metadata only; no CAPTCHA/token/cookie/invoice content. No GDT HTTP logic modified.
+- Fix NOT YET TESTED. Re-run focused checkpoint test first, then remaining focused tests, then Invoices module regression if focused PASS. UI still FAIL; do not merge.
