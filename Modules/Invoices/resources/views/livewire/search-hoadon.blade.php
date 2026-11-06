@@ -11,7 +11,7 @@
         <div class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 px-4 py-6" role="presentation">
             <div role="dialog" aria-modal="true" aria-labelledby="pos-captcha-title" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
                 <h3 id="pos-captcha-title" class="text-lg font-semibold text-slate-900">Xác minh CAPTCHA GDT</h3>
-                <p class="mt-2 text-sm text-slate-600">{{ $posCaptchaPurpose === 'sync' ? 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.' }}</p>
+                <p class="mt-2 text-sm text-slate-600">{{ $posCaptchaPurpose === 'sync' ? 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.' : ($posCaptchaPurpose === 'page2' ? 'Nhập CAPTCHA mới để tiếp tục trang 2 từ checkpoint đã xác minh.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.') }}</p>
                 <div class="mt-4 space-y-3">
                     @if($posCaptchaImage)
                         <img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-slate-200 bg-white p-1">
@@ -63,6 +63,16 @@
             </div>
             <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-live="polite">
                 <div class="flex flex-wrap items-center justify-between gap-2"><h4 class="text-sm font-semibold text-slate-900">Kết quả tra cứu {{ $invoiceSource === 'pos' ? 'POS' : 'Regular' }}</h4><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $searchState === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($searchState === 'failed' ? 'bg-red-100 text-red-800' : 'bg-white text-slate-600') }}">{{ match($searchState) {'searching'=>'Đang tra cứu','completed'=>((int) ($searchPreview['count'] ?? 0) === 0 ? 'Không tìm thấy hóa đơn' : 'GDT đã phản hồi'),'failed'=>'Tra cứu thất bại',default=>'Chưa tìm kiếm'} }}</span></div>
+                @if($invoiceSource === 'pos' && $searchState === 'awaiting_captcha')
+                    <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3" role="status">
+                        <p class="text-sm font-semibold text-amber-900">Đã nhận {{ (int) ($searchPreview['count'] ?? 0) }}/{{ (int) ($searchPreview['total'] ?? 0) }} hóa đơn</p>
+                        <p class="mt-1 text-xs text-amber-900">Cần CAPTCHA mới cho trang tiếp theo. Chưa ghi canonical. Checkpoint hết hạn sau 5 phút.</p>
+                        <button type="button" wire:click="continuePosSearch" wire:loading.attr="disabled" wire:target="continuePosSearch" class="mt-3 min-h-11 rounded-lg bg-amber-800 px-4 py-2 text-sm font-semibold text-white">Tiếp tục trang 2</button>
+                    </div>
+                @endif
+                @if($searchState === 'completed' && $invoiceSource === 'pos' && $posMultiPagePreview)
+                    <p class="mt-2 text-sm text-amber-800" role="status">Đã xác minh đủ các trang để xem trước. Đồng bộ canonical nhiều trang vẫn bị khóa cho đến khi hoàn thiện luồng CAPTCHA đồng bộ riêng.</p>
+                @endif
                 @if($searchState === 'completed')
                     <p class="mt-3 text-2xl font-bold tabular-nums text-slate-900">{{ number_format((int) ($searchPreview['count'] ?? 0)) }} <span class="text-sm font-normal text-slate-500">hóa đơn</span></p>
                     <p class="mt-1 text-sm text-slate-600">{{ $searchMessage }}</p>
