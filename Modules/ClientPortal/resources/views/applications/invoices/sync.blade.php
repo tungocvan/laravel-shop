@@ -18,9 +18,9 @@
         && isset($syncStatus['start'], $syncStatus['end'], $syncStatus['direction'])
         ? ['start' => $syncStatus['start'], 'end' => $syncStatus['end'], 'direction' => $syncStatus['direction']]
         : [];
-    $currentFilters = $posFilters ?? ($posPreview['filters'] ?? ($completedFilters ?: []));
+    $currentFilters = $posFilters ?? ($posPending['filters'] ?? ($posLastFilters ?? ($posPreview['filters'] ?? ($completedFilters ?: []))));
     $selectedDirection = old('direction', $currentFilters['direction'] ?? 'purchase');
-    $selectedSource = old('source', ($posFilters || $posPreview || $completedFilters) ? 'pos' : 'regular');
+    $selectedSource = old('source', ($posFilters || $posPending || $posLastFilters || $posPreview || $completedFilters) ? 'pos' : 'regular');
     $selected = $selectedDirection === 'sold' ? $sold : $purchase;
     $selectedStart = old('start', $currentFilters['start'] ?? $selected['suggested_start']);
     $selectedEnd = old('end', $currentFilters['end'] ?? $syncReadiness['today']);
