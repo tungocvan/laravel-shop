@@ -35,6 +35,14 @@ class PharmaLookupHubContractTest extends TestCase
         }
     }
 
+    public function test_lookup_hub_checks_muasamcong_permissions_before_linking(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaLookupController.php'));
+        $this->assertStringContainsString("$"."registry->find('muasamcong')", $controller);
+        $this->assertStringContainsString("$"."registry->userCan($"."user", $controller);
+        $this->assertStringContainsString("'drug-pricing'", $controller);
+    }
+
     public function test_lookup_cards_keep_unimplemented_sources_noninteractive(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
@@ -42,6 +50,8 @@ class PharmaLookupHubContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.dav-prices')", $blade);
         $this->assertStringContainsString('Tra cứu giá thuốc đông dược', $blade);
         $this->assertStringContainsString('Tra cứu thuốc trúng thầu', $blade);
+        $this->assertStringContainsString("route('client.muasamcong.drug-pricing')", $blade);
+        $this->assertStringContainsString('@if($canViewAwardPricing)', $blade);
         $this->assertStringContainsString('Tra cứu GMP', $blade);
         $this->assertStringContainsString('aria-disabled="true"', $blade);
         $this->assertStringContainsString('Sắp triển khai', $blade);
