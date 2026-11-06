@@ -293,6 +293,8 @@ final class ClientInvoiceWorkspaceService
                 'logs' => [],
                 'direction' => $direction,
                 'source' => 'pos',
+                'start' => $start,
+                'end' => $end,
                 'created_at' => now()->toIso8601String(),
             ];
         } catch (\Throwable $exception) {
