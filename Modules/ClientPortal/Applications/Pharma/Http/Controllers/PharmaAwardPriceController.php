@@ -54,6 +54,33 @@ final class PharmaAwardPriceController extends Controller
         ]);
     }
 
+    public function show(Request $request, string $sourceId, ApplicationRegistry $registry, ClientPortalSettingsService $settings, PublicAwardPriceLookup $lookup, PublicAwardMedicineSync $sync): View
+    {
+        $this->authorizeView($request, $registry);
+        $input = $request->validate([
+            'keyword' => ['required', 'string', 'min:2', 'max:200'],
+            'page' => ['nullable', 'integer', 'between:1,100'],
+        ]);
+        $page = (int) ($input['page'] ?? 1);
+        $result = $lookup->search($input['keyword'], $page);
+        abort_unless($result['success'] ?? false, 503, 'Không thể xác minh dữ liệu trúng thầu.');
+        $item = collect($result['items'])->first(fn (array $row): bool =>
+            is_scalar($row['id'] ?? null) && (string) $row['id'] === $sourceId);
+        abort_unless(is_array($item), 404);
+
+        $application = $registry->find('pharma');
+        return view('ClientPortal::applications.pharma.award-price-detail', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'item' => $item,
+            'match' => $sync->inspect($item),
+            'keyword' => $input['keyword'],
+            'page' => $page,
+            'sourceId' => $sourceId,
+            'canSync' => $registry->userCan($request->user('web'), 'client.pharma.products.create'),
+        ]);
+    }
+
     public function preview(Request $request, ApplicationRegistry $registry, PublicAwardPriceLookup $lookup, PublicAwardMedicineSync $sync): View
     {
         $this->authorizeSync($request, $registry);
