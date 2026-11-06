@@ -52,7 +52,8 @@ final class GdtPosSecureContinuation
             return null;
         }
 
-        $encrypted = Cache::pull($this->key($adminId, $sessionId, $id));
+        $key = $this->key($adminId, $sessionId, $id);
+        $encrypted = Cache::get($key);
         if (! is_string($encrypted)) {
             return null;
         }
@@ -70,6 +71,9 @@ final class GdtPosSecureContinuation
             || ! is_int($payload['total'] ?? null) || $payload['total'] <= 15) {
             return null;
         }
+
+        // Consume only after successful scope and payload validation.
+        Cache::forget($key);
 
         return [
             'cursor' => $payload['cursor'],
