@@ -1514,3 +1514,9 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - POS search checks exact existing Excel path before CAPTCHA; user must explicitly tick `force_refresh` to requery when file exists. Blade displays page-two CAPTCHA action. Canonical persistence remains owned by Invoices.
 - Added `tests/Feature/ClientApps/InvoicesPosPwaContinuationContractTest.php`. **No tests or UI acceptance run by GitHub connector**; require focused ClientPortal tests, then impacted Invoices regression, then real PWA UI acceptance. Do not merge or deploy before gates.
 - Remaining follow-up: server response exception still intentionally sanitized; diagnose from local Laravel logs if live CAPTCHA fails. Review concurrency before merge.
+
+### 2026-11-06 — ClientPortal POS CAPTCHA failure / filter reset
+- User screenshot shows ClientPortal POS September 1–30, 2026, CAPTCHA displayed then generic failure and UI resets to Regular / October 30–November 6. Admin UI previously PASS; ClientPortal remains FAIL.
+- Root cause for reset: submit handler `pull()`s POS filters and clears image; generic exception redirects without preserving source/date; Blade falls back to suggested Regular dates. Added session `client.invoices.pos.last_filters` persisted on CAPTCHA request/submission, passed to view and used in fallback. CAPTCHA remains single-use. Added `InvoicesPosPwaFilterRetentionContractTest`.
+- **Upstream CAPTCHA failure root cause remains unverified**: exception is reported to Laravel log but masked in UI. Read-only sanitized log review needed, no secrets/cookies/CAPTCHA answers. No production changes.
+- Checkpoint: `php artisan test tests/Feature/ClientApps/InvoicesPosPwaFilterRetentionContractTest.php tests/Feature/ClientApps/InvoicesPosPwaContinuationContractTest.php tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php`; UI test POS September 1–30 after failed CAPTCHA, confirm source/dates retained. No merge or deploy.
