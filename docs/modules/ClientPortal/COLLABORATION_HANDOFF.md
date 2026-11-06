@@ -1,3 +1,11 @@
+## Checkpoint — Pharma award detail and per-record sync — 2026-11-07
+
+- User requested Muasamcong-style dedicated detail page with a sync button inside. Implemented GET `/apps/pharma/award-prices/{sourceId}?keyword=...&page=...` (Pharma feature guard, web auth); source row is re-fetched/verified against keyword and page, not trusted from URL. Search "Xem chi tiết" links to this independent Pharma page.
+- Detail displays structured public tender fields, winning organization, registration/GPNK, and explicit matching status. When status existing/new and user has `client.pharma.products.create`, button posts `selected[]` to existing safe preview route, then requires final confirmation. Review-only (missing/invalid registration or ambiguous match) never offers sync. No Muasamcong queue or module dependency.
+- Focused contract test updated for detail route and form. Tests and UI not run; verify live source data, preview and safe blocking, mobile, and unchanged bulk sync. No merge or production changes. Branch `feat/pharma-award-detail-sync-20261107` stacked on prior unmerged branches.
+
+---
+
 ## Checkpoint — Award lookup UI interaction fixes — 2026-11-06
 
 - User reported: no clear-search X, filter placement, detail button inert, sync preview returns `The selected field is required.` Screenshot verified.
