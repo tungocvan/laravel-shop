@@ -567,3 +567,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Second sync of same range: created 0, updated 0, unchanged 6, RAW detail reused 6/fetched 0/failed 0. POS idempotency verified by UI log. POS preview is read-only; POS requires fresh CAPTCHA for sync and does not use queue.
 - Added permanent root-cause investigation and operational troubleshooting reference: `docs/modules/Invoices/GDT_POS_DEBUG_RUNBOOK.md`. Includes HTTP 200 HTML fail-closed, POS End-Point header mismatch, unsupported PendingRequest::withoutHeader regression and POS-only client fix, safe session diagnostics, cross-month issued-date test, real-world sync evidence and no-secret logging rules.
 - PR review/GitHub checks and any applicable impacted regression remain gates; no production deployment or merge authorization.
+
+
+### 2026-11-06 — PR #362 pre-merge review: queued POS fail-closed checkpoint
+
+- PR #362 is Draft, GitHub CLI reports MERGEABLE/CLEAN, no checks reported; DELL was clean at `686cf7a1a`. The branch is large (183+ commits), so merge is not authorized.
+- Review found a mismatch: POS UI requires a fresh interactive CAPTCHA and disables queue, but `ProcessGdtInvoicesJob` still accepted `source=pos` and invoked `processRange` without CAPTCHA. Such a queued invocation cannot complete the approved POS flow. Added explicit fail-closed guard in the job for `source=pos`, preserving regular/all job paths, and a focused regression test asserting the POS job does not call GDT canonical service.
+- This is a new untested checkpoint. User must pull and run focused test first, then Invoices regression only on PASS; assess impacted regression and UI confirmation as needed. No CI checks, no merge or production deployment.
