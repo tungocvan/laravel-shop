@@ -35,7 +35,14 @@
             <h2 class="text-lg font-black text-slate-900">{{ number_format($result['total'], 0, ',', '.') }} kết quả</h2>
             @forelse($result['items'] as $item)
                 <article class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <h3 class="text-base font-black text-slate-950">{{ $item['name'] }}</h3>
+                    <div class="flex flex-wrap items-start justify-between gap-3"><h3 class="text-base font-black text-slate-950">{{ $item['name'] }}</h3>
+                    @if($item['match']['status'] === 'existing')
+                        <a class="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800" href="{{ route('client.pharma.products.edit', $item['match']['medicine_id']) }}">✓ Đã có trong danh mục</a>
+                    @elseif($item['match']['status'] === 'new' && $item['source_id'] !== '')
+                        <a class="rounded-xl bg-indigo-700 px-3 py-2 text-sm font-semibold text-white" href="{{ route('client.pharma.dav-prices.import.preview', ['q' => $keyword, 'page' => $page, 'source_id' => $item['source_id']]) }}">↓ Xem trước đồng bộ</a>
+                    @else
+                        <span class="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Cần đối chiếu thủ công</span>
+                    @endif</div>
                     <p class="mt-1 text-sm text-slate-600">{{ $item['ingredient'] }} · {{ $item['strength'] }}</p>
                     <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                         <div><dt class="text-xs text-slate-500">Số đăng ký</dt><dd class="font-semibold">{{ $item['registration'] ?: '—' }}</dd></div>
@@ -43,6 +50,8 @@
                         <div><dt class="text-xs text-slate-500">Giá bán lẻ công bố</dt><dd>{{ $item['retail'] === null ? 'Chưa công bố' : number_format($item['retail'], 0, ',', '.').' đ / '.$item['unit'] }}</dd></div>
                         <div><dt class="text-xs text-slate-500">Đơn vị kê khai</dt><dd>{{ $item['declarant'] ?: '—' }}</dd></div>
                         <div><dt class="text-xs text-slate-500">Nhà sản xuất</dt><dd>{{ $item['manufacturer'] ?: '—' }}</dd></div>
+                        <div><dt class="text-xs text-slate-500">Dạng bào chế</dt><dd>{{ $item['dosage'] ?: '—' }}</dd></div>
+                        <div><dt class="text-xs text-slate-500">Nước sản xuất</dt><dd>{{ $item['country'] ?: '—' }}</dd></div>
                     </dl>
                     <details class="mt-3 border-t border-slate-100 pt-3 text-sm">
                         <summary class="min-h-10 cursor-pointer font-semibold text-indigo-700">Thông tin thêm</summary>
