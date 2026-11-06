@@ -1,3 +1,11 @@
+## DAV price mapping clarification — 2026-11-06
+
+- Business rule confirmed: DAV `giaBanBuon` maps directly to Medicine Master `declared_price` (nullable). Do not substitute `giaBanLe`; do not populate `selling_price`.
+- `MedicineService::storeWithDeclaredPriceOnly()` reuses canonical creation/quality/transaction logic but intentionally skips legacy `normalizeSellingPrice()` so a pending `selling_price` schema migration is not required for DAV import. Normal `store()`/`update()` remain unchanged.
+- Focused test added for declared-only persistence; tests and UI not yet verified. No migration, production change, or main merge.
+
+---
+
 ## DAV → Medicine Master import checkpoint (2026-11-06)
 
 - Added DAV dosage-form/country mapping and visible card fields. Each card inspects normalized medicine name + registration against Medicine Master.
