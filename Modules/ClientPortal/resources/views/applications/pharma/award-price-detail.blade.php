@@ -16,11 +16,11 @@
         'Giá trúng thầu' => 'donGia',
         'Số lượng' => 'soLuong',
         'Mã nhà thầu trúng' => 'winningCode',
-        'Chủ đầu tư / bên mời thầu' => 'tenChuDauTu',
+        'Chủ đầu tư / bên mời thầu' => 'tenCdtBmt',
         'Mã TBMT' => 'maTbmt',
         'Số quyết định' => 'soQuyetDinh',
-        'Ngày quyết định' => 'ngayQuyetDinh',
-        'Ngày đăng KQLCNT' => 'ngayDangTai',
+        'Ngày quyết định' => 'ngayBanHanhQuyetDinh',
+        'Ngày đăng KQLCNT' => 'ngayDangTaiKqlcnt',
         'Cơ sở sản xuất' => 'tenCoSoSanXuat',
         'Nước sản xuất' => 'nuocSanXuat',
         'GĐKLH / GPNK' => 'gdklh_GPNK',
@@ -42,7 +42,7 @@
                         @if($field === 'donGia' && is_numeric($item[$field] ?? null))
                             {{ number_format((float) $item[$field], 0, ',', '.') }} đ
                         @else
-                            {{ is_scalar($item[$field] ?? null) && trim((string) $item[$field]) !== '' ? $item[$field] : '—' }}
+                            {{ is_array($item[$field] ?? null) ? (implode('; ', array_filter($item[$field], 'is_scalar')) ?: '—') : (is_scalar($item[$field] ?? null) && trim((string) $item[$field]) !== '' ? $item[$field] : '—') }}
                         @endif
                     </dd>
                 </div>
