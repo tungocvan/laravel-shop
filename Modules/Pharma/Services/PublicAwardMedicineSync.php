@@ -27,12 +27,17 @@ final class PublicAwardMedicineSync
 
         // Exact normalization is performed in PHP; broad DB candidate selection is
         // intentional to avoid depending on database collation for identity.
+        $rawName = $this->string($item['tenThuoc'] ?? null);
+        $rawRegistration = $this->registrationRaw($item);
         $candidates = Medicine::query()
-            ->where(function ($query) use ($item): void {
-                $raw = $this->string($item['tenThuoc'] ?? null);
-                $query->where('name', 'like', '%'.addcslashes($raw, '%_\\').'%')
-                    ->orWhere('registration_number', 'like', '%'.addcslashes($this->string($item['gdklh_GPNK'] ?? null), '%_\\').'%')
-                    ->orWhere('registration_number_primary', 'like', '%'.addcslashes($this->string($item['gdklh_GPNK'] ?? null), '%_\\').'%');
+            ->where(function ($query) use ($rawName, $rawRegistration): void {
+                $query->where('name', 'like', '%'.addcslashes($rawName, '%_\\').'%');
+                if ($rawRegistration !== '') {
+                    $pattern = '%'.addcslashes($rawRegistration, '%_\\').'%';
+                    $query->orWhere('registration_number', 'like', $pattern)
+                        ->orWhere('registration_number_primary', 'like', $pattern)
+                        ->orWhere('registration_number_raw', 'like', $pattern);
+                }
             })->get(['id', 'name', 'unit', 'registration_number', 'registration_number_primary', 'registration_number_raw']);
 
         $matches = $candidates->filter(fn (Medicine $medicine): bool =>
