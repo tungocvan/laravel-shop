@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaAwardPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
@@ -22,6 +23,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
 
         Route::get('/lookups', [PharmaLookupController::class, 'index'])
             ->middleware('client.feature:pharma,lookups')->name('lookups');
+
+        Route::get('/award-prices', [PharmaAwardPriceController::class, 'index'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices');
 
         Route::get('/traditional-prices', [PharmaTraditionalPriceController::class, 'index'])
             ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices');
