@@ -45,4 +45,20 @@ class GdtPosSecureContinuationTest extends TestCase
 
         $this->assertNull($service->consume(7, 'session', 'filters', $id));
     }
+    public function test_claim_lock_prevents_competing_consumer(): void
+    {
+        $service = app(GdtPosSecureContinuation::class);
+        $id = $service->store(7, 'session', 'filters', array_fill(0, 15, ['id' => 'fixture']), 'cursor', 17);
+        $key = 'invoices:gdt:pos-secure-continuation:7:'.hash('sha256', 'session').':'.$id;
+        $lock = Cache::lock($key.':claim', 10);
+        $this->assertTrue($lock->get());
+
+        try {
+            $this->expectException(\Illuminate\Contracts\Cache\LockTimeoutException::class);
+            $service->consume(7, 'session', 'filters', $id);
+        } finally {
+            $lock->release();
+        }
+    }
+
 }
