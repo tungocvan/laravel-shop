@@ -711,7 +711,31 @@ class GdtInvoiceService
         $format = str_contains($contentType, 'json') ? 'json'
             : (str_contains($contentType, 'html') ? 'html' : 'other');
 
+        // Classify only the shape of upstream JSON; never log response bodies,
+        // arbitrary JSON keys, CAPTCHA, invoice data or upstream message text.
+        $payload = $cashRegister && $response->status() >= 500 && $format === 'json'
+            ? $response->json() : null;
+        $posErrorShape = match (true) {
+            ! $cashRegister || $response->status() < 500 => null,
+            $format !== 'json' => 'non_json',
+            ! is_array($payload) => 'invalid_json_or_scalar',
+            array_is_list($payload) => 'json_list',
+            default => 'json_object',
+        };
+        $posErrorMessageCategory = null;
+        if ($posErrorShape === 'json_object') {
+            $message = $payload['message'] ?? $payload['error'] ?? null;
+            $posErrorMessageCategory = ! is_string($message) ? 'missing_or_non_string'
+                : (preg_match('/captcha/i', $message) ? 'captcha'
+                    : (preg_match('/state|paginat/i', $message) ? 'pagination'
+                        : (preg_match('/auth|token|login|đăng nhập/i', $message) ? 'authentication' : 'other')));
+        }
+
         Log::warning('GDT invoice source HTTP failure.', [
+            'pos_error_shape' => $posErrorShape,
+            'pos_error_message_category' => $posErrorMessageCategory,
+            'pos_error_has_message_field' => $posErrorShape === 'json_object' && array_key_exists('message', $payload),
+            'pos_error_has_error_field' => $posErrorShape === 'json_object' && array_key_exists('error', $payload),
             'source' => $cashRegister ? 'pos' : 'regular',
             'trace_id' => $traceId,
             'runtime' => app()->runningUnitTests() ? 'test' : 'application',
