@@ -313,6 +313,32 @@ final class ClientInvoiceWorkspaceService
         return ['sync_id' => $syncId, 'status' => $status];
     }
 
+    /** Persist only a fully verified POS page set via the Invoices canonical owner. */
+    public function syncVerifiedPos(string $start, string $end, string $direction, array $rows, int $total): array
+    {
+        $syncId = (string) Str::uuid();
+        try {
+            $file = $this->gdt->processVerifiedPosRows($start, $end, $direction === 'purchase', $rows, $total);
+            $status = [
+                'state' => 'completed',
+                'message' => $file === null ? 'Không có hóa đơn POS.' : 'Đồng bộ POS canonical hoàn tất.',
+                'logs' => [], 'direction' => $direction, 'source' => 'pos',
+                'start' => $start, 'end' => $end, 'created_at' => now()->toIso8601String(),
+            ];
+        } catch (\Throwable $exception) {
+            report($exception);
+            $status = [
+                'state' => 'failed',
+                'message' => 'Đồng bộ POS canonical thất bại. Không xác nhận hoàn tất.',
+                'logs' => [], 'direction' => $direction, 'source' => 'pos',
+                'start' => $start, 'end' => $end, 'created_at' => now()->toIso8601String(),
+            ];
+        }
+        Cache::put('invoices:gdt-sync:'.$syncId, $status, now()->addHours(24));
+
+        return ['sync_id' => $syncId, 'status' => $status];
+    }
+
     public function syncStatus(?string $syncId): ?array
     {
         if (! $syncId || ! Str::isUuid($syncId)) {
