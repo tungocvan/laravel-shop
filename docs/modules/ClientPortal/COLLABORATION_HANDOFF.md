@@ -1,3 +1,12 @@
+## Checkpoint — provisional tender medicine creation — 2026-11-07
+
+- User explicitly approved creating a new Pharma catalog medicine when the public tender record has name and unit but registration is missing/unverified, e.g. Dibulaxan `893100307624`. Only a verified triple (normalized name + registration + unit) can match an unlinked existing medicine; different registration or unit is a new medicine. Multiple exact matches or source-binding conflicts still require manual review.
+- `PublicAwardMedicineSync::inspect()` now returns `new` with `registration_verified=false` for unverified registration; missing name/unit remains `review`. Existing `public_tender/award_price/source_record_key` links are checked first for repeat sync and consistency. New catalog medicine is `tan_duoc`, `profile_status=needs_review`, and **official `registration_number` is NULL** when unverified. Original `gdklh_GPNK` is retained in source metadata as `award` and `registration_raw_unverified`, with `requires_catalog_review=true`; price observations remain in MedicineSource, not declared/selling price or stock.
+- Detail and preview explain provisional status and require existing explicit POST confirmation; permissions, source verification, DB transaction and per-identity cache lock remain. No new migration, .env or production operation.
+- Contract test updated; **NOT RUN**. Focused tests, database integration/idempotency (including repeat source sync), cross-module regression and user UI acceptance pending. Avoid declaring PASS. Branch `feat/pharma-award-provisional-catalog-sync-20261107` stacked on earlier unmerged Pharma award feature branches. No merge/deploy.
+
+---
+
 ## Award detail field parity fix — 2026-11-07
 
 - Compared read-only with `Modules/ClientPortal/resources/views/applications/muasamcong/drug-pricing-detail.blade.php` on main. Pharma had wrong keys for investor and dates: now `tenCdtBmt`, `ngayBanHanhQuyetDinh`, `ngayDangTaiKqlcnt`. `winningCode` is an array in source and must be joined to show bidder code instead of `—`.
