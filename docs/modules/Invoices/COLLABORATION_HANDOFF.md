@@ -588,3 +588,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - Read-only review of `GdtInvoiceService::processRange`, `SearchHoadon::run`, `ProcessGdtInvoicesJob`, and POS preview tests found that preview POS rejects multi-month requests, while canonical `processRange(source=pos)` lacked the same validation. A direct service caller could otherwise submit multiple POS monthly requests using one CAPTCHA challenge.
 - Added source-scoped guard in `processRange` for POS date ranges spanning different calendar months; `regular` and `all` remain unaffected. Added HTTP-faked regression `test_multi_month_pos_canonical_sync_fails_before_any_gdt_request` in `GdtPosRateLimitSafeSearchTest`.
 - **Checkpoint pending**: code committed on feature branch; focused tests and Invoices module regression must run on Admin and report results. Do not mark TEST PASS or UI PASS for this batch yet. PR remains Draft; no merge or production operations.
+
+
+### 2026-11-06 — POS canonical month guard: user-verified two-tier TEST PASS (Admin)
+
+- User confirmed focused tests PASS for `GdtPosRateLimitSafeSearchTest`, `GdtCanonicalSourceSelectionContractTest`, and `GdtSourceChunkRetryContractTest`, followed by `tests/Feature/Invoices` module regression PASS on Admin after checkpoint `1b0c0bcb7`.
+- Guard applies only to `processRange(source=pos)` across calendar months; regular/all paths unchanged by this batch. Test counts/output were not provided, so do not invent totals.
+- Next gate: final PR review, assess any impacted dependencies, confirm applicable UI acceptance, and obtain explicit user authorization before merging. No production action.
