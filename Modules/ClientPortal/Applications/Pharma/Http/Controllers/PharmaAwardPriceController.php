@@ -7,6 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
@@ -33,6 +34,7 @@ final class PharmaAwardPriceController extends Controller
             $items = array_values(array_filter($items, fn (array $item): bool => mb_strtolower(trim((string) ($item['donViTinh'] ?? ''))) === mb_strtolower($unit)));
         }
         $prices = array_values(array_map('floatval', array_filter(array_column($items, 'donGia'), 'is_numeric')));
+        if ($result !== null) {
         $result['items'] = $items;
         $result['stats'] = [
             'count' => count($items),
@@ -40,6 +42,7 @@ final class PharmaAwardPriceController extends Controller
             'max' => $prices ? max($prices) : null,
             'avg' => $prices ? array_sum($prices) / count($prices) : null,
         ];
+        }
 
         $application = $registry->find('pharma');
         return view('ClientPortal::applications.pharma.award-prices', [
@@ -91,10 +94,12 @@ final class PharmaAwardPriceController extends Controller
 
         $created = 0;
         $updated = 0;
-        foreach ($rows as $item) {
-            $outcome = $sync->sync($item, true);
-            $outcome['created'] ? $created++ : $updated++;
-        }
+        DB::transaction(function () use ($rows, $sync, &$created, &$updated): void {
+            foreach ($rows as $item) {
+                $outcome = $sync->sync($item, true);
+                $outcome['created'] ? $created++ : $updated++;
+            }
+        });
         Cache::forget($cacheKey);
 
         return redirect()->route('client.pharma.award-prices')
