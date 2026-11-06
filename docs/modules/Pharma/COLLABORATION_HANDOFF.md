@@ -1,3 +1,14 @@
+## Checkpoint — MOH Đông dược unit-aware identity — 2026-11-06
+
+- User confirmed search UI PASS after scoped MOH TLS workaround; import UI not yet revalidated.
+- New `MohTraditionalMedicineMatcher` isolates matching from DAV: normalized name + registration + ĐVT. Same triple existing => existing; duplicate triple => ambiguous; same triple with packaging mismatch or non-traditional type => review. Same name+registration with different ĐVT => eligible as distinct Medicine; missing identity => incomplete. Partial overlaps remain review.
+- ClientPortal import uses unit-aware matcher at list/preview/locked store, lock includes ĐVT, only blocks different package/price within the **same** name+registration+unit in current API page. Other pages may require manual source reconciliation; do not silently overwrite existing.
+- Import explicitly persists `product_type=Medicine::PRODUCT_TYPE_TRADITIONAL` (`dong_duoc`), and `giaBanBuon` to `declared_price` only; no `selling_price` writes, migrations, or global DAV matcher changes.
+- Focused tests added for same-unit conflict/different-unit allowance and static integration contract. Runtime DB persistence, broader regression and UI import confirmation **not yet executed**.
+- Branch `feat/pharma-traditional-unit-identity-20261106` stacked on unmerged traditional lookup parent. No merge/deploy.
+
+---
+
 ## MOH YDCT TLS incident — 2026-11-06
 
 - Operator reproduced OpenSSL 3.0.13 `dh key too small` with Python and PHP cURL errno 35 (HTTP 0). `curl --ciphers 'DEFAULT@SECLEVEL=1'` returned HTTPS 200 with SSL verify result 0; POST returned JSON with success=true, totalCount=2 for `cold wind` without cookies/XSRF tokens.
