@@ -12,6 +12,7 @@ use Modules\Pharma\Services\DavMedicineCandidateMatcher;
 use Modules\Pharma\Services\MedicineService;
 use Modules\Pharma\Models\Medicine;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
 final class PharmaDavPriceController extends Controller
@@ -73,27 +74,30 @@ final class PharmaDavPriceController extends Controller
         $this->authorizeImport($request, $registry);
         $input = $request->validate(['q' => ['required', 'string', 'max:120'], 'page' => ['required', 'integer', 'between:1,1000'], 'source_id' => ['required', 'string', 'max:60'], 'confirmed' => ['accepted']]);
         $candidate = $this->sourceCandidate($lookup, $input);
-        $match = $matcher->inspect($candidate);
-        if ($match['status'] !== 'new') {
-            throw ValidationException::withMessages(['medicine' => 'Thuốc đã tồn tại hoặc cần đối chiếu thủ công. Không tạo mới tự động.']);
-        }
+        // Serialize concurrent imports of the same DAV identity across requests.
+        $lockKey = 'pharma:dav:import:'.hash('sha256', mb_strtolower(trim($candidate['name'])).'|'.trim($candidate['registration']));
+        $medicine = Cache::lock($lockKey, 20)->block(5, function () use ($matcher, $candidate, $medicines) {
+            $match = $matcher->inspect($candidate);
+            if ($match['status'] !== 'new') {
+                throw ValidationException::withMessages(['medicine' => 'Thuốc đã tồn tại hoặc cần đối chiếu thủ công. Không tạo mới tự động.']);
+            }
 
-        $medicine = $medicines->store([
-            'name' => $candidate['name'],
-            'product_type' => Medicine::PRODUCT_TYPE_MODERN,
-            'registration_number' => $candidate['registration'],
-            'active_ingredients' => $candidate['ingredient'],
-            'concentration' => $candidate['strength'],
-            'dosage_form' => $candidate['dosage'],
-            'unit' => $candidate['unit'],
-            'packaging_specification' => mb_substr($candidate['package'], 0, 255),
-            'manufacturing_company' => mb_substr($candidate['manufacturer'], 0, 255),
-            'manufacturing_country' => mb_substr($candidate['country'], 0, 255),
-            'registered_company' => mb_substr($candidate['declarant'], 0, 255),
-            // DAV price is source information only; do not set commercial prices.
-            'declared_price' => null,
-            'selling_price' => null,
-        ]);
+            return $medicines->store([
+                'name' => $candidate['name'],
+                'product_type' => Medicine::PRODUCT_TYPE_MODERN,
+                'registration_number' => $candidate['registration'],
+                'active_ingredients' => mb_substr($candidate['ingredient'], 0, 255),
+                'concentration' => mb_substr($candidate['strength'], 0, 255),
+                'dosage_form' => mb_substr($candidate['dosage'], 0, 255),
+                'unit' => mb_substr($candidate['unit'], 0, 255),
+                'packaging_specification' => mb_substr($candidate['package'], 0, 255),
+                'manufacturing_company' => mb_substr($candidate['manufacturer'], 0, 255),
+                'manufacturing_country' => mb_substr($candidate['country'], 0, 255),
+                'registered_company' => mb_substr($candidate['declarant'], 0, 255),
+                'declared_price' => null,
+                'selling_price' => null,
+            ]);
+        });
 
         return redirect()->route('client.pharma.products.edit', $medicine->id)->with('success', 'Đã tạo thuốc từ DAV. Vui lòng kiểm tra và hoàn thiện hồ sơ.');
     }
