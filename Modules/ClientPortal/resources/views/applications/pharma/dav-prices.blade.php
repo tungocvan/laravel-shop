@@ -9,7 +9,7 @@
 @section('content')
 <div class="min-w-0 space-y-4">
     <section class="rounded-3xl bg-slate-950 px-5 py-6 text-white">
-        <a href="{{ route('client.pharma.dashboard') }}" class="inline-flex min-h-11 items-center text-sm font-bold text-slate-200">← Quay về Pharma</a>
+        <a href="{{ route('client.pharma.lookups') }}" class="inline-flex min-h-11 items-center text-sm font-bold text-slate-200">← Quay về Tra cứu</a>
         <p class="mt-3 text-xs font-bold uppercase tracking-widest text-slate-300">{{ $featurePresentation['eyebrow'] }}</p>
         <h1 class="mt-2 text-2xl font-black">{{ $featurePresentation['page_title'] }}</h1>
         <p class="mt-2 text-sm leading-6 text-slate-300">{{ $featurePresentation['page_description'] }}</p>
