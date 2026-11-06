@@ -64,7 +64,7 @@ class InvoicesPosPwaSyncContractTest extends TestCase
             $this->assertStringContainsString($expected, $workspace);
         }
         $this->assertStringContainsString("\$completedFilters = (\$syncStatus['source'] ?? null) === 'pos'", $view);
-        $this->assertStringContainsString("($completedFilters ?: [])", $view);
+        $this->assertStringContainsString("(\$completedFilters ?: [])", $view);
         $this->assertStringContainsString("Nguồn: Máy POS", $view);
         $this->assertStringContainsString("Thông tin tác vụ đồng bộ", $view);
         $this->assertStringContainsString("\$syncStatus['start']", $view);
