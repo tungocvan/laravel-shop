@@ -109,6 +109,9 @@ return [
         ],
         'sync' => [
             'name' => 'Đồng bộ hóa đơn',
+            'eyebrow' => 'Hóa đơn / Đồng bộ',
+            'page_title' => 'Đồng bộ hóa đơn',
+            'page_description' => 'Chọn nguồn hóa đơn thông thường hoặc máy tính tiền POS để tra cứu và đồng bộ có kiểm soát.',
             'description' => 'Khởi tạo tác vụ đồng bộ được kiểm soát quyền mà không đưa thông tin xác thực GDT xuống trình duyệt.',
             'route' => 'client.invoices.sync',
             'permission' => 'client.invoices.sync',
