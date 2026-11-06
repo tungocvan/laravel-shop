@@ -131,4 +131,45 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
         $this->assertSame(1, substr_count($source, '$posJar = new CookieJar;'));
         $this->assertStringContainsString("if (\$res->status() === 401 && ! \$isPosCaptchaRejection)", $source);
     }
+    public function test_pos_page_two_http_500_fails_closed_and_preserves_login_token(): void
+    {
+        $calls = 0;
+        Http::fake(function () use (&$calls) {
+            $calls++;
+
+            return $calls === 1
+                ? Http::response([
+                    'datas' => array_fill(0, 15, ['nbmst' => 'fixture']),
+                    'total' => 17,
+                    'state' => 'opaque-next-page',
+                ], 200)
+                : Http::response(['message' => 'Upstream internal error'], 500);
+        });
+
+        try {
+            app(GdtInvoiceService::class)->previewSource(
+                '2026-09-01', '2026-09-30', true, 'pos',
+                ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+            );
+            $this->fail('A 15/17 partial preview must not succeed.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('HTTP 500 ở page 2', $exception->getMessage());
+            $this->assertStringContainsString('Không tạo file thiếu', $exception->getMessage());
+        }
+
+        $this->assertSame(2, $calls);
+        $this->assertSame('fake-token', Cache::get('gdt-pos-pagination-test-token'));
+        Http::assertSentCount(2);
+    }
+
+    public function test_pos_http_500_diagnostics_never_log_upstream_json_message_or_payload(): void
+    {
+        $source = file_get_contents((new \\ReflectionClass(GdtInvoiceService::class))->getFileName());
+
+        $this->assertStringContainsString("'pos_error_shape' => \\$posErrorShape", $source);
+        $this->assertStringContainsString("'pos_error_message_category' => \\$posErrorMessageCategory", $source);
+        $this->assertStringContainsString("'pos_error_has_message_field' =>", $source);
+        $this->assertStringNotContainsString("'response_body' =>", $source);
+    }
+
 }
