@@ -6,11 +6,13 @@ use Illuminate\Support\Facades\Route;
 use Modules\Pharma\Services\DavMedicineCandidateMatcher;
 use Modules\Pharma\Services\MedicineService;
 use Modules\Pharma\Models\Medicine;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PharmaDavImportContractTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_import_routes_are_capability_guarded(): void
     {
         $preview = Route::getRoutes()->getByName('client.pharma.dav-prices.import.preview');
