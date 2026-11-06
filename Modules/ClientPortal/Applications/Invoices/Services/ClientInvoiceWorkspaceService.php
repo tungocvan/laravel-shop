@@ -295,7 +295,7 @@ final class ClientInvoiceWorkspaceService
                 'source' => 'pos',
                 'created_at' => now()->toIso8601String(),
             ];
-        } catch (\\Throwable $exception) {
+        } catch (\Throwable $exception) {
             report($exception);
             $status = [
                 'state' => 'failed',
