@@ -11,14 +11,14 @@ use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Models\Medicine;
-use Modules\Pharma\Services\DavMedicineCandidateMatcher;
+use Modules\Pharma\Services\MohTraditionalMedicineMatcher;
 use Modules\Pharma\Services\MedicineService;
 use Modules\Pharma\Services\MohTraditionalPriceLookup;
 use RuntimeException;
 
 final class PharmaTraditionalPriceController extends Controller
 {
-    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, MohTraditionalPriceLookup $lookup, DavMedicineCandidateMatcher $matcher): View
+    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, MohTraditionalPriceLookup $lookup, MohTraditionalMedicineMatcher $matcher): View
     {
         $this->authorizeView($request, $registry);
         $validated = $request->validate(['q' => ['nullable', 'string', 'max:120'], 'page' => ['nullable', 'integer', 'between:1,1000']]);
@@ -37,7 +37,7 @@ final class PharmaTraditionalPriceController extends Controller
 
         $result['items'] = array_map(fn (array $item): array => $item + [
             'match' => $matcher->inspect($item),
-            'multi_package' => $this->hasMultiplePackages($result['items'], $item),
+            'multi_package' => $this->hasConflictingSameUnitRows($result['items'], $item),
         ], $result['items']);
 
         $application = $registry->find('pharma');
@@ -52,29 +52,29 @@ final class PharmaTraditionalPriceController extends Controller
         ]);
     }
 
-    public function preview(Request $request, ApplicationRegistry $registry, MohTraditionalPriceLookup $lookup, DavMedicineCandidateMatcher $matcher): View
+    public function preview(Request $request, ApplicationRegistry $registry, MohTraditionalPriceLookup $lookup, MohTraditionalMedicineMatcher $matcher): View
     {
         $this->authorizeImport($request, $registry);
         $input = $this->validatedSource($request);
         $items = $lookup->search($input['q'], (int) $input['page'])['items'];
         $candidate = $this->candidate($items, $input['source_id']);
         $match = $matcher->inspect($candidate);
-        $multiPackage = $this->hasMultiplePackages($items, $candidate);
+        $multiPackage = $this->hasConflictingSameUnitRows($items, $candidate);
 
         return view('ClientPortal::applications.pharma.traditional-import-preview', compact('candidate', 'match', 'input', 'multiPackage'));
     }
 
-    public function import(Request $request, ApplicationRegistry $registry, MohTraditionalPriceLookup $lookup, DavMedicineCandidateMatcher $matcher, MedicineService $medicines): RedirectResponse
+    public function import(Request $request, ApplicationRegistry $registry, MohTraditionalPriceLookup $lookup, MohTraditionalMedicineMatcher $matcher, MedicineService $medicines): RedirectResponse
     {
         $this->authorizeImport($request, $registry);
         $input = $this->validatedSource($request) + $request->validate(['confirmed' => ['accepted']]);
         $items = $lookup->search($input['q'], (int) $input['page'])['items'];
         $candidate = $this->candidate($items, $input['source_id']);
-        if ($this->hasMultiplePackages($items, $candidate)) {
-            throw ValidationException::withMessages(['medicine' => 'Cùng tên và số đăng ký có nhiều quy cách/giá; cần đối chiếu thủ công trước khi đồng bộ.']);
+        if ($this->hasConflictingSameUnitRows($items, $candidate)) {
+            throw ValidationException::withMessages(['medicine' => 'Cùng tên, số đăng ký và ĐVT có nhiều quy cách/giá; cần đối chiếu thủ công trước khi đồng bộ.']);
         }
 
-        $lockKey = 'pharma:moh-traditional:import:'.hash('sha256', mb_strtolower(trim($candidate['name'])).'|'.trim($candidate['registration']));
+        $lockKey = 'pharma:moh-traditional:import:'.hash('sha256', mb_strtolower(trim($candidate['name'])).'|'.trim($candidate['registration']).'|'.mb_strtolower(trim($candidate['unit'])));
         $medicine = Cache::lock($lockKey, 20)->block(5, function () use ($matcher, $candidate, $medicines) {
             if ($matcher->inspect($candidate)['status'] !== 'new') {
                 throw ValidationException::withMessages(['medicine' => 'Thuốc đã tồn tại hoặc cần đối chiếu thủ công.']);
@@ -132,9 +132,9 @@ final class PharmaTraditionalPriceController extends Controller
         return $candidate;
     }
 
-    private function hasMultiplePackages(array $items, array $candidate): bool
+    private function hasConflictingSameUnitRows(array $items, array $candidate): bool
     {
-        $key = static fn (array $item): string => mb_strtolower(trim($item['name'])).'|'.mb_strtolower(trim($item['registration']));
+        $key = static fn (array $item): string => mb_strtolower(trim($item['name'])).'|'.mb_strtolower(trim($item['registration'])).'|'.mb_strtolower(trim($item['unit']));
         $packages = [];
         foreach ($items as $item) {
             if ($key($item) === $key($candidate)) {
