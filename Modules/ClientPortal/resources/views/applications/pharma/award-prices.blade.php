@@ -80,16 +80,7 @@
                                 <td class="whitespace-nowrap px-3 py-4 font-bold">{{ is_numeric($item['donGia'] ?? null) ? number_format((float) $item['donGia'], 0, ',', '.').' đ' : '—' }}</td>
                                 <td class="px-3 py-4">{{ $winning ?: '—' }}</td>
                                 <td class="px-3 py-4">{{ $item['maTbmt'] ?? '—' }}</td>
-                                <td class="px-3 py-4"><details class="award-detail">
-                                    <summary class="min-h-10 cursor-pointer list-none rounded-xl border border-slate-300 px-3 py-2 font-semibold text-indigo-700" aria-label="Xem chi tiết {{ $item['tenThuoc'] ?? 'thuốc' }}">◉ Xem</summary>
-                                    <div class="mt-2 w-72 max-w-[70vw] space-y-2 rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-md">
-                                        <h3 class="font-bold">Chi tiết trúng thầu</h3>
-                                        @foreach(['Tên thuốc' => 'tenThuoc', 'Hoạt chất' => 'tenHoatChat', 'Số đăng ký / GPNK' => 'gdklh_GPNK', 'ĐVT' => 'donViTinh', 'Nồng độ' => 'nongDo', 'Dạng bào chế' => 'dangBaoChe', 'Quy cách' => 'quyCachDongGoi', 'Nhà sản xuất' => 'tenCoSoSanXuat', 'Nước sản xuất' => 'nuocSanXuat', 'Đơn giá trúng thầu' => 'donGia', 'Mã TBMT' => 'maTbmt'] as $label => $field)
-                                            <p class="break-words"><strong>{{ $label }}:</strong> {{ is_scalar($item[$field] ?? null) ? $item[$field] : '—' }}</p>
-                                        @endforeach
-                                        <p class="break-words"><strong>Đơn vị trúng thầu:</strong> {{ $winning ?: '—' }}</p>
-                                    </div>
-                                </details></td>
+                                <td class="px-3 py-4"><a href="{{ route('client.pharma.award-prices.show', ['sourceId' => $itemId, 'keyword' => $keyword, 'page' => $page]) }}" aria-label="Xem chi tiết {{ $item['tenThuoc'] ?? 'thuốc' }}" class="inline-flex min-h-10 items-center rounded-xl border border-slate-300 px-3 font-semibold text-indigo-700">◉ Xem chi tiết</a></td>
                             </tr>
                         @empty
                             <tr><td colspan="7" class="px-5 py-8 text-center text-slate-500">Không tìm thấy kết quả phù hợp.</td></tr>
