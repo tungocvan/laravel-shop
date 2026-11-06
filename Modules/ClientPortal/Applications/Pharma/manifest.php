@@ -26,8 +26,8 @@ return [
     'capabilities' => ['search', 'filter', 'background-jobs', 'export'],
     'navigation' => [
         'dav-prices' => [
-            'name' => 'Tra cứu giá thuốc',
-            'route' => 'client.pharma.dav-prices',
+            'name' => 'Tra cứu',
+            'route' => 'client.pharma.lookups',
             'permission' => 'client.pharma.dav-prices.view',
             'icon' => 'search',
             'sort_order' => 15,
@@ -138,11 +138,22 @@ return [
         ],
     ],
     'features' => [
+        'lookups' => [
+            'name' => 'Tra cứu',
+            'description' => 'Chọn nguồn tra cứu thông tin dược phẩm.',
+            'eyebrow' => 'Tra cứu Pharma',
+            'page_title' => 'Tra cứu',
+            'page_description' => 'Chọn nguồn dữ liệu để tra cứu giá thuốc, kết quả trúng thầu hoặc chứng nhận GMP.',
+            'route' => 'client.pharma.lookups',
+            'permission' => 'client.pharma.dav-prices.view',
+            'icon' => 'search',
+            'sort_order' => 15,
+        ],
         'dav-prices' => [
-            'name' => 'Tra cứu giá thuốc DAV',
+            'name' => 'Tra cứu giá thuốc tân dược',
             'description' => 'Tra cứu giá thuốc được công bố công khai từ Cục Quản lý Dược.',
             'eyebrow' => 'Dữ liệu công khai DAV',
-            'page_title' => 'Tra cứu giá thuốc',
+            'page_title' => 'Tra cứu giá thuốc tân dược',
             'page_description' => 'Giá công bố từ DAV, không phải giá bán nội bộ hoặc giá trúng thầu.',
             'route' => 'client.pharma.dav-prices',
             'permission' => 'client.pharma.dav-prices.view',
