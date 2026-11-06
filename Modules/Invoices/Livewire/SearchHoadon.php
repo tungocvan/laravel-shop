@@ -158,6 +158,10 @@ class SearchHoadon extends Component
         if (! in_array($purpose, ['search', 'sync', 'page2'], true)) {
             return;
         }
+        if ($purpose === 'sync' && $this->posMultiPagePreview) {
+            $this->addError('invoiceSource', 'Đồng bộ canonical POS nhiều trang chưa được hỗ trợ. Không ghi dữ liệu thiếu.');
+            return;
+        }
         if ($purpose === 'sync' && ($this->searchState !== 'completed'
             || $this->searchedFingerprint !== $this->searchFingerprint()
             || (int) ($this->searchPreview['count'] ?? 0) <= 0)) {
