@@ -53,6 +53,55 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
         $requests = Http::recorded()->map(fn ($pair) => $pair[0])->values();
         parse_str((string) parse_url($requests[1]->url(), PHP_URL_QUERY), $query);
         $this->assertSame('next-page', $query['state'] ?? null);
+        $this->assertArrayNotHasKey('ckey', $query);
+        $this->assertArrayNotHasKey('cvalue', $query);
+        $this->assertFalse($requests[1]->hasHeader('ckey'));
+        $this->assertFalse($requests[1]->hasHeader('cvalue'));
+        $this->assertTrue($requests[0]->hasHeader('ckey'));
+        $this->assertTrue($requests[0]->hasHeader('cvalue'));
+    }
+
+
+    public function test_pos_page_two_uses_state_without_replaying_captcha_and_returns_complete_results(): void
+    {
+        $calls = 0;
+        Http::fake(function ($request) use (&$calls) {
+            $calls++;
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            if ($calls === 1) {
+                $this->assertSame('fake-key', $query['ckey'] ?? null);
+                $this->assertSame('fake-answer', $query['cvalue'] ?? null);
+                $this->assertArrayNotHasKey('state', $query);
+
+                return Http::response([
+                    'datas' => array_fill(0, 15, ['nbmst' => 'fixture']),
+                    'total' => 17,
+                    'state' => 'opaque-next-page',
+                ], 200);
+            }
+
+            $this->assertSame('opaque-next-page', $query['state'] ?? null);
+            $this->assertArrayNotHasKey('ckey', $query);
+            $this->assertArrayNotHasKey('cvalue', $query);
+            $this->assertFalse($request->hasHeader('ckey'));
+            $this->assertFalse($request->hasHeader('cvalue'));
+
+            return Http::response([
+                'datas' => array_fill(0, 2, ['nbmst' => 'fixture']),
+                'total' => 17,
+                'state' => null,
+            ], 200);
+        });
+
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-09-01', '2026-09-30', true, 'pos',
+            ['ckey' => 'fake-key', 'cvalue' => 'fake-answer'],
+        );
+
+        $this->assertSame(17, $result['count']);
+        $this->assertSame(2, $calls);
+        $this->assertSame('fake-token', Cache::get('gdt-pos-pagination-test-token'));
+        Http::assertSentCount(2);
     }
 
     public function test_real_authentication_401_still_invalidates_token(): void
