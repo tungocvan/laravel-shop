@@ -27,8 +27,12 @@
             </div>
         </a>
 
+        <a href="{{ route('client.pharma.traditional-prices') }}" class="group flex min-h-44 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            <div class="flex items-center justify-between gap-3"><span aria-hidden="true" class="flex size-12 items-center justify-center rounded-2xl bg-emerald-50 text-2xl">🌿</span><span aria-hidden="true" class="text-lg font-bold text-indigo-600">↗</span></div>
+            <div class="mt-5"><h2 class="font-bold text-slate-950">Tra cứu giá thuốc đông dược</h2><p class="mt-1 text-sm text-slate-600">Giá kê khai công bố từ Cổng Y Dược cổ truyền Bộ Y tế.</p></div>
+        </a>
+
         @foreach([
-            ['icon' => '🌿', 'title' => 'Tra cứu giá thuốc đông dược', 'description' => 'Nguồn giá thuốc đông dược và cổ truyền.'],
             ['icon' => '📋', 'title' => 'Tra cứu thuốc trúng thầu', 'description' => 'Tra cứu dữ liệu kết quả lựa chọn nhà thầu.'],
             ['icon' => '🛡️', 'title' => 'Tra cứu GMP', 'description' => 'Tra cứu thông tin chứng nhận GMP.'],
         ] as $item)
