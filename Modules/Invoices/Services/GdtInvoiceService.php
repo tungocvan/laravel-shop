@@ -495,8 +495,18 @@ class GdtInvoiceService
                     $result[] = $this->mapInvoice($item, $vatIn);
                 }
             } $processed += $count;
+            // POS must never claim completion when upstream page totals are inconsistent.
+            // Keep the continuation contract unchanged until the successful browser
+            // page-2 request has been independently verified.
+            if ($cashRegister) {
+                try {
+                    $posProgress = new GdtPosPaginationProgress($processed, $total, $pageSize);
+                } catch (\InvalidArgumentException $exception) {
+                    throw new \RuntimeException('GDT POS trả tiến độ phân trang không hợp lệ. Không tạo file thiếu.', previous: $exception);
+                }
+            }
             $show("📦 Nhận {$processed}/{$total} hóa đơn");
-            if ($processed >= $total) {
+            if ($cashRegister ? $posProgress->isComplete() : $processed >= $total) {
                 break;
             }$nextState = $data['state'] ?? null;
             if (! $nextState || $nextState === $state) {
