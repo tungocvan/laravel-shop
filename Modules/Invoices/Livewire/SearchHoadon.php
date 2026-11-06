@@ -10,6 +10,7 @@ use Livewire\WithFileUploads;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\GdtInvoiceService;
+use Modules\Invoices\Services\GdtPosSecureContinuation;
 use Modules\Invoices\Services\InvoiceFilesEmailBackupService;
 use Modules\Invoices\Services\InvoiceImportService;
 use RuntimeException;
@@ -29,6 +30,7 @@ class SearchHoadon extends Component
     public $useQueue = true;
     public string $invoiceSource = 'regular';
     public string $searchState = 'idle';
+    public ?string $posContinuationId = null;
     public ?string $searchMessage = null;
     public array $searchPreview = [];
     public ?string $searchedFingerprint = null;
@@ -87,6 +89,7 @@ class SearchHoadon extends Component
         $this->posCaptchaModalOpen = false;
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
+        $this->discardPosContinuation();
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -99,6 +102,7 @@ class SearchHoadon extends Component
 
     private function clearSearchPreview(): void
     {
+        $this->discardPosContinuation();
         $this->posCaptchaModalOpen = false;
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
@@ -108,6 +112,26 @@ class SearchHoadon extends Component
         $this->searchMessage = null;
         $this->searchPreview = [];
         $this->searchedFingerprint = null;
+    }
+
+    private function discardPosContinuation(): void
+    {
+        if ($this->posContinuationId !== null) {
+            app(GdtPosSecureContinuation::class)->discard(
+                (int) auth('admin')->id(), session()->getId(), $this->posContinuationId
+            );
+            $this->posContinuationId = null;
+        }
+    }
+
+    public function continuePosSearch(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if ($this->invoiceSource !== 'pos' || $this->searchState !== 'awaiting_captcha'
+            || $this->posContinuationId === null) {
+            return;
+        }
+        $this->openPosCaptcha('page2');
     }
 
     private function searchFingerprint(): string
@@ -128,7 +152,7 @@ class SearchHoadon extends Component
             $this->addError('end_date', 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần.');
             return;
         }
-        if (! in_array($purpose, ['search', 'sync'], true)) {
+        if (! in_array($purpose, ['search', 'sync', 'page2'], true)) {
             return;
         }
         if ($purpose === 'sync' && ($this->searchState !== 'completed'
@@ -178,6 +202,8 @@ class SearchHoadon extends Component
             $this->searchInvoices();
         } elseif ($purpose === 'sync') {
             $this->run();
+        } elseif ($purpose === 'page2') {
+            $this->resumePosSearch();
         }
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
@@ -212,9 +238,26 @@ class SearchHoadon extends Component
                 $this->posCaptchaAnswer = '';
                 $this->posCaptchaImage = '';
             }
-            $result = $this->invoiceService->previewSource(
-                $this->start_date, $this->end_date, (bool) $this->vatIn, $this->invoiceSource, $challenge
-            );
+            $result = $this->invoiceSource === 'pos'
+                ? $this->invoiceService->previewPosFirstPage($this->start_date, $this->end_date, (bool) $this->vatIn, $challenge)
+                : $this->invoiceService->previewSource(
+                    $this->start_date, $this->end_date, (bool) $this->vatIn, $this->invoiceSource, $challenge
+                );
+            if ($this->invoiceSource === 'pos' && ($result['incomplete'] ?? false)) {
+                $snapshot = $this->invoiceService->takePosFirstPage();
+                if (! is_array($snapshot)) {
+                    throw new RuntimeException('Không tạo được checkpoint trang 1.');
+                }
+                $this->posContinuationId = app(GdtPosSecureContinuation::class)->store(
+                    (int) auth('admin')->id(), session()->getId(), $this->searchFingerprint(),
+                    $snapshot['rows'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies']
+                );
+                $this->searchPreview = $result;
+                $this->searchState = 'awaiting_captcha';
+                $this->searchMessage = 'Đã nhận '.count($snapshot['rows']).'/'.$snapshot['total'].' hóa đơn. Cần CAPTCHA mới để tiếp tục trang 2. Chưa đồng bộ canonical.';
+
+                return;
+            }
             $this->searchPreview = $result;
             $this->searchState = 'completed';
             $this->searchedFingerprint = $this->searchFingerprint();
@@ -226,6 +269,37 @@ class SearchHoadon extends Component
             $this->searchMessage = $exception->getMessage();
             $this->posCaptchaAnswer = '';
             $this->posCaptchaImage = '';
+        }
+    }
+
+    private function resumePosSearch(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if ($this->searchState !== 'awaiting_captcha' || $this->posContinuationId === null) {
+            return;
+        }
+        $this->searchState = 'searching';
+        try {
+            $captcha = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
+            $this->posCaptchaAnswer = '';
+            $checkpoint = app(GdtPosSecureContinuation::class)->consume(
+                (int) auth('admin')->id(), session()->getId(), $this->searchFingerprint(), $this->posContinuationId
+            );
+            $this->posContinuationId = null;
+            if ($checkpoint === null) {
+                throw new RuntimeException('Checkpoint trang 1 hết hạn hoặc không hợp lệ. Vui lòng tìm kiếm lại.');
+            }
+            $result = $this->invoiceService->resumePosPreview(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, $captcha, $checkpoint
+            );
+            $this->searchPreview = $result;
+            $this->searchState = 'completed';
+            $this->searchedFingerprint = $this->searchFingerprint();
+            $this->searchMessage = 'Đã xác minh đủ '.number_format($result['count']).' hóa đơn. Chưa ghi canonical.';
+        } catch (\Throwable $exception) {
+            $this->searchState = 'failed';
+            $this->searchMessage = $exception->getMessage();
+            $this->posContinuationId = null;
         }
     }
 
