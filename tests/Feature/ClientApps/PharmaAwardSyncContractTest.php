@@ -49,10 +49,17 @@ class PharmaAwardSyncContractTest extends TestCase
     public function test_ui_exposes_details_bulk_sync_stats_and_filters_without_wishlist(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-prices.blade.php'));
-        foreach (['Bộ lọc', 'Thấp nhất', 'Trung bình', 'Cao nhất', 'Xem chi tiết', 'Đồng bộ đã chọn', 'selected[]'] as $label) {
+        foreach (['Bộ lọc', 'Thấp nhất', 'Trung bình', 'Cao nhất', 'Xem chi tiết', 'Đồng bộ đã chọn', 'selected[]', 'form="award-select-form"', 'name="selected[]"', 'id="award-clear"'] as $label) {
             $this->assertStringContainsString($label, $blade);
         }
         $this->assertStringNotContainsString('Quan tâm', $blade);
+        $this->assertStringNotContainsString('x-model=', $blade);
+        $this->assertStringNotContainsString('x-teleport=', $blade);
+        $this->assertStringContainsString('award-interactions.js', $blade);
+        $this->assertStringContainsString('<details class="award-detail">', $blade);
+        $script = file_get_contents(base_path('public/demo/pharma-award/award-interactions.js'));
+        $this->assertStringContainsString("input.value = '';", $script);
+        $this->assertStringContainsString("rows.forEach(row", $script);
     }
 
     public function test_sync_never_overwrites_medicine_prices_or_stock(): void
