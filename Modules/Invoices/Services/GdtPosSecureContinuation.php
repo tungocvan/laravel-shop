@@ -53,33 +53,37 @@ final class GdtPosSecureContinuation
         }
 
         $key = $this->key($adminId, $sessionId, $id);
-        $encrypted = Cache::get($key);
-        if (! is_string($encrypted)) {
-            return null;
-        }
 
-        try {
-            $payload = json_decode(Crypt::decryptString($encrypted), true, 512, JSON_THROW_ON_ERROR);
-        } catch (\Throwable) {
-            return null;
-        }
+        // Serialize competing claims across PHP workers. The lock key is
+        // scoped exactly like the encrypted payload and contains no secrets.
+        return Cache::lock($key.':claim', 10)->block(3, function () use ($key, $fingerprint): ?array {
+            $encrypted = Cache::get($key);
+            if (! is_string($encrypted)) {
+                return null;
+            }
 
-        if (! is_array($payload) || ($payload['fingerprint'] ?? null) !== $fingerprint
-            || ! is_string($payload['cursor'] ?? null) || $payload['cursor'] === ''
-            || ! is_array($payload['first_page'] ?? null)
-            || count($payload['first_page']) !== 15
-            || ! is_int($payload['total'] ?? null) || $payload['total'] <= 15) {
-            return null;
-        }
+            try {
+                $payload = json_decode(Crypt::decryptString($encrypted), true, 512, JSON_THROW_ON_ERROR);
+            } catch (\Throwable) {
+                return null;
+            }
 
-        // Consume only after successful scope and payload validation.
-        Cache::forget($key);
+            if (! is_array($payload) || ($payload['fingerprint'] ?? null) !== $fingerprint
+                || ! is_string($payload['cursor'] ?? null) || $payload['cursor'] === ''
+                || ! is_array($payload['first_page'] ?? null)
+                || count($payload['first_page']) !== 15
+                || ! is_int($payload['total'] ?? null) || $payload['total'] <= 15) {
+                return null;
+            }
 
-        return [
-            'cursor' => $payload['cursor'],
-            'first_page' => $payload['first_page'],
-            'total' => $payload['total'],
-        ];
+            Cache::forget($key);
+
+            return [
+                'cursor' => $payload['cursor'],
+                'first_page' => $payload['first_page'],
+                'total' => $payload['total'],
+            ];
+        });
     }
 
     public function discard(int $adminId, string $sessionId, string $id): void
