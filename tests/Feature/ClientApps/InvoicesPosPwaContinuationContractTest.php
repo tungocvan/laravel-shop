@@ -20,6 +20,8 @@ class InvoicesPosPwaContinuationContractTest extends TestCase
 
         $this->assertStringContainsString('GdtPosSecureContinuation::class', $controller);
         $this->assertStringContainsString("'preview_page2', 'sync_page2'", $controller);
+        $this->assertSame(2, substr_count($controller, "\$snapshot['rows']"));
+        $this->assertStringNotContainsString("\$snapshot['first_page']", $controller);
         $this->assertStringContainsString('->resumePosPreview(', $controller);
         $this->assertStringContainsString('->resumePosCanonicalRows(', $controller);
         $this->assertStringContainsString('->takePosCompleteFirstPageRows()', $controller);
