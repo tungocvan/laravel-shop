@@ -34,6 +34,10 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringContainsString('name="selected[]"', $detail);
         $this->assertStringContainsString("['status'] !== 'review'", $detail);
         $this->assertStringContainsString('GĐKLH / GPNK', $detail);
+        foreach (['winningCode', 'tenCdtBmt', 'ngayBanHanhQuyetDinh', 'ngayDangTaiKqlcnt'] as $sourceField) {
+            $this->assertStringContainsString($sourceField, $detail);
+        }
+        $this->assertStringContainsString("array_filter(\$item[\$field], 'is_scalar')", $detail);
         $this->assertStringNotContainsString('muasamcong.drug-pricing', $detail);
     }
 
