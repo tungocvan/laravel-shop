@@ -138,6 +138,17 @@ return [
         ],
     ],
     'features' => [
+        'traditional-prices' => [
+            'name' => 'Tra cứu giá thuốc đông dược',
+            'description' => 'Tra cứu giá kê khai thuốc đông dược từ Cổng Y Dược cổ truyền Bộ Y tế.',
+            'eyebrow' => 'Dữ liệu công khai Bộ Y tế',
+            'page_title' => 'Tra cứu giá thuốc đông dược',
+            'page_description' => 'Giá bán buôn công bố là giá kê khai; các quy cách khác nhau phải được đối chiếu riêng.',
+            'route' => 'client.pharma.traditional-prices',
+            'permission' => 'client.pharma.traditional-prices.view',
+            'icon' => 'search',
+            'sort_order' => 16,
+        ],
         'lookups' => [
             'name' => 'Tra cứu',
             'description' => 'Chọn nguồn tra cứu thông tin dược phẩm.',
