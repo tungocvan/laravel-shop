@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
+use Modules\Invoices\Services\GdtInvoiceService;
 use Modules\Invoices\Services\InvoicePartnerReportService;
 use Modules\Invoices\Services\InvoicePdfService;
 use Modules\Invoices\Services\InvoiceService;
@@ -16,6 +17,7 @@ final class ClientInvoiceWorkspaceService
         private readonly InvoiceService $invoices,
         private readonly InvoicePdfService $pdf,
         private readonly InvoicePartnerReportService $partnerReports,
+        private readonly GdtInvoiceService $gdt,
     ) {}
 
     public function dashboardData(Request $request): array
@@ -267,9 +269,46 @@ final class ClientInvoiceWorkspaceService
             'created_at' => now()->toIso8601String(),
         ], now()->addHours(24));
 
-        ProcessGdtInvoicesJob::dispatch($start, $end, $direction === 'purchase', $syncId);
+        ProcessGdtInvoicesJob::dispatch($start, $end, $direction === 'purchase', $syncId, 'regular');
 
         return $syncId;
+    }
+
+    /** POS preview is read-only; never persist the CAPTCHA answer or invoice payload in the browser. */
+    public function previewPos(string $start, string $end, string $direction, array $challenge): array
+    {
+        return $this->gdt->previewSource($start, $end, $direction === 'purchase', 'pos', $challenge);
+    }
+
+    /** POS is synchronous by design: CAPTCHA must not be serialized into a queue job. */
+    public function syncPos(string $start, string $end, string $direction, array $challenge): array
+    {
+        $syncId = (string) Str::uuid();
+        $key = 'invoices:gdt-sync:'.$syncId;
+        try {
+            $file = $this->gdt->processRange($start, $end, null, $direction === 'purchase', 'pos', null, $challenge);
+            $status = [
+                'state' => 'completed',
+                'message' => $file === null ? 'Không có hóa đơn để đồng bộ.' : 'Đồng bộ POS hoàn tất. Dữ liệu đã được lưu vào hệ thống.',
+                'logs' => [],
+                'direction' => $direction,
+                'source' => 'pos',
+                'created_at' => now()->toIso8601String(),
+            ];
+        } catch (\\Throwable $exception) {
+            report($exception);
+            $status = [
+                'state' => 'failed',
+                'message' => 'Đồng bộ POS không thành công. Vui lòng kiểm tra phiên GDT và thử lại với CAPTCHA mới.',
+                'logs' => [],
+                'direction' => $direction,
+                'source' => 'pos',
+                'created_at' => now()->toIso8601String(),
+            ];
+        }
+        Cache::put($key, $status, now()->addHours(24));
+
+        return ['sync_id' => $syncId, 'status' => $status];
     }
 
     public function syncStatus(?string $syncId): ?array
