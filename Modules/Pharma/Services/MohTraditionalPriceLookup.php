@@ -21,7 +21,13 @@ final class MohTraditionalPriceLookup
         return Cache::remember('pharma:moh-traditional:'.hash('sha256', $keyword.'|'.$page), now()->addMinutes(5), function () use ($keyword, $page): array {
             try {
                 // Public endpoint only. Do not copy browser cookies, session IDs or XSRF tokens.
-                $response = Http::acceptJson()->asJson()->connectTimeout(5)->timeout(12)->post(self::URL, [
+                // This MOH host presents legacy DH parameters rejected by OpenSSL 3's
+                // default security level. Scope the compatibility cipher policy to
+                // this single request; retain certificate and hostname verification.
+                $response = Http::withOptions([
+                    'verify' => true,
+                    'curl' => [CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'],
+                ])->acceptJson()->asJson()->connectTimeout(5)->timeout(12)->post(self::URL, [
                     'filterAll' => $keyword,
                     'CongBoGiaThuoc' => (object) [],
                     'KichHoat' => true,
