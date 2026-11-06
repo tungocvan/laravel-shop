@@ -10,6 +10,7 @@ use Livewire\WithFileUploads;
 use Modules\Invoices\Jobs\ProcessGdtInvoicesJob;
 use Modules\Invoices\Services\GdtApiService;
 use Modules\Invoices\Services\GdtInvoiceService;
+use Modules\Invoices\Services\GdtCompletedExport;
 use Modules\Invoices\Services\GdtPosSecureContinuation;
 use Modules\Invoices\Services\InvoiceFilesEmailBackupService;
 use Modules\Invoices\Services\InvoiceImportService;
@@ -32,6 +33,7 @@ class SearchHoadon extends Component
     public string $searchState = 'idle';
     public ?string $posContinuationId = null;
     public bool $posMultiPagePreview = false;
+    public bool $forceResync = false;
     public ?string $posSyncContinuationId = null;
     public string $posSyncPhase = 'idle';
     public ?string $searchMessage = null;
@@ -95,6 +97,7 @@ class SearchHoadon extends Component
         $this->discardPosContinuation();
         $this->discardPosSyncContinuation();
         $this->posMultiPagePreview = false;
+        $this->forceResync = false;
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -114,6 +117,7 @@ class SearchHoadon extends Component
         $this->posCaptchaAnswer = '';
         $this->posCaptchaImage = '';
         $this->posMultiPagePreview = false;
+        $this->forceResync = false;
         $this->searchState = 'idle';
         $this->searchMessage = null;
         $this->searchPreview = [];
@@ -206,6 +210,42 @@ class SearchHoadon extends Component
         return hash('sha256', implode('|', [$this->invoiceSource, $this->start_date, $this->end_date, (int) $this->vatIn]));
     }
 
+    public function completedCanonicalExport(): ?string
+    {
+        if (! in_array($this->invoiceSource, ['regular', 'pos'], true)) {
+            return null;
+        }
+        try {
+            return app(GdtCompletedExport::class)->completed(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, $this->invoiceSource
+            );
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    public function confirmCanonicalResync(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if ($this->completedCanonicalExport() === null) {
+            return;
+        }
+        $this->forceResync = true;
+    }
+
+    private function skipCompletedCanonical(): bool
+    {
+        $file = $this->completedCanonicalExport();
+        if ($file === null || $this->forceResync) {
+            return false;
+        }
+        $this->syncState = 'completed';
+        $this->syncFile = basename($file);
+        $this->syncMessage = 'Dữ liệu canonical đã đồng bộ hoàn tất; không chạy lại. Chọn Đồng bộ lại nếu cần cập nhật từ GDT.';
+
+        return true;
+    }
+
     public function openPosCaptcha(string $purpose = 'search'): void
     {
         $this->authorizePermission('invoices-create');
@@ -220,6 +260,9 @@ class SearchHoadon extends Component
             return;
         }
         if (! in_array($purpose, ['search', 'sync', 'page2', 'sync_page2'], true)) {
+            return;
+        }
+        if ($purpose === 'sync' && $this->skipCompletedCanonical()) {
             return;
         }
         if ($purpose === 'sync_page2' && ($this->posSyncPhase !== 'awaiting_captcha' || $this->posSyncContinuationId === null)) {
@@ -400,6 +443,9 @@ class SearchHoadon extends Component
             'invoiceSource' => ['required', 'in:all,regular,pos'],
         ]);
 
+        if ($this->skipCompletedCanonical()) {
+            return;
+        }
         if ($this->invoiceSource === 'all') {
             $this->addError('invoiceSource', 'Vui lòng chọn một tab nguồn hóa đơn.');
             return;
