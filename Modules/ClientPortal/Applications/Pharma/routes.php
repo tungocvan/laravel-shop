@@ -27,6 +27,11 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/award-prices', [PharmaAwardPriceController::class, 'index'])
             ->middleware('client.feature:pharma,award-prices')->name('award-prices');
 
+        Route::post('/award-prices/sync/preview', [PharmaAwardPriceController::class, 'preview'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.sync.preview');
+        Route::post('/award-prices/sync', [PharmaAwardPriceController::class, 'sync'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.sync.store');
+
         Route::get('/traditional-prices', [PharmaTraditionalPriceController::class, 'index'])
             ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices');
         Route::get('/traditional-prices/import', [PharmaTraditionalPriceController::class, 'preview'])
