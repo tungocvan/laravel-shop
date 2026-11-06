@@ -39,6 +39,12 @@ if ((bool) config('modules.registry.Invoices.enabled', false)) {
         Route::post('/sync/authenticate', [InvoicesApplicationController::class, 'authenticateSync'])
             ->middleware(['client.feature:invoices,sync', 'throttle:10,1'])
             ->name('sync.authenticate');
+        Route::post('/sync/pos/captcha', [InvoicesApplicationController::class, 'refreshPosCaptcha'])
+            ->middleware(['client.feature:invoices,sync', 'throttle:10,1'])
+            ->name('sync.pos.captcha');
+        Route::post('/sync/pos/submit', [InvoicesApplicationController::class, 'submitPosCaptcha'])
+            ->middleware(['client.feature:invoices,sync', 'throttle:10,1'])
+            ->name('sync.pos.submit');
         Route::post('/sync', [InvoicesApplicationController::class, 'startSync'])
             ->middleware(['client.feature:invoices,sync', 'throttle:10,1'])
             ->name('sync.start');
