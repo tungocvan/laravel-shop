@@ -10,10 +10,10 @@ class GdtPosFailedPreviewUiContractTest extends TestCase
     {
         $blade = file_get_contents(base_path('Modules/Invoices/resources/views/livewire/search-hoadon.blade.php'));
 
-        $this->assertStringContainsString("$invoiceSource === 'pos' && $searchState === 'failed'", $blade);
+        $this->assertStringContainsString('$invoiceSource === \'pos\' && $searchState === \'failed\'', $blade);
         $this->assertStringContainsString("wire:click=\"openPosCaptcha('search')\"", $blade);
         $this->assertStringContainsString('Dữ liệu một phần chưa được xác nhận', $blade);
-        $this->assertStringContainsString("searchState !== 'completed'", $blade);
+        $this->assertStringContainsString("\$searchState !== 'completed'", $blade);
         $this->assertStringContainsString('Đồng bộ canonical', $blade);
     }
 }
