@@ -390,12 +390,13 @@ class GdtInvoiceService
                 $initialPosPage = $cashRegister && $page === 1;
                 $pageCaptcha = $initialPosPage ? $posCaptcha
                     : ($cashRegister && $page === 2 ? ($posCaptcha['page2'] ?? null) : null);
-                if ($pageCaptcha !== null) {
-                    if (! is_array($pageCaptcha) || blank($pageCaptcha['ckey'] ?? null) || blank($pageCaptcha['cvalue'] ?? null)) {
-                        throw new \RuntimeException('CAPTCHA POS trang 2 không hợp lệ. Không tạo file thiếu.');
+                if ($cashRegister && $pageCaptcha !== null) {
+                    try {
+                        // Match verified browser request: state + fresh CAPTCHA in query.
+                        $query = GdtPosPageRequest::query($search, $state, $pageCaptcha);
+                    } catch (\InvalidArgumentException $exception) {
+                        throw new \RuntimeException('CAPTCHA POS tại trang '.$page.' không hợp lệ. Không tạo file thiếu.', previous: $exception);
                     }
-                    $query['ckey'] = $pageCaptcha['ckey'];
-                    $query['cvalue'] = $pageCaptcha['cvalue'];
                 }
                 $client = $this->client($token);
                 if ($cashRegister) {
