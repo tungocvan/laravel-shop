@@ -169,8 +169,8 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
     {
         $source = file_get_contents((new \ReflectionClass(GdtInvoiceService::class))->getFileName());
 
-        $this->assertStringContainsString("'pos_error_shape' => \\$posErrorShape", $source);
-        $this->assertStringContainsString("'pos_error_message_category' => \\$posErrorMessageCategory", $source);
+        $this->assertStringContainsString("'pos_error_shape' => \$posErrorShape", $source);
+        $this->assertStringContainsString("'pos_error_message_category' => \$posErrorMessageCategory", $source);
         $this->assertStringContainsString("'pos_error_has_message_field' =>", $source);
         $this->assertStringNotContainsString("'response_body' =>", $source);
     }
