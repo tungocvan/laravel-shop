@@ -73,7 +73,11 @@ final class InvoicesApplicationController extends Controller
 
     public function sync(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, ClientInvoiceWorkspaceService $workspace, GdtSyncReadinessService $readiness): View
     {
+        $application = $registry->find('invoices');
+        $feature = collect($application['features'] ?? [])->firstWhere('key', 'sync');
+
         return $this->applicationView('sync', $registry, $settings, [
+            'syncPresentation' => $feature ? $settings->featurePresentation('invoices', $feature) : [],
             'syncId' => $request->query('sync_id'),
             'syncStatus' => $workspace->syncStatus($request->query('sync_id')),
             'syncReadiness' => $readiness->readiness(),
