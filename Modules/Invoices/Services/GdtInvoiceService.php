@@ -436,7 +436,18 @@ class GdtInvoiceService
         }
         unset($sourceStat);
         $show(sprintf('[RAW] Detail: đã có %d · tải mới %d · lỗi %d.', $detailStats['reused'], $detailStats['fetched'], $detailStats['failed']));
+        // Invalidate any previous completion marker before rewriting an export.
+        // A partial RAW-detail run must never inherit a completed marker.
+        if (in_array($source, ['regular', 'pos'], true)) {
+            $marker = app(GdtCompletedExport::class)->path($startDate, $endDate, $vatIn, $source).'.complete.json';
+            if (is_file($marker)) {
+                unlink($marker);
+            }
+        }
         $file = $this->exportExcel($all, $vatIn, $filename);
+        if (in_array($source, ['regular', 'pos'], true) && $detailStats['failed'] === 0) {
+            app(GdtCompletedExport::class)->mark($startDate, $endDate, $vatIn, $source, $file);
+        }
         $show('[GDT] File Excel tạo ra: '.$file);
 
         return $file;
