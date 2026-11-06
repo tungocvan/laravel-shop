@@ -12,9 +12,15 @@
     $tokenReady = (bool) ($syncReadiness['token_ready'] ?? false);
     $purchase = $syncReadiness['purchase'];
     $sold = $syncReadiness['sold'];
-    $currentFilters = $posFilters ?? ($posPreview['filters'] ?? []);
+    // The completed task is the source of truth after redirect/refresh.
+    // Never keep a stale preview active after a completed POS sync.
+    $completedFilters = ($syncStatus['source'] ?? null) === 'pos'
+        && isset($syncStatus['start'], $syncStatus['end'], $syncStatus['direction'])
+        ? ['start' => $syncStatus['start'], 'end' => $syncStatus['end'], 'direction' => $syncStatus['direction']]
+        : [];
+    $currentFilters = $posFilters ?? ($posPreview['filters'] ?? ($completedFilters ?: []));
     $selectedDirection = old('direction', $currentFilters['direction'] ?? 'purchase');
-    $selectedSource = old('source', ($posFilters || $posPreview) ? 'pos' : 'regular');
+    $selectedSource = old('source', ($posFilters || $posPreview || $completedFilters) ? 'pos' : 'regular');
     $selected = $selectedDirection === 'sold' ? $sold : $purchase;
     $selectedStart = old('start', $currentFilters['start'] ?? $selected['suggested_start']);
     $selectedEnd = old('end', $currentFilters['end'] ?? $syncReadiness['today']);
@@ -135,6 +141,15 @@
                 <div class="mt-4 rounded-2xl bg-slate-50 p-4">
                     <p class="text-xs font-bold uppercase text-slate-500">Trạng thái</p>
                     <p class="mt-1 font-black text-slate-950">{{ ['queued' => 'Đang chờ', 'processing' => 'Đang đồng bộ', 'completed' => 'Hoàn tất', 'failed' => 'Thất bại'][$state] ?? $state }}</p>
+                    @if(($syncStatus['source'] ?? null) === 'pos')
+                        <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-slate-700" aria-label="Thông tin tác vụ đồng bộ">
+                            <span class="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-indigo-800">Nguồn: Máy POS</span>
+                            <span class="rounded-lg bg-white px-2.5 py-1.5">{{ ($syncStatus['direction'] ?? '') === 'sold' ? 'Bán ra' : 'Mua vào' }}</span>
+                            @if(!empty($syncStatus['start']) && !empty($syncStatus['end']))
+                                <span class="rounded-lg bg-white px-2.5 py-1.5">Từ {{ \Carbon\Carbon::parse($syncStatus['start'])->format('d/m/Y') }} đến {{ \Carbon\Carbon::parse($syncStatus['end'])->format('d/m/Y') }}</span>
+                            @endif
+                        </div>
+                    @endif
                     <p class="mt-2 text-sm leading-6 text-slate-600">{{ $syncStatus['message'] ?? 'Đang cập nhật.' }}</p>
                 </div>
                 @if(!empty($syncStatus['logs']))
