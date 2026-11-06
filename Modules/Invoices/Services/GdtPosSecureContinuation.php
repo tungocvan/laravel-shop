@@ -24,6 +24,7 @@ final class GdtPosSecureContinuation
         array $firstPage,
         string $cursor,
         int $total,
+        array $cookies = [],
     ): string {
         if ($adminId <= 0 || $sessionId === '' || $fingerprint === ''
             || $cursor === '' || $total <= 0 || count($firstPage) !== 15 || $total <= 15) {
@@ -36,6 +37,7 @@ final class GdtPosSecureContinuation
             'cursor' => $cursor,
             'first_page' => $firstPage,
             'total' => $total,
+            'cookies' => $cookies,
         ];
         Cache::put(
             $this->key($adminId, $sessionId, $id),
@@ -82,6 +84,7 @@ final class GdtPosSecureContinuation
                 'cursor' => $payload['cursor'],
                 'first_page' => $payload['first_page'],
                 'total' => $payload['total'],
+                'cookies' => is_array($payload['cookies'] ?? null) ? $payload['cookies'] : [],
             ];
         });
     }
