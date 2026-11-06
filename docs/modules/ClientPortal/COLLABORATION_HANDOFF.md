@@ -1,3 +1,13 @@
+## Pharma lookup hub checkpoint — 2026-11-06
+
+- Branch `feat/pharma-lookup-hub-20261106` is stacked on unmerged `feat/pharma-dav-price-lookup-20261106` (latest main reviewed: `36e43665a`). Do not merge the child before resolving parent dependency.
+- Sidebar item `Tra cứu giá thuốc` is now `Tra cứu`, linking to `/apps/pharma/lookups`. Managed feature presentation (`lookups`) and existing DAV permission are reused; no new permission or database migration.
+- New browse/index page shows a working DAV tân dược card, plus disabled placeholders for đông dược, thuốc trúng thầu, GMP. Existing DAV search/import URLs and behavior remain unchanged; DAV search now returns to lookup hub.
+- DAV source has not been confirmed to filter exclusively to modern medicines; label is a UI category, not a verified DAV filtering guarantee. Follow-up source-specific audit required.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaLookupHubContractTest.php`; then DAV focused tests and impacted ClientApps regression. Manual UI acceptance required on desktop/tablet/iPhone. No tests run or UI PASS claimed for this batch; no merge/deploy.
+
+---
+
 ## DAV → Medicine Master import checkpoint (2026-11-06)
 
 - Added DAV dosage-form/country mapping and visible card fields. Each card inspects normalized medicine name + registration against Medicine Master.
