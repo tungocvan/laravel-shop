@@ -1,3 +1,13 @@
+## Traditional medicine public price lookup — checkpoint 2026-11-06
+
+- Branch `feat/pharma-traditional-price-lookup-20261106` is stacked on `feat/pharma-lookup-hub-20261106` (itself stacked on unmerged DAV feature). Resolve parent dependencies before PR/merge; main was `36e43665a` at branch creation.
+- Public MOH YDCT POST `/api/services/app/quanLyGiaThuoc/GetListCongBoPublicPaging` via Pharma-owned `MohTraditionalPriceLookup` with 15/page, bounded timeout, five-minute cache, validated response. Never send copied browser session cookies, XSRF token or anti-forgery credentials. **Live server-to-server access is unverified**; HTTP 403/419 or anti-forgery challenge may require a separate safe integration design.
+- ClientPortal routes `/apps/pharma/traditional-prices`, `/import` GET/POST use existing DAV lookup permission plus products.create for imports; UI hub activates đông dược card. `Medicine::PRODUCT_TYPE_TRADITIONAL`, `giaBanBuon` -> `declared_price`, `thanhPhan` -> active_ingredients (first 255 chars; needs business review for longer formulae), never writes selling_price.
+- Identity check uses existing name+registration matcher and source-id re-fetch. If multiple packaging/unit/price rows for the same name+registration are visible on the current page, auto-import is blocked pending explicit SKU/variant design. This guard is **page-scoped**, not a guarantee against duplicates on other pages; manual verification is required. Existing medicine prices are never overwritten.
+- Focused test `php artisan test tests/Feature/ClientApps/PharmaTraditionalPriceLookupTest.php`; then DAV/lookup hub focused tests and impacted ClientPortal/Pharma regression. No tests run by assistant, UI import not verified. No migration, merge or deploy.
+
+---
+
 ## Pharma lookup hub checkpoint — 2026-11-06
 
 - Branch `feat/pharma-lookup-hub-20261106` is stacked on unmerged `feat/pharma-dav-price-lookup-20261106` (latest main reviewed: `36e43665a`). Do not merge the child before resolving parent dependency.
