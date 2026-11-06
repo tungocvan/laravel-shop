@@ -1,3 +1,13 @@
+## Checkpoint — DAV public price lookup — 2026-11-06
+
+- Branch: `feat/pharma-dav-price-lookup-20261106`. Read-only DAV search in Pharma domain service and thin ClientPortal PWA adapter. No database writes, migrations, .env edits, production operations, or merge.
+- GET `/apps/pharma/dav-prices`, web permission `client.pharma.dav-prices.view`, managed feature copy and focused PWA shell. Permission must be granted using existing Client Apps Admin management.
+- DAV endpoint/payload are provisional and MUST be validated against real source responses. HTTP failures, XSRF/session requirements, and field mappings must be checked in development before declaring live search successful. Never bypass CAPTCHA or access restrictions.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaDavPublicPriceLookupTest.php`; after PASS, impacted ClientPortal regression: `php artisan test tests/Feature/ClientApps/ClientApplicationAdminTest.php tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`.
+- Automated tests NOT RUN by assistant. Real DAV connectivity and UI NOT VERIFIED. UI PASS requires user confirmation on desktop and iPhone. No merge/deploy.
+
+---
+
 ## Checkpoint — Issue PDF posted/deferred supply separation — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge/deployment or runtime tests.
