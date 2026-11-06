@@ -72,6 +72,13 @@
                     @endif
                 @else
                     <p class="mt-2 text-sm {{ $searchState === 'failed' ? 'text-red-700' : 'text-slate-500' }}">{{ $searchMessage ?: 'Chọn bộ lọc và nhấn Tìm kiếm để xem kết quả thực tế.' }}</p>
+                    @if($invoiceSource === 'pos' && $searchState === 'failed')
+                        <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3" role="status">
+                            <p class="text-sm font-semibold text-amber-900">Tra cứu POS chưa hoàn tất</p>
+                            <p class="mt-1 text-xs leading-5 text-amber-900">Không thể tiếp tục từ trang lỗi trong phiên này. Dữ liệu một phần chưa được xác nhận và không được đồng bộ canonical. Bạn có thể tra cứu lại bằng CAPTCHA mới hoặc chia khoảng ngày nhỏ hơn trong cùng tháng.</p>
+                            <button type="button" wire:click="openPosCaptcha('search')" wire:loading.attr="disabled" wire:target="openPosCaptcha,refreshPosCaptcha,searchInvoices" class="mt-3 min-h-11 rounded-lg border border-amber-400 bg-white px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100 disabled:opacity-50">Nhập CAPTCHA mới và tra cứu lại</button>
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>
