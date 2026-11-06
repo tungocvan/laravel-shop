@@ -50,7 +50,7 @@ final class GdtPosPaginationCheckpoint
 
         $value = Cache::get($this->key($sessionId, $id));
 
-        return is_array($value) ? $value : null;
+        return is_array($value) ? ['id' => $id] + $value : null;
     }
 
     public function discard(string $sessionId, string $id): void
