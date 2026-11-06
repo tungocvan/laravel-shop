@@ -56,7 +56,7 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
         $job->handle(
             $service,
             $this->createMock(\Modules\Invoices\Services\GoogleDriveInvoiceExportService::class),
-            $this->createMock(\Modules\Invoices\Services\InvoiceSourceCoverageService::class),
+            new \Modules\Invoices\Services\InvoiceSourceCoverageService(),
         );
     }
 
