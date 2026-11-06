@@ -60,7 +60,25 @@
             @error('invoiceSource')<p class="mt-3 text-sm text-red-600">{{ $message }}</p>@enderror
             <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p class="text-xs text-slate-500">Bước 1: Tìm kiếm trên GDT · Bước 2: Đồng bộ canonical nếu kết quả đúng.</p>
-                <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosCaptcha' : 'searchInvoices' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="openPosCaptcha,searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="openPosCaptcha,searchInvoices">Đang tìm kiếm…</span></button>
+                @if($existingPosFile = $this->existingPosExcel())
+                <div class="w-full rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900" role="status">
+                    <p class="font-semibold">File Excel đã tồn tại: {{ basename($existingPosFile) }}</p>
+                    @if($this->completedCanonicalExport())
+                        <p class="mt-1">Đã xác nhận đồng bộ canonical hoàn tất. Không cần Import lại.</p>
+                    @else
+                        <p class="mt-1">Chưa có bằng chứng canonical hoàn tất. Chỉ Import nếu đây là file legacy/chưa được ghi canonical; không Import lại file do luồng canonical đã ghi database.</p>
+                    @endif
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button type="button" wire:click="selectExistingPosExcel" class="min-h-10 rounded-lg border border-sky-600 bg-white px-3 py-2 font-semibold">Chọn file trong kho / Import hiện có</button>
+                        @if(!$forceResync)
+                            <button type="button" wire:click="allowPosGdtRefresh" wire:confirm="File Excel đã tồn tại. Bạn muốn tra cứu lại GDT và có thể cập nhật dữ liệu khi đồng bộ?" class="min-h-10 rounded-lg border border-amber-600 bg-white px-3 py-2 font-semibold text-amber-900">Tra cứu lại từ GDT</button>
+                        @else
+                            <p class="self-center font-semibold text-amber-800">Đã xác nhận tra cứu lại. Có thể mở CAPTCHA.</p>
+                        @endif
+                    </div>
+                </div>
+            @endif
+            <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosCaptcha' : 'searchInvoices' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="openPosCaptcha,searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="openPosCaptcha,searchInvoices">Đang tìm kiếm…</span></button>
             </div>
             <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-live="polite">
                 <div class="flex flex-wrap items-center justify-between gap-2"><h4 class="text-sm font-semibold text-slate-900">Kết quả tra cứu {{ $invoiceSource === 'pos' ? 'POS' : 'Regular' }}</h4><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $searchState === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($searchState === 'failed' ? 'bg-red-100 text-red-800' : 'bg-white text-slate-600') }}">{{ match($searchState) {'searching'=>'Đang tra cứu','completed'=>((int) ($searchPreview['count'] ?? 0) === 0 ? 'Không tìm thấy hóa đơn' : 'GDT đã phản hồi'),'failed'=>'Tra cứu thất bại',default=>'Chưa tìm kiếm'} }}</span></div>
@@ -148,7 +166,7 @@
         </div>
     </section>
 
-    <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section x-on:pos-existing-file-selected.window="$el.scrollIntoView({ behavior: 'smooth', block: 'start' })" class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="flex flex-col gap-4 border-b border-gray-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
             <div><p class="text-xs font-semibold uppercase tracking-wide text-indigo-600">Bước 3</p><h2 class="mt-1 text-base font-semibold text-gray-900">Kho file hóa đơn</h2><p class="mt-1 text-sm text-gray-500">Quản lý export/backup. Xóa file không xóa dữ liệu hóa đơn, RAW canonical, Inventory hoặc Partner.</p></div>
             <button wire:click="refreshAvailableFiles" class="h-10 rounded-xl border border-gray-300 px-4 text-sm font-semibold text-gray-700">Làm mới</button>
