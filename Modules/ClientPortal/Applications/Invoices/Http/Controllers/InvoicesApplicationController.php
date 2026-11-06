@@ -304,8 +304,12 @@ final class InvoicesApplicationController extends Controller
                 ]);
                 return redirect()->route('client.invoices.sync')->with('status', 'Đã xác minh trang 1; cần CAPTCHA trang 2 trước khi ghi canonical.');
             }
-            // A one-page sync still uses the existing canonical service.
-            $result = $workspace->syncPos($filters['start'], $filters['end'], $filters['direction'], $challenge);
+            // Reuse the verified first-page rows: the CAPTCHA has already been consumed.
+            $rows = $gdt->takePosCompleteFirstPageRows();
+            if (! is_array($rows) || count($rows) !== $first['count']) {
+                throw new \RuntimeException('Không xác minh được toàn bộ hóa đơn POS trang 1.');
+            }
+            $result = $workspace->syncVerifiedPos($filters['start'], $filters['end'], $filters['direction'], $rows, $first['count']);
             return redirect()->route('client.invoices.sync', ['sync_id' => $result['sync_id']])
                 ->with(($result['status']['state'] ?? '') === 'completed' ? 'status' : 'error', $result['status']['message']);
         } catch (\Throwable $exception) {
