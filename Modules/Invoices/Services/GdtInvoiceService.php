@@ -166,6 +166,9 @@ class GdtInvoiceService
         }
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
+        if ($source === 'pos' && $start->format('Y-m') !== $end->format('Y-m')) {
+            throw new \InvalidArgumentException('Đồng bộ POS chỉ hỗ trợ một tháng dương lịch mỗi lần.');
+        }
         $filename = ($source === 'all' ? '' : $source.'_').$start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
         $show("[GDT] Khoảng thời gian: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}");
         $all = [];
