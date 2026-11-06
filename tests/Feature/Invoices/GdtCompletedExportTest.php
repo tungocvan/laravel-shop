@@ -10,15 +10,13 @@ class GdtCompletedExportTest extends TestCase
 {
     public function test_existing_excel_without_completion_manifest_is_not_skipped(): void
     {
+        $directory = 'gdt-completion-test-'.bin2hex(random_bytes(8));
+        config()->set('invoices.storage.export_directory', $directory);
         $service = app(GdtCompletedExport::class);
         $file = $service->path('2026-09-01', '2026-09-30', true, 'pos');
         File::ensureDirectoryExists(dirname($file));
-        $previous = is_file($file) ? file_get_contents($file) : null;
-        $marker = $file.'.complete.json';
-        $previousMarker = is_file($marker) ? file_get_contents($marker) : null;
         try {
             file_put_contents($file, 'fake-excel');
-            @unlink($marker);
             $this->assertNull($service->completed('2026-09-01', '2026-09-30', true, 'pos'));
             $service->mark('2026-09-01', '2026-09-30', true, 'pos', $file);
             $this->assertSame($file, $service->completed('2026-09-01', '2026-09-30', true, 'pos'));
@@ -26,8 +24,7 @@ class GdtCompletedExportTest extends TestCase
             $this->assertNull($service->completed('2026-09-01', '2026-09-30', true, 'pos'));
             $this->assertNull($service->completed('2026-09-01', '2026-09-30', true, 'regular'));
         } finally {
-            if ($previous === null) { @unlink($file); } else { file_put_contents($file, $previous); }
-            if ($previousMarker === null) { @unlink($marker); } else { file_put_contents($marker, $previousMarker); }
+            File::deleteDirectory(storage_path('app/'.$directory));
         }
     }
 
