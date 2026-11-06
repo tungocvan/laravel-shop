@@ -67,12 +67,36 @@ class PharmaTraditionalPriceLookupTest extends TestCase
         }
     }
 
+
+    public function test_traditional_import_allows_distinct_units_but_flags_conflicting_same_unit_rows(): void
+    {
+        $controller = new \Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
+        $method = new \ReflectionMethod($controller, 'hasConflictingSameUnitRows');
+        $base = ['name' => 'Cold Wind', 'registration' => 'TCT-00158-23', 'unit' => 'Ống', 'package' => 'Hộp 03 vỉ', 'wholesale' => 5900.0];
+        $differentUnit = array_replace($base, ['unit' => 'Lọ', 'package' => 'Hộp 01 lọ', 'wholesale' => 59000.0]);
+        $conflictingSameUnit = array_replace($base, ['package' => 'Hộp 06 vỉ']);
+
+        $this->assertFalse($method->invoke($controller, [$base, $differentUnit], $base));
+        $this->assertTrue($method->invoke($controller, [$base, $conflictingSameUnit], $base));
+    }
+
+    public function test_traditional_matcher_is_separate_from_dav_and_requires_unit(): void
+    {
+        $source = file_get_contents(base_path('Modules/Pharma/Services/MohTraditionalMedicineMatcher.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaTraditionalPriceController.php'));
+        $this->assertStringContainsString("['unit'] ?? null", $source);
+        $this->assertStringContainsString("Medicine::PRODUCT_TYPE_TRADITIONAL", $source);
+        $this->assertStringContainsString("MohTraditionalMedicineMatcher", $controller);
+        $this->assertStringNotContainsString("DavMedicineCandidateMatcher", $controller);
+        $this->assertStringContainsString("'product_type' => Medicine::PRODUCT_TYPE_TRADITIONAL", $controller);
+    }
+
     public function test_traditional_import_is_typed_and_does_not_set_planned_price(): void
     {
         $source = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaTraditionalPriceController.php'));
         $this->assertStringContainsString('Medicine::PRODUCT_TYPE_TRADITIONAL', $source);
         $this->assertStringContainsString("'declared_price' => \$candidate['wholesale']", $source);
         $this->assertStringNotContainsString("'selling_price' =>", $source);
-        $this->assertStringContainsString('hasMultiplePackages', $source);
+        $this->assertStringContainsString('hasConflictingSameUnitRows', $source);
     }
 }
