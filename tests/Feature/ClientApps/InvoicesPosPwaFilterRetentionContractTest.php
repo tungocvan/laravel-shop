@@ -16,8 +16,8 @@ class InvoicesPosPwaFilterRetentionContractTest extends TestCase
         $this->assertStringContainsString("'client.invoices.pos.last_filters'", $controller);
         $this->assertStringContainsString("'posLastFilters' =>", $controller);
         $this->assertStringContainsString("session()->put('client.invoices.pos.last_filters'", $controller);
-        $this->assertStringContainsString("$posLastFilters ??", $view);
-        $this->assertStringContainsString("$posLastFilters ||", $view);
+        $this->assertStringContainsString('$posLastFilters ??', $view);
+        $this->assertStringContainsString('$posLastFilters ||', $view);
         $this->assertStringContainsString('Bộ lọc đã được giữ lại', $controller);
     }
 }
