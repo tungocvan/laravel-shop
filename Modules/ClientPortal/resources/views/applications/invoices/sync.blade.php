@@ -114,20 +114,35 @@
                 <button id="regular-submit" type="submit" @disabled(! $tokenReady) class="min-h-12 w-full rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-[.98]">Bắt đầu đồng bộ thông thường</button>
                 <div id="pos-actions" class="hidden space-y-2">
                     <button type="submit" name="purpose" value="preview" formaction="{{ route('client.invoices.sync.pos.captcha') }}" @disabled(! $tokenReady) class="min-h-12 w-full rounded-2xl bg-slate-950 px-4 text-sm font-black text-white disabled:bg-slate-300 active:scale-[.98]">Tra cứu POS · CAPTCHA</button>
+                    <label class="flex items-center gap-2 rounded-xl border border-slate-200 p-3 text-xs font-semibold"><input type="checkbox" name="force_refresh" value="1"> Tôi xác nhận tra cứu lại nếu Excel POS đã tồn tại</label>
                     @if(($posPreview['count'] ?? 0) > 0)
                         <p class="rounded-xl bg-emerald-50 p-3 text-sm font-bold text-emerald-800">Đã xem trước {{ number_format($posPreview['count']) }} hóa đơn. Chỉ đồng bộ khi bộ lọc không đổi.</p>
                         <button type="submit" name="purpose" value="sync" formaction="{{ route('client.invoices.sync.pos.captcha') }}" @disabled(! $tokenReady) class="min-h-12 w-full rounded-2xl bg-emerald-700 px-4 text-sm font-black text-white disabled:bg-slate-300 active:scale-[.98]">Đồng bộ POS · CAPTCHA mới</button>
                     @endif
                 </div>
             </form>
+            @if(is_array($posPending) && isset($posPending['filters'], $posPending['purpose']))
+                <div class="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status">
+                    <p class="font-black">POS đang chờ xác minh trang 2</p>
+                    <p class="mt-1">Đã nhận trang 1. Cần CAPTCHA mới để xác minh đủ {{ number_format($posPending['total'] ?? 0) }} hóa đơn trước khi {{ $posPending['purpose'] === 'sync' ? 'ghi dữ liệu' : 'hoàn tất xem trước' }}.</p>
+                    <form method="POST" action="{{ route('client.invoices.sync.pos.captcha') }}" class="mt-3">
+                        @csrf
+                        <input type="hidden" name="start" value="{{ $posPending['filters']['start'] }}">
+                        <input type="hidden" name="end" value="{{ $posPending['filters']['end'] }}">
+                        <input type="hidden" name="direction" value="{{ $posPending['filters']['direction'] }}">
+                        <input type="hidden" name="purpose" value="{{ $posPending['purpose'] === 'sync' ? 'sync_page2' : 'preview_page2' }}">
+                        <button class="min-h-12 w-full rounded-xl bg-amber-800 px-4 font-bold text-white">Tải CAPTCHA trang 2</button>
+                    </form>
+                </div>
+            @endif
             @if($posCaptchaImage)
                 <form method="POST" action="{{ route('client.invoices.sync.pos.submit') }}" class="mt-4 space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">@csrf
-                    <p class="text-sm font-black text-slate-900">Xác minh POS · {{ ($posFilters['purpose'] ?? '') === 'sync' ? 'Đồng bộ' : 'Xem trước' }}</p>
+                    <p class="text-sm font-black text-slate-900">Xác minh POS · {{ in_array(($posFilters['purpose'] ?? ''), ['sync', 'sync_page2'], true) ? 'Đồng bộ' : 'Xem trước' }}</p>
                     <img src="{{ $posCaptchaImage }}" alt="CAPTCHA POS" class="max-h-24 max-w-56 rounded-xl border border-slate-200 bg-white p-2">
                     <label class="block text-sm font-bold">Nhập mã CAPTCHA POS
                         <input name="cvalue" autocomplete="off" maxlength="20" required class="mt-1 min-h-12 w-full rounded-xl border border-slate-300 bg-white px-3 text-base">
                     </label>
-                    <button class="min-h-12 w-full rounded-xl bg-slate-950 px-4 font-bold text-white active:scale-[.98]">Xác nhận {{ ($posFilters['purpose'] ?? '') === 'sync' ? 'đồng bộ POS' : 'tra cứu POS' }}</button>
+                    <button class="min-h-12 w-full rounded-xl bg-slate-950 px-4 font-bold text-white active:scale-[.98]">Xác nhận {{ in_array(($posFilters['purpose'] ?? ''), ['sync', 'sync_page2'], true) ? 'đồng bộ POS' : 'tra cứu POS' }}</button>
                 </form>
             @endif
         </section>
