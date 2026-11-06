@@ -89,6 +89,7 @@ final class InvoicesApplicationController extends Controller
             'posFilters' => $request->session()->get('client.invoices.pos.filters'),
             'posPreview' => $request->session()->get('client.invoices.pos.preview'),
             'posPending' => $request->session()->get('client.invoices.pos.pending'),
+            'posLastFilters' => $request->session()->get('client.invoices.pos.last_filters'),
         ]);
     }
 
@@ -185,6 +186,7 @@ final class InvoicesApplicationController extends Controller
         $filters = $this->posFilters($request);
         $purpose = $request->validate(['purpose' => ['required', 'in:preview,sync,preview_page2,sync_page2']])['purpose'];
         $fingerprint = $this->posFingerprint($filters);
+        $request->session()->put('client.invoices.pos.last_filters', $filters);
         if ($purpose === 'preview' && $this->existingPosFile($filters) !== null && ! $request->boolean('force_refresh')) {
             return back()->withInput()->with('error', 'File Excel POS đã tồn tại: '.basename($this->existingPosFile($filters)).'. Chỉ tra cứu lại GDT khi bạn xác nhận.');
         }
@@ -224,6 +226,9 @@ final class InvoicesApplicationController extends Controller
         $validated = $request->validate(['cvalue' => ['required', 'string', 'max:20']]);
         $filters = $request->session()->pull('client.invoices.pos.filters');
         $request->session()->forget('client.invoices.pos.image');
+        if (is_array($filters) && isset($filters['start'], $filters['end'], $filters['direction'])) {
+            $request->session()->put('client.invoices.pos.last_filters', array_intersect_key($filters, array_flip(['start', 'end', 'direction'])));
+        }
         if (! is_array($filters) || ! in_array($filters['purpose'] ?? null, ['preview', 'sync', 'preview_page2', 'sync_page2'], true)) {
             return redirect()->route('client.invoices.sync')->with('error', 'CAPTCHA POS đã hết phiên. Vui lòng tải mã mới.');
         }
@@ -315,7 +320,8 @@ final class InvoicesApplicationController extends Controller
         } catch (\Throwable $exception) {
             report($exception);
             $request->session()->forget('client.invoices.pos.preview');
-            return redirect()->route('client.invoices.sync')->with('error', 'Yêu cầu POS thất bại hoặc CAPTCHA hết hiệu lực. Vui lòng tải CAPTCHA mới.');
+            // Preserve the user's exact filters; the challenge is single-use but filters are not.
+            return redirect()->route('client.invoices.sync')->with('error', 'Tra cứu POS chưa thành công. CAPTCHA có thể hết hạn hoặc GDT từ chối yêu cầu. Bộ lọc đã được giữ lại; vui lòng tải CAPTCHA mới.');
         }
     }
 
