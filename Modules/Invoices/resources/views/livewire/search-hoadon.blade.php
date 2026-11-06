@@ -95,6 +95,17 @@
         </div>
         <div class="flex flex-col gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div><label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="useQueue" @disabled($invoiceSource !== 'regular') class="rounded border-slate-300"> Xử lý qua queue</label><p class="mt-1 text-xs text-slate-500">{{ $invoiceSource === 'regular' ? 'Regular có thể xử lý qua queue.' : 'POS chỉ xử lý trực tiếp sau CAPTCHA.' }}</p></div>
+            @if($completedCanonical = $this->completedCanonicalExport())
+                <div class="w-full rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900" role="status">
+                    <p class="font-semibold">Đã đồng bộ canonical hoàn tất — {{ basename($completedCanonical) }}</p>
+                    <p class="mt-1">Hệ thống sẽ bỏ qua lần đồng bộ trùng, không yêu cầu CAPTCHA.</p>
+                    @if(!$forceResync)
+                        <button type="button" wire:click="confirmCanonicalResync" wire:confirm="Đồng bộ lại sẽ truy vấn GDT và cập nhật canonical/Excel đã hoàn tất. Bạn chắc chắn muốn tiếp tục?" class="mt-2 min-h-10 rounded-lg border border-emerald-700 px-3 py-2 font-semibold">Đồng bộ lại</button>
+                    @else
+                        <p class="mt-2 font-semibold text-amber-800">Đã xác nhận đồng bộ lại. Nhấn Đồng bộ canonical để thực hiện.</p>
+                    @endif
+                </div>
+            @endif
             <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosSyncCaptcha' : 'run' }}" wire:loading.attr="disabled" wire:target="openPosSyncCaptcha,run" @disabled($searchState !== 'completed' || (int) ($searchPreview['count'] ?? 0) <= 0 || $searchedFingerprint !== hash('sha256', implode('|', [$invoiceSource, $start_date, $end_date, (int) $vatIn]))) class="min-h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="run">Đồng bộ canonical</span><span wire:loading wire:target="run">Đang đồng bộ…</span></button>
         </div>
     </section>
