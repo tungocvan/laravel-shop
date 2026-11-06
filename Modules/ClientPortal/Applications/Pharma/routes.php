@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineRelationsController;
@@ -21,6 +22,13 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
 
         Route::get('/lookups', [PharmaLookupController::class, 'index'])
             ->middleware('client.feature:pharma,lookups')->name('lookups');
+
+        Route::get('/traditional-prices', [PharmaTraditionalPriceController::class, 'index'])
+            ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices');
+        Route::get('/traditional-prices/import', [PharmaTraditionalPriceController::class, 'preview'])
+            ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices.import.preview');
+        Route::post('/traditional-prices/import', [PharmaTraditionalPriceController::class, 'import'])
+            ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices.import.store');
 
         Route::get('/dav-prices', [PharmaDavPriceController::class, 'index'])
             ->middleware('client.feature:pharma,dav-prices')->name('dav-prices');
