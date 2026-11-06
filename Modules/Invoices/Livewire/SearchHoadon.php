@@ -462,6 +462,7 @@ class SearchHoadon extends Component
                 $this->posSyncPhase = 'awaiting_captcha';
                 $this->syncState = 'awaiting_captcha';
                 $this->syncMessage = 'Đã nhận 15/'.$snapshot['total'].' hóa đơn để đồng bộ. Nhập CAPTCHA mới cho trang 2; chưa ghi canonical.';
+                $this->dispatch('pos-sync-awaiting');
 
                 return;
             } catch (\Throwable $exception) {
