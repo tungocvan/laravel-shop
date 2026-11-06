@@ -21,6 +21,15 @@ class GdtInvoiceService
 {
     /** Page-one POS snapshot is request-local; never exposed to Livewire hydration. */
     private ?array $posFirstPage = null;
+    private ?array $posCompleteFirstPageRows = null;
+
+    public function takePosCompleteFirstPageRows(): ?array
+    {
+        $rows = $this->posCompleteFirstPageRows;
+        $this->posCompleteFirstPageRows = null;
+
+        return $rows;
+    }
 
     public function takePosFirstPage(): ?array
     {
@@ -47,9 +56,13 @@ class GdtInvoiceService
         }
 
         $this->posFirstPage = null;
+        $this->posCompleteFirstPageRows = null;
         $rows = $this->fetchInvoicesByMonth($token, $from, $to, static function (string $message): void {}, $vatIn, true, $captcha, true);
         $pending = $this->posFirstPage;
         $count = count($rows);
+        if ($pending === null) {
+            $this->posCompleteFirstPageRows = $rows;
+        }
 
         return [
             'source' => 'pos',
