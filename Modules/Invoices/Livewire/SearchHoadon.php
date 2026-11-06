@@ -111,6 +111,10 @@ class SearchHoadon extends Component
     private function clearSearchPreview(): void
     {
         $this->discardPosContinuation();
+        // Filter changes invalidate both preview and canonical sync checkpoints.
+        // Never leave an encrypted page-one canonical snapshot resumable after
+        // the source, direction or date range has changed.
+        $this->discardPosSyncContinuation();
         $this->posCaptchaModalOpen = false;
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
