@@ -601,3 +601,15 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User explicitly confirmed **UI PASS** for the Admin Invoices workflow after the two-tier focused and module regression PASS at feature commit `482cc6203`.
 - UI acceptance is user-reported, not independently reproduced by the GitHub connector. No CI status or impacted/cross-module regression is implied by this confirmation.
 - Preserve Draft PR #362 until final review gates and explicit merge authorization; no production deployment.
+
+
+## 2026-11-06 — ClientPortal Invoices PWA regular/POS sync checkpoint (PENDING TEST/UI)
+
+- Branch: `feat/client-invoices-pwa-pos-sync-20261106`, created from latest `main` after PR #362 merge. No production action.
+- Route `/apps/invoices/sync` reworked as a focused mobile-first PWA workspace with local back navigation, responsive direction/source/date controls, status, GDT login CAPTCHA and separate POS challenge. Uses shared `<x-pwa-date>` and ClientPortal layout; no new module/database tables.
+- ClientPortal remains the web-guard authorization/presentation adapter; canonical POS preview/persistence still belongs to `GdtInvoiceService`. Regular sync now explicitly dispatches `ProcessGdtInvoicesJob(source=regular)`; legacy `source=all` queue behavior is not modified in the domain job.
+- POS flow: web-user+session scoped ephemeral challenge; one-month guard; preview count in server session; fingerprint checked before sync; fresh CAPTCHA for preview and for direct canonical sync; no POS CAPTCHA/answer in queued jobs or browser persistent storage. The existing `GdtApiService` CAPTCHA key API accepts string scope while preserving admin integer callers.
+- PWA sync feature title/eyebrow/description flow through manifest + `ClientPortalSettingsService::featurePresentation()`; editable from `/admin/client-apps`. Existing application/feature permission remains `client.invoices.sync`.
+- Added `tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php` for web middleware, canonical source, queue guard, managed presentation and PWA date control.
+- **Known limitations**: POS direct synchronous request can hit PHP/web-server timeout on large upstream responses; keep range narrow and monitor GDT rate limiting. POS-generated Excel remains server-side; no new PWA download action is exposed in this batch. Existing regular queue status/download behavior otherwise remains unchanged. Do not infer UI PASS from source checks.
+- **Checkpoint**: first `php artisan test tests/Feature/ClientApps/InvoicesPosPwaSyncContractTest.php tests/Feature/Invoices/GdtCanonicalSourceSelectionContractTest.php tests/Feature/Invoices/GdtPosRateLimitSafeSearchTest.php`. Only after PASS run `php artisan test tests/Feature/Invoices` and relevant ClientPortal/ClientApps regression. Manual UI acceptance on desktop/tablet/iPhone installed PWA: GDT login, regular sync, POS preview CAPTCHA, POS sync new CAPTCHA, month guard, permission denial, refresh, errors and navigation. No TEST PASS or UI PASS claimed; PR Draft until gates.
