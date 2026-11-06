@@ -688,3 +688,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User ran focused tests: 14 PASS, 1 FAIL (74 assertions). Failure: `GdtPosPaginationCheckpointTest` compares `create()` result including `id` against `find()` result omitting `id`.
 - Fixed `find()` to reconstruct `['id' => $id] + $value` after session-scoped cache lookup. Cache continues to hold metadata only; no CAPTCHA/token/cookie/invoice content. No GDT HTTP logic modified.
 - Fix NOT YET TESTED. Re-run focused checkpoint test first, then remaining focused tests, then Invoices module regression if focused PASS. UI still FAIL; do not merge.
+
+
+### 2026-11-06 — Batch 5: failed POS preview UI recovery (limited scope)
+- Audited actual `Modules/Invoices/Livewire/SearchHoadon.php` and `Modules/Invoices/resources/views/livewire/search-hoadon.blade.php`: the current flow is synchronous, consumes one CAPTCHA and calls `previewSource()`; on page-2 HTTP 500 it marks `searchState=failed`, with no resumable invoice payload. Existing canonical action is disabled unless `searchState=completed`.
+- Added an explicit failed-POS warning and button to open **fresh CAPTCHA search** in the existing modal, with text stating that this is a **new search**, NOT a resume from page 2. Existing permission, fingerprint validation and canonical lock remain unchanged. Added source-level UI regression contract.
+- **Not implemented:** partial-result persistence, page-2 continuation UI, or upstream page-selection mechanism. Full-month 17/17 UI remains FAIL until a real verified continuation exists. No false UI PASS claim.
+- User reported previous checkpoint tests PASS (exact focused/module breakdown unspecified). New batch tests NOT RUN. Focused `php artisan test tests/Feature/Invoices/GdtPosFailedPreviewUiContractTest.php tests/Feature/Invoices/GdtPosCaptchaPaginationRegressionTest.php`; only if PASS `php artisan test tests/Feature/Invoices`. Manual UI check on desktop/mobile: failed POS shows retry and canonical disabled; retry opens fresh CAPTCHA. Do not merge/deploy.
