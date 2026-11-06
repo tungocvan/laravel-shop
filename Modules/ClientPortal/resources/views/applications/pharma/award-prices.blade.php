@@ -3,7 +3,7 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('content')
-<div class="min-w-0 space-y-4" x-data="{filters: false, detail: null, selected: [], allIds: @js(collect($result['items'] ?? [])->pluck('id')->filter()->map(fn ($id) => (string) $id)->values()->all())}">
+<div class="min-w-0 space-y-4" x-data="{filters: false, detail: null, selected: [], allIds: @js(collect($result['items'] ?? [])->pluck('id')->filter()->map(fn ($id) => (string) $id)->unique()->values()->all())}">
     <section class="rounded-3xl bg-slate-950 px-5 py-5 text-white sm:px-7">
         <a href="{{ route('client.pharma.lookups') }}" class="inline-flex min-h-10 items-center text-sm font-semibold text-slate-200">← Tra cứu</a>
         <h1 class="mt-1 text-xl font-black sm:text-2xl">Tra cứu thuốc trúng thầu</h1>
