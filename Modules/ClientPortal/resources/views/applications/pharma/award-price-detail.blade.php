@@ -60,7 +60,10 @@
             @elseif($match['status'] === 'existing')
                 <p class="text-sm text-emerald-800">Đã xác định thuốc #{{ $match['medicine_id'] }} trong danh mục. Chỉ cập nhật nguồn trúng thầu.</p>
             @else
-                <p class="text-sm text-indigo-800">Chưa có thuốc trùng bộ ba định danh. Bước tiếp theo sẽ yêu cầu xác nhận tạo mới.</p>
+                <p class="text-sm text-indigo-800">Chưa có thuốc trùng bộ ba định danh. Bước tiếp theo sẽ yêu cầu xác nhận tạo mới ở trạng thái Cần rà soát.</p>
+            @endif
+            @if($match['status'] === 'new' && !($match['registration_verified'] ?? false))
+                <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Số GĐKLH/GPNK chưa được xác minh. Nếu xác nhận đồng bộ, hệ thống sẽ tạo thuốc mới cần rà soát và lưu mã nguồn trong lịch sử trúng thầu, không ghi vào số đăng ký chính thức.</p>
             @endif
             @if($canSync && $match['status'] !== 'review')
                 <form method="POST" action="{{ route('client.pharma.award-prices.sync.preview') }}">
