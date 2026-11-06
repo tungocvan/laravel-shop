@@ -1,3 +1,48 @@
+## 2026-11-05 — POS HTTP diagnostics checkpoint
+
+- Branch: `feat/invoices-gdt-independent-sources-20261105`; additive diagnostics only.
+- `GdtInvoiceService::fetchInvoicesByMonth()` logs allowlisted metadata for non-2xx/non-401/403 HTTP responses: source, relative endpoint, direction, page, status, response content type classification (JSON/HTML/other), presence of POS filter, page size and pagination-state presence. No response body, response error message, full query/search, invoice payload, request URL, credentials, or token is logged.
+- Preserves POS endpoint `/sco-query/invoices/`, `ttxly==8`, existing 401/403 handling, Regular checkpoint, retry, failure propagation and incomplete-Excel guard. HTTP 500 root cause remains unverified.
+- New HTTP-fake test `tests/Feature/Invoices/GdtPosHttpDiagnosticsTest.php` covers JSON/HTML failure responses, allowlisted log context and HTTP 500 propagation.
+- Focused: `php artisan test tests/Feature/Invoices/GdtPosHttpDiagnosticsTest.php tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php`. Only after PASS run module regression `php artisan test tests/Feature/Invoices`.
+- Tests not executed by GitHub connector; UI NOT VERIFIED. No PR, merge, production change or worker restart.
+
+## 2026-11-05 — Integration/Regression checkpoint (HTTP fake)
+
+- Added `tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php` to execute real `GdtInvoiceService::processRange` control flow with Laravel `Http::fake` and `Cache`: empty Regular completes, POS first responds HTTP 500, retry reuses Regular checkpoint, POS succeeds, no incomplete Excel produced.
+- This is an HTTP/cache integration test, **not a database persistence integration test**; non-empty canonical insert/dedup and Excel export remain unverified.
+- Run focused first: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php tests/Feature/Invoices/GdtSourceProgressContractTest.php tests/Feature/Invoices/GdtSourceChunkRetryContractTest.php tests/Feature/Invoices/GdtSourceRetryHttpIntegrationTest.php`.
+- Only if focused PASS, run module regression appropriate to existing Invoices tests, then impacted cross-module tests as needed. Stop on failure. UI requires user verification.
+- Test execution NOT RUN in GitHub environment; no PR, merge or production deployment.
+
+## 2026-11-05 — Batch 3: request-scoped monthly source retry checkpoint
+
+- For `source=all` with a `syncId`, each fully fetched month/source payload is cached for 24 hours, keyed by sync id, direction, requested range and monthly chunk.
+- Regular canonical headers persist before its completed monthly payload is cached. On POS HTTP 500, retry reuses completed Regular monthly payload without re-querying it. POS is cached only after a fully successful paginated fetch.
+- Combined Excel remains gated on successful completion of every month and both sources; cached payloads are reused for final deduplication and export.
+- For `syncId=null`, no cross-attempt payload reuse; existing behavior remains. Cache expiry can cause a safe refetch. The job retains existing three-attempt policy.
+- Limitations: this is a cache-backed retry checkpoint, not a durable audit ledger; cache loss causes refetch, and it does not provide integration-tested exactly-once semantics. The POS HTTP 500 upstream cause is still unresolved. No database schema change.
+- Tests NOT RUN: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php tests/Feature/Invoices/GdtSourceProgressContractTest.php tests/Feature/Invoices/GdtSourceChunkRetryContractTest.php`. Regression and UI NOT VERIFIED. No PR, merge or deploy.
+
+## 2026-11-05 — GDT independent-source rollout, batch 2 checkpoint
+
+- Adds cache status `source_progress.regular=persisted` after regular canonical checkpoint, `source_progress.pos=failed` on POS failure and `source_progress.pos=fetched` after a completed monthly POS fetch.
+- All-source job records `partial` during retries, retains exception propagation and final `failed` state after retries exhausted. These statuses describe progress, **not full-range source completion**.
+- No change to GDT POS query contract (`ttxly==8`), retry policy, database schema, or combined Excel safety.
+- **Outstanding:** full-range source completion markers, source-only retry without fetching regular again, end-to-end DB integration test, and source-aware combined export. Do not mark option B complete.
+- Focused tests NOT RUN: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php tests/Feature/Invoices/GdtSourceProgressContractTest.php`.
+- UI NOT VERIFIED; module regression NOT RUN; no PR/merge/deploy.
+
+## 2026-11-05 — GDT independent-source rollout, batch 1 (checkpoint)
+
+- Branch: `feat/invoices-gdt-independent-sources-20261105`.
+- Verified regular GDT pages are persisted as canonical headers before requesting POS within each monthly chunk in `source=all`.
+- If POS returns HTTP 500, the all-source job still fails, no incomplete Excel is emitted, and regular headers from that chunk are retained.
+- Existing canonical persistence is reused (idempotent invoice identity). No schema, environment, or production changes.
+- **Not yet implemented:** skip successful regular on retries, source-specific job status, full cross-month atomicity, and a source-complete combined export. These are follow-up architecture batches; do not describe this checkpoint as full option B.
+- Focused test: `php artisan test tests/Feature/Invoices/GdtRegularCanonicalCheckpointContractTest.php`.
+- Gates: focused tests NOT RUN; module regression NOT RUN; UI NOT VERIFIED; PR NOT CREATED; do not merge/deploy.
+
 # Invoices Collaboration Handoff
 
 ## Final status — Structured Lot / Expiry Canonical Mapping
@@ -273,3 +318,286 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - **Gate:** Local focused tests NOT RUN, module regression NOT RUN, impacted tests NOT RUN, UI NOT VERIFIED. Do not merge or deploy. Database migration/import and .env cleanup require a separate approval checkpoint.
 
 - Follow-up commit: preserve password when Livewire nullable password field is absent; four advanced GDT tuning defaults no longer read GDT_* env variables. Await fresh focused/module tests after pulling.
+
+
+## 2026-11-05 — Integrate GDT configuration input reload fix into POS diagnostics branch
+
+- Branch: `feat/invoices-gdt-independent-sources-20261105` (existing feature branch; no merge to main).
+- Ported the already-reviewed deferred bindings from `fix/invoices-gdt-config-input-reload-20261105` into `Modules/Invoices/resources/views/livewire/gdt-login.blade.php`: seven GDT configuration fields use `wire:model` instead of `wire:model.live`, so typing no longer triggers per-keystroke Livewire updates; captcha retains its existing live binding.
+- Ported the focused binding regression contract to `tests/Feature/Invoices/GdtDatabaseSettingsTest.php`.
+- No changes to GDT password persistence, API endpoints, Regular canonical checkpoint, POS retry/HTTP diagnostics, database schema, .env or production configuration.
+- Local gate pending: `GdtDatabaseSettingsTest`, `GdtPosHttpDiagnosticsTest`, `GdtSourceRetryHttpIntegrationTest`; only after focused PASS run `tests/Feature/Invoices`; then manual UI verification on `/admin/invoices/create-token` for typing without reload, explicit save, password preservation, captcha/login and responsive layout.
+- Prior POS-focused and Invoices regression PASS was reported before this integration; rerun required. UI PASS not yet confirmed. No PR, merge or deploy authorized.
+
+
+### 2026-11-05 — POS HTTP request-profile read-only audit and fake-based regression
+
+- Compared canonical GdtInvoiceService with GdtExcelSandboxService: both use Bearer authentication and the same Accept, Origin, Referer, Action, End-Point and request-id headers; sandbox additionally sets a connect timeout. Both send POS `/sco-query/invoices/purchase` with `ttxly==8`, `sort=tdlap:desc`, `size=50`.
+- No evidence that changing headers, endpoint, search filter, or timeout resolves upstream POS HTTP 500. No live API probe or production configuration change authorized.
+- Extended `GdtPosHttpDiagnosticsTest` with Laravel HTTP-fake assertions for POS query shape, first-page state absence and presence of expected request headers. Tests do not log token, query values, response body or invoice identifiers.
+- Checkpoint pending: focused `GdtPosHttpDiagnosticsTest`, `GdtSourceRetryHttpIntegrationTest`, `GdtDatabaseSettingsTest`; if PASS, run Invoices module regression. Manual UI PASS remains user-confirmed only. No PR/merge/deploy.
+
+
+### 2026-11-05 — Opt-in POS query diagnostics checkpoint
+
+- Added `invoices:gdt-pos-diagnose` (registered in InvoicesServiceProvider). Default is dry-run; `--execute` explicitly authorizes exactly one authenticated GET to `/sco-query/invoices/{purchase|sold}` with `size=1`, date range max 31 days, `ttxly==8`, no pagination, no retries.
+- Uses existing cached token, HTTPS-only base URL, bounded connect/total timeouts. Prints only status and response format; never prints response body, token, invoice IDs, query values or raw exception messages. Does not persist invoices, export Excel, alter config, or update cache.
+- Focused fake-HTTP tests: `tests/Feature/Invoices/GdtPosQueryDiagnosticCommandTest.php`. Tests pending; no real GDT request has been sent.
+- Checkpoint: run focused test and prior GDT diagnostics tests; only after PASS run `tests/Feature/Invoices`. Keep `--execute` off until separately approved for the specific environment. No PR/merge/deploy.
+
+### 2026-11-05 — POS endpoint/filter evidence and comparison
+
+- Public community implementations reference `/sco-query/invoices/purchase` for POS purchase, so an endpoint typo is not established. Sources: https://www.giaiphapexcel.com/diendan/threads/t%E1%BA%A3i-h%C3%B3a-%C4%91%C6%A1n-%C4%91i%E1%BB%87n-t%E1%BB%AD-https-hoadondientu-gdt-gov-vn-excel-vba.171723/page-7 and https://gist.github.com/lesslucifer/168f0fd84a1efbed4a0c102043ef1d31 . These are community references, not official API contracts.
+- Existing POS HTTP 500 reproduced with size=1, date range 2026-10-12..2026-10-31, filter `ttxly==8`. Root cause still unverified.
+- Diagnostic command now supports `--without-pos-filter` as a comparison option only. Default remains filtered and dry-run. Never enable automatic fallback in production sync based on this test alone; compare response status and schema first. No changes to GdtInvoiceService or Excel sandbox.
+- Fake-HTTP test covers one GET and absent filter; awaiting DELL focused/module tests. No live comparison request performed, no PR/merge/deploy.
+
+### 2026-11-05 — Safe POS JSON error-shape diagnostics
+
+- After POS HTTP 500 persisted with size=1 both with and without `ttxly==8`, extended `invoices:gdt-pos-diagnose` to report only whether top-level `code`, `status`, `error`, `message` fields exist and their primitive type. Does not print ANY remote field values, nested data, response body, identifiers, or token. No request changes and no runtime sync changes.
+- Added fake HTTP regression with sensitive-looking response content; focused tests and module regression pending DELL. Existing UI login PASS previously reported. Keep explicit `--execute` separate from dry-run; no automatic live request, PR, merge or deploy.
+
+### 2026-11-05 — Fixed-label POS error message classification
+
+- GDT POS diagnostic returned HTTP 500 JSON with top-level string `message`; actual text remains private.
+- Extended diagnostic command to classify up to 2048 bytes of that string into fixed labels: `ENDPOINT_NOT_FOUND`, `AUTHORIZATION_ERROR`, `INVALID_QUERY`, `UPSTREAM_ERROR`, or `UNKNOWN`. Labels are heuristics, not verified root cause. No raw message output or persistence; dry-run and single-request `--execute` unchanged.
+- Fake HTTP tests cover recognized invalid query, sensitive unknown message, and structured message. Await DELL focused and module regression; no production API request or merge.
+
+### 2026-11-05 — POS human CAPTCHA integration (checkpoint pending)
+
+- Browser evidence: GET `/api/captcha` returns JSON `key` and SVG `content`; manual POS purchase search uses `/api/sco-query/invoices/purchase`, `ttxly==5`, `ckey` and `cvalue`, and search-specific headers. Captcha is shown only after Search. Browser HTTP 200 does not prove Laravel success.
+- Added isolated POS CAPTCHA lifecycle to GdtApiService: 5-minute per-admin cache of key and temporary cookie jar, image rendered as SVG data URI in `img` (never raw DOM markup), one-time consume, no persisted answer. SearchHoadon displays challenge only for POS-inclusive sources; requires manual non-queue sync, consumes challenge and clears answer before processing. Existing Regular-only queue remains unchanged.
+- GdtInvoiceService POS requests require explicit challenge, use observed `ttxly==5` plus `ckey`/`cvalue`, search-specific Action/End-Point headers and challenge cookies. Regular endpoint and query remain unchanged. All-source synchronous path persists Regular before POS as before. Queue POS/all is deliberately blocked in UI pending a secure cross-worker verification design; direct legacy jobs without challenge fail closed rather than silently query without verification.
+- Added `GdtPosCaptchaFlowTest`, adjusted existing POS HTTP fake diagnostics/retry tests. Checkpoint DELL: focused tests first, module regression only after PASS, UI verification required before merge. No live GDT request, no PR/merge/deploy. Verify whether GDT requires additional session context, CAPTCHA reuse across pages, and 200 schema with manual UI; if not, stop and investigate, do not auto-bypass CAPTCHA.
+
+- Checkpoint follow-up: focused tests initially 3 FAIL / 3 PASS. Root cause in tests: POS fake URL matched overlapping regular substring first; retry test omitted fresh POS CAPTCHA. Fixed fake matching order and second-attempt challenge in commits `3ff19cf34` and `c3c6e80fe`. Await DELL focused retest; no PASS claimed.
+
+- Second focused checkpoint: 2 FAIL / 4 PASS. Root cause confirmed in service diagnostics: `search_has_pos_filter` still checked obsolete `ttxly==8` after POS query switched to `ttxly==5`; Mockery log assertion threw before expected HTTP 500 exception. Fixed service metadata predicate (commit `7e69b20df2`). Await retest; no TEST PASS claimed.
+
+- Module regression checkpoint: 95 PASS, 3 FAIL (795 assertions), all stale source-text contracts in `GdtCanonicalPosSyncContractTest`, `GdtCanonicalSourceSelectionContractTest`, and `GdtRegularCanonicalCheckpointContractTest`. Updated expected POS call signature to include `$posCaptcha` and filter to `ttxly==5`; kept checkpoint ordering and canonical persistence assertions. Await focused retest of three contract tests and module regression, then UI confirmation. No merge/deploy.
+
+### 2026-11-05 — Source-aware GDT sync dashboard (UI checkpoint pending)
+
+- Approved UI redesign: `SearchHoadon` now displays separate Regular/POS cards with GDT-reported counts (or em dash when not verified), explicit state per source, and aggregate RAW detail results. No fabricated counts, no database migration.
+- `GdtInvoiceService::lastSourceStats()` tracks per-source query results, zero-result success, failure, skip, and post-processing state; counts accumulate across month chunks. Counts are API rows, not new DB inserts, and can overlap across sources. The queue's supported Regular-only source branch publishes source/detail results in cache for Livewire polling.
+- Changing source to POS/all switches to direct mode automatically; queue checkbox is disabled for POS-inclusive sources, preserving manual CAPTCHA gate. Regular retains queue. Existing file management/import/backup actions unchanged.
+- Added `GdtSyncDashboardContractTest`. Checkpoint: run focused tests (new contract + existing POS/canonical tests), then `tests/Feature/Invoices` only after focused PASS; manual desktop/mobile CAPTCHA and source-count UI acceptance required. No local execution or UI PASS claim, no PR/merge/deploy.
+
+### 2026-11-05 — GDT Regular/POS tab search-first UI (checkpoint pending)
+
+- Approved replacement of source dropdown by two accessible tab buttons (Regular / POS). Search inputs: direction, date range, manual POS CAPTCHA; `Tìm kiếm hóa đơn` calls read-only `GdtInvoiceService::previewSource()` with existing paginated GDT fetch logic and returns count + up to 20 safe summary rows; no canonical persistence/export during preview.
+- `SearchHoadon::searchInvoices()` captures success/empty/failure explicitly; only a successful preview matching current source/date/direction enables canonical sync. Switching tabs or filters clears preview. POS CAPTCHA is consumed for the search; a **new CAPTCHA is required for canonical sync** because no CAPTCHA credentials are cached in the component or queued. Regular queue remains supported; POS queue remains disabled.
+- Existing canonical processRange, RAW header/detail, exports and file/backup UI are preserved. Preview counts are API results, not persisted row counts. Search does not imply sync PASS. Preview query may be expensive for large date ranges; test on short ranges first.
+- Added `GdtTabSearchContractTest`, updated `GdtSyncDashboardContractTest`. Checkpoint: focused tests → module regression → desktop/tablet/iPhone UI, manual CAPTCHA search + fresh CAPTCHA sync and 0-result state. No TEST/UI PASS asserted; no PR/merge/deploy.
+
+### 2026-11-05 — POS rate-limit safe search checkpoint
+
+- Evidence: POS September 2026 preview returned HTTP 200 / 0 invoices; multi-month Jan–Aug 2026 preview returned HTTP 429. Root cause (rate limit scope, threshold, pagination) remains unproven; no GDT live request executed by assistant.
+- Read-only audit: `previewSource()` loops monthly and each month can paginate; `fetchInvoicesByMonth()` previously surfaced generic HTTP 429. Implemented conservative POS **preview-only** one-calendar-month guard before GDT call and before Livewire consumes the one-time CAPTCHA; Regular preview unchanged. POS canonical sync continues to use its existing service path, without any new rate-limit bypass.
+- On HTTP 429, service stops immediately, preserves fail-closed/no partial export behavior, and displays a safe message plus numeric Retry-After seconds if present; no automatic retries, CAPTCHA bypass, token/cookie logging or infrastructure change.
+- New `GdtPosRateLimitSafeSearchTest` verifies multi-month POS guard makes zero HTTP requests, Regular multi-month remains permitted, and HTTP 429 sends one request with safe user message. Await focused tests and module regression; then UI validation on POS single-month / multi-month, 429 and Regular. No TEST/UI PASS claimed, no merge/deploy.
+
+### 2026-11-05 — POS purchase filter parity and empty-preview safety (pending checkpoint)
+
+- User-provided GDT browser evidence: July 2026 POS purchase returned 10 invoices with `search=tdlap=ge=01/07/2026T00:00:00;tdlap=le=31/07/2026T23:59:59;ttxly==8`, sort `tdlap:desc`, size 15; Laravel preview with same month returned 0 while source used `ttxly==5`. This is strong evidence for filter mismatch, not yet a verified post-fix GDT response. CAPTCHA keys/answers are not recorded.
+- Changed shared POS fetch filter to `ttxly==8` (Regular unchanged); retained endpoint, size 50, CAPTCHA one-time verification, month guard for preview, HTTP 429 fail-closed and no partial export. Existing older notes referring to `ttxly==5` describe historical code only.
+- Empty successful preview now shows `Không tìm thấy hóa đơn`, disables canonical button and rejects forged/direct Livewire `run()` with empty count. No persistence or queue action on empty preview.
+- Updated focused contracts: `GdtPosCaptchaFlowTest`, `GdtPosHttpDiagnosticsTest`, `GdtTabSearchContractTest`. Checkpoint pending: focused tests, then `tests/Feature/Invoices`, then user-confirmed desktop/tablet/mobile UI on July POS purchase with fresh CAPTCHA and zero-result state. No tests or UI PASS claimed, no PR/merge/deploy.
+
+### 2026-11-05 — POS CAPTCHA two-step UX (checkpoint pending)
+
+- User observed GDT browser flow: click Search → CAPTCHA prompt → enter human answer and confirm → invoice list. Implemented equivalent POS-only UI flow: search opens CAPTCHA dialog, confirmation invokes existing preview; canonical sync opens a fresh CAPTCHA dialog and confirmation invokes existing run. Regular search/queue behavior preserved. POS month guard applies before CAPTCHA request. Switching source/date/direction closes dialog and clears UI challenge; CAPTCHA answers never go to queue. Backend GDT CAPTCHA cookie/session behavior and HTTP 429 handling unchanged.
+- UI change alone does **not** establish why POS July 2026 returned 0: GDT browser returns 10 with `ttxly==8`, parser shape matches, but server-side GDT response still unobserved. Do not claim data integration fixed.
+- Focused tests: `GdtTabSearchContractTest`, `GdtPosCaptchaFlowTest`, `GdtPosRateLimitSafeSearchTest`, `GdtCanonicalPosSyncContractTest`; then module regression `tests/Feature/Invoices` only if focused PASS. User must confirm UI on desktop/mobile. No tests executed by assistant, no UI PASS, PR/merge/deploy.
+
+### 2026-11-05 — POS HTTP 200 metadata diagnostic checkpoint
+
+- POS HTTP 200 now emits one allowlisted `GDT POS invoice query response metadata.` log per page: source, action, page, HTTP status, content-type category, numeric response total, datas count/type, page size, POS filter presence, cookie presence, pagination-state presence. No raw payload, token, URL, CAPTCHA, cookie or invoice data. Regular unchanged.
+- Tests added to `GdtPosRateLimitSafeSearchTest` using HTTP fakes and log spy for populated and empty POS responses, asserting no sensitive fixture values in metadata. Focused and module regression pending actual DELL execution; UI still returns 0 vs GDT browser 10, root cause not yet confirmed. Do not merge or deploy.
+- Diagnostic checkpoint: after successful focused/module tests, make at most one user-initiated POS query and inspect only the allowlisted log line. Do not paste full application logs or secret values. Compare response_total/datas_count/page_size/cookie boolean to GDT browser result before changing query parameters.
+
+### 2026-11-05 — POS malformed-success fail-closed fix
+
+- User confirmed target is POS **purchase**. Recent `purchase` metadata with `has_captcha_cookie=false` may be from HTTP fake tests; do not infer live GDT behavior. The latest `sold` record is not proof of purchase behavior.
+- POS-only HTTP 200 guard now requires `datas` to be a list and `total` to be a nonnegative integer >= current page count. Otherwise throw a clear exception, never return false 0 or persist canonical. Regular behavior untouched. HTTP 429 and CAPTCHA flow unchanged.
+- HTTP fake tests added for malformed success and ten-row purchase; existing empty-list test covers legitimate zero. Focused tests and module regression pending DELL; no UI PASS or merge.
+
+### 2026-11-05 — POS response shape diagnostics
+
+- Added allowlisted metadata `response_shape`, `datas_type`, `total_type`, normalized `content_type`, and `request_action` to existing POS HTTP 200 diagnostic. MIME is normalized to json/html/other, not logged raw. No response body, token, CAPTCHA, cookie or invoice fields. No request/page-size behavior changes.
+- Added HTTP fake test for HTML 200 and extended JSON 200 assertions; focused/module regression and UI pending local execution. Investigate **purchase** after tests; do not merge/deploy.
+
+### 2026-11-05 — POS cookie lifecycle investigation
+
+- Added safe count-only diagnostics at CAPTCHA loaded, consumed, and outgoing request jar stages. No cookie names/values, CAPTCHA key/answer, token or raw HTTP body logged. Cookie jar now constructed consistently for POS even when no cookies are supplied; does not invent session cookies. No changes to size=50, search filter, canonical, or Regular.
+- Added fake test asserting cached cookie snapshot survives one-time consume and reaches Guzzle CookieJar. HTTP fakes cannot prove a live upstream Set-Cookie or actual wire-level Cookie header; interpret logs accordingly.
+- User target is POS purchase July 2026 (official GDT browser 10, Laravel 0); previous zero-count log had has_captcha_cookie=false. Investigate whether GDT CAPTCHA GET emits Set-Cookie at all before concluding cookie loss. Focused/module tests pending; no UI PASS/merge/deploy.
+
+### 2026-11-05 — POS page-size parity experiment
+
+- Observed official GDT POS purchase request uses `size=15` while Laravel used `size=50`; POS only now uses 15, Regular retains 50. No change to endpoint, search, CAPTCHA, cookies, canonical or 429 handling.
+- Updated POS HTTP diagnostic tests and positive purchase query contract to assert 15. This is a controlled comparison, not proof that page size caused the observed 0-invoice discrepancy.
+- Focused tests, module regression and manual UI verification pending on local checkout. No merge/deploy.
+
+### 2026-11-05 — POS purchase trace correlation (diagnostic-only)
+
+- POS fetch now generates one random trace_id per monthly request and logs request metadata, cookie-jar lifecycle and HTTP response metadata with the same trace_id. Logs mark runtime as test/application to distinguish HTTP fake fixtures from manual UI runs. Response Location is reduced to an allowlisted path (no host/query), when available; this is not a complete redirect history or proof of wire-level cookies.
+- POS page size remains 15; no changes to API query, CAPTCHA, canonical, retry policy or UI. HTTP 200 malformed payload remains fail-closed.
+- Added focused purchase correlation/security test; adapted HTTP 500 diagnostics mock to accept new safe fields. Focused tests and module regression pending local execution; no UI PASS, merge or deploy.
+
+### 2026-11-05 — POS purchase default-direction alignment
+
+- Read-only GitHub audit found `SearchHoadon::$vatIn = false` (sold) while Blade `wire:model.live="vatIn"` lists `<option value="1">Mua vào</option>` first. This mismatched initial UI selection and server-side request direction; the observed application trace went to `sold` and returned HTML.
+- Set default `$vatIn = true` to align first visible option with purchase endpoint. Explicitly selecting Bán ra remains supported; source tabs Regular/POS, CAPTCHA, parser, API query and canonical persistence remain unchanged.
+- Added default-direction/option-order contract regression. Focused tests, module regression and manual UI verification pending on DELL. Do not claim 10 POS purchase invoices or UI PASS until observed. No PR/merge/deploy.
+
+### 2026-11-05 — POS HTTP 200 HTML redirect-count diagnostics (checkpoint pending)
+
+- Verified application purchase trace at 22:40:55: HTTP 200, HTML, no datas/total; cookie jar contained 4 items. Correct purchase mapping does not resolve HTML upstream response.
+- POS requests now enable Guzzle redirect-history tracking and log only `redirect_count` (bounded 0..20) and `html_response_class` (`HTML_AFTER_REDIRECT`, `HTML_DIRECT_OR_UNTRACKED`, `NOT_HTML`). No redirect URL, HTML body, token, CAPTCHA, cookie value, query string or headers are logged. Existing safe Location-path diagnostic remains.
+- Redirect tracking does not change redirect-follow behavior and cannot prove a cookie was sent or accepted. HTTP fake tests cover direct HTML and synthetic tracked redirects, with fail-closed schema guard. No live request executed by assistant.
+- Checkpoint: focused `GdtPosRateLimitSafeSearchTest`, `GdtPosHttpDiagnosticsTest`, `GdtTabSearchContractTest`; then module regression only after focused PASS; user UI verification required. Investigate authenticated session/cookie/header differences only after observing a fresh application purchase trace. No PR/merge/deploy.
+
+### 2026-11-05 — POS CAPTCHA/search HTTP client parity checkpoint
+
+- Application trace `dc26b3af-...` showed POS purchase HTTP 200 HTML without tracked redirects. Read-only source audit found CAPTCHA `GdtApiService::baseClient()` explicitly sets `invoices.gdt.user_agent`, while POS `GdtInvoiceService::client()` did not; request behavior differed even when Origin/Referer/Accept matched.
+- POS only now uses the same configured User-Agent as the CAPTCHA client. Added safe `cookie_eligible_for_endpoint` boolean using Guzzle CookieJar matching against the POS URL; it checks whether a cookie header could be assembled, not actual wire delivery or upstream acceptance. Log also marks User-Agent parity without printing the value. Regular client untouched.
+- Focused fake test verifies configured POS User-Agent, cookie eligibility, and no cookie/CAPTCHA values in metadata. No HTML body parsing, CAPTCHA bypass, retry, canonical changes, or live GDT request. Pending focused and module regression and user UI PASS; no PR/merge/deploy.
+
+### 2026-11-05 — Fix unsupported CookieJar API (focused tests pending)
+
+- Local focused output: 12 failed, 5 passed (49 assertions), all failures at `GdtInvoiceService.php:396`: `CookieJar::getCookieHeader()` does not exist.
+- Replaced with supported `CookieJar::withCookieHeader(new Request('GET', ...))` and checked `hasHeader('Cookie')` on returned PSR-7 request. No cookie values logged, no HTTP request added, no canonical changes.
+- Await local focused tests before module regression or UI. No TEST PASS asserted, no PR/merge/deploy.
+
+### 2026-11-05 — POS HTML header-only diagnostics checkpoint
+
+- Actual application request at 22:47:33: purchase, cookie eligible, 4 jar cookies, User-Agent parity; HTTP 200 HTML without tracked redirect. Authentication/session acceptance remains unproven.
+- Added fixed-label `html_response_kind` and allowlisted booleans for Set-Cookie, WWW-Authenticate, Cache-Control, Content-Length presence in POS response metadata and HTTP failure metadata. No raw header values, HTML body, CAPTCHA values, tokens, cookies, URLs or invoice data logged. Classification is header-only; `HTML_UNCLASSIFIED` does **not** mean login page or access denial.
+- Added fake HTTP regression for HTML fail-closed behavior and safe diagnostics. No CAPTCHA bypass, retry, parsing relaxation, persistence or production changes. Focused tests pending user checkpoint, then module regression and UI verification.
+
+### 2026-11-05 — Header absence regression correction
+
+- Focused checkpoint: 17 passed, 1 failed (211 assertions); HTML fixture expected `HTML_UNCLASSIFIED` but received `HTML_AUTH_CHALLENGE_HEADER` because Laravel response header accessor can yield empty string for absent header.
+- Updated safe response-header presence checks (Set-Cookie, WWW-Authenticate, Cache-Control, Content-Length) and authentication-challenge classification to require nonempty trimmed values, not merely non-null. No sensitive values logged. Re-run focused tests before module regression; no TEST/UI PASS claimed.
+
+### 2026-11-06 — Browser POS request parity checkpoint
+
+- User-supplied successful July 2026 purchase request confirms GET `/api/sco-query/invoices/purchase`, `size=15`, `sort=tdlap:desc`, `ttxly==8`. Browser additionally sends search-page Referer, URL-encoded Action, End-Point, ckey/cvalue headers and Accept-Language=vi. Browser includes multiple session cookies; these were **not** copied or stored in repository.
+- Scoped POS-only adjustment: send search-page Referer, encoded Action, ckey/cvalue request headers and Accept-Language; preserve query parameters, CookieJar, bearer token, fail-closed validation, and canonical behavior. Existing configured User-Agent unchanged. Header presence and values are asserted only in HTTP fake tests; secrets never logged.
+- No claim that headers alone resolve HTTP 200 HTML. Need local focused tests, then module regression, then UI verification with fresh CAPTCHA. No PR/merge/deploy.
+
+### 2026-11-06 — POS authentication-to-CAPTCHA cookie continuity
+
+- Read-only audit found `GdtApiService::login()` persists authenticated cookies under `<cache_key>:auth-session-cookies`, but `loadPosCaptcha()` previously started with a fresh CookieJar, severing the authenticated cookie lineage. POS search only inherited the CAPTCHA snapshot.
+- Changed `loadPosCaptcha()` to start from `restoreSessionCookies()`; GDT /captcha response may update that jar, and its snapshot is still cached for the existing single-use `consumePosCaptcha()` flow. Added safe count `auth_cookie_count_before_captcha` to loaded-stage metadata (no names/values). No forced retries, no CAPTCHA bypass, no change to canonical or regular invoice path.
+- Added focused fake test `GdtPosAuthSessionContinuityTest` for authenticated snapshot continuity and log secrecy. This is a plausible session-break correction, not proof GDT will return JSON. Await local focused tests before module regression and UI. No merge/deploy.
+
+### 2026-11-06 — Authentication cookie snapshot deletion root cause
+
+- Audited `GdtApiService::login()`: it persisted the authentication CookieJar before parsing the response, but on successful token cache write it immediately called `Cache::forget($this->sessionCacheKey())`. This unconditionally deleted the very cookie snapshot later consumed by `loadPosCaptcha()`. The observed `auth_cookie_count_before_captcha=0` is consistent with this concrete code defect.
+- Removed that destructive cache forget. Successful login now logs only safe `auth_cookie_count_after_login` and `auth_cookie_snapshot_present_after_login` diagnostics. Token and cookie values remain excluded from new logs. Added fake HTTP regression test verifying login retains the snapshot. No changes to regular search, CAPTCHA validation, POS fail-closed canonical, or production.
+- Local focused tests and UI are pending. Preserving cookies fixes the confirmed cache deletion bug, but GDT JSON response remains unverified until a fresh end-to-end UI test. No PR/merge/deploy.
+
+### 2026-11-06 — Read-only cookie restoration diagnostics checkpoint
+
+- `GdtApiService::restoreSessionCookies()` now emits `GDT authentication cookie restore diagnostics.` with only five safe fields: `cache_entry_present`, `snapshot_is_array`, `snapshot_cookie_count`, `restored_cookie_count`, `restore_failure_count`. No cookie names/values, credentials, CAPTCHA, raw HTML or cache key are logged by this new event. Existing behavior for malformed entries is unchanged.
+- Added focused test with one valid and one malformed snapshot entry; verifies restoration counts and secret exclusion. Pending local test execution and UI validation. Keep POS HTTP 200 HTML fail-closed; do not merge or deploy until gates pass and user approves.
+
+### 2026-11-06 — POS HTML fingerprint diagnostic checkpoint
+
+- After confirming 4/4 authentication cookies restored and POS still returning HTTP 200 HTML, added `safePosHtmlFingerprint()` to the POS success-response metadata only when Content-Type is HTML. It emits bounded, fixed-label fields: body-size band, HTML doctype/tag presence, simple title category, coarse Server category, meta-refresh presence. No raw title, body, hash, URL, header value, token, cookie or CAPTCHA is logged; classifier is heuristic, not evidence of a specific upstream blocking mechanism.
+- Extended `GdtPosRateLimitSafeSearchTest` to assert fingerprint and secret exclusion. The existing HTML fail-closed behavior and canonical protection are unchanged. Focused tests, module regression and UI verification remain pending; no PR/merge/deploy.
+
+### 2026-11-06 — POS HTTP HTML diagnostic classification follow-up
+
+- UI evidence: 05:58:22 POS purchase HTTP 200 HTML, 1KB–10KB, doctype, title class ERROR, server class UNSPECIFIED. Cookies were restored 4/4 in the preceding session; upstream reason remains unknown.
+- Extended `safePosHtmlFingerprint()` with `error_category` (GATEWAY_OR_UPSTREAM, ACCESS_OR_CHALLENGE, SESSION_OR_LOGIN, APPLICATION_OR_SERVER, UNCLASSIFIED) and `gateway_header_class` (fixed-label header-presence classification). No HTML/body/header values, credentials, cookies or CAPTCHA are logged. Existing fail-closed canonical behavior unchanged.
+- Added focused regression for synthetic 502 HTML served with HTTP 200 and sensitive marker strings; tests must be run locally before module regression. No PR, merge or deployment; UI PASS pending.
+
+
+### 2026-11-06 — POS request transport contract focused checkpoint
+
+- User-approved diagnostic-only batch after read-only audit of Chrome successful JSON vs Laravel HTTP 200 HTML ERROR. Local PHP 8.3.6, libcurl 8.5.0, OpenSSL 3.0.13, HTTP/2 capability and Guzzle 7.15.3 verified by user; actual on-wire HTTP protocol and upstream reason remain unknown.
+- Added `tests/Feature/Invoices/GdtPosRequestTransportContractTest.php` with no-network checks for Guzzle cookie eligibility/domain isolation, POS purchase query/header contract, safe metadata and HTTP 200 HTML fail-closed. This is a Laravel HTTP-fake contract, not a proof of actual wire-level cookie delivery or browser transport equivalence.
+- No changes to production, GDT credentials, service behavior, User-Agent, CAPTCHA, canonical persistence or regular invoice source. No live GDT request from assistant.
+- Checkpoint pending user local focused test results. If focused PASS, run Invoices module regression; UI PASS requires explicit user confirmation. No PR/merge/deploy.
+
+### 2026-11-06 — POS request contract assertion isolation
+
+- User focused checkpoint: 24 passed, 1 failed (299 assertions); new `GdtPosRequestTransportContractTest` failed at a compound `Http::assertSent()` predicate. This does not prove the HTTP request was absent; the predicate combined many conditions.
+- Changed only the new test to select the fake POS request and assert each query/header separately, so the next failure identifies the mismatched field without dumping request headers or secrets. No service or production changes. Await focused rerun; module regression remains blocked until PASS.
+
+### 2026-11-06 — POS End-Point header override focused fix
+
+- Local focused checkpoint: 24 passed, 1 failed (308 assertions). Isolated fake-request assertion proved POS `End-Point` resolved to generic `/` instead of browser-observed `/tra-cuu/tra-cuu-hoa-don` despite POS `withHeaders()` call. This is a concrete Laravel request-contract mismatch, not yet proof of the upstream HTML cause.
+- POS-only request now drops generic `Referer`, `Action`, `End-Point` before applying POS search-page values. Regular request client is unchanged. Existing focused contract checks all three headers and query, cookie eligibility, HTML fail-closed, and safe logs.
+- Pending local focused rerun, then module regression only on PASS; no UI PASS, PR, merge or deploy.
+
+### 2026-11-06 — Fix unsupported PendingRequest::withoutHeader
+
+- User focused result: 16 failed, 9 passed (74 assertions); all 16 failures are BadMethodCallException because Laravel PendingRequest does not expose withoutHeader(). This is a code regression from the prior diagnostic fix, not evidence of upstream GDT behavior.
+- Replaced unsupported header-removal call with POS-only PendingRequest factory (clientForPos) that starts without generic Referer/Action/End-Point and retains token, SSL, timeout, Origin, Accept, request-id, configured User-Agent, CookieJar and redirect tracking. The POS-specific headers are then applied by the existing request flow. Regular invoice client unchanged.
+- No live API call, CAPTCHA bypass, canonical changes, PR, merge or deploy. Focused tests must rerun; module regression only after focused PASS. UI remains unverified.
+
+### 2026-11-06 — POS canonical admission focused regression checkpoint
+
+- User confirmed two-tier test PASS and POS UI preview displayed 10 purchase invoices for July 2026; canonical synchronization itself remains unverified.
+- Added two HTTP-fake focused tests to existing `GdtPosRequestTransportContractTest`: preview of 10 POS rows does not enter DB transaction; incomplete POS pagination fails before canonical DB transaction. Tests do not contact GDT or use real credentials.
+- Read-only audit confirms `processRange` deduplicates before `persistInvoices`, and persistence tracks created/updated/unchanged in a transaction; this is source behavior, not evidence of successful repeated sync. Idempotency/database integration tests remain outstanding.
+- Await local focused tests then Invoices module regression if PASS. Manual canonical UI and repeat-sync verification required before PR/merge. No production actions, no merge/deploy.
+
+### 2026-11-06 — POS canonical idempotency SQLite focused checkpoint
+
+- User confirmed two-tier test PASS and clean tracked working tree at bb4e16135. This new batch has not been tested yet.
+- Added isolated in-memory SQLite regression in `GdtPosRequestTransportContractTest` exercising private `persistInvoices` through reflection with synthetic 10-row POS fixture: first insert, identical replay unchanged/no duplicates, GDT RAW source record linkage, one amount correction, and purchase/sold identity isolation. No live GDT call and no production database use.
+- SQLite PDO absence marks test skipped, which is NOT idempotency PASS; report skip explicitly. Test uses minimal SQLite schema and may need adjustment to match model hooks; stop on focused failure. Run focused tests before Invoices module regression. UI canonical sync still requires user confirmation. No PR/merge/deploy.
+
+### 2026-11-06 — October POS cross-month canonical regression checkpoint
+
+- DELL local MySQL read-only baseline for October 2026 purchase invoices: 117 canonical, 117 GDT RAW links, 0 duplicate legal-identity groups. User's POS preview for 2026-10-01 through 2026-10-31 returned six rows; one has source-issued date 2026-09-30. A symbol+number-only read-only lookup found four existing and two missing; this is not a complete legal-identity match.
+- Added isolated SQLite test `test_pos_october_replay_preserves_september_invoice_date_boundary`: two synthetic POS headers (October and September) persist to their respective issued-date months, replay unchanged with stable invoice IDs and RAW GDT linkage. Test does not contact GDT or write local MySQL; skips if SQLite PDO is absent.
+- No production action or source behavior change. Await local focused test PASS, then Invoices module regression. User-authorized manual POS canonical sync on DELL development/test still requires fresh CAPTCHA and UI execution; compare before/after October and September counts, RAW links, and repeat-sync idempotency. UI canonical PASS not yet claimed; no PR/merge/deploy.
+
+
+### 2026-11-06 — POS verified canonical recovery, idempotency and debug runbook
+
+- User-confirmed two-tier focused + Invoices module regression PASS after SQLite date assertion fix `dd9b9452b`; DELL local branch clean at that commit. New documentation commits need local pull; no tests were run by assistant.
+- Manual POS purchase canonical UI sync for 2026-10-01 through 2026-10-30: 6/6 returned, created 2, updated 0, unchanged 4, RAW header 6, details reused 4/fetched 2/failed 0. DB verified 2026-10 canonical/RAW 119/119 (previously 117/117); 2026-09 111/111 unchanged; two previously missing symbol+number records each matched once.
+- Second sync of same range: created 0, updated 0, unchanged 6, RAW detail reused 6/fetched 0/failed 0. POS idempotency verified by UI log. POS preview is read-only; POS requires fresh CAPTCHA for sync and does not use queue.
+- Added permanent root-cause investigation and operational troubleshooting reference: `docs/modules/Invoices/GDT_POS_DEBUG_RUNBOOK.md`. Includes HTTP 200 HTML fail-closed, POS End-Point header mismatch, unsupported PendingRequest::withoutHeader regression and POS-only client fix, safe session diagnostics, cross-month issued-date test, real-world sync evidence and no-secret logging rules.
+- PR review/GitHub checks and any applicable impacted regression remain gates; no production deployment or merge authorization.
+
+
+### 2026-11-06 — PR #362 pre-merge review: queued POS fail-closed checkpoint
+
+- PR #362 is Draft, GitHub CLI reports MERGEABLE/CLEAN, no checks reported; DELL was clean at `686cf7a1a`. The branch is large (183+ commits), so merge is not authorized.
+- Review found a mismatch: POS UI requires a fresh interactive CAPTCHA and disables queue, but `ProcessGdtInvoicesJob` still accepted `source=pos` and invoked `processRange` without CAPTCHA. Such a queued invocation cannot complete the approved POS flow. Added explicit fail-closed guard in the job for `source=pos`, preserving regular/all job paths, and a focused regression test asserting the POS job does not call GDT canonical service.
+- This is a new untested checkpoint. User must pull and run focused test first, then Invoices regression only on PASS; assess impacted regression and UI confirmation as needed. No CI checks, no merge or production deployment.
+
+
+### 2026-11-06 — POS queue guard focused and module regression verified by user
+
+- User reported **two-tier TEST PASS** after fix commit `e212d9ee8`: `tests/Feature/Invoices/GdtCanonicalSourceSelectionContractTest.php` focused PASS, followed by `tests/Feature/Invoices` module regression PASS. Test output totals were not supplied; do not invent counts.
+- Prior focused failure was a PHPUnit `ClassIsFinalException` from mocking `final InvoiceSourceCoverageService`, not a POS service failure. Fixed by constructing the real stateless coverage service in the test; job guard remains unchanged.
+- GitHub compare at this checkpoint: feature ahead of main 188 commits, behind 0, 26 changed files confined to Invoices implementation/tests/docs. PR #362 remains Draft. GitHub CLI earlier reported MERGEABLE/CLEAN and no checks reported. Review and any applicable impacted/manual UI gates remain before merge; no production action.
+
+
+### 2026-11-06 — PR #362 review batch: canonical POS month guard
+
+- Read-only review of `GdtInvoiceService::processRange`, `SearchHoadon::run`, `ProcessGdtInvoicesJob`, and POS preview tests found that preview POS rejects multi-month requests, while canonical `processRange(source=pos)` lacked the same validation. A direct service caller could otherwise submit multiple POS monthly requests using one CAPTCHA challenge.
+- Added source-scoped guard in `processRange` for POS date ranges spanning different calendar months; `regular` and `all` remain unaffected. Added HTTP-faked regression `test_multi_month_pos_canonical_sync_fails_before_any_gdt_request` in `GdtPosRateLimitSafeSearchTest`.
+- **Checkpoint pending**: code committed on feature branch; focused tests and Invoices module regression must run on Admin and report results. Do not mark TEST PASS or UI PASS for this batch yet. PR remains Draft; no merge or production operations.
+
+
+### 2026-11-06 — POS canonical month guard: user-verified two-tier TEST PASS (Admin)
+
+- User confirmed focused tests PASS for `GdtPosRateLimitSafeSearchTest`, `GdtCanonicalSourceSelectionContractTest`, and `GdtSourceChunkRetryContractTest`, followed by `tests/Feature/Invoices` module regression PASS on Admin after checkpoint `1b0c0bcb7`.
+- Guard applies only to `processRange(source=pos)` across calendar months; regular/all paths unchanged by this batch. Test counts/output were not provided, so do not invent totals.
+- Next gate: final PR review, assess any impacted dependencies, confirm applicable UI acceptance, and obtain explicit user authorization before merging. No production action.
+
+### 2026-11-06 — Admin UI acceptance for PR #362
+
+- User explicitly confirmed **UI PASS** for the Admin Invoices workflow after the two-tier focused and module regression PASS at feature commit `482cc6203`.
+- UI acceptance is user-reported, not independently reproduced by the GitHub connector. No CI status or impacted/cross-module regression is implied by this confirmation.
+- Preserve Draft PR #362 until final review gates and explicit merge authorization; no production deployment.

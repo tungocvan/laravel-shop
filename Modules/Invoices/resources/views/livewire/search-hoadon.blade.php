@@ -7,21 +7,77 @@
         </div>
     </div>
 
+    @if($posCaptchaModalOpen && $invoiceSource === 'pos')
+        <div class="fixed inset-0 z-[130] flex items-center justify-center bg-slate-950/60 px-4 py-6" role="presentation">
+            <div role="dialog" aria-modal="true" aria-labelledby="pos-captcha-title" class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+                <h3 id="pos-captcha-title" class="text-lg font-semibold text-slate-900">Xác minh CAPTCHA GDT</h3>
+                <p class="mt-2 text-sm text-slate-600">{{ $posCaptchaPurpose === 'sync' ? 'Xác nhận CAPTCHA mới để đồng bộ canonical POS.' : 'Nhập CAPTCHA để hoàn tất tìm kiếm POS.' }}</p>
+                <div class="mt-4 space-y-3">
+                    @if($posCaptchaImage)
+                        <img src="{{ $posCaptchaImage }}" alt="CAPTCHA GDT" width="200" height="50" class="max-w-full rounded-lg border border-slate-200 bg-white p-1">
+                    @else
+                        <p class="text-sm text-amber-800">Chưa tải được CAPTCHA. Vui lòng tải lại.</p>
+                    @endif
+                    <button type="button" wire:click="refreshPosCaptcha" wire:loading.attr="disabled" wire:target="refreshPosCaptcha" class="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-medium text-slate-800">Tải lại CAPTCHA</button>
+                    <label class="block text-sm font-medium text-slate-700">Mã xác minh
+                        <input type="text" wire:model="posCaptchaAnswer" autocomplete="off" maxlength="20" class="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-3" placeholder="Nhập ký tự trong ảnh">
+                    </label>
+                    @if($posCaptchaError)<p role="alert" class="text-sm text-red-700">{{ $posCaptchaError }}</p>@endif
+                    @error('posCaptchaAnswer')<p role="alert" class="text-sm text-red-700">{{ $message }}</p>@enderror
+                </div>
+                <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <button type="button" wire:click="closePosCaptcha" class="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-medium">Hủy</button>
+                    <button type="button" wire:click="submitPosCaptcha" wire:loading.attr="disabled" wire:target="submitPosCaptcha" class="min-h-11 rounded-lg bg-emerald-700 px-5 text-sm font-semibold text-white disabled:opacity-50">Xác nhận {{ $posCaptchaPurpose === 'sync' ? 'và đồng bộ' : 'và tra cứu' }}</button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <section class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div class="border-b border-gray-100 px-5 py-4 sm:px-6">
             <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600">Bước 1</p>
-            <h2 class="mt-1 text-base font-semibold text-gray-900">Đồng bộ dữ liệu GDT</h2>
-            <p class="mt-1 text-sm text-gray-500">Chọn khoảng thời gian và loại hóa đơn. GDT sync ghi trực tiếp danh sách hóa đơn đồng thời lưu RAW canonical.</p>
+            <h2 class="mt-1 text-lg font-semibold text-gray-900">Dashboard đồng bộ hóa đơn GDT</h2>
+            <p class="mt-1 text-sm text-gray-500">Chọn nguồn, xác minh nếu cần và theo dõi kết quả riêng của Regular / POS. Số lượng chỉ xuất hiện khi có kết quả truy vấn thực tế.</p>
         </div>
-        <div class="grid gap-4 p-5 md:grid-cols-3 sm:p-6">
-            <div><label class="text-sm font-medium text-gray-700">Từ ngày</label><input type="date" wire:model.live="start_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('start_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
-            <div><label class="text-sm font-medium text-gray-700">Đến ngày</label><input type="date" wire:model.live="end_date" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm">@error('end_date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
-            <div class="md:col-span-3"><label for="invoice-source" class="text-sm font-medium text-gray-700">Nguồn hóa đơn</label><select id="invoice-source" wire:model.live="invoiceSource" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="all">Tất cả hóa đơn — đồng bộ canonical vào database</option><option value="regular">Chỉ hóa đơn thông thường — đồng bộ canonical</option><option value="pos">Chỉ hóa đơn máy tính tiền — đồng bộ canonical</option></select>@error('invoiceSource')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror</div>
-            <div><label class="text-sm font-medium text-gray-700">Loại hóa đơn</label><select wire:model.live="vatIn" class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-3 text-sm"><option value="0">Bán ra</option><option value="1">Mua vào</option></select></div>
+        <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-2 gap-2 rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Nguồn hóa đơn GDT">
+                <button type="button" role="tab" aria-selected="{{ $invoiceSource === 'regular' ? 'true' : 'false' }}" wire:click="$set('invoiceSource', 'regular')" class="min-h-14 rounded-lg px-3 py-3 text-sm font-semibold transition {{ $invoiceSource === 'regular' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/60' }}">Hóa đơn thông thường <span class="hidden text-xs font-normal sm:inline">· Regular</span></button>
+                <button type="button" role="tab" aria-selected="{{ $invoiceSource === 'pos' ? 'true' : 'false' }}" wire:click="$set('invoiceSource', 'pos')" class="min-h-14 rounded-lg px-3 py-3 text-sm font-semibold transition {{ $invoiceSource === 'pos' ? 'bg-white text-emerald-700 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/60' }}">Hóa đơn máy tính tiền <span class="hidden text-xs font-normal sm:inline">· POS</span></button>
+            </div>
+            <div class="mt-5 flex flex-wrap items-start justify-between gap-2">
+                <div><h3 class="text-base font-semibold text-slate-900">{{ $invoiceSource === 'pos' ? 'Tra cứu hóa đơn khởi tạo từ máy tính tiền' : 'Tra cứu hóa đơn thông thường' }}</h3><p class="mt-1 text-sm text-slate-500">Tìm kiếm chỉ đọc dữ liệu GDT; đồng bộ canonical là bước ghi dữ liệu riêng.</p></div>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{{ $invoiceSource === 'pos' ? 'CAPTCHA bắt buộc' : 'Hỗ trợ queue' }}</span>
+            </div>
+            <div class="mt-5 grid gap-4 sm:grid-cols-3">
+                <div><label class="text-sm font-medium text-slate-700">Loại hóa đơn</label><select wire:model.live="vatIn" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm"><option value="1">Mua vào</option><option value="0">Bán ra</option></select></div>
+                <div><label class="text-sm font-medium text-slate-700">Từ ngày</label><input type="date" wire:model.live="start_date" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">@error('start_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+                <div><label class="text-sm font-medium text-slate-700">Đến ngày</label><input type="date" wire:model.live="end_date" class="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm">@error('end_date')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror</div>
+            </div>
+            @if($invoiceSource === 'pos')
+                <p class="mt-4 text-sm text-amber-800">Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Nhấn Tìm kiếm để mở CAPTCHA, nhập mã và xác nhận. Đồng bộ canonical cần CAPTCHA mới; không đưa mã vào queue.</p>
+            @endif
+            @error('invoiceSource')<p class="mt-3 text-sm text-red-600">{{ $message }}</p>@enderror
+            <div class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p class="text-xs text-slate-500">Bước 1: Tìm kiếm trên GDT · Bước 2: Đồng bộ canonical nếu kết quả đúng.</p>
+                <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosCaptcha' : 'searchInvoices' }}" wire:loading.attr="disabled" wire:target="openPosCaptcha,searchInvoices" class="min-h-11 rounded-xl bg-slate-900 px-7 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="openPosCaptcha,searchInvoices">Tìm kiếm hóa đơn</span><span wire:loading wire:target="openPosCaptcha,searchInvoices">Đang tìm kiếm…</span></button>
+            </div>
+            <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-live="polite">
+                <div class="flex flex-wrap items-center justify-between gap-2"><h4 class="text-sm font-semibold text-slate-900">Kết quả tra cứu {{ $invoiceSource === 'pos' ? 'POS' : 'Regular' }}</h4><span class="rounded-full px-3 py-1 text-xs font-semibold {{ $searchState === 'completed' ? 'bg-emerald-100 text-emerald-800' : ($searchState === 'failed' ? 'bg-red-100 text-red-800' : 'bg-white text-slate-600') }}">{{ match($searchState) {'searching'=>'Đang tra cứu','completed'=>((int) ($searchPreview['count'] ?? 0) === 0 ? 'Không tìm thấy hóa đơn' : 'GDT đã phản hồi'),'failed'=>'Tra cứu thất bại',default=>'Chưa tìm kiếm'} }}</span></div>
+                @if($searchState === 'completed')
+                    <p class="mt-3 text-2xl font-bold tabular-nums text-slate-900">{{ number_format((int) ($searchPreview['count'] ?? 0)) }} <span class="text-sm font-normal text-slate-500">hóa đơn</span></p>
+                    <p class="mt-1 text-sm text-slate-600">{{ $searchMessage }}</p>
+                    @if(!empty($searchPreview['sample']))
+                        <div class="mt-3 overflow-x-auto"><table class="min-w-full text-left text-xs"><thead><tr class="border-b border-slate-200 text-slate-500"><th class="py-2 pr-3">Ký hiệu</th><th class="py-2 pr-3">Số hóa đơn</th><th class="py-2">Ngày lập</th></tr></thead><tbody>@foreach($searchPreview['sample'] as $invoice)<tr class="border-b border-slate-100"><td class="py-2 pr-3">{{ $invoice['symbol'] }}</td><td class="py-2 pr-3">{{ $invoice['number'] }}</td><td class="py-2">{{ $invoice['date'] }}</td></tr>@endforeach</tbody></table></div>
+                        <p class="mt-2 text-xs text-slate-500">Xem trước tối đa 20 hóa đơn. Chưa ghi vào database.</p>
+                    @endif
+                @else
+                    <p class="mt-2 text-sm {{ $searchState === 'failed' ? 'text-red-700' : 'text-slate-500' }}">{{ $searchMessage ?: 'Chọn bộ lọc và nhấn Tìm kiếm để xem kết quả thực tế.' }}</p>
+                @endif
+            </div>
         </div>
-        <div class="flex flex-col gap-3 border-t border-gray-100 bg-gray-50/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <label class="flex items-center gap-2 text-sm text-gray-700"><input type="checkbox" wire:model.live="useQueue" class="rounded border-gray-300"> Xử lý qua queue</label>
-            <button wire:click="run" wire:loading.attr="disabled" class="h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:opacity-50"><span wire:loading.remove wire:target="run">Chạy đồng bộ canonical</span><span wire:loading wire:target="run">Đang xử lý…</span></button>
+        <div class="flex flex-col gap-3 border-t border-slate-100 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div><label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" wire:model.live="useQueue" @disabled($invoiceSource !== 'regular') class="rounded border-slate-300"> Xử lý qua queue</label><p class="mt-1 text-xs text-slate-500">{{ $invoiceSource === 'regular' ? 'Regular có thể xử lý qua queue.' : 'POS chỉ xử lý trực tiếp sau CAPTCHA.' }}</p></div>
+            <button type="button" wire:click="{{ $invoiceSource === 'pos' ? 'openPosSyncCaptcha' : 'run' }}" wire:loading.attr="disabled" wire:target="openPosSyncCaptcha,run" @disabled($searchState !== 'completed' || (int) ($searchPreview['count'] ?? 0) <= 0 || $searchedFingerprint !== hash('sha256', implode('|', [$invoiceSource, $start_date, $end_date, (int) $vatIn]))) class="min-h-11 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"><span wire:loading.remove wire:target="run">Đồng bộ canonical</span><span wire:loading wire:target="run">Đang đồng bộ…</span></button>
         </div>
     </section>
 
@@ -34,6 +90,24 @@
         </div>
         @if(in_array($syncState,['queued','processing'],true))<div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100"><div class="h-full w-2/3 animate-pulse rounded-full bg-indigo-500"></div></div>@endif
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            <div class="sm:col-span-2 rounded-xl border border-indigo-100 bg-indigo-50/40 p-4">
+                <p class="text-sm font-semibold text-slate-900">Kết quả xác minh theo nguồn</p>
+                <p class="mt-1 text-xs text-slate-600">“Hoàn tất” chỉ mô tả tác vụ; kiểm tra số lượng và trạng thái từng nguồn để biết POS đã thực sự được tra cứu hay chưa.</p>
+                <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                    @foreach(['regular'=>'Regular', 'pos'=>'POS'] as $key=>$label)
+                        @php($metric=$sourceResults[$key] ?? null)
+                        @php($state=$metric['state'] ?? 'pending')
+                        <div class="rounded-lg border border-slate-200 bg-white p-3" wire:key="gdt-result-{{ $key }}">
+                            <p class="text-xs font-semibold uppercase text-slate-600">{{ $label }}</p>
+                            <p class="mt-1 text-sm font-semibold text-slate-900">{{ match($state) {'completed'=>'Đã xử lý canonical','empty'=>'Tra cứu thành công · không có hóa đơn','partial'=>'Còn thiếu RAW detail','fetched'=>'Đã truy vấn GDT','failed'=>'Thất bại','skipped'=>'Không được chọn',default=>'Chưa xác minh'} }}</p>
+                            <p class="mt-1 text-xs text-slate-500">GDT trả về: {{ isset($metric['count']) ? number_format($metric['count']).' hóa đơn' : 'chưa có số liệu' }}</p>
+                        </div>
+                    @endforeach
+                </div>
+                @if($detailResults !== null)
+                    <p class="mt-3 text-xs text-slate-700">RAW detail toàn phiên: đã có {{ (int) ($detailResults['reused'] ?? 0) }} · tải mới {{ (int) ($detailResults['fetched'] ?? 0) }} · lỗi {{ (int) ($detailResults['failed'] ?? 0) }}. Các số này không tách riêng theo nguồn.</p>
+                @endif
+            </div>
             <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-medium uppercase tracking-wide text-gray-500">Kết quả</p><p class="mt-1 text-sm font-semibold {{ $syncState==='partial'?'text-amber-800':'text-gray-800' }}">{{ $syncMessage ?: 'Chưa có phiên đồng bộ mới.' }}</p></div>
             <div class="rounded-xl bg-gray-50 p-4"><p class="text-xs font-medium uppercase tracking-wide text-gray-500">File export</p><p class="mt-1 truncate text-sm font-semibold {{ $syncFile?'text-emerald-700':'text-gray-500' }}">{{ $syncFile ?: 'Chưa tạo file' }}</p></div>
         </div>
@@ -102,7 +176,7 @@
     </section>
 
     <details class="group rounded-2xl border border-gray-200 bg-gray-950 shadow-sm" @if(in_array($syncState,['processing','partial','failed'],true)) open @endif>
-        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-white"><div><p class="text-sm font-semibold">Nhật ký xử lý</p><p class="mt-1 text-xs text-gray-400">Tự mở khi đang xử lý, đồng bộ một phần hoặc có lỗi.</p></div><span class="text-xs font-semibold text-gray-300 group-open:hidden">Mở nhật ký</span><span class="hidden text-xs font-semibold text-gray-300 group-open:inline">Thu gọn</span></summary>
+        <summary class="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-white"><div><p class="text-sm font-semibold">Nhật ký xử lý</p><p class="mt-1 text-xs text-gray-400">Mở để xem từng lần gọi GDT, số hóa đơn nhận và lỗi. Không hiển thị mã CAPTCHA.</p></div><span class="text-xs font-semibold text-gray-300 group-open:hidden">Mở nhật ký</span><span class="hidden text-xs font-semibold text-gray-300 group-open:inline">Thu gọn</span></summary>
         <div class="border-t border-gray-800 px-5 pb-5 pt-4 font-mono text-xs text-gray-200"><div class="max-h-80 space-y-1 overflow-y-auto">@forelse($logs as $line)<div>{{ $line }}</div>@empty<div class="text-gray-400">Chưa có tác vụ.</div>@endforelse</div></div>
     </details>
 </div>

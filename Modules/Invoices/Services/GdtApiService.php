@@ -123,6 +123,72 @@ class GdtApiService
     }
 
     /**
+     * Separate human-verified POS search challenge. Do not replace the login captcha session.
+     * Only the key is kept server-side; never cache the user's answer.
+     */
+    public function loadPosCaptcha(int $adminId): array
+    {
+        // Reuse the authenticated GDT cookie session when requesting POS CAPTCHA.
+        // The previous fresh jar severed continuity with authenticate.
+        $cookies = $this->restoreSessionCookies();
+        $authCookieCount = count($cookies->toArray());
+        $transfer = [];
+        try {
+            $response = $this->sessionClient($cookies, $transfer)->get($this->url('/captcha'));
+        } catch (ConnectionException) {
+            throw new RuntimeException('Không thể tải CAPTCHA tra cứu POS từ GDT.');
+        }
+
+        $payload = $response->json();
+        if (! $response->successful() || ! is_array($payload)
+            || ! is_string($payload['key'] ?? null) || ! is_string($payload['content'] ?? null)
+            || ! preg_match('/^[a-zA-Z0-9_-]{8,128}$/D', $payload['key'])
+            || ! str_starts_with(trim($payload['content']), '<svg')
+            || strlen($payload['content']) > 100000) {
+            throw new RuntimeException('CAPTCHA tra cứu POS không hợp lệ hoặc GDT không phản hồi.');
+        }
+
+        $cookieSnapshot = $cookies->toArray();
+        Cache::put($this->posCaptchaKey($adminId), ['key' => $payload['key'], 'cookies' => $cookieSnapshot], now()->addMinutes(5));
+        Log::info('GDT POS captcha cookie lifecycle.', [
+            'stage' => 'loaded',
+            'auth_cookie_count_before_captcha' => $authCookieCount,
+            'cookie_count' => count($cookieSnapshot),
+            'has_cookie' => $cookieSnapshot !== [],
+        ]);
+
+        // Render as an image data URL, never inject untrusted SVG markup into HTML.
+        return ['image' => 'data:image/svg+xml;base64,'.base64_encode($payload['content'])];
+    }
+
+    public function consumePosCaptcha(int $adminId, string $answer): array
+    {
+        $answer = trim($answer);
+        if ($answer === '' || strlen($answer) > 20 || preg_match('/[\\r\\n]/', $answer)) {
+            throw new RuntimeException('Vui lòng nhập mã CAPTCHA POS hợp lệ.');
+        }
+        $challenge = Cache::pull($this->posCaptchaKey($adminId));
+        $key = is_array($challenge) ? ($challenge['key'] ?? null) : null;
+        if (! is_string($key) || $key === '') {
+            throw new RuntimeException('CAPTCHA POS đã hết hạn. Vui lòng tải mã mới.');
+        }
+
+        $storedCookies = is_array($challenge['cookies'] ?? null) ? $challenge['cookies'] : [];
+        Log::info('GDT POS captcha cookie lifecycle.', [
+            'stage' => 'consumed',
+            'cookie_count' => count($storedCookies),
+            'has_cookie' => $storedCookies !== [],
+        ]);
+
+        return ['ckey' => $key, 'cvalue' => $answer, 'cookies' => $storedCookies];
+    }
+
+    private function posCaptchaKey(int $adminId): string
+    {
+        return 'invoices:gdt:pos-captcha:'.$adminId;
+    }
+
+    /**
      * Authenticate & lấy token.
      * Diagnostic logging intentionally excludes username, password, captcha, cookie values and token.
      */
@@ -207,9 +273,14 @@ class GdtApiService
                 $cacheKey = (string) config('invoices.gdt.cache_key', 'gdt_token');
                 $cachePutSucceeded = Cache::put($cacheKey, $token, $time);
                 $tokenPresentAfterPut = Cache::has($cacheKey);
-                Cache::forget($this->sessionCacheKey());
+                // Keep the authenticated cookie snapshot for subsequent POS CAPTCHA requests.
+                // Previously this deleted the snapshot just persisted above.
+                $authCookiesAfterLogin = Cache::get($this->sessionCacheKey(), []);
+                $authCookieCountAfterLogin = is_array($authCookiesAfterLogin) ? count($authCookiesAfterLogin) : 0;
 
                 Log::notice('GDT login succeeded.', $diagnostics + [
+                    'auth_cookie_count_after_login' => $authCookieCountAfterLogin,
+                    'auth_cookie_snapshot_present_after_login' => Cache::has($this->sessionCacheKey()),
                     'cache_store' => (string) config('cache.default'),
                     'cache_key' => $cacheKey,
                     'cache_put_succeeded' => $cachePutSucceeded,
@@ -336,23 +407,37 @@ class GdtApiService
     private function restoreSessionCookies(): CookieJar
     {
         $jar = new CookieJar;
-        $stored = Cache::get($this->sessionCacheKey(), []);
+        $cacheKey = $this->sessionCacheKey();
+        $entryPresent = Cache::has($cacheKey);
+        $stored = Cache::get($cacheKey, []);
+        $snapshotIsArray = is_array($stored);
+        $snapshotCount = $snapshotIsArray ? count($stored) : 0;
+        $failures = 0;
 
-        if (! is_array($stored)) {
-            return $jar;
+        if ($snapshotIsArray) {
+            foreach ($stored as $cookie) {
+                if (! is_array($cookie)) {
+                    $failures++;
+
+                    continue;
+                }
+
+                try {
+                    $jar->setCookie(new SetCookie($cookie));
+                } catch (\Throwable) {
+                    // Preserve the existing fail-safe behavior without exposing cookie contents.
+                    $failures++;
+                }
+            }
         }
 
-        foreach ($stored as $cookie) {
-            if (! is_array($cookie)) {
-                continue;
-            }
-
-            try {
-                $jar->setCookie(new SetCookie($cookie));
-            } catch (\Throwable) {
-                // Ignore one malformed upstream cookie instead of breaking authentication.
-            }
-        }
+        Log::info('GDT authentication cookie restore diagnostics.', [
+            'cache_entry_present' => $entryPresent,
+            'snapshot_is_array' => $snapshotIsArray,
+            'snapshot_cookie_count' => $snapshotCount,
+            'restored_cookie_count' => count($jar->toArray()),
+            'restore_failure_count' => $failures,
+        ]);
 
         return $jar;
     }

@@ -25,9 +25,21 @@ class SearchHoadon extends Component
 
     public $start_date;
     public $end_date;
-    public $vatIn = false;
+    public $vatIn = true;
     public $useQueue = true;
-    public string $invoiceSource = 'all';
+    public string $invoiceSource = 'regular';
+    public string $searchState = 'idle';
+    public ?string $searchMessage = null;
+    public array $searchPreview = [];
+    public ?string $searchedFingerprint = null;
+    public string $posCaptchaImage = '';
+    public string $posCaptchaAnswer = '';
+    public ?string $posCaptchaError = null;
+    public bool $posCaptchaModalOpen = false;
+    public ?string $posCaptchaPurpose = null;
+    public ?string $posCaptchaFingerprint = null;
+    public array $sourceResults = [];
+    public ?array $detailResults = null;
     public array $logs = [];
     public ?string $syncId = null;
     public string $syncState = 'idle';
@@ -64,6 +76,172 @@ class SearchHoadon extends Component
         $this->dispatch('scroll-bottom');
     }
 
+    public function updatedInvoiceSource(string $source): void
+    {
+        if ($source !== 'regular') {
+            $this->useQueue = false;
+        }
+        $this->posCaptchaError = null;
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaImage = '';
+        $this->posCaptchaModalOpen = false;
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
+        $this->searchState = 'idle';
+        $this->searchMessage = null;
+        $this->searchPreview = [];
+        $this->searchedFingerprint = null;
+    }
+
+    public function updatedStartDate(): void { $this->clearSearchPreview(); }
+    public function updatedEndDate(): void { $this->clearSearchPreview(); }
+    public function updatedVatIn(): void { $this->clearSearchPreview(); $this->refreshAvailableFiles(); }
+
+    private function clearSearchPreview(): void
+    {
+        $this->posCaptchaModalOpen = false;
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaImage = '';
+        $this->searchState = 'idle';
+        $this->searchMessage = null;
+        $this->searchPreview = [];
+        $this->searchedFingerprint = null;
+    }
+
+    private function searchFingerprint(): string
+    {
+        return hash('sha256', implode('|', [$this->invoiceSource, $this->start_date, $this->end_date, (int) $this->vatIn]));
+    }
+
+    public function openPosCaptcha(string $purpose = 'search'): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'invoiceSource' => ['required', 'in:pos'],
+            'vatIn' => ['boolean'],
+        ]);
+        if (substr($this->start_date, 0, 7) !== substr($this->end_date, 0, 7)) {
+            $this->addError('end_date', 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần.');
+            return;
+        }
+        if (! in_array($purpose, ['search', 'sync'], true)) {
+            return;
+        }
+        if ($purpose === 'sync' && ($this->searchState !== 'completed'
+            || $this->searchedFingerprint !== $this->searchFingerprint()
+            || (int) ($this->searchPreview['count'] ?? 0) <= 0)) {
+            $this->addError('invoiceSource', 'Cần có kết quả tra cứu hợp lệ trước khi đồng bộ.');
+            return;
+        }
+        $this->posCaptchaPurpose = $purpose;
+        $this->posCaptchaFingerprint = $this->searchFingerprint();
+        $this->posCaptchaModalOpen = true;
+        $this->refreshPosCaptcha();
+    }
+
+    public function openPosSyncCaptcha(): void
+    {
+        $this->openPosCaptcha('sync');
+    }
+
+    public function closePosCaptcha(): void
+    {
+        $this->posCaptchaModalOpen = false;
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
+        $this->posCaptchaImage = '';
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaError = null;
+    }
+
+    public function submitPosCaptcha(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if (! $this->posCaptchaModalOpen || $this->invoiceSource !== 'pos'
+            || $this->posCaptchaFingerprint !== $this->searchFingerprint()) {
+            $this->closePosCaptcha();
+            $this->addError('invoiceSource', 'Bộ lọc đã thay đổi. Vui lòng tìm kiếm lại.');
+            return;
+        }
+        if (! $this->posCaptchaImage) {
+            $this->posCaptchaError = 'Vui lòng tải CAPTCHA trước khi xác nhận.';
+            return;
+        }
+        $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
+        $purpose = $this->posCaptchaPurpose;
+        $this->posCaptchaModalOpen = false;
+        if ($purpose === 'search') {
+            $this->searchInvoices();
+        } elseif ($purpose === 'sync') {
+            $this->run();
+        }
+        $this->posCaptchaPurpose = null;
+        $this->posCaptchaFingerprint = null;
+    }
+
+    public function searchInvoices(): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after_or_equal:start_date'],
+            'invoiceSource' => ['required', 'in:regular,pos'],
+            'vatIn' => ['boolean'],
+        ]);
+        // Preserve the submitted answer before clearing preview/UI state.
+        // clearSearchPreview() intentionally resets CAPTCHA input on filter changes.
+        $submittedPosCaptchaAnswer = $this->invoiceSource === 'pos' ? $this->posCaptchaAnswer : '';
+        $this->clearSearchPreview();
+        $this->searchState = 'searching';
+        try {
+            $challenge = null;
+            if ($this->invoiceSource === 'pos') {
+                if (substr($this->start_date, 0, 7) !== substr($this->end_date, 0, 7)) {
+                    $this->searchState = 'failed';
+                    $this->searchMessage = 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Vui lòng thu hẹp khoảng ngày trước khi tải hoặc nhập CAPTCHA.';
+                    return;
+                }
+                if (trim($submittedPosCaptchaAnswer) === '' || mb_strlen($submittedPosCaptchaAnswer) > 20) {
+                    throw new RuntimeException('Vui lòng nhập mã CAPTCHA POS hợp lệ.');
+                }
+                $challenge = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $submittedPosCaptchaAnswer);
+                $this->posCaptchaAnswer = '';
+                $this->posCaptchaImage = '';
+            }
+            $result = $this->invoiceService->previewSource(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, $this->invoiceSource, $challenge
+            );
+            $this->searchPreview = $result;
+            $this->searchState = 'completed';
+            $this->searchedFingerprint = $this->searchFingerprint();
+            $this->searchMessage = $result['count'] === 0
+                ? 'Không tìm thấy hóa đơn trong khoảng ngày đã chọn. Không cần đồng bộ canonical.'
+                : 'GDT trả về '.number_format($result['count']).' hóa đơn. Chưa ghi dữ liệu canonical.';
+        } catch (\Throwable $exception) {
+            $this->searchState = 'failed';
+            $this->searchMessage = $exception->getMessage();
+            $this->posCaptchaAnswer = '';
+            $this->posCaptchaImage = '';
+        }
+    }
+
+    public function refreshPosCaptcha(): void
+    {
+        $this->authorizePermission('invoices-create');
+        $this->posCaptchaImage = '';
+        $this->posCaptchaAnswer = '';
+        $this->posCaptchaError = null;
+        try {
+            $this->posCaptchaImage = $this->apiService->loadPosCaptcha((int) auth('admin')->id())['image'];
+        } catch (\Throwable) {
+            $this->posCaptchaError = 'Không tải được CAPTCHA POS. Vui lòng thử lại.';
+        }
+    }
+
     public function run(): void
     {
         $this->authorizePermission('invoices-create');
@@ -75,6 +253,20 @@ class SearchHoadon extends Component
             'invoiceSource' => ['required', 'in:all,regular,pos'],
         ]);
 
+        if ($this->invoiceSource === 'all') {
+            $this->addError('invoiceSource', 'Vui lòng chọn một tab nguồn hóa đơn.');
+            return;
+        }
+        if ($this->searchedFingerprint !== $this->searchFingerprint() || $this->searchState !== 'completed') {
+            $this->addError('invoiceSource', 'Vui lòng Tìm kiếm thành công với bộ lọc hiện tại trước khi đồng bộ.');
+            return;
+        }
+
+        if ((int) ($this->searchPreview['count'] ?? 0) <= 0) {
+            $this->addError('invoiceSource', 'Không có hóa đơn để đồng bộ canonical.');
+            return;
+        }
+
         if (! $this->apiService->hasToken()) {
             session()->flash('status', 'Phiên GDT chưa sẵn sàng hoặc token đã hết hạn. Vui lòng kết nối lại trước khi chạy đồng bộ.');
             $this->redirectRoute('admin.invoices.create-token');
@@ -82,7 +274,29 @@ class SearchHoadon extends Component
             return;
         }
 
+        $posCaptcha = null;
+        if ($this->invoiceSource !== 'regular') {
+            // POS requires interactive verification. Do not put CAPTCHA answers in queue payloads.
+            if ($this->useQueue) {
+                $this->posCaptchaError = 'Đồng bộ POS hiện cần bỏ chọn Xử lý qua queue để nhập CAPTCHA trực tiếp.';
+                return;
+            }
+            $this->validate(['posCaptchaAnswer' => ['required', 'string', 'max:20']]);
+            try {
+                $posCaptcha = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
+            } catch (\Throwable) {
+                $this->posCaptchaError = 'CAPTCHA POS đã hết hạn hoặc không hợp lệ. Vui lòng tải mã mới.';
+                $this->posCaptchaAnswer = '';
+                return;
+            }
+            $this->posCaptchaAnswer = '';
+            $this->posCaptchaImage = '';
+            $this->posCaptchaError = null;
+        }
+
         $this->logs = [];
+        $this->sourceResults = [];
+        $this->detailResults = null;
         $this->syncMessage = null;
         $this->syncFile = null;
         $this->log('Bắt đầu xử lý…');
@@ -113,8 +327,12 @@ class SearchHoadon extends Component
                 fn ($msg) => $this->log($msg),
                 (bool) $this->vatIn,
                 $this->invoiceSource,
+                null,
+                $posCaptcha,
             );
 
+            $this->sourceResults = $this->invoiceService->lastSourceStats();
+            $this->detailResults = $this->invoiceService->lastDetailStats();
             if ($file === null) {
                 $this->syncState = 'completed';
                 $this->syncMessage = 'Không có hóa đơn trong khoảng thời gian đã chọn. Hệ thống không tạo file Excel.';
@@ -138,6 +356,8 @@ class SearchHoadon extends Component
             $this->log('Hoàn tất xử lý!');
             $this->refreshAvailableFiles();
         } catch (\Throwable $exception) {
+            $this->sourceResults = $this->invoiceService->lastSourceStats();
+            $this->detailResults = $this->invoiceService->lastDetailStats();
             $this->syncState = 'failed';
             $this->syncMessage = $exception->getMessage();
             $this->log('❌ '.$exception->getMessage());
@@ -159,6 +379,8 @@ class SearchHoadon extends Component
         $this->syncMessage = $status['message'] ?? null;
         $this->syncFile = $status['file'] ?? null;
         $this->logs = array_values($status['logs'] ?? []);
+        $this->sourceResults = (array) ($status['source_results'] ?? []);
+        $this->detailResults = isset($status['detail_results']) ? (array) $status['detail_results'] : null;
 
         if (in_array($this->syncState, ['completed', 'partial', 'failed'], true)) {
             $this->refreshAvailableFiles();
@@ -202,11 +424,6 @@ class SearchHoadon extends Component
 
         $availableTokens = array_column($this->availableFiles, 'token');
         $this->selectedFiles = array_values(array_intersect($this->selectedFiles, $availableTokens));
-    }
-
-    public function updatedVatIn(): void
-    {
-        $this->refreshAvailableFiles();
     }
 
     public function selectAllAvailableFiles(): void

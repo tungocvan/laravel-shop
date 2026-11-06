@@ -13,7 +13,7 @@ class GdtCanonicalPosSyncContractTest extends TestCase
     {
         $source = file_get_contents((new \ReflectionClass(GdtInvoiceService::class))->getFileName());
 
-        $this->assertStringContainsString('fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true)', $source);
+        $this->assertStringContainsString('fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha)', $source);
         $this->assertStringContainsString("'/sco-query/invoices/'", $source);
         $this->assertStringContainsString("';ttxly==8'", $source);
         $this->assertStringContainsString("collect(\$all)->unique(", $source);

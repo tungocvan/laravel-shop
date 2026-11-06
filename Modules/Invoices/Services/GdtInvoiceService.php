@@ -3,6 +3,9 @@
 namespace Modules\Invoices\Services;
 
 use Carbon\Carbon;
+use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\SetCookie;
+use GuzzleHttp\Psr7\Request;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +19,13 @@ use Throwable;
 
 class GdtInvoiceService
 {
+    private array $lastSourceStats = [];
+
+    public function lastSourceStats(): array
+    {
+        return $this->lastSourceStats;
+    }
+
     private array $lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
 
     public function lastDetailStats(): array
@@ -69,6 +79,48 @@ class GdtInvoiceService
         return ['items' => $invoices, 'total' => $total ?? count($invoices)];
     }
 
+    /**
+     * Read-only GDT search preview. Does not persist invoices, RAW records or exports.
+     * POS requires a fresh user-supplied challenge for each request.
+     */
+    public function previewSource(string $fromDate, string $toDate, bool $vatIn, string $source, ?array $posCaptcha = null): array
+    {
+        if (! in_array($source, ['regular', 'pos'], true)) {
+            throw new \InvalidArgumentException('Nguồn tra cứu không hợp lệ.');
+        }
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to = Carbon::parse($toDate)->startOfDay();
+        if ($from->gt($to)) {
+            throw new \InvalidArgumentException('Khoảng ngày tra cứu không hợp lệ.');
+        }
+        if ($source === 'pos' && $from->format('Y-m') !== $to->format('Y-m')) {
+            throw new \InvalidArgumentException('Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần. Vui lòng chọn ngày bắt đầu và kết thúc trong cùng tháng để hạn chế HTTP 429.');
+        }
+        $token = Cache::get(config('invoices.gdt.cache_key'));
+        if (! $token) {
+            throw new \RuntimeException('Phiên đăng nhập GDT đã hết hạn.');
+        }
+        $rows = [];
+        $show = static function (string $message): void {};
+        for ($cursor = $from->copy(); $cursor->lte($to);) {
+            $chunkEnd = $cursor->copy()->endOfMonth();
+            if ($chunkEnd->gt($to)) {
+                $chunkEnd = $to->copy();
+            }
+            $rows = array_merge($rows, $this->fetchInvoicesByMonth($token, $cursor, $chunkEnd, $show, $vatIn, $source === 'pos', $posCaptcha));
+            $cursor = $chunkEnd->addDay();
+        }
+
+        return ['source' => $source, 'count' => count($rows), 'sample' => array_slice(array_map(
+            static fn (array $row): array => [
+                'number' => (string) ($row['Số hóa đơn'] ?? ''),
+                'symbol' => (string) ($row['Ký hiệu'] ?? ''),
+                'date' => (string) ($row['Ngày lập'] ?? ''),
+            ],
+            $rows,
+        ), 0, 20)];
+    }
+
     public function expectedExportPath(string $startDate, string $endDate, bool $vatIn = false): string
     {
         $start = Carbon::parse($startDate);
@@ -97,13 +149,14 @@ class GdtInvoiceService
         return $stats;
     }
 
-    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all'): ?string
+    public function processRange($startDate, $endDate, ?callable $cb = null, bool $vatIn = false, string $source = 'all', ?string $syncId = null, ?array $posCaptcha = null): ?string
     {
         $show = fn ($message) => $cb ? $cb($message) : null;
         if (! in_array($source, ['all', 'regular', 'pos'], true)) {
             throw new \InvalidArgumentException('Nguồn hóa đơn GDT không hợp lệ.');
         }
         $this->lastDetailStats = ['reused' => 0, 'fetched' => 0, 'failed' => 0];
+        $this->lastSourceStats = ['regular' => ['state' => $source === 'pos' ? 'skipped' : 'pending', 'count' => null], 'pos' => ['state' => $source === 'regular' ? 'skipped' : 'pending', 'count' => null]];
         $show('[GDT] Bắt đầu đồng bộ nguồn canonical: '.$source);
         $vatIn = (bool) $vatIn;
         $show($vatIn ? '[GDT] Hóa đơn đầu vào' : '[GDT] Hóa đơn đầu ra');
@@ -113,6 +166,9 @@ class GdtInvoiceService
         }
         $start = Carbon::parse($startDate);
         $end = Carbon::parse($endDate);
+        if ($source === 'pos' && $start->format('Y-m') !== $end->format('Y-m')) {
+            throw new \InvalidArgumentException('Đồng bộ POS chỉ hỗ trợ một tháng dương lịch mỗi lần.');
+        }
         $filename = ($source === 'all' ? '' : $source.'_').$start->format('Y-m-d').'_'.$end->format('Y-m-d').'.xlsx';
         $show("[GDT] Khoảng thời gian: {$start->format('d/m/Y')} → {$end->format('d/m/Y')}");
         $all = [];
@@ -121,8 +177,63 @@ class GdtInvoiceService
             $monthEnd = $start->copy()->endOfMonth();
             $chunkEnd = $monthEnd->lt($end) ? $monthEnd : $end->copy();
             $show("[GDT] Gọi API tháng: {$chunkStart->format('d/m/Y')} → {$chunkEnd->format('d/m/Y')}");
-            $regular = $source !== 'pos' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn) : [];
-            $pos = $source !== 'regular' ? $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true) : [];
+            // A checkpoint is scoped to the exact sync request, direction and monthly window.
+            // It contains the complete source rows, so retries can still build an exact combined export.
+            $checkpointKey = $source === 'all' && filled($syncId)
+                ? 'invoices:gdt-source-chunk:'.hash('sha256', implode('|', [
+                    $syncId, $vatIn ? 'purchase' : 'sold',
+                    Carbon::parse($startDate)->toDateString(), Carbon::parse($endDate)->toDateString(),
+                    $chunkStart->toDateString(), $chunkEnd->toDateString(),
+                ]))
+                : null;
+            $checkpoint = $checkpointKey ? Cache::get($checkpointKey, []) : [];
+            $regular = [];
+            if ($source !== 'pos') {
+                if (isset($checkpoint['regular']) && is_array($checkpoint['regular'])) {
+                    $regular = $checkpoint['regular'];
+                    $show('[GDT] Regular canonical checkpoint: tái sử dụng nguồn đã hoàn tất, không gọi lại API.');
+                } else {
+                    $regular = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn);
+                    if ($source === 'all' && $regular !== []) {
+                        $regularStats = $this->persistInvoices($regular, $vatIn);
+                        $show(sprintf('[GDT] Regular canonical checkpoint: tạo mới %d · cập nhật %d · không đổi %d.', $regularStats['created'], $regularStats['updated'], $regularStats['unchanged']));
+                    }
+                    if ($checkpointKey) {
+                        $checkpoint['regular'] = $regular;
+                        Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
+                        $show('[GDT] Regular full-month checkpoint completed.');
+                    }
+                }
+            }
+            if ($source !== 'pos') {
+                $this->lastSourceStats['regular']['state'] = 'fetched';
+                $this->lastSourceStats['regular']['count'] = ($this->lastSourceStats['regular']['count'] ?? 0) + count($regular);
+            }
+            try {
+                if ($source === 'regular') {
+                    $pos = [];
+                } elseif (isset($checkpoint['pos']) && is_array($checkpoint['pos'])) {
+                    $pos = $checkpoint['pos'];
+                    $show('[GDT] POS full-month checkpoint reused.');
+                } else {
+                    $pos = $this->fetchInvoicesByMonth($token, $chunkStart, $chunkEnd, $show, $vatIn, true, $posCaptcha);
+                    if ($checkpointKey) {
+                        $checkpoint['pos'] = $pos;
+                        Cache::put($checkpointKey, $checkpoint, now()->addHours(24));
+                        $show('[GDT] POS full-month checkpoint completed.');
+                    }
+                }
+                if ($source !== 'regular') {
+                    $this->lastSourceStats['pos']['state'] = 'fetched';
+                    $this->lastSourceStats['pos']['count'] = ($this->lastSourceStats['pos']['count'] ?? 0) + count($pos);
+                }
+            } catch (\Throwable $exception) {
+                $this->lastSourceStats['pos']['state'] = 'failed';
+                if ($source === 'all') {
+                    $show('[GDT] POS thất bại; regular canonical đã lưu. Đồng bộ all chưa hoàn tất và không xuất Excel thiếu.');
+                }
+                throw $exception;
+            }
             $show('[GDT] Tháng này: thông thường '.count($regular).' · máy tính tiền '.count($pos));
             $all = array_merge($all, $regular, $pos);
             $start = $chunkEnd->copy()->addDay();
@@ -144,6 +255,10 @@ class GdtInvoiceService
         })->all());
         $show('[GDT] Tổng cộng sau loại trùng: '.count($all).' hóa đơn');
         if ($all === []) {
+            foreach ($this->lastSourceStats as &$sourceStat) {
+                if ($sourceStat['state'] === 'fetched') $sourceStat['state'] = 'empty';
+            }
+            unset($sourceStat);
             $show('[GDT] Không có hóa đơn trong khoảng thời gian đã chọn. Không tạo file Excel.');
 
             return null;
@@ -167,6 +282,10 @@ class GdtInvoiceService
         $show(sprintf('[DB] Đồng bộ header hoàn tất: tạo mới %d · cập nhật %d · không đổi %d · RAW header %d.', $stats['created'], $stats['updated'], $stats['unchanged'], count($stats['invoice_ids'])));
         $detailStats = $this->acquireMissingDetails($stats['invoice_ids'], $show);
         $this->lastDetailStats = $detailStats;
+        foreach ($this->lastSourceStats as &$sourceStat) {
+            if ($sourceStat['state'] === 'fetched') $sourceStat['state'] = $detailStats['failed'] > 0 ? 'partial' : 'completed';
+        }
+        unset($sourceStat);
         $show(sprintf('[RAW] Detail: đã có %d · tải mới %d · lỗi %d.', $detailStats['reused'], $detailStats['fetched'], $detailStats['failed']));
         $file = $this->exportExcel($all, $vatIn, $filename);
         $show('[GDT] File Excel tạo ra: '.$file);
@@ -221,13 +340,17 @@ class GdtInvoiceService
         return $file;
     }
 
-    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false): array
+    private function fetchInvoicesByMonth($token, $from, $to, callable $show, $vatIn, bool $cashRegister = false, ?array $posCaptcha = null): array
     {
         $action = $vatIn ? 'purchase' : 'sold';
         $search = "tdlap=ge={$from->format('d/m/Y')}T00:00:00;tdlap=le={$to->format('d/m/Y')}T23:59:59";
-        $pageSize = 50;
+        // Match the official GDT POS search page size; regular invoices retain 50.
+        $pageSize = $cashRegister ? 15 : 50;
         if ($cashRegister) {
             $search .= ';ttxly==8';
+            if (! is_array($posCaptcha) || blank($posCaptcha['ckey'] ?? null) || blank($posCaptcha['cvalue'] ?? null)) {
+                throw new \RuntimeException('Tra cứu POS cần CAPTCHA riêng. Vui lòng nhập CAPTCHA trước khi đồng bộ.');
+            }
         }
         $endpoint = $cashRegister ? '/sco-query/invoices/' : '/query/invoices/';
         $result = [];
@@ -235,13 +358,82 @@ class GdtInvoiceService
         $page = 1;
         $state = null;
         $total = null;
+        $posTraceId = $cashRegister ? (string) Str::uuid() : null;
         do {
             $show('[GDT] '.($cashRegister ? 'Máy tính tiền' : 'Thông thường')." · page {$page}...");
             try {
                 $query = ['sort' => 'tdlap:desc', 'size' => $pageSize, 'search' => $search];
                 if ($state) {
                     $query['state'] = $state;
-                }$res = $this->client($token)->get($this->url($endpoint.$action), $query);
+                }
+                if ($cashRegister) {
+                    $query['ckey'] = $posCaptcha['ckey'];
+                    $query['cvalue'] = $posCaptcha['cvalue'];
+                }
+                $client = $this->client($token);
+                if ($cashRegister) {
+                    $jar = new CookieJar;
+                    $storedCookies = is_array($posCaptcha['cookies'] ?? null) ? $posCaptcha['cookies'] : [];
+                    foreach ($storedCookies as $cookie) {
+                        if (! is_array($cookie)) {
+                            continue;
+                        }
+                        try {
+                            $jar->setCookie(new SetCookie($cookie));
+                        } catch (\Throwable) {
+                            // A malformed cookie must not disclose values in logs.
+                        }
+                    }
+                    Log::info('GDT POS captcha cookie lifecycle.', [
+                        'stage' => 'request',
+                        'action' => $action,
+                        'trace_id' => $posTraceId,
+                        'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+                        'page' => $page,
+                        'stored_cookie_count' => count($storedCookies),
+                        'jar_cookie_count' => count($jar->toArray()),
+                        'has_cookie' => count($jar->toArray()) > 0,
+                    ]);
+                    // Check domain/path/expiry matching without logging the cookie header.
+                    // This predicts CookieJar eligibility, not actual upstream acceptance.
+                    $cookieRequest = $jar->withCookieHeader(
+                        new Request('GET', $this->url($endpoint.$action))
+                    );
+                    $cookieEligible = $cookieRequest->hasHeader('Cookie');
+                    Log::info('GDT POS request metadata.', [
+                        'trace_id' => $posTraceId,
+                        'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+                        'action' => $action,
+                        'page' => $page,
+                        'endpoint' => $endpoint.$action,
+                        'page_size' => $pageSize,
+                        'search_has_pos_filter' => str_contains($search, 'ttxly==8'),
+                        'has_pagination_state' => filled($state),
+                        'jar_cookie_count' => count($jar->toArray()),
+                        'cookie_eligible_for_endpoint' => $cookieEligible,
+                        'user_agent_matches_captcha_client' => true,
+                    ]);
+                    // CAPTCHA client explicitly sends this configured User-Agent; keep POS consistent.
+                    $client = $client->withHeaders([
+                        'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
+                    ])->withOptions(['cookies' => $jar, 'allow_redirects' => ['track_redirects' => true]]);
+                }
+                // PendingRequest::withHeaders merges header arrays. Build the POS
+                // request with a fresh client so generic page-context headers
+                // cannot survive the POS-specific override.
+                $requestClient = $cashRegister ? $this->clientForPos($token, $jar) : $client;
+                $res = $requestClient
+                    ->withHeaders($cashRegister ? [
+                        // Match the observed GDT POS search page context, not the homepage.
+                        'Referer' => rtrim((string) preg_replace('#/api$#', '', rtrim((string) config('invoices.gdt.base_url'), '/')), '/').'/tra-cuu/tra-cuu-hoa-don',
+                        'Action' => rawurlencode('Tìm kiếm (hóa đơn máy tính tiền '.($vatIn ? 'mua vào' : 'bán ra').')'),
+                        'End-Point' => '/tra-cuu/tra-cuu-hoa-don',
+                        // Browser sends these as headers as well as query parameters.
+                        'ckey' => $posCaptcha['ckey'],
+                        'cvalue' => $posCaptcha['cvalue'],
+                        'Accept-Language' => 'vi',
+                    ] : [])
+                    ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
                 Log::warning('Không thể kết nối API GDT để lấy danh sách hóa đơn.', ['action' => $action, 'page' => $page, 'processed' => $processed, 'total' => $total, 'error' => $exception->getMessage()]);
                 throw new \RuntimeException("Mất kết nối GDT ở page {$page}; đã nhận {$processed}".($total !== null ? "/{$total}" : '').' hóa đơn. Không tạo file thiếu.', previous: $exception);
@@ -251,8 +443,24 @@ class GdtInvoiceService
                     Cache::forget(config('invoices.gdt.cache_key'));
                 }throw new \RuntimeException($res->status() === 401 ? 'Phiên đăng nhập GDT đã hết hạn. Không tạo file thiếu.' : 'GDT từ chối yêu cầu truy vấn hóa đơn (HTTP 403). Không tạo file thiếu.');
             } if (! $res->successful()) {
+                $this->logInvoiceQueryFailure($res, $endpoint.$action, $action, $page, $cashRegister, $query, $posTraceId);
+                if ($res->status() === 429) {
+                    $retryAfter = trim((string) $res->header('Retry-After', ''));
+                    $wait = preg_match('/^[0-9]{1,5}$/D', $retryAfter)
+                        ? ' GDT đề nghị chờ '.$retryAfter.' giây.'
+                        : ' Vui lòng chờ trước khi thử lại.';
+                    throw new \RuntimeException("GDT giới hạn tần suất truy vấn (HTTP 429) ở trang {$page}.{$wait} Không tự động thử lại; không tạo file thiếu.");
+                }
                 throw new \RuntimeException("API GDT trả HTTP {$res->status()} ở page {$page}. Không tạo file thiếu.");
             } $data = $res->json();
+            if ($cashRegister) {
+                $this->logPosQuerySuccess($res, $data, $action, $page, $query, $posCaptcha, $posTraceId);
+                if (! is_array($data) || ! is_array($data['datas'] ?? null) || ! array_is_list($data['datas'])
+                    || ! isset($data['total']) || ! is_int($data['total'])
+                    || $data['total'] < 0 || $data['total'] < count($data['datas'])) {
+                    throw new \RuntimeException('GDT trả HTTP 200 nhưng cấu trúc danh sách POS không hợp lệ. Không coi là 0 hóa đơn; không đồng bộ canonical.');
+                }
+            }
             $items = is_array($data['datas'] ?? null) ? $data['datas'] : [];
             $count = count($items);
             $total ??= (int) ($data['total'] ?? $count);
@@ -275,6 +483,232 @@ class GdtInvoiceService
         }$show("✅ Đã nhận đủ {$processed}/{$total} hóa đơn");
 
         return $result;
+    }
+
+    /**
+     * Diagnose successful POS responses using allowlisted scalar metadata only.
+     * Never log invoice contents, CAPTCHA values/keys, cookies, token or full URL.
+     */
+    private function logPosQuerySuccess($response, $data, string $action, int $page, array $query, ?array $posCaptcha, ?string $traceId): void
+    {
+        $contentType = strtolower((string) $response->header('Content-Type', ''));
+        $format = str_contains($contentType, 'json') ? 'json'
+            : (str_contains($contentType, 'html') ? 'html' : 'other');
+        $datas = is_array($data) ? ($data['datas'] ?? null) : null;
+        $total = is_array($data) ? ($data['total'] ?? null) : null;
+        $typeOf = static fn ($value): string => match (true) {
+            is_array($value) => 'array',
+            is_int($value) => 'integer',
+            is_string($value) => 'string',
+            is_bool($value) => 'boolean',
+            is_float($value) => 'float',
+            is_null($value) => 'null',
+            default => 'other',
+        };
+        $responseShape = ! is_array($data) ? 'scalar'
+            : (array_is_list($data) ? 'array' : 'object');
+        $mime = match ($format) {
+            'json' => 'application/json',
+            'html' => 'text/html',
+            default => 'other',
+        };
+        Log::info('GDT POS invoice query response metadata.', [
+            'source' => 'pos',
+            'trace_id' => $traceId,
+            'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+            'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
+            'redirect_count' => $this->safeRedirectCount($response),
+            'html_response_class' => $this->safeHtmlResponseClass($response),
+            'html_response_kind' => $this->safeHtmlResponseKind($response),
+            'html_fingerprint' => $format === 'html' ? $this->safePosHtmlFingerprint($response) : null,
+            'response_has_set_cookie' => trim((string) $response->header('Set-Cookie', '')) !== '',
+            'response_has_www_authenticate' => trim((string) $response->header('WWW-Authenticate', '')) !== '',
+            'response_has_cache_control' => trim((string) $response->header('Cache-Control', '')) !== '',
+            'response_has_content_length' => trim((string) $response->header('Content-Length', '')) !== '',
+            'action' => $action,
+            'page' => $page,
+            'http_status' => $response->status(),
+            'response_format' => $format,
+            'response_shape' => $responseShape,
+            'datas_type' => $typeOf($datas),
+            'total_type' => $typeOf($total),
+            'content_type' => $mime,
+            'request_action' => $action,
+            'response_total' => is_int($total) && $total >= 0 ? $total : null,
+            'response_datas_count' => is_array($datas) ? count($datas) : null,
+            'response_datas_is_array' => is_array($datas),
+            'page_size' => (int) ($query['size'] ?? 0),
+            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==8'),
+            'has_captcha_cookie' => ! empty($posCaptcha['cookies']),
+            'has_pagination_state' => filled($query['state'] ?? null),
+        ]);
+    }
+
+    /**
+     * Log only allowlisted response metadata. Never log response bodies, messages,
+     * query values, invoice identifiers, request URLs or authentication headers.
+     */
+    /**
+     * Guzzle redirect tracking is opt-in for POS. Never log redirect URLs,
+     * locations, query strings, response bodies or credentials.
+     */
+    private function safeRedirectCount($response): int
+    {
+        $history = trim((string) $response->header('X-Guzzle-Redirect-History', ''));
+
+        return $history === '' ? 0 : min(20, count(explode(',', $history)));
+    }
+
+    /** Fixed metadata labels only: never inspect or persist raw HTML. */
+    private function safeHtmlResponseClass($response): string
+    {
+        $contentType = strtolower((string) $response->header('Content-Type', ''));
+        if (str_contains($contentType, 'html')) {
+            return $this->safeRedirectCount($response) > 0 ? 'HTML_AFTER_REDIRECT' : 'HTML_DIRECT_OR_UNTRACKED';
+        }
+
+        return 'NOT_HTML';
+    }
+
+    /**
+     * Header-only response classification. Do not read, parse, hash or log HTML bodies.
+     * A login page cannot be identified reliably from headers alone.
+     */
+    /**
+     * Fixed-label, bounded classification only. Never log title text, HTML, hashes,
+     * server header values, or response URLs (they may contain secrets).
+     */
+    private function safePosHtmlFingerprint($response): array
+    {
+        $body = (string) $response->body();
+        $sample = strtolower(substr($body, 0, 32768));
+        $title = null;
+        if (preg_match('/<title\\b[^>]*>([^<]{0,200})<\\/title>/i', $sample, $matches)) {
+            $title = html_entity_decode(trim($matches[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+
+        $titleClass = match (true) {
+            $title === null => 'NO_SIMPLE_TITLE',
+            preg_match('/captcha|verify|verification|challenge|security|access denied|blocked|cloudflare/i', $title) === 1 => 'SECURITY_OR_CHALLENGE',
+            preg_match('/login|log in|sign in|đăng nhập|dang nhap/i', $title) === 1 => 'LOGIN',
+            preg_match('/error|exception|unavailable|lỗi|loi/i', $title) === 1 => 'ERROR',
+            default => 'OTHER_TITLE',
+        };
+
+        $server = strtolower((string) $response->header('Server', ''));
+        $serverClass = match (true) {
+            str_contains($server, 'cloudflare') => 'CLOUDFLARE',
+            str_contains($server, 'nginx') => 'NGINX',
+            str_contains($server, 'apache') => 'APACHE',
+            $server === '' => 'UNSPECIFIED',
+            default => 'OTHER',
+        };
+
+        return [
+            'body_size_band' => match (true) {
+                strlen($body) === 0 => 'EMPTY',
+                strlen($body) < 1024 => 'UNDER_1KB',
+                strlen($body) < 10240 => '1KB_TO_10KB',
+                strlen($body) < 102400 => '10KB_TO_100KB',
+                default => 'OVER_100KB',
+            },
+            'has_html_doctype' => str_contains(substr($sample, 0, 1024), '<!doctype html'),
+            'has_html_tag' => preg_match('/<html\\b/i', $sample) === 1,
+            'title_class' => $titleClass,
+            'server_class' => $serverClass,
+            'has_meta_refresh' => preg_match('/<meta\\b[^>]*http-equiv\\s*=\\s*["\\x27]?refresh/i', $sample) === 1,
+            'error_category' => $this->safePosHtmlErrorCategory($sample),
+            'gateway_header_class' => $this->safePosGatewayHeaderClass($response),
+        ];
+    }
+
+    /**
+     * Heuristic, fixed-label signals only. Never emit matched HTML text or URLs.
+     * Classification does not establish that an upstream security system blocked us.
+     */
+    private function safePosHtmlErrorCategory(string $sample): string
+    {
+        return match (true) {
+            preg_match('/(?:502 bad gateway|503 service unavailable|504 gateway timeout|upstream connect error|proxy error)/i', $sample) === 1 => 'GATEWAY_OR_UPSTREAM',
+            preg_match('/(?:access denied|request blocked|web application firewall|checking your browser|security challenge)/i', $sample) === 1 => 'ACCESS_OR_CHALLENGE',
+            preg_match('/(?:session expired|session timeout|please log in|please sign in|phiên đăng nhập|hết phiên đăng nhập)/iu', $sample) === 1 => 'SESSION_OR_LOGIN',
+            preg_match('/(?:internal server error|unexpected error|application error|server error|exception)/i', $sample) === 1 => 'APPLICATION_OR_SERVER',
+            default => 'UNCLASSIFIED',
+        };
+    }
+
+    /** Header values are never logged, only coarse provider-neutral categories. */
+    private function safePosGatewayHeaderClass($response): string
+    {
+        if (trim((string) $response->header('CF-Ray', '')) !== '') {
+            return 'CF_RAY_PRESENT';
+        }
+        if (trim((string) $response->header('Via', '')) !== '') {
+            return 'VIA_PRESENT';
+        }
+        if (trim((string) $response->header('X-Cache', '')) !== '') {
+            return 'X_CACHE_PRESENT';
+        }
+
+        return 'NO_RECOGNIZED_GATEWAY_HEADER';
+    }
+
+    private function safeHtmlResponseKind($response): string
+    {
+        if (! str_contains(strtolower((string) $response->header('Content-Type', '')), 'html')) {
+            return 'NOT_HTML';
+        }
+
+        if (trim((string) $response->header('WWW-Authenticate', '')) !== '') {
+            return 'HTML_AUTH_CHALLENGE_HEADER';
+        }
+
+        if ($this->safeRedirectCount($response) > 0) {
+            return 'HTML_AFTER_REDIRECT';
+        }
+
+        return 'HTML_UNCLASSIFIED';
+    }
+
+    /** Never expose query parameters, host, or credentials from a redirect Location. */
+    private function safeRedirectPath(?string $location): ?string
+    {
+        if (! is_string($location) || $location === '') {
+            return null;
+        }
+        $path = parse_url($location, PHP_URL_PATH);
+
+        return is_string($path) && preg_match('#^/[a-zA-Z0-9/_-]{1,160}$#D', $path)
+            ? $path : null;
+    }
+
+    private function logInvoiceQueryFailure($response, string $path, string $action, int $page, bool $cashRegister, array $query, ?string $traceId = null): void
+    {
+        $contentType = strtolower((string) $response->header('Content-Type', ''));
+        $format = str_contains($contentType, 'json') ? 'json'
+            : (str_contains($contentType, 'html') ? 'html' : 'other');
+
+        Log::warning('GDT invoice source HTTP failure.', [
+            'source' => $cashRegister ? 'pos' : 'regular',
+            'trace_id' => $traceId,
+            'runtime' => app()->runningUnitTests() ? 'test' : 'application',
+            'redirect_location_path' => $this->safeRedirectPath($response->header('Location')),
+            'redirect_count' => $this->safeRedirectCount($response),
+            'html_response_class' => $this->safeHtmlResponseClass($response),
+            'html_response_kind' => $this->safeHtmlResponseKind($response),
+            'response_has_set_cookie' => trim((string) $response->header('Set-Cookie', '')) !== '',
+            'response_has_www_authenticate' => trim((string) $response->header('WWW-Authenticate', '')) !== '',
+            'response_has_cache_control' => trim((string) $response->header('Cache-Control', '')) !== '',
+            'response_has_content_length' => trim((string) $response->header('Content-Length', '')) !== '',
+            'endpoint' => $path,
+            'action' => $action,
+            'page' => $page,
+            'http_status' => $response->status(),
+            'response_format' => $format,
+            'search_has_pos_filter' => str_contains((string) ($query['search'] ?? ''), 'ttxly==8'),
+            'page_size' => (int) ($query['size'] ?? 0),
+            'has_pagination_state' => filled($query['state'] ?? null),
+        ]);
     }
 
     private function logRejectedQuery($response, string $action, int $page): void
@@ -308,6 +742,30 @@ class GdtInvoiceService
                 'Action' => '',
                 'End-Point' => '/',
                 'request-id' => (string) Str::uuid(),
+            ]);
+    }
+
+    /**
+     * POS uses a distinct page context; do not inherit generic Referer,
+     * Action or End-Point headers from the regular invoice client.
+     */
+    private function clientForPos(string $token, CookieJar $jar)
+    {
+        $origin = rtrim((string) config('invoices.gdt.base_url'), '/');
+        $origin = preg_replace('#/api$#', '', $origin) ?: $origin;
+
+        return Http::withOptions([
+            'verify' => (bool) config('invoices.gdt.verify_ssl', true),
+            'cookies' => $jar,
+            'allow_redirects' => ['track_redirects' => true],
+        ])
+            ->timeout((int) config('invoices.gdt.timeout', 15))
+            ->withToken($token)
+            ->withHeaders([
+                'Accept' => 'application/json, text/plain, */*',
+                'Origin' => $origin,
+                'request-id' => (string) Str::uuid(),
+                'User-Agent' => (string) config('invoices.gdt.user_agent', 'Laravel-Invoices-GDT/1.0'),
             ]);
     }
 
