@@ -20,6 +20,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
 
         Route::get('/dav-prices', [PharmaDavPriceController::class, 'index'])
             ->middleware('client.feature:pharma,dav-prices')->name('dav-prices');
+        Route::get('/dav-prices/import', [PharmaDavPriceController::class, 'preview'])
+            ->middleware('client.feature:pharma,dav-prices')->name('dav-prices.import.preview');
+        Route::post('/dav-prices/import', [PharmaDavPriceController::class, 'import'])
+            ->middleware('client.feature:pharma,dav-prices')->name('dav-prices.import.store');
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');
