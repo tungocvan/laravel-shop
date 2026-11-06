@@ -20,6 +20,9 @@ class PharmaDavPublicPriceLookupTest extends TestCase
                 'soDangKy' => '893110605624',
                 'giaBanBuon' => 1200,
                 'giaBanLe' => null,
+                'id' => 107446,
+                'dangBaoChe' => 'Viên nén',
+                'nuocSanXuat' => 'Việt Nam',
                 'trangThaiCongBo' => '<span>Đã công bố</span>',
             ]]],
         ])]);
@@ -31,6 +34,9 @@ class PharmaDavPublicPriceLookupTest extends TestCase
         $this->assertSame(1200.0, $result['items'][0]['wholesale']);
         $this->assertNull($result['items'][0]['retail']);
         $this->assertSame('Đã công bố', $result['items'][0]['status']);
+        $this->assertSame('Viên nén', $result['items'][0]['dosage']);
+        $this->assertSame('Việt Nam', $result['items'][0]['country']);
+        $this->assertSame('107446', $result['items'][0]['source_id']);
         Http::assertSent(fn ($request) => $request['filterAll'] === 'METHYL 4 LEMED'
             && $request['skipCount'] === 0 && $request['maxResultCount'] === 15);
     }
