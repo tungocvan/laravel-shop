@@ -1,3 +1,12 @@
+## Checkpoint — Award lookup UI interaction fixes — 2026-11-06
+
+- User reported: no clear-search X, filter placement, detail button inert, sync preview returns `The selected field is required.` Screenshot verified.
+- Root cause: Blade Alpine expressions and dynamically generated hidden selection inputs were not functioning; `selected[]` was not submitted. Replaced with actual named checkbox controls linked to preview form via HTML `form` attribute. Added tiny dependency-free JS for clear X, select-all, count and empty selection validation. Detail is a native `<details>` disclosure, no Alpine runtime dependency. Filter is a native disclosure after successful search; no longer in search form.
+- This fixes UI interaction plumbing only. Missing or invalid `gdklh_GPNK` remains **review-only** by Option A; no bypass or silent product creation. Actual DB sync, UI click and JS runtime not yet tested. Need focused tests and user UI confirmation before any merge.
+- Branch `fix/pharma-award-interactions-20261106` stacked on unmerged feature parent. No production changes.
+
+---
+
 ## Checkpoint — Pharma public tender pricing parity and guarded catalog sync — 2026-11-06
 
 - User chose **Option A**: missing/invalid registration or ambiguous matching is review-only, never automatically matched/created. Source field `gdklh_GPNK` may be GPNK rather than registration; conservative validation intentionally blocks questionable values.
