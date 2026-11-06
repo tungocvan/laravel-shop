@@ -43,7 +43,25 @@ class GdtCanonicalSourceSelectionContractTest extends TestCase
     }
 
     #[Test]
-    public function queued_pos_sync_bypasses_all_source_shortcuts(): void
+    public function queued_pos_sync_fails_closed_before_any_gdt_service_call(): void
+    {
+        $service = $this->createMock(GdtInvoiceService::class);
+        $service->expects($this->never())->method('processRange');
+
+        $job = new ProcessGdtInvoicesJob('2026-10-01', '2026-10-30', true, null, 'pos');
+
+        $this->expectException(\\RuntimeException::class);
+        $this->expectExceptionMessage('chỉ được đồng bộ trực tiếp, không qua queue');
+
+        $job->handle(
+            $service,
+            $this->createMock(\\Modules\\Invoices\\Services\\GoogleDriveInvoiceExportService::class),
+            $this->createMock(\\Modules\\Invoices\\Services\\InvoiceSourceCoverageService::class),
+        );
+    }
+
+    #[Test]
+    public function source_scoped_job_uses_canonical_path_without_all_source_shortcuts(): void
     {
         $job = file_get_contents((new \ReflectionClass(ProcessGdtInvoicesJob::class))->getFileName());
         $this->assertStringContainsString("if ($"."this->source !== 'all')", $job);
