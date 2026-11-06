@@ -133,6 +133,7 @@ final class InvoicesApplicationController extends Controller
             'start' => ['required', 'date'],
             'end' => ['required', 'date', 'after_or_equal:start'],
             'direction' => ['required', 'in:sold,purchase'],
+            'source' => ['sometimes', 'in:regular'],
         ]);
 
         if (! $readiness->hasToken()) {
@@ -178,7 +179,7 @@ final class InvoicesApplicationController extends Controller
         }
         $request->session()->forget(['client.invoices.pos.image', 'client.invoices.pos.filters']);
         try {
-            $challenge = $api->loadPosCaptcha('web-'.$request->user('web')->getAuthIdentifier());
+            $challenge = $api->loadPosCaptcha('web-'.$request->user('web')->getAuthIdentifier().'-'.$request->session()->getId());
             $request->session()->put('client.invoices.pos.image', $challenge['image']);
             $request->session()->put('client.invoices.pos.filters', $filters + ['purpose' => $purpose]);
         } catch (\Throwable $exception) {
@@ -198,7 +199,7 @@ final class InvoicesApplicationController extends Controller
             return redirect()->route('client.invoices.sync')->with('error', 'CAPTCHA POS đã hết phiên. Vui lòng tải mã mới.');
         }
         try {
-            $challenge = $api->consumePosCaptcha('web-'.$request->user('web')->getAuthIdentifier(), $validated['cvalue']);
+            $challenge = $api->consumePosCaptcha('web-'.$request->user('web')->getAuthIdentifier().'-'.$request->session()->getId(), $validated['cvalue']);
             if ($filters['purpose'] === 'preview') {
                 $request->session()->forget('client.invoices.pos.preview');
                 $preview = $workspace->previewPos($filters['start'], $filters['end'], $filters['direction'], $challenge);
