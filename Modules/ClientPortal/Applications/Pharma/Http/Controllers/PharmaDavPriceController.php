@@ -94,8 +94,7 @@ final class PharmaDavPriceController extends Controller
                 'manufacturing_company' => mb_substr($candidate['manufacturer'], 0, 255),
                 'manufacturing_country' => mb_substr($candidate['country'], 0, 255),
                 'registered_company' => mb_substr($candidate['declarant'], 0, 255),
-                'declared_price' => null,
-                'selling_price' => null,
+                // Leave internal declared/planned prices unset; DAV prices are reference-only.
             ]);
         });
 
