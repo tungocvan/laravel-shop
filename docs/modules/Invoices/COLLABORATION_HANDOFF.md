@@ -595,3 +595,9 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User confirmed focused tests PASS for `GdtPosRateLimitSafeSearchTest`, `GdtCanonicalSourceSelectionContractTest`, and `GdtSourceChunkRetryContractTest`, followed by `tests/Feature/Invoices` module regression PASS on Admin after checkpoint `1b0c0bcb7`.
 - Guard applies only to `processRange(source=pos)` across calendar months; regular/all paths unchanged by this batch. Test counts/output were not provided, so do not invent totals.
 - Next gate: final PR review, assess any impacted dependencies, confirm applicable UI acceptance, and obtain explicit user authorization before merging. No production action.
+
+### 2026-11-06 — Admin UI acceptance for PR #362
+
+- User explicitly confirmed **UI PASS** for the Admin Invoices workflow after the two-tier focused and module regression PASS at feature commit `482cc6203`.
+- UI acceptance is user-reported, not independently reproduced by the GitHub connector. No CI status or impacted/cross-module regression is implied by this confirmation.
+- Preserve Draft PR #362 until final review gates and explicit merge authorization; no production deployment.
