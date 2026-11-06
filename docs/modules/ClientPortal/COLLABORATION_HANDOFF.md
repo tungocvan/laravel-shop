@@ -1,3 +1,14 @@
+## Checkpoint — Pharma public tender pricing parity and guarded catalog sync — 2026-11-06
+
+- User chose **Option A**: missing/invalid registration or ambiguous matching is review-only, never automatically matched/created. Source field `gdklh_GPNK` may be GPNK rather than registration; conservative validation intentionally blocks questionable values.
+- Pharma independent award page now has table, per-page statistics, collapsible unit filter, 20/page navigation, refresh, details modal, multi-select and confirmed sync preview. No wishlist. Advanced Muasamcong search fallback, global filters and exports **not fully replicated**; do not claim literal 100% parity.
+- Pharma-owned `PublicAwardMedicineSync` uses normalized name + registration + unit. Existing medicine: upsert `pharma_medicine_sources` observation (unique public_tender/award_price/source ID), never change master fields. New medicine: only after explicit confirmation, type tan_duoc, needs_review, no declared_price/selling_price writes. Source observations preserve each award and price in JSON metadata. Ambiguous, missing registration, conflicting source binding => validation stop.
+- Preview selects only server-fetched IDs (not client payload), stores per-user expiring token for 10 minutes, rechecks identity on commit, wraps batch in DB transaction and uses identity-scoped cache locks. Both POST routes use Pharma feature guard; controller requires `client.pharma.products.create` in addition to view. No Muasamcong module classes or config.
+- Focused contract tests written, **not executed**. Must verify PHP syntax, focused tests, actual source registration availability, page statistics and detailed modal, preview + confirmed create/update, rollback on partial failure, repeated sync idempotency, concurrency, mobile/tablet UI, and Muasamcong disabled in isolated test. UI PASS not yet obtained.
+- Branch `feat/pharma-award-full-ui-safe-sync-20261106` stacked on earlier unmerged feature branches. No migrations, .env changes, merge or production deploy.
+
+---
+
 ## Checkpoint — Independent Pharma tender award lookup — 2026-11-06
 
 - Replaces the earlier cross-app link: `/apps/pharma/award-prices` is owned by Pharma and ClientPortal Pharma. It works without Muasamcong app registration, feature permissions, routes, models, services or configuration; no migration or .env changes.
