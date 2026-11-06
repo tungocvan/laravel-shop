@@ -204,4 +204,49 @@ class GdtPosCaptchaPaginationRegressionTest extends TestCase
         $this->assertSame('fake-token', Cache::get('gdt-pos-pagination-test-token'));
     }
 
+
+    public function test_explicit_fresh_page_two_captcha_is_sent_without_replaying_page_one(): void
+    {
+        $calls = 0;
+        Http::fake(function ($request) use (&$calls) {
+            $calls++;
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            if ($calls === 1) {
+                $this->assertSame('first-key', $query['ckey'] ?? null);
+                $this->assertSame('first-answer', $query['cvalue'] ?? null);
+
+                return Http::response([
+                    'datas' => array_fill(0, 15, ['nbmst' => 'fixture']),
+                    'total' => 17,
+                    'state' => 'next-page',
+                ], 200);
+            }
+
+            $this->assertSame('next-page', $query['state'] ?? null);
+            $this->assertSame('second-key', $query['ckey'] ?? null);
+            $this->assertSame('second-answer', $query['cvalue'] ?? null);
+            $this->assertSame('second-key', $request->header('ckey')[0] ?? null);
+            $this->assertSame('second-answer', $request->header('cvalue')[0] ?? null);
+
+            return Http::response([
+                'datas' => array_fill(0, 2, ['nbmst' => 'fixture']),
+                'total' => 17,
+                'state' => null,
+            ], 200);
+        });
+
+        $result = app(GdtInvoiceService::class)->previewSource(
+            '2026-09-01', '2026-09-30', true, 'pos',
+            [
+                'ckey' => 'first-key',
+                'cvalue' => 'first-answer',
+                'page2' => ['ckey' => 'second-key', 'cvalue' => 'second-answer'],
+            ],
+        );
+
+        $this->assertSame(17, $result['count']);
+        $this->assertSame(2, $calls);
+        Http::assertSentCount(2);
+    }
+
 }
