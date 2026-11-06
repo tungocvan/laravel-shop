@@ -581,3 +581,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - User reported **two-tier TEST PASS** after fix commit `e212d9ee8`: `tests/Feature/Invoices/GdtCanonicalSourceSelectionContractTest.php` focused PASS, followed by `tests/Feature/Invoices` module regression PASS. Test output totals were not supplied; do not invent counts.
 - Prior focused failure was a PHPUnit `ClassIsFinalException` from mocking `final InvoiceSourceCoverageService`, not a POS service failure. Fixed by constructing the real stateless coverage service in the test; job guard remains unchanged.
 - GitHub compare at this checkpoint: feature ahead of main 188 commits, behind 0, 26 changed files confined to Invoices implementation/tests/docs. PR #362 remains Draft. GitHub CLI earlier reported MERGEABLE/CLEAN and no checks reported. Review and any applicable impacted/manual UI gates remain before merge; no production action.
+
+
+### 2026-11-06 — PR #362 review batch: canonical POS month guard
+
+- Read-only review of `GdtInvoiceService::processRange`, `SearchHoadon::run`, `ProcessGdtInvoicesJob`, and POS preview tests found that preview POS rejects multi-month requests, while canonical `processRange(source=pos)` lacked the same validation. A direct service caller could otherwise submit multiple POS monthly requests using one CAPTCHA challenge.
+- Added source-scoped guard in `processRange` for POS date ranges spanning different calendar months; `regular` and `all` remain unaffected. Added HTTP-faked regression `test_multi_month_pos_canonical_sync_fails_before_any_gdt_request` in `GdtPosRateLimitSafeSearchTest`.
+- **Checkpoint pending**: code committed on feature branch; focused tests and Invoices module regression must run on Admin and report results. Do not mark TEST PASS or UI PASS for this batch yet. PR remains Draft; no merge or production operations.
