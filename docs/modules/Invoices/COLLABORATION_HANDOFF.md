@@ -574,3 +574,10 @@ GDT authentication fix is accepted at focused-test, CLI and UI levels. Before PR
 - PR #362 is Draft, GitHub CLI reports MERGEABLE/CLEAN, no checks reported; DELL was clean at `686cf7a1a`. The branch is large (183+ commits), so merge is not authorized.
 - Review found a mismatch: POS UI requires a fresh interactive CAPTCHA and disables queue, but `ProcessGdtInvoicesJob` still accepted `source=pos` and invoked `processRange` without CAPTCHA. Such a queued invocation cannot complete the approved POS flow. Added explicit fail-closed guard in the job for `source=pos`, preserving regular/all job paths, and a focused regression test asserting the POS job does not call GDT canonical service.
 - This is a new untested checkpoint. User must pull and run focused test first, then Invoices regression only on PASS; assess impacted regression and UI confirmation as needed. No CI checks, no merge or production deployment.
+
+
+### 2026-11-06 — POS queue guard focused and module regression verified by user
+
+- User reported **two-tier TEST PASS** after fix commit `e212d9ee8`: `tests/Feature/Invoices/GdtCanonicalSourceSelectionContractTest.php` focused PASS, followed by `tests/Feature/Invoices` module regression PASS. Test output totals were not supplied; do not invent counts.
+- Prior focused failure was a PHPUnit `ClassIsFinalException` from mocking `final InvoiceSourceCoverageService`, not a POS service failure. Fixed by constructing the real stateless coverage service in the test; job guard remains unchanged.
+- GitHub compare at this checkpoint: feature ahead of main 188 commits, behind 0, 26 changed files confined to Invoices implementation/tests/docs. PR #362 remains Draft. GitHub CLI earlier reported MERGEABLE/CLEAN and no checks reported. Review and any applicable impacted/manual UI gates remain before merge; no production action.
