@@ -1,3 +1,14 @@
+## DAV → Medicine Master import checkpoint (2026-11-06)
+
+- Added DAV dosage-form/country mapping and visible card fields. Each card inspects normalized medicine name + registration against Medicine Master.
+- New candidate: explicit preview → CSRF-protected confirmation → re-fetch source → identity recheck under cache lock → MedicineService::store. Existing/ambiguous/incomplete candidates cannot auto-create. Import requires both `client.pharma.dav-prices.view` and `client.pharma.products.create`.
+- No DAV public price is written into internal declared/selling prices. Existing Medicine Master records are not overwritten. Missing catalog metadata must be reviewed after import.
+- Known validation gate: check matcher normalization coverage, duplicate concurrency under actual cache backend, existing product routes, permission behavior, source ID stability and real DAV response. Review import field truncation for packaging and complete SKU/package creation; this initial batch creates only a Medicine Master record.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaDavPublicPriceLookupTest.php tests/Feature/ClientApps/PharmaDavImportContractTest.php`; run impacted ClientPortal/Pharma regression only after focused PASS.
+- Tests NOT EXECUTED by assistant; UI import NOT VERIFIED; no merge or deployment.
+
+---
+
 ## Checkpoint — DAV public price lookup — 2026-11-06
 
 - Branch: `feat/pharma-dav-price-lookup-20261106`. Read-only DAV search in Pharma domain service and thin ClientPortal PWA adapter. No database writes, migrations, .env edits, production operations, or merge.
