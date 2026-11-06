@@ -138,6 +138,16 @@ return [
         ],
     ],
     'features' => [
+        'award-prices' => [
+            'name' => 'Tra cứu thuốc trúng thầu',
+            'description' => 'Tra cứu độc lập giá thuốc trúng thầu từ nguồn công khai.',
+            'eyebrow' => 'Dữ liệu công khai đấu thầu',
+            'page_title' => 'Tra cứu thuốc trúng thầu',
+            'page_description' => 'Tra cứu dữ liệu giá trúng thầu ngay trong Pharma.',
+            'route' => 'client.pharma.award-prices',
+            'permission' => 'client.pharma.dav-prices.view',
+            'sort_order' => 17,
+        ],
         'traditional-prices' => [
             'name' => 'Tra cứu giá thuốc đông dược',
             'description' => 'Tra cứu giá kê khai thuốc đông dược từ Cổng Y Dược cổ truyền Bộ Y tế.',
