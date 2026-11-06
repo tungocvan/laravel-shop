@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
@@ -17,6 +18,9 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/', [PharmaApplicationController::class, 'dashboard'])
             ->middleware('client.feature:pharma,overview')
             ->name('dashboard');
+
+        Route::get('/lookups', [PharmaLookupController::class, 'index'])
+            ->middleware('client.feature:pharma,lookups')->name('lookups');
 
         Route::get('/dav-prices', [PharmaDavPriceController::class, 'index'])
             ->middleware('client.feature:pharma,dav-prices')->name('dav-prices');
