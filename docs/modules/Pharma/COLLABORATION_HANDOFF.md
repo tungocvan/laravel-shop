@@ -1,3 +1,11 @@
+## MOH YDCT TLS incident — 2026-11-06
+
+- Operator reproduced OpenSSL 3.0.13 `dh key too small` with Python and PHP cURL errno 35 (HTTP 0). `curl --ciphers 'DEFAULT@SECLEVEL=1'` returned HTTPS 200 with SSL verify result 0; POST returned JSON with success=true, totalCount=2 for `cold wind` without cookies/XSRF tokens.
+- Adapter-only fix: `MohTraditionalPriceLookup` sets Guzzle cURL option `CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'`, `verify => true` for this MOH request only. **Security tradeoff:** weaker accepted DH parameters for this legacy endpoint. No global OpenSSL changes, no `verify=false`, no credentials. Review removal when remote TLS is fixed.
+- Focused test adds TLS source contract; **no runtime PHP tests or UI smoke executed by assistant**. Operator must verify PHP HTTP transport honors cURL option and confirm UI real search; if error persists inspect logs/status before further change.
+
+---
+
 ## Traditional medicine public price lookup — checkpoint 2026-11-06
 
 - Branch `feat/pharma-traditional-price-lookup-20261106` is stacked on `feat/pharma-lookup-hub-20261106` (itself stacked on unmerged DAV feature). Resolve parent dependencies before PR/merge; main was `36e43665a` at branch creation.
