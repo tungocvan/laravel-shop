@@ -32,6 +32,8 @@ class SearchHoadon extends Component
     public string $searchState = 'idle';
     public ?string $posContinuationId = null;
     public bool $posMultiPagePreview = false;
+    public ?string $posSyncContinuationId = null;
+    public string $posSyncPhase = 'idle';
     public ?string $searchMessage = null;
     public array $searchPreview = [];
     public ?string $searchedFingerprint = null;
@@ -91,6 +93,7 @@ class SearchHoadon extends Component
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
         $this->discardPosContinuation();
+        $this->discardPosSyncContinuation();
         $this->posMultiPagePreview = false;
         $this->searchState = 'idle';
         $this->searchMessage = null;
@@ -115,6 +118,67 @@ class SearchHoadon extends Component
         $this->searchMessage = null;
         $this->searchPreview = [];
         $this->searchedFingerprint = null;
+    }
+
+    private function discardPosSyncContinuation(): void
+    {
+        if ($this->posSyncContinuationId !== null) {
+            app(GdtPosSecureContinuation::class)->discard(
+                (int) auth('admin')->id(), session()->getId(), $this->posSyncContinuationId
+            );
+            $this->posSyncContinuationId = null;
+        }
+        $this->posSyncPhase = 'idle';
+    }
+
+    public function continuePosSync(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if ($this->invoiceSource !== 'pos' || $this->posSyncPhase !== 'awaiting_captcha'
+            || $this->posSyncContinuationId === null
+            || $this->searchedFingerprint !== $this->searchFingerprint()) {
+            return;
+        }
+        $this->openPosCaptcha('sync_page2');
+    }
+
+    private function resumePosSync(): void
+    {
+        $this->authorizePermission('invoices-create');
+        if ($this->posSyncPhase !== 'awaiting_captcha' || $this->posSyncContinuationId === null
+            || $this->searchedFingerprint !== $this->searchFingerprint()) {
+            return;
+        }
+        $this->syncState = 'processing';
+        try {
+            $captcha = $this->apiService->consumePosCaptcha((int) auth('admin')->id(), $this->posCaptchaAnswer);
+            $this->posCaptchaAnswer = '';
+            $checkpoint = app(GdtPosSecureContinuation::class)->consume(
+                (int) auth('admin')->id(), session()->getId(), $this->searchFingerprint(), $this->posSyncContinuationId
+            );
+            $this->posSyncContinuationId = null;
+            if ($checkpoint === null) {
+                throw new RuntimeException('Checkpoint đồng bộ POS hết hạn. Vui lòng đồng bộ lại.');
+            }
+            $rows = $this->invoiceService->resumePosCanonicalRows(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, $captcha, $checkpoint
+            );
+            $file = $this->invoiceService->processVerifiedPosRows(
+                $this->start_date, $this->end_date, (bool) $this->vatIn, $rows, $checkpoint['total'],
+                fn ($msg) => $this->log($msg)
+            );
+            $this->sourceResults = $this->invoiceService->lastSourceStats();
+            $this->detailResults = $this->invoiceService->lastDetailStats();
+            $this->syncFile = $file;
+            $this->syncState = 'completed';
+            $this->syncMessage = 'Đã đồng bộ canonical đủ '.count($rows).' hóa đơn POS.';
+            $this->posSyncPhase = 'completed';
+            $this->refreshAvailableFiles();
+        } catch (\Throwable $exception) {
+            $this->syncState = 'failed';
+            $this->syncMessage = $exception->getMessage();
+            $this->discardPosSyncContinuation();
+        }
     }
 
     private function discardPosContinuation(): void
@@ -155,11 +219,10 @@ class SearchHoadon extends Component
             $this->addError('end_date', 'Tra cứu POS chỉ hỗ trợ một tháng dương lịch mỗi lần.');
             return;
         }
-        if (! in_array($purpose, ['search', 'sync', 'page2'], true)) {
+        if (! in_array($purpose, ['search', 'sync', 'page2', 'sync_page2'], true)) {
             return;
         }
-        if ($purpose === 'sync' && $this->posMultiPagePreview) {
-            $this->addError('invoiceSource', 'Đồng bộ canonical POS nhiều trang chưa được hỗ trợ. Không ghi dữ liệu thiếu.');
+        if ($purpose === 'sync_page2' && ($this->posSyncPhase !== 'awaiting_captcha' || $this->posSyncContinuationId === null)) {
             return;
         }
         if ($purpose === 'sync' && ($this->searchState !== 'completed'
@@ -211,6 +274,8 @@ class SearchHoadon extends Component
             $this->run();
         } elseif ($purpose === 'page2') {
             $this->resumePosSearch();
+        } elseif ($purpose === 'sync_page2') {
+            $this->resumePosSync();
         }
         $this->posCaptchaPurpose = null;
         $this->posCaptchaFingerprint = null;
@@ -344,10 +409,6 @@ class SearchHoadon extends Component
             return;
         }
 
-        if ($this->invoiceSource === 'pos' && $this->posMultiPagePreview) {
-            $this->addError('invoiceSource', 'Tra cứu nhiều trang đã hoàn tất, nhưng đồng bộ canonical nhiều trang chưa được hỗ trợ. Không ghi dữ liệu thiếu.');
-            return;
-        }
 
         if ((int) ($this->searchPreview['count'] ?? 0) <= 0) {
             $this->addError('invoiceSource', 'Không có hóa đơn để đồng bộ canonical.');
@@ -379,6 +440,37 @@ class SearchHoadon extends Component
             $this->posCaptchaAnswer = '';
             $this->posCaptchaImage = '';
             $this->posCaptchaError = null;
+        }
+
+        if ($this->invoiceSource === 'pos' && $this->posMultiPagePreview) {
+            try {
+                $result = $this->invoiceService->previewPosFirstPage(
+                    $this->start_date, $this->end_date, (bool) $this->vatIn, $posCaptcha
+                );
+                if (! ($result['incomplete'] ?? false)) {
+                    throw new RuntimeException('Số trang GDT thay đổi so với lần tra cứu. Vui lòng tìm kiếm lại.');
+                }
+                $snapshot = $this->invoiceService->takePosFirstPage();
+                if (! is_array($snapshot) || $snapshot['total'] !== (int) ($this->searchPreview['count'] ?? -1)) {
+                    throw new RuntimeException('Tổng số hóa đơn GDT thay đổi. Vui lòng tìm kiếm lại.');
+                }
+                $this->discardPosSyncContinuation();
+                $this->posSyncContinuationId = app(GdtPosSecureContinuation::class)->store(
+                    (int) auth('admin')->id(), session()->getId(), $this->searchFingerprint(),
+                    $snapshot['rows'], $snapshot['cursor'], $snapshot['total'], $snapshot['cookies']
+                );
+                $this->posSyncPhase = 'awaiting_captcha';
+                $this->syncState = 'awaiting_captcha';
+                $this->syncMessage = 'Đã nhận 15/'.$snapshot['total'].' hóa đơn để đồng bộ. Nhập CAPTCHA mới cho trang 2; chưa ghi canonical.';
+
+                return;
+            } catch (\Throwable $exception) {
+                $this->syncState = 'failed';
+                $this->syncMessage = $exception->getMessage();
+                $this->discardPosSyncContinuation();
+
+                return;
+            }
         }
 
         $this->logs = [];
