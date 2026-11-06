@@ -384,13 +384,18 @@ class GdtInvoiceService
                 if ($state) {
                     $query['state'] = $state;
                 }
-                // CAPTCHA validates the initial POS search. Continuation uses the
-                // opaque pagination state returned by GDT; replaying the answer on
-                // page 2 was rejected upstream as an invalid CAPTCHA (401).
+                // A distinct CAPTCHA may be supplied explicitly for page 2.
+                // Never replay the page-1 answer as a page-2 challenge.
+                // Keep the GDT cursor until its continuation contract is verified.
                 $initialPosPage = $cashRegister && $page === 1;
-                if ($initialPosPage) {
-                    $query['ckey'] = $posCaptcha['ckey'];
-                    $query['cvalue'] = $posCaptcha['cvalue'];
+                $pageCaptcha = $initialPosPage ? $posCaptcha
+                    : ($cashRegister && $page === 2 ? ($posCaptcha['page2'] ?? null) : null);
+                if ($pageCaptcha !== null) {
+                    if (! is_array($pageCaptcha) || blank($pageCaptcha['ckey'] ?? null) || blank($pageCaptcha['cvalue'] ?? null)) {
+                        throw new \RuntimeException('CAPTCHA POS trang 2 không hợp lệ. Không tạo file thiếu.');
+                    }
+                    $query['ckey'] = $pageCaptcha['ckey'];
+                    $query['cvalue'] = $pageCaptcha['cvalue'];
                 }
                 $client = $this->client($token);
                 if ($cashRegister) {
@@ -420,7 +425,7 @@ class GdtInvoiceService
                         'page_size' => $pageSize,
                         'search_has_pos_filter' => str_contains($search, 'ttxly==8'),
                         'has_pagination_state' => filled($state),
-                        'captcha_submitted' => $initialPosPage,
+                        'captcha_submitted' => $pageCaptcha !== null,
                         'jar_cookie_count' => count($jar->toArray()),
                         'cookie_eligible_for_endpoint' => $cookieEligible,
                         'user_agent_matches_captcha_client' => true,
@@ -442,9 +447,9 @@ class GdtInvoiceService
                         'End-Point' => '/tra-cuu/tra-cuu-hoa-don',
                         // Browser sends these as headers as well as query parameters.
                         'Accept-Language' => 'vi',
-                    ] + ($initialPosPage ? [
-                        'ckey' => $posCaptcha['ckey'],
-                        'cvalue' => $posCaptcha['cvalue'],
+                    ] + ($pageCaptcha !== null ? [
+                        'ckey' => $pageCaptcha['ckey'],
+                        'cvalue' => $pageCaptcha['cvalue'],
                     ] : []) : [])
                     ->get($this->url($endpoint.$action), $query);
             } catch (ConnectionException $exception) {
