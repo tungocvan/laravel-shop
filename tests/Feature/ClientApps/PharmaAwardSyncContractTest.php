@@ -22,6 +22,21 @@ class PharmaAwardSyncContractTest extends TestCase
         }
     }
 
+    public function test_award_detail_route_and_safe_sync_form_are_wired(): void
+    {
+        $route = Route::getRoutes()->getByName('client.pharma.award-prices.show');
+        $this->assertNotNull($route);
+        $this->assertContains('GET', $route->methods());
+        $this->assertContains('client.feature:pharma,award-prices', $route->gatherMiddleware());
+
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-price-detail.blade.php'));
+        $this->assertStringContainsString('client.pharma.award-prices.sync.preview', $detail);
+        $this->assertStringContainsString('name="selected[]"', $detail);
+        $this->assertStringContainsString("['status'] !== 'review'", $detail);
+        $this->assertStringContainsString('GĐKLH / GPNK', $detail);
+        $this->assertStringNotContainsString('muasamcong.drug-pricing', $detail);
+    }
+
     public function test_missing_registration_is_review_only(): void
     {
         $sync = app(PublicAwardMedicineSync::class);
@@ -56,7 +71,7 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringNotContainsString('x-model=', $blade);
         $this->assertStringNotContainsString('x-teleport=', $blade);
         $this->assertStringContainsString('award-interactions.js', $blade);
-        $this->assertStringContainsString('<details class="award-detail">', $blade);
+        $this->assertStringContainsString('client.pharma.award-prices.show', $blade);
         $script = file_get_contents(base_path('public/demo/pharma-award/award-interactions.js'));
         $this->assertStringContainsString("input.value = '';", $script);
         $this->assertStringContainsString("rows.forEach(row", $script);
