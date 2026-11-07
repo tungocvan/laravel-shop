@@ -88,12 +88,26 @@ class KqlcntAwardExcelImportService
             foreach (['quantity', 'price_plan', 'winning_price', 'amount'] as $field) {
                 if ($data[$field] !== null && trim((string) $data[$field]) !== '' && ! is_numeric($data[$field])) $errors[] = $field.' không phải số';
             }
-            $rows[] = ['line' => $index + 2, 'id' => $id, 'data' => $data, 'version' => $hasIdentity ? (string) ($raw['_version'] ?? '') : ($existing?->updated_at?->format('Y-m-d H:i:s.u') ?? ''), 'errors' => $errors];
+            $comparison = $this->comparison($data, $existing);
+            if ($comparison['invalid']) $errors = array_merge($errors, $comparison['invalid']);
+            $status = $errors !== [] ? 'error' : ($comparison['changes'] === 0 ? 'unchanged' : 'changed');
+            $rows[] = [
+                'line' => $index + 2, 'id' => $id, 'data' => $data,
+                'version' => $hasIdentity ? (string) ($raw['_version'] ?? '') : ($existing?->updated_at?->format('Y-m-d H:i:s.u') ?? ''),
+                'errors' => $errors, 'status' => $status, 'comparison' => $comparison['fields'],
+                'changes' => $comparison['changes'],
+            ];
         }
         if ($rows === []) throw ValidationException::withMessages(['file' => 'File không có dữ liệu.']);
         $token = bin2hex(random_bytes(24));
         Cache::put($this->cacheKey($token), ['user' => auth('admin')->id(), 'rows' => $rows], now()->addMinutes(20));
-        return ['token' => $token, 'rows' => $rows, 'valid' => collect($rows)->filter(fn ($r) => $r['errors'] === [])->count(), 'errors' => collect($rows)->filter(fn ($r) => $r['errors'] !== [])->count()];
+        return [
+            'token' => $token, 'rows' => $rows,
+            'valid' => collect($rows)->where('status', 'changed')->count(),
+            'unchanged' => collect($rows)->where('status', 'unchanged')->count(),
+            'errors' => collect($rows)->where('status', 'error')->count(),
+            'total' => count($rows), 'labels' => self::FIELDS,
+        ];
     }
 
     public function confirm(string $token, bool $overwrite = false): array
@@ -104,7 +118,7 @@ class KqlcntAwardExcelImportService
         $result = DB::transaction(function () use ($batch, $overwrite): array {
             $updated = 0; $skipped = 0;
             foreach ($batch['rows'] as $row) {
-                if ($row['errors'] !== []) { $skipped++; continue; }
+                if ($row['errors'] !== [] || ($row['status'] ?? 'error') !== 'changed') { $skipped++; continue; }
                 $award = KqlcntAwardItem::query()->lockForUpdate()->find($row['id']);
                 if (! $award || $award->updated_at?->format('Y-m-d H:i:s.u') !== $row['version']) {
                     if (! $overwrite) { $skipped++; continue; }
@@ -122,6 +136,11 @@ class KqlcntAwardExcelImportService
                         catch (\Throwable) { $skipped++; continue 2; }
                     } else $fields[$field] = null;
                 }
+                $rechecked = $this->comparison($row['data'], $award);
+                if ($rechecked['invalid'] !== [] || $rechecked['changes'] === 0) {
+                    $skipped++;
+                    continue;
+                }
                 $award->fill($fields);
                 if (! $award->isDirty()) {
                     $skipped++;
@@ -136,6 +155,64 @@ class KqlcntAwardExcelImportService
         });
         Cache::forget($key);
         return $result;
+    }
+
+    /**
+     * Compare the same normalized values that confirm() writes.
+     * Technical identity columns are never mutable.
+     */
+    private function comparison(array $data, ?KqlcntAwardItem $existing): array
+    {
+        $fields = [];
+        $invalid = [];
+        $ignored = [];
+        $changes = 0;
+        foreach (self::FIELDS as $key => $label) {
+            $incoming = $this->normalizeValue($key, $data[$key] ?? null, $invalid);
+            $current = $existing ? $this->normalizeValue($key, $existing->{$key}, $ignored) : null;
+            $different = $existing && ! in_array($key, ['notify_no', 'contractor_code'], true)
+                && $incoming !== $current;
+            if ($different) $changes++;
+            $fields[] = [
+                'field' => $key, 'label' => $label,
+                'current' => $current, 'incoming' => $incoming,
+                'changed' => (bool) $different,
+            ];
+        }
+        return ['fields' => $fields, 'changes' => $changes, 'invalid' => array_values(array_unique($invalid))];
+    }
+
+    private function normalizeValue(string $field, mixed $value, array &$invalid): ?string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            $value = $value->format(in_array($field, ['published_at'], true) ? 'd/m/Y H:i' : 'd/m/Y');
+        }
+        $value = trim((string) ($value ?? ''));
+        if ($value === '') return null;
+        if (in_array($field, ['quantity', 'price_plan', 'winning_price', 'amount'], true)) {
+            if (! is_numeric($value) || (float) $value < 0) {
+                $invalid[] = $field.' phải là số không âm';
+                return $value;
+            }
+            return rtrim(rtrim(sprintf('%.4F', (float) $value), '0'), '.');
+        }
+        if (in_array($field, ['shelf_life_months', 'contract_period'], true)) {
+            if (! ctype_digit($value)) {
+                $invalid[] = $field.' phải là số nguyên không âm';
+                return $value;
+            }
+            return (string) (int) $value;
+        }
+        if (in_array($field, ['decision_date', 'published_at'], true)) {
+            $format = $field === 'decision_date' ? 'd/m/Y' : 'd/m/Y H:i';
+            $date = \DateTimeImmutable::createFromFormat('!'.$format, $value);
+            if (! $date || $date->format($format) !== $value) {
+                $invalid[] = $field.' không đúng định dạng ngày '.$format;
+                return $value;
+            }
+            return $date->format($format);
+        }
+        return $value;
     }
 
     private function legacyMatches(array $data): \Illuminate\Support\Collection
