@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupWishlistController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaWishlistMedicineSyncController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaGmpLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDrugRegistrationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalDrugRegistrationController;
@@ -41,6 +42,15 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->where('sourceType', 'dav_price|traditional_price|dav_registration|traditional_registration')
             ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
             ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.remove');
+
+        Route::get('/lookups/wishlist/{sourceType}/{sourceId}/import', [PharmaWishlistMedicineSyncController::class, 'preview'])
+            ->where('sourceType', 'dav_price|traditional_price|dav_registration|traditional_registration')
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.import.preview');
+        Route::post('/lookups/wishlist/{sourceType}/{sourceId}/import', [PharmaWishlistMedicineSyncController::class, 'store'])
+            ->where('sourceType', 'dav_registration|traditional_registration')
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.import.store');
 
         Route::get('/domestic-gmp', [PharmaDomesticGmpController::class, 'index'])
             ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp');
