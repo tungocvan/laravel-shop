@@ -9,7 +9,7 @@
 @section('content')
 <div class="min-w-0 space-y-5">
     <section class="rounded-3xl bg-slate-950 px-5 py-6 text-white sm:px-7">
-        <a href="{{ route('client.pharma.drug-registrations', ['field' => $field, 'q' => $keyword, 'page' => $page]) }}" class="inline-flex min-h-11 items-center text-sm font-bold text-slate-200">← Quay về kết quả</a>
+        <a href="{{ route($routeBase, ['field' => $field, 'q' => $keyword, 'page' => $page]) }}" class="inline-flex min-h-11 items-center text-sm font-bold text-slate-200">← Quay về kết quả</a>
         <p class="mt-3 text-xs font-bold uppercase tracking-widest text-slate-300">Thông tin công bố DAV</p>
         <h1 class="mt-2 break-words text-2xl font-black">{{ $item['name'] }} — {{ $item['strength'] }}</h1>
         <p class="mt-2 text-sm text-slate-300">Số GPLH: {{ $item['registration'] }}</p>
@@ -47,6 +47,6 @@
             </dl>
         </section>
     @endforeach
-    <p class="text-xs text-slate-500">Nguồn công khai DAV. Các liên kết PDF chưa được kích hoạt vì cơ chế tải tài liệu chưa được xác minh. Không có chức năng đồng bộ vào Danh mục thuốc.</p>
+    <p class="text-xs text-slate-500">Nguồn công bố chính thức. Các liên kết PDF chưa được kích hoạt vì cơ chế tải tài liệu chưa được xác minh. Không có chức năng đồng bộ vào Danh mục thuốc.</p>
 </div>
 @endsection
