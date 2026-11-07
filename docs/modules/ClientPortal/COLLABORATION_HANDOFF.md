@@ -1,3 +1,12 @@
+## Registration lookup UI reset + hub nesting — 2026-11-07
+
+- Feature branch `fix/pharma-registration-search-reset-hub-20261107` stacked on `feat/pharma-traditional-drug-registrations-20261107` (not yet merged to main). User confirmed traditional-drug UI PASS before this UI change.
+- Shared `drug-registrations.blade.php` adds a keyboard-accessible **Xóa lọc** link to `route($routeBase)` with no query params. It resets both field and keyword and removes stale search results for **both** DAV tân dược and MOH đông dược. Search remains GET-only.
+- `PharmaApplicationController::dashboard` excludes `drug-registrations` and `traditional-drug-registrations` from top-level capability cards alongside existing lookup children. Both remain in `lookups.blade.php` with original routes and permissions; no changes to source-module services or manifest permissions.
+- Focused: `PharmaLookupHubContractTest.php`; impacted: `PharmaDrugRegistrationLookupTest.php` and `PharmaTraditionalDrugRegistrationLookupTest.php`. **Not executed by assistant**. Manual UI acceptance required for both search/reset, dashboard visibility and Tra cứu cards on desktop/mobile. No PR/merge/deploy.
+
+---
+
 ## MOH traditional registry TLS handshake fix — 2026-11-07
 
 - DELL read-only cURL POST initially failed before HTTP with `OpenSSL/3.0.13: dh key too small` (status 0). A separate TLS 1.2 GET restricted to `ECDHE+AESGCM:ECDHE+CHACHA20` negotiated `ECDHE-RSA-AES256-GCM-SHA384` and returned HTTP 200. GET proves a compatible secure cipher exists, **not yet** that API POST works.
