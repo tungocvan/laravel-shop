@@ -35,6 +35,7 @@ Route::middleware(config('muasamcong.route_middleware', ['web', 'auth:admin']))-
         Route::post('/synced/export-selected', SyncedPricingScopedExportController::class)->name('synced.export-selected');
         Route::post('/synced/export-bbg', SyncedPricingBbgExportController::class)->name('synced.export-bbg');
         Route::get('/kqlcnt-awards', [KqlcntAwardController::class, 'index'])->name('kqlcnt-awards.index');
+        Route::get('/kqlcnt-awards/import/template', [KqlcntAwardController::class, 'importTemplate'])->middleware('permission:muasamcong.pricing.sync,admin')->name('kqlcnt-awards.import.template');
         Route::post('/kqlcnt-awards/import/preview', [KqlcntAwardController::class, 'importPreview'])->middleware('permission:muasamcong.pricing.sync,admin')->name('kqlcnt-awards.import.preview');
         Route::post('/kqlcnt-awards/import/confirm', [KqlcntAwardController::class, 'importConfirm'])->middleware('permission:muasamcong.pricing.sync,admin')->name('kqlcnt-awards.import.confirm');
         Route::post('/kqlcnt-awards/export', [KqlcntAwardController::class, 'export'])->name('kqlcnt-awards.export');
