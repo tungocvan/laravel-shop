@@ -24,15 +24,18 @@
             </select>
         </label>
         <label class="block text-sm font-semibold text-slate-800">Từ khóa
-            <input name="q" value="{{ $keyword }}" maxlength="200" required placeholder="Ví dụ: Venclexta" class="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2">
+            <input name="q" value="{{ $keyword }}" maxlength="200" required placeholder="Nhập tên thuốc hoặc số đăng ký" class="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2">
         </label>
-        <button type="submit" class="min-h-11 rounded-xl bg-indigo-700 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-800">Tìm kiếm</button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="submit" class="min-h-11 flex-1 rounded-xl bg-indigo-700 px-6 py-3 text-sm font-bold text-white hover:bg-indigo-800">Tìm kiếm</button>
+            <a href="{{ route($routeBase) }}" aria-label="Xóa bộ lọc tìm kiếm" class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Xóa lọc</a>
+        </div>
     </form>
 
     @if ($error)
         <div role="alert" class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{{ $error }}</div>
     @elseif ($keyword !== '')
-        <p class="text-sm text-slate-600">Tìm thấy {{ number_format($result['total']) }} kết quả từ DAV. Mỗi số đăng ký được hiển thị riêng.</p>
+        <p class="text-sm text-slate-600">Tìm thấy {{ number_format($result['total']) }} kết quả từ nguồn công bố. Mỗi số đăng ký được hiển thị riêng.</p>
         <section class="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-label="Kết quả tra cứu">
             @forelse ($result['items'] as $item)
                 <article class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
