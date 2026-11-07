@@ -68,12 +68,14 @@ class PharmaDomesticGmpCrawlerTest extends TestCase
 <time>28/10/2026</time>
 <div class="description row-item">
 <p>1. Danh sách CSSX trong nước đạt GMP</p>
+<table><tbody><tr><td><div class="nested-attachments">
 <p><a href="/upload_images/files/GMP-thuoc.pdf">PDF</a></p>
 <p><a href="/upload_images/files/GMP-thuoc.xlsx">Excel</a></p>
 <p>2. Danh sách CSSX trong nước đạt GMP bao bì</p>
 <p><a href="/upload_images/files/GMP-bao-bi.xlsx">Excel</a></p>
 <p>3. Giấy chứng nhận đủ điều kiện kinh doanh dược</p>
 <p><a href="/upload_images/files/DKKD.xlsx">Excel</a></p>
+</div></td></tr></tbody></table>
 </div></div></html>
 HTML;
     }
