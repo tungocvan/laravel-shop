@@ -9,7 +9,7 @@
     <section class="rounded-3xl bg-slate-950 p-5 text-white sm:p-7">
         <a href="{{ route('client.pharma.lookups') }}" class="inline-flex min-h-11 items-center text-sm font-semibold text-slate-200">← Quay về Tra cứu</a>
         <h1 class="mt-3 text-2xl font-black">♡ Danh sách quan tâm Pharma</h1>
-        <p class="mt-2 text-sm text-slate-300">Tổng hợp thuốc đã lưu theo tài khoản, gồm cả thuốc trúng thầu hiện có. Chưa tự động đồng bộ vào Danh mục thuốc.</p>
+        <p class="mt-2 text-sm text-slate-300">Tổng hợp thuốc đã lưu theo tài khoản, gồm cả thuốc trúng thầu. Chọn Đồng bộ để xem trước và xác nhận tạo thuốc trong Danh mục; không tự động tạo thuốc khi lưu quan tâm.</p>
     </section>
     @if(session('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
     <form method="GET" action="{{ route('client.pharma.lookups.wishlist') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border bg-white p-4">
