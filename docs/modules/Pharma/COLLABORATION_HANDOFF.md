@@ -1,3 +1,13 @@
+## Foreign GMP public lookup — 2026-11-07
+
+- User approved implementation after supplying public DAV GMP endpoint and representative Kern Pharma S.L. JSON. Branch `feat/pharma-foreign-gmp-lookup-20261107` is stacked on unmerged `feat/pharma-award-wishlist-detail-sync-20261107`; main was `36e43665a` when work began.
+- `Modules/Pharma/Services/DavForeignGmpLookup.php` owns POST `getAllPublicServerPaging` with `filter`, empty object `thongTinCoSoGMPNuocNgoai`, skip/limit 15, cache 5 minutes, no browser cookies/XSRF tokens and TLS verification left enabled. Keeps `id` and `idCC` separate; maps name, address, GMP standard, certificate, authority, dates, publication batch and complete multiline scope. Distinguishes successful empty result from API failure.
+- ClientPortal `PharmaGmpLookupController` offers authorized browse and source-verified detail via `/apps/pharma/gmp` and `/apps/pharma/gmp/{sourceId}`, using existing `client.pharma.dav-prices.view` permission and managed manifest presentation. Hub GMP card activated. Both focused screens hide global app header and mobile nav, preserve back route. Detail renders multiline scope safely via escaped Blade and whitespace-pre-wrap.
+- Read-only; no DB migration, catalog/HSSP writes, Muasamcong dependency, merge or production changes. No real anonymous server API call verified yet; user must test API on their development environment. Focused `PharmaForeignGmpLookupTest` and updated `PharmaLookupHubContractTest` are committed but **not run**; focused → impacted tests → manual desktop/tablet/iPhone/PWA UI PASS required. If API rejects anonymous calls, stop and inspect read-only diagnostics, do not embed session secrets or disable TLS.
+- Checkpoint: `git fetch origin && git switch feat/pharma-foreign-gmp-lookup-20261107 && git pull --ff-only`, then `php artisan test tests/Feature/ClientApps/PharmaForeignGmpLookupTest.php tests/Feature/ClientApps/PharmaLookupHubContractTest.php`. If PASS, run impacted DAV/traditional/award tests. Never merge/deploy without explicit approval.
+
+---
+
 ## Wishlist detail and safe sync reuse — 2026-11-07
 
 - Branch: `feat/pharma-award-wishlist-detail-sync-20261107`, based on unmerged `fix/pharma-award-group-filter-20261107`; main remains at `36e43665a` at implementation time.
