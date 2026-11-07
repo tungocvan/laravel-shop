@@ -12,8 +12,6 @@
     const resultRows = Array.from(root.querySelectorAll('.award-result-row'));
     const localSearch = root.querySelector('#award-local-search');
     const group = root.querySelector('#award-group-filter');
-    const priceMin = root.querySelector('#award-price-min');
-    const priceMax = root.querySelector('#award-price-max');
     const filterCount = root.querySelector('#award-filter-count');
     const noResults = root.querySelector('#award-no-filter-results');
 
@@ -28,7 +26,7 @@
         updateClear();
     }
 
-    const visibleSelections = () => rows.filter(row => !row.closest('tr').hidden);
+    const visibleSelections = () => rows.filter(row => row.closest('tr')?.style.display !== 'none');
     const updateSelection = () => {
         const checked = rows.filter(row => row.checked).length;
         if (count) count.textContent = String(checked);
@@ -45,18 +43,14 @@
     const filterRows = () => {
         const term = normalize(localSearch?.value);
         const selectedGroup = group?.value || '';
-        const min = priceMin?.value === '' || !priceMin ? null : Number(priceMin.value);
-        const max = priceMax?.value === '' || !priceMax ? null : Number(priceMax.value);
         let shown = 0;
         resultRows.forEach(row => {
             const data = row.dataset;
             const haystack = normalize([data.name, data.ingredient, data.strength].join(' '));
-            const price = data.price === '' ? null : Number(data.price);
             const matches = (!term || haystack.includes(term))
-                && (!selectedGroup || data.group === selectedGroup)
-                && (min === null || (price !== null && price >= min))
-                && (max === null || (price !== null && price <= max));
+                && (!selectedGroup || data.group === selectedGroup);
             row.hidden = !matches;
+            row.style.display = matches ? '' : 'none';
             // Preserve checked rows across filter changes; they remain part of the sync form.
             if (matches) shown++;
         });
@@ -64,7 +58,7 @@
         if (noResults) noResults.classList.toggle('hidden', shown !== 0);
         updateSelection();
     };
-    [localSearch, group, priceMin, priceMax].forEach(field => {
+    [localSearch, group].forEach(field => {
         if (field) {
             field.addEventListener('input', filterRows);
             field.addEventListener('change', filterRows);
