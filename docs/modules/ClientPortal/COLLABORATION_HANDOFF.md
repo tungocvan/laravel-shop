@@ -1,3 +1,14 @@
+## Traditional drug registration lookup — 2026-11-07 (checkpoint pending)
+
+- User approved Option A (read-only): `https://ydct-dichvucong.moh.gov.vn/congbothuoc`, POST `/api/services/app/soDangKy/GetAllPublicServerPaging`, sample `SoDangKyThuoc.TenThuoc=cold wind`, 15 items/page. Source result `Cold Wind`, id 3886, GPLH `TCT-00158-23`, `446/QĐ-YDCT`, no published expiry. Keep multiline herbal ingredients and packaging; never infer expiry from null.
+- Branch `feat/pharma-traditional-drug-registrations-20261107` stacked on `feat/pharma-dav-drug-registration-lookup-20261107` commit `f1c490f` (prior GMP/lookup hub branches not yet merged to main). Review stacked PR dependencies before any merge.
+- `TraditionalDrugRegistrationLookup` subclasses shared read-only `DavDrugRegistrationLookup`; source-specific endpoint, 15-item pagination and isolated cache namespace; shared nested response mapping. Existing DAV service behavior remains 10 items/page. Shared `BasePharmaRegistrationController` and Blade listing/detail handle both features; thin source-specific controllers. Routes GET-only, protected by `client.feature:pharma,traditional-drug-registrations`; manifest feature appears only under Tra cứu hub, not dashboard/navigation. No database writes, migrations, scheduler, downloads or Medicine Master sync.
+- Focused test: `tests/Feature/ClientApps/PharmaTraditionalDrugRegistrationLookupTest.php`. Test code committed but **not executed**. Existing DAV regression `PharmaDrugRegistrationLookupTest.php` required after focused PASS; impacted lookup hub and GMP contract tests only after focused PASS. Manual UI test: search `cold wind`, detail, no-expiry wording, multiline herbal ingredients/packaging, pagination and responsive.
+- Confirmed API field only `SoDangKyThuoc.TenThuoc`. Other filter field names are inherited from DAV and require live verification before claiming they work for MOH. No browser cookies/XSRF tokens persisted.
+- No PR, merge or production deploy; do not claim TEST/UI PASS until user provides results.
+
+---
+
 ## DAV drug registration public lookup — 2026-11-07
 
 - User approved Option A: independent read-only lookup for `https://dichvucong.dav.gov.vn/congbothuoc/index`, POST `/api/services/app/soDangKy/GetAllPublicServerPaging`, no sync into Medicine Master. Sample user-provided response for Venclexta has three independent registrations 539110203326 (10mg), 539110203226 (100mg), 539110203126 (50mg). Nested `thongTinDangKyThuoc`, `thongTinThuocCoBan`, `congTySanXuat`, `congTyDangKy` are mapped.
