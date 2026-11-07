@@ -86,7 +86,7 @@ class PharmaAwardSyncContractTest extends TestCase
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-prices.blade.php'));
         foreach ([
             'Bộ lọc kết quả', 'Nơi trúng thầu', 'Nhóm thuốc', 'Tên thuốc, hoạt chất, hàm lượng',
-            'award-local-search', 'award-group-filter', 'award-price-min', 'award-price-max',
+            'award-local-search', 'award-group-filter',
             'award-reset-filters', 'award-filter-count', 'Đồng bộ đã chọn',
             'form="award-select-form"', 'name="selected[]"', 'id="award-clear"',
             'client.pharma.award-prices.show', 'client.pharma.award-prices.wishlist.toggle',
@@ -94,7 +94,7 @@ class PharmaAwardSyncContractTest extends TestCase
         ] as $label) {
             $this->assertStringContainsString($label, $blade);
         }
-        foreach (['Thấp nhất', 'Trung bình', 'Cao nhất', 'ĐVT (lọc trong trang)', '<th class="px-3 py-3">TBMT</th>'] as $removed) {
+        foreach (['Thấp nhất', 'Trung bình', 'Cao nhất', 'Giá từ (đ)', 'Giá đến (đ)', 'award-price-min', 'award-price-max', 'ĐVT (lọc trong trang)', '<th class="px-3 py-3">TBMT</th>'] as $removed) {
             $this->assertStringNotContainsString($removed, $blade);
         }
         $this->assertStringContainsString("@section('hide-application-header', true)", $blade);
@@ -103,6 +103,12 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringContainsString('filterRows()', $script);
         $this->assertStringContainsString('visibleSelections()', $script);
         $this->assertStringContainsString('row.hidden = !matches', $script);
+        $this->assertStringContainsString("row.style.display = matches ? '' : 'none'", $script);
+        $this->assertStringContainsString('data.group === selectedGroup', $script);
+        $this->assertStringContainsString('row.closest(\'tr\')?.style.display', $script);
+        $this->assertStringContainsString('v=20261107-2', $blade);
+        $this->assertStringContainsString('normalizedGroup', $blade);
+        $this->assertStringContainsString('preg_match(', $blade);
         $this->assertStringContainsString('row.checked', $script);
         $this->assertStringNotContainsString('fetch(', $script);
     }
