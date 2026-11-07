@@ -41,6 +41,41 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringNotContainsString('muasamcong.drug-pricing', $detail);
     }
 
+    public function test_wishlist_detail_is_owner_scoped_and_reuses_verified_sync_preview(): void
+    {
+        $route = Route::getRoutes()->getByName('client.pharma.award-prices.wishlist.show');
+        $this->assertNotNull($route);
+        $this->assertContains('GET', $route->methods());
+        $this->assertContains('auth:web', $route->gatherMiddleware());
+        $this->assertContains('client.feature:pharma,award-prices', $route->gatherMiddleware());
+        $this->assertSame('apps/pharma/award-prices/wishlist/{sourceId}', $route->uri());
+
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaAwardPriceController.php'));
+        $wishlist = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-wishlist.blade.php'));
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-price-detail.blade.php'));
+
+        $this->assertStringContainsString('public function showWishlist(', $controller);
+        $this->assertStringContainsString("->where('user_id', (int) \$request->user('web')->id)", $controller);
+        $this->assertStringContainsString("->where('source_id', \$sourceId)", $controller);
+        $this->assertStringContainsString('->firstOrFail()', $controller);
+        $this->assertStringContainsString("'item' => \$item", $controller);
+        $this->assertStringContainsString("'fromWishlist' => true", $controller);
+        $this->assertStringContainsString("'fromWishlist' => false", $controller);
+        $this->assertStringContainsString('client.pharma.award-prices.wishlist.show', $wishlist);
+        $this->assertStringContainsString('aria-label="Xem chi tiết', $wishlist);
+        $this->assertStringNotContainsString('>Tra cứu lại</a>', $wishlist);
+        $this->assertStringContainsString('client.pharma.award-prices.wishlist', $detail);
+        $this->assertStringContainsString('bản ghi đã lưu trong danh sách quan tâm', $detail);
+        $this->assertStringContainsString('client.pharma.award-prices.sync.preview', $detail);
+        $this->assertStringContainsString('name="selected[]"', $detail);
+
+        // Sync preview re-fetches the source and refuses stale or missing records.
+        $this->assertStringContainsString('\$items = \$this->selectedItems(\$lookup, \$input)', $controller);
+        $this->assertStringContainsString("Bản ghi đã chọn không còn trong trang dữ liệu nguồn.", $controller);
+        $this->assertStringContainsString("if (\$match['status'] === 'review')", $controller);
+        $this->assertStringNotContainsString('Modules\\Muasamcong', $controller);
+    }
+
     public function test_missing_name_or_unit_requires_review(): void
     {
         $sync = app(PublicAwardMedicineSync::class);
