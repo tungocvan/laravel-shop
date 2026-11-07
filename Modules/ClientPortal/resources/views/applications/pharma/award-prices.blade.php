@@ -35,28 +35,30 @@
             <div role="alert" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{{ $result['message'] ?? 'Không thể tra cứu.' }}</div>
         @else
             @php
-                $groups = collect($result['items'] ?? [])->pluck('nhomThuoc')
-                    ->filter(fn ($value) => is_scalar($value) && trim((string) $value) !== '')
-                    ->map(fn ($value) => (string) $value)->unique()->sort()->values();
+                $groupNumber = static function ($value): ?int {
+                    if (!is_scalar($value)) return null;
+                    $text = trim((string) $value);
+                    if (preg_match('/^(?:(?:nhóm|nhom|n)\\s*)?0*([1-9][0-9]*)$/iu', $text, $matches)) {
+                        return (int) $matches[1];
+                    }
+                    return null;
+                };
+                $groups = collect($result['items'] ?? [])->map(fn ($item) => $groupNumber($item['nhomThuoc'] ?? null))
+                    ->filter(fn ($value) => $value !== null)->unique()->sort()->values();
+
             @endphp
             @if(count($result['items'] ?? []) > 0)
                 <details id="award-filters" class="rounded-2xl border border-slate-200 bg-white p-4">
                     <summary class="min-h-10 cursor-pointer text-sm font-bold text-slate-900">☷ Bộ lọc kết quả <span class="font-normal text-slate-500">(trong trang hiện tại)</span></summary>
-                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <label class="text-xs font-semibold text-slate-700">Tên thuốc, hoạt chất, hàm lượng
                             <input id="award-local-search" type="search" placeholder="Tìm trong 20 kết quả..." class="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm" autocomplete="off">
                         </label>
                         <label class="text-xs font-semibold text-slate-700">Nhóm thuốc
                             <select id="award-group-filter" class="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
                                 <option value="">Tất cả nhóm</option>
-                                @foreach($groups as $group)<option value="{{ $group }}">{{ is_numeric($group) ? 'Nhóm '.$group : $group }}</option>@endforeach
+                                @foreach($groups as $group)<option value="{{ $group }}">Nhóm {{ $group }}</option>@endforeach
                             </select>
-                        </label>
-                        <label class="text-xs font-semibold text-slate-700">Giá từ (đ)
-                            <input id="award-price-min" type="number" min="0" step="1" inputmode="numeric" placeholder="Tối thiểu" class="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
-                        </label>
-                        <label class="text-xs font-semibold text-slate-700">Giá đến (đ)
-                            <input id="award-price-max" type="number" min="0" step="1" inputmode="numeric" placeholder="Tối đa" class="mt-1 block min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
                         </label>
                     </div>
                     <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -98,6 +100,7 @@
                                 @php
                                     $itemId = is_scalar($item['id'] ?? null) ? (string) $item['id'] : '';
                                     $group = is_scalar($item['nhomThuoc'] ?? null) ? (string) $item['nhomThuoc'] : '';
+                                    $normalizedGroup = $groupNumber($group);
                                     $place = $item['tenCdtBmt'] ?? null;
                                     $place = is_array($place) ? implode(', ', array_filter($place, 'is_scalar')) : (is_scalar($place) ? (string) $place : '');
                                     $isSaved = in_array($itemId, $savedIds, true);
@@ -106,7 +109,7 @@
                                     data-name="{{ $item['tenThuoc'] ?? '' }}"
                                     data-ingredient="{{ $item['tenHoatChat'] ?? '' }}"
                                     data-strength="{{ $item['nongDo'] ?? '' }}"
-                                    data-group="{{ $group }}"
+                                    data-group="{{ $normalizedGroup ?? '' }}"
                                     data-price="{{ is_numeric($item['donGia'] ?? null) ? $item['donGia'] : '' }}">
                                     <td class="px-3 py-4">
                                         @if($canSync && $itemId !== '')
@@ -117,7 +120,7 @@
                                     <td class="px-3 py-4">{{ $item['tenHoatChat'] ?? '—' }}</td>
                                     <td class="whitespace-nowrap px-3 py-4 font-bold">{{ is_numeric($item['donGia'] ?? null) ? number_format((float) $item['donGia'], 0, ',', '.').' đ' : '—' }}</td>
                                     <td class="px-3 py-4">{{ $place ?: '—' }}</td>
-                                    <td class="px-3 py-4">{{ $group !== '' ? (is_numeric($group) ? 'Nhóm '.$group : $group) : '—' }}</td>
+                                    <td class="px-3 py-4">{{ $normalizedGroup !== null ? 'Nhóm '.$normalizedGroup : ($group !== '' ? $group : '—') }}</td>
                                     <td class="px-3 py-4">
                                         <div class="flex items-center gap-2">
                                             @if($itemId !== '')
