@@ -34,7 +34,7 @@ abstract class BasePharmaRegistrationController extends Controller
                 $result = $lookup->search($field, $keyword, $page);
             } catch (RuntimeException $exception) {
                 report($exception);
-                $error = 'Không thể tra cứu giấy đăng ký thuốc từ DAV lúc này. Vui lòng thử lại sau.';
+                $error = 'Không thể tra cứu giấy đăng ký thuốc từ nguồn công bố lúc này. Vui lòng thử lại sau.';
             }
         }
 
@@ -46,7 +46,7 @@ abstract class BasePharmaRegistrationController extends Controller
             'keyword' => $keyword,
             'page' => $page,
             'routeBase' => $routeBase,
-            'perPage' => $lookup instanceof \Modules\Pharma\Services\TraditionalDrugRegistrationLookup ? 15 : DavDrugRegistrationLookup::PER_PAGE,
+            'perPage' => $lookup->pageSize(),
             'result' => $result,
             'error' => $error,
         ]);
@@ -71,7 +71,7 @@ abstract class BasePharmaRegistrationController extends Controller
             $item = $lookup->findOnPage($field, $keyword, $page, $sourceId);
         } catch (RuntimeException $exception) {
             report($exception);
-            abort(503, 'Không thể xác minh giấy đăng ký thuốc từ DAV.');
+            abort(503, 'Không thể xác minh giấy đăng ký thuốc từ nguồn công bố.');
         }
         abort_if($item === null, 404);
 
@@ -84,7 +84,7 @@ abstract class BasePharmaRegistrationController extends Controller
             'keyword' => $keyword,
             'page' => $page,
             'routeBase' => $routeBase,
-            'perPage' => $lookup instanceof \\Modules\\Pharma\\Services\\TraditionalDrugRegistrationLookup ? 15 : DavDrugRegistrationLookup::PER_PAGE,
+            'perPage' => $lookup->pageSize(),
         ]);
     }
 
