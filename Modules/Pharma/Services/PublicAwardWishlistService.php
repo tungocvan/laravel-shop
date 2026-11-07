@@ -14,6 +14,12 @@ final class PublicAwardWishlistService
             ->whereIn('source_id', $sourceIds)->pluck('source_id')->all();
     }
 
+    public function remove(int $userId, string $sourceId): bool
+    {
+        return AwardWishlist::query()->where('user_id', $userId)
+            ->where('source_id', $sourceId)->delete() > 0;
+    }
+
     public function toggle(int $userId, array $item, string $keyword, int $page): bool
     {
         $sourceId = $item['id'] ?? null;
