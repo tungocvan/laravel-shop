@@ -70,7 +70,7 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringContainsString('name="selected[]"', $detail);
 
         // Sync preview re-fetches the source and refuses stale or missing records.
-        $this->assertStringContainsString('\$items = \$this->selectedItems(\$lookup, \$input)', $controller);
+        $this->assertStringContainsString('$items = $this->selectedItems($lookup, $input)', $controller);
         $this->assertStringContainsString("Bản ghi đã chọn không còn trong trang dữ liệu nguồn.", $controller);
         $this->assertStringContainsString("if (\$match['status'] === 'review')", $controller);
         $this->assertStringNotContainsString('Modules\\Muasamcong', $controller);
