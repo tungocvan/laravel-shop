@@ -290,3 +290,12 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - V2 import preview detects two-sheet 19-column contract, reads TBMT/contractor from Sheet 1, rejects multiple contractors, matches existing medicine rows using scoped composite identifiers, and compares/writes only medicine fields; dates and package metadata remain untouched.
 - Legacy one-sheet import path remains supported. New unmatched medicines remain blocked (not silently created); Sheet 1 edits are **not** persisted in this checkpoint. There is no exported row ID/version, so concurrency is checked from preview to confirm only, not export to preview. Manual review of ambiguous identifiers is required.
 - Focused test added for V2 scoped preview. Tests and UI **PENDING local user execution**. Do not merge or deploy.
+
+
+## 2026-11-07 — Collapsible KQLCNT Import/Export and 3-sheet template
+
+- Branch: `feat/muasamcong-kqlcnt-excel-roundtrip-20261107` (main comparison at audit: ahead 25, behind 0).
+- Admin KQLCNT index now puts Import/Export controls in native accessible `details/summary` collapsed by default; file validation errors reopen the panel. Existing table selection and POST export form retained.
+- Added permission-protected GET route `muasamcong.kqlcnt-awards.import.template` and `KqlcntAwardImportTemplateExport`: guidance, package/contractor information, and exactly 19 medicine columns. Guidance sheet is ignored by existing import preview parser.
+- Added focused tests for template contract and collapsed UI. **Focused tests PENDING; module regression PENDING; UI PASS PENDING user confirmation.** No PR/merge/deploy.
+- Existing V2 limitation remains: unmatched medicines cannot be created; Sheet 1 metadata changes not persisted. Do not interpret template as enabling creation.
