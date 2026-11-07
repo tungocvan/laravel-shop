@@ -1,3 +1,11 @@
+## Domestic GMP crawler live DAV parsing fix — 2026-11-07
+
+- DELL read-only diagnostic confirmed DAV category HTTP 200, text/html 50,683 bytes, 20 matching article links, latest n5553. Invoking Laravel `DavDomesticGmpCrawler::latest()` failed with `DAV article contains no recognized Excel attachments` at line 81.
+- Root cause in source: Excel discovery searched only direct child elements of `.description` inside `#DivIdToPrint`; nested DAV markup can hide all anchors. Fix searches all anchors in the article subtree, keeps strict DAV HTTPS /upload_images/files/*.xlsx validation, deduplicates and requires exactly three Excel links before mapping the audited article order to manufacturers, packaging, business certificates. Unexpected count fails closed to prevent mislabeled files. Test fixture now nests links inside table/wrapper.
+- **Not yet verified on DELL**; run focused tests and real read-only latest() diagnostic before UI/download testing. If real article has more/less than three Excel links or different order, stop and inspect real DOM rather than relax mapping blindly. No merge/deploy.
+
+---
+
 ## Domestic GMP DAV Excel crawler — 2026-11-07
 
 - User supplied original HTML `1.html` from DAV article `n5553`, posted 28/10/2026, list updated to 23/10/2026. Audited six links in article description: three PDFs and three XLSX files grouped as domestic manufacturers, GMP pharmaceutical packaging and business eligibility certificates.
