@@ -170,6 +170,17 @@ return [
             'icon' => 'search',
             'sort_order' => 15,
         ],
+        'domestic-gmp' => [
+            'name' => 'GMP cơ sở sản xuất trong nước',
+            'description' => 'Tải danh sách Excel GMP trong nước mới nhất từ bài công bố DAV.',
+            'eyebrow' => 'Dữ liệu công khai DAV',
+            'page_title' => 'GMP cơ sở sản xuất trong nước',
+            'page_description' => 'Phát hiện bài công bố mới nhất, phân loại và tải ba nhóm Excel GMP từ Cục Quản lý Dược.',
+            'route' => 'client.pharma.domestic-gmp',
+            'permission' => 'client.pharma.dav-prices.view',
+            'icon' => 'document-arrow-down',
+            'sort_order' => 20,
+        ],
         'gmp' => [
             'name' => 'Tra cứu GMP',
             'description' => 'Danh sách cơ sở sản xuất nước ngoài đáp ứng GMP từ nguồn DAV.',
