@@ -57,19 +57,19 @@ class PharmaLookupHubContractTest extends TestCase
         $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
 
         $this->assertStringContainsString(
-            "['dav-prices', 'traditional-prices', 'award-prices', 'gmp']",
+            "['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp']",
             $controller
         );
         $this->assertStringContainsString('->reject(fn (array $feature)', $controller);
         $this->assertSame('client.pharma.lookups', $manifest['features']['lookups']['route']);
 
-        foreach (['dav-prices', 'traditional-prices', 'award-prices', 'gmp'] as $key) {
+        foreach (['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp'] as $key) {
             $this->assertArrayHasKey($key, $manifest['features']);
             $this->assertNotNull(Route::getRoutes()->getByName($manifest['features'][$key]['route']));
         }
 
         $hub = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
-        foreach (['dav-prices', 'traditional-prices', 'award-prices', 'gmp'] as $key) {
+        foreach (['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp'] as $key) {
             $this->assertStringContainsString("route('client.pharma.".$key."')", $hub);
         }
     }
@@ -85,6 +85,7 @@ class PharmaLookupHubContractTest extends TestCase
         $this->assertStringNotContainsString('canViewAwardPricing', $blade);
         $this->assertStringContainsString('Tra cứu GMP', $blade);
         $this->assertStringContainsString("route('client.pharma.gmp')", $blade);
+        $this->assertStringContainsString("route('client.pharma.domestic-gmp')", $blade);
         $this->assertStringNotContainsString('aria-disabled="true"', $blade);
         $this->assertStringNotContainsString('Sắp triển khai', $blade);
     }
