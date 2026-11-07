@@ -1,3 +1,11 @@
+## Pharma lookup child hierarchy — 2026-11-07
+
+- User reported focused GMP TEST + UI PASS and requested that four lookup sources no longer appear as top-level cards in Pharma dashboard "Chọn workspace".
+- Branch `feat/pharma-foreign-gmp-lookup-20261107`: `PharmaApplicationController::dashboard` excludes only `dav-prices`, `traditional-prices`, `award-prices`, `gmp` from top-level `$features`, retaining the `lookups` parent card. All child manifest features, permissions, managed page presentation and routes remain available via `/apps/pharma/lookups`. Top-level feature count now reflects visible workspaces.
+- Added regression assertion in `PharmaLookupHubContractTest`. Tests/UI not rerun after hierarchy change; checkpoint: pull branch, focused `PharmaLookupHubContractTest`, then `PharmaForeignGmpLookupTest` and impacted tests; UI acceptance must confirm only parent Tra cứu on dashboard and all four children accessible from lookup hub. No merge or deploy.
+
+---
+
 ## Foreign GMP public lookup — 2026-11-07
 
 - User approved implementation after supplying public DAV GMP endpoint and representative Kern Pharma S.L. JSON. Branch `feat/pharma-foreign-gmp-lookup-20261107` is stacked on unmerged `feat/pharma-award-wishlist-detail-sync-20261107`; main was `36e43665a` when work began.
