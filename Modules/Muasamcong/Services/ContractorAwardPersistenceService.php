@@ -60,7 +60,7 @@ class ContractorAwardPersistenceService
             $this->mergeInto($logical, $normalized, (string) ($row['source'] ?? 'CATALOG'));
         }
         foreach ($existing as $award) {
-            if ($award->source !== 'import') {
+            if (! in_array($award->source, ['import', 'excel'], true)) {
                 continue;
             }
             $normalized = $this->normalize($award->toArray(), $search, $record);
@@ -93,7 +93,7 @@ class ContractorAwardPersistenceService
                     $unchanged++;
                 }
 
-                $source = $current?->source === 'import' ? 'import' : 'catalog';
+                $source = in_array($current?->source, ['import', 'excel'], true) ? $current->source : 'catalog';
                 $payload = Arr::only($row, self::FIELDS);
                 $payload += [
                     'contractor_search_id' => $search->id,

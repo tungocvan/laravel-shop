@@ -242,3 +242,11 @@ Accepted behaviors include:
 **READY FOR PR REVIEW.**
 
 The branch is ready to open against `main`. User has accepted the latest focused tests and Dashboard UI. Production enablement/deployment remains outside this delivery and must not be changed by the PR.
+
+
+## 2026-11-07 — KQLCNT canonical Excel round-trip (checkpoint pending)
+
+- Branch `feat/muasamcong-kqlcnt-excel-roundtrip-20261107` from main `cbc9775a29a67f7180634a04d32eea117632fa71`.
+- Add identity/version columns to canonical Excel export; guarded upload -> preview -> confirm with permission and conflict checks. Canonical table remains sole owner; no production migration.
+- Import preserves provenance `excel`, original snapshot and imported recovery; sync service recognizes Excel overrides.
+- Focused tests PENDING local, module regression PENDING local, UI PENDING user confirmation, PR/merge/deploy NOT DONE.

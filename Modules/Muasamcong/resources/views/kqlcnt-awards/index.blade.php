@@ -10,6 +10,13 @@
         </div>
         <div class="flex flex-wrap gap-2">
             @include('Muasamcong::partials.dashboard-return-link')
+            @can('muasamcong.pricing.sync')
+            <form method="POST" action="{{ route('muasamcong.kqlcnt-awards.import.preview') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">@csrf
+                <label for="kqlcnt-import-file" class="sr-only">Chọn Excel KQLCNT</label>
+                <input id="kqlcnt-import-file" type="file" name="file" accept=".xlsx,.xls" required class="max-w-52 rounded-lg border border-gray-300 bg-white p-1 text-xs" />
+                <button type="submit" class="rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700">Xem trước Import</button>
+            </form>
+            @endcan
             <button form="award-export-form" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Xuất Excel</button>
         </div>
     </div>
