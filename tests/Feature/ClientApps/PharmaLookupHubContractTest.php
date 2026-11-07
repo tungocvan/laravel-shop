@@ -74,6 +74,25 @@ class PharmaLookupHubContractTest extends TestCase
         }
     }
 
+    public function test_registration_search_has_reset_action_and_is_only_listed_in_lookup_hub(): void
+    {
+        $form = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/drug-registrations.blade.php'));
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $hub = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+
+        $this->assertStringContainsString('aria-label="Xóa bộ lọc tìm kiếm"', $form);
+        $this->assertStringContainsString('href="{{ route($routeBase) }}"', $form);
+        $this->assertStringContainsString('Xóa lọc', $form);
+        foreach (['drug-registrations', 'traditional-drug-registrations'] as $key) {
+            $this->assertStringContainsString("'".$key."'", $dashboard);
+            $this->assertArrayHasKey($key, $manifest['features']);
+            $this->assertArrayNotHasKey($key, $manifest['navigation']);
+            $this->assertStringContainsString("route('client.pharma.".$key."')", $hub);
+            $this->assertNotNull(Route::getRoutes()->getByName($manifest['features'][$key]['route']));
+        }
+    }
+
     public function test_lookup_cards_link_to_all_four_independent_sources(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
