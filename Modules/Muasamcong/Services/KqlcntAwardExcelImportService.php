@@ -28,6 +28,13 @@ class KqlcntAwardExcelImportService
         'effect_frame_period' => 'Thời hạn hiệu lực',
     ];
 
+    private const MEDICINE_FIELDS = [
+        'lot_no', 'lot_name', 'medicine_code', 'medicine_name', 'drug_group',
+        'active_ingredient', 'concentration', 'route', 'dosage_form', 'packaging_spec',
+        'shelf_life_months', 'registration_or_import_license', 'unit', 'quantity',
+        'price_plan', 'winning_price', 'amount', 'manufacturer', 'country',
+    ];
+
     public function preview(UploadedFile $file): array
     {
         $workbook = IOFactory::load($file->getRealPath());
@@ -39,7 +46,12 @@ class KqlcntAwardExcelImportService
         }
         $values = $sheet->toArray(null, true, true, false);
         $headers = array_map('trim', array_map('strval', array_shift($values) ?? []));
-        foreach (array_values(self::FIELDS) as $header) {
+        $isV2 = $scope !== null && count($headers) === count(self::MEDICINE_FIELDS)
+            && $headers === array_values(Arr::only(self::FIELDS, self::MEDICINE_FIELDS));
+        if ($scope !== null && ! $isV2) {
+            throw ValidationException::withMessages(['file' => 'Workbook hai sheet phải có đúng 19 cột thuốc A–S, không thêm cột quản trị.']);
+        }
+        foreach ($isV2 ? array_values(Arr::only(self::FIELDS, self::MEDICINE_FIELDS)) : array_values(self::FIELDS) as $header) {
             if (! in_array($header, $headers, true)) {
                 throw ValidationException::withMessages(['file' => 'Thiếu cột bắt buộc: '.$header]);
             }
@@ -67,6 +79,10 @@ class KqlcntAwardExcelImportService
             foreach (self::FIELDS as $field => $label) {
                 $data[$field] = $raw[$label] ?? null;
             }
+            if ($isV2) {
+                $data['notify_no'] = $scope['notify_no'];
+                $data['contractor_code'] = $scope['contractors'][0];
+            }
             $errors = [];
             if ($scope !== null) {
                 if (trim((string) $data['notify_no']) !== $scope['notify_no']) {
@@ -76,7 +92,21 @@ class KqlcntAwardExcelImportService
                     $errors[] = 'Nhà thầu chưa được khai báo ở Sheet 1';
                 }
             }
-            if (! $hasIdentity) {
+            if ($isV2) {
+                $matches = $this->legacyMatches($data);
+                if ($matches->count() === 1) {
+                    $existing = $matches->first();
+                    $id = (string) $existing->id;
+                    // Sheet 1 metadata is not writable in this batch. Preserve canonical fields.
+                    foreach (array_diff(array_keys(self::FIELDS), self::MEDICINE_FIELDS) as $field) {
+                        $data[$field] = $existing->{$field};
+                    }
+                } elseif ($matches->count() > 1) {
+                    $errors[] = 'Nhiều bản ghi cùng định danh; không thể cập nhật an toàn';
+                } else {
+                    $errors[] = 'Thuốc chưa có bản ghi canonical; thêm mới cần quy trình riêng';
+                }
+            } elseif (! $hasIdentity) {
                 $matches = $this->legacyMatches($data);
                 if ($matches->count() === 1) {
                     $existing = $matches->first();
@@ -99,14 +129,14 @@ class KqlcntAwardExcelImportService
             foreach (['quantity', 'price_plan', 'winning_price', 'amount'] as $field) {
                 if ($data[$field] !== null && trim((string) $data[$field]) !== '' && ! is_numeric($data[$field])) $errors[] = $field.' không phải số';
             }
-            $comparison = $this->comparison($data, $existing);
+            $comparison = $this->comparison($data, $existing, $isV2 ? self::MEDICINE_FIELDS : null);
             if ($comparison['invalid']) $errors = array_merge($errors, $comparison['invalid']);
             $status = $errors !== [] ? 'error' : ($comparison['changes'] === 0 ? 'unchanged' : 'changed');
             $rows[] = [
                 'line' => $index + 2, 'id' => $id, 'data' => $data,
                 'version' => $hasIdentity ? (string) ($raw['_version'] ?? '') : ($existing?->updated_at?->format('Y-m-d H:i:s.u') ?? ''),
                 'errors' => $errors, 'status' => $status, 'comparison' => $comparison['fields'],
-                'changes' => $comparison['changes'],
+                'changes' => $comparison['changes'], 'medicine_only' => $isV2,
             ];
         }
         if ($rows === []) throw ValidationException::withMessages(['file' => 'File không có dữ liệu.']);
@@ -136,7 +166,9 @@ class KqlcntAwardExcelImportService
                     // Overwrite must never bypass an identity or version mismatch.
                     $skipped++; continue;
                 }
-                $fields = Arr::except($row['data'], ['notify_no', 'contractor_code']);
+                $fields = ($row['medicine_only'] ?? false)
+                    ? Arr::only($row['data'], self::MEDICINE_FIELDS)
+                    : Arr::except($row['data'], ['notify_no', 'contractor_code']);
                 foreach (['quantity', 'price_plan', 'winning_price', 'amount'] as $field) {
                     $fields[$field] = trim((string) ($fields[$field] ?? '')) === '' ? null : $fields[$field];
                 }
@@ -147,7 +179,7 @@ class KqlcntAwardExcelImportService
                         catch (\Throwable) { $skipped++; continue 2; }
                     } else $fields[$field] = null;
                 }
-                $rechecked = $this->comparison($row['data'], $award);
+                $rechecked = $this->comparison($row['data'], $award, ($row['medicine_only'] ?? false) ? self::MEDICINE_FIELDS : null);
                 if ($rechecked['invalid'] !== [] || $rechecked['changes'] === 0) {
                     $skipped++;
                     continue;
@@ -191,8 +223,8 @@ class KqlcntAwardExcelImportService
                 if ($contractor !== '') $contractors[] = $contractor;
             }
         }
-        if ($notifyNo === '' || $contractors === []) {
-            throw ValidationException::withMessages(['file' => 'Sheet 1 phải có một mã TBMT và ít nhất một nhà thầu.']);
+        if ($notifyNo === '' || count($contractors) !== 1) {
+            throw ValidationException::withMessages(['file' => 'Excel tinh gọn yêu cầu đúng một mã TBMT và đúng một nhà thầu ở Sheet 1.']);
         }
         if (count($contractors) !== count(array_unique($contractors))) {
             throw ValidationException::withMessages(['file' => 'Sheet 1 có mã nhà thầu trùng nhau.']);
@@ -200,13 +232,14 @@ class KqlcntAwardExcelImportService
         return ['notify_no' => $notifyNo, 'contractors' => $contractors];
     }
 
-    private function comparison(array $data, ?KqlcntAwardItem $existing): array
+    private function comparison(array $data, ?KqlcntAwardItem $existing, ?array $allowedFields = null): array
     {
         $fields = [];
         $invalid = [];
         $ignored = [];
         $changes = 0;
         foreach (self::FIELDS as $key => $label) {
+            if ($allowedFields !== null && ! in_array($key, $allowedFields, true)) continue;
             $incoming = $this->normalizeValue($key, $data[$key] ?? null, $invalid);
             $current = $existing ? $this->normalizeValue($key, $existing->{$key}, $ignored) : null;
             $different = $existing && ! in_array($key, ['notify_no', 'contractor_code'], true)
