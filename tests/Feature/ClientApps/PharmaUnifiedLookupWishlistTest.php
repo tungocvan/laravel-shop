@@ -59,8 +59,8 @@ class PharmaUnifiedLookupWishlistTest extends TestCase
         $this->assertStringContainsString("DB::table('pharma_award_wishlists')", $controller);
         $this->assertStringContainsString("->unionAll(", $controller);
         $this->assertStringContainsString("'public_award' AS source_type", $controller);
-        $this->assertStringContainsString("->where('user_id', $userId)", $controller);
-        $this->assertStringContainsString("->where('user_id', $userId)", $service);
+        $this->assertStringContainsString("->where('user_id', \$userId)", $controller);
+        $this->assertStringContainsString("->where('user_id', \$userId)", $service);
         $this->assertStringContainsString("Schema::create('pharma_lookup_wishlists'", $migration);
         $this->assertStringNotContainsString('Schema::dropIfExists(\'pharma_award_wishlists\'', $migration);
         $this->assertStringContainsString('pharma_lookup_wishlist_identity_unique', $migration);
@@ -73,7 +73,7 @@ class PharmaUnifiedLookupWishlistTest extends TestCase
         $service = file_get_contents(base_path('Modules/Pharma/Services/LookupWishlistService.php'));
         $this->assertStringNotContainsString('MedicineService', $controller);
         $this->assertStringNotContainsString('MedicineService', $service);
-        $this->assertStringContainsString("hash_equals((string) $row['source_id'], $sourceId)", $controller);
+        $this->assertStringContainsString("hash_equals((string) \$row['source_id'], \$sourceId)", $controller);
         $this->assertStringContainsString("->firstOrFail()", $controller);
         $this->assertStringContainsString('lockForUpdate()', $service);
     }
