@@ -1,3 +1,12 @@
+## UI filter regression fix — 2026-11-07
+
+- User reported page-local filters do not hide results, requested removal of min/max price and numeric group options. Follow-up branch `fix/pharma-award-group-filter-20261107` from existing unmerged feature branch.
+- Keep only name/ingredient/strength text and numeric medicine group filters. Normalize public group variants `N1`, `Nhom1`, `Nhóm 1`, `NHÓM1` into integer 1 (not 10). Group choices reflect groups on the current API page only; no source-wide filtering.
+- JavaScript now sets both HTML hidden and explicit `display:none` for filtered table rows, updates visible row selection, preserves already checked sync rows, and uses a versioned JS URL to invalidate browser/PWA cached code. Wishlist and safe sync service unchanged.
+- Contract test updated. **Not executed**; focused tests + manual browser UI and cross-module regression still required. No migration, deployment or merge.
+
+---
+
 ## Checkpoint — Award price lookup UX and server wishlist — 2026-11-07
 
 - Branch `feat/pharma-award-filters-server-wishlist-20261107` based on `feat/pharma-award-provisional-catalog-sync-20261107` (prior feature work still not merged into main). User approved server-persisted per-user wishlist and Pharma independence.
