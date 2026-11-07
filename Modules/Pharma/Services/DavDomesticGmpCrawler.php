@@ -46,7 +46,12 @@ final class DavDomesticGmpCrawler
         $dom = $this->dom($html);
         $xpath = new DOMXPath($dom);
         $title = trim((string) $xpath->evaluate('string(//div[@id="DivIdToPrint"]//h1[contains(@class,"news-title")])'));
-        $published = trim((string) $xpath->evaluate('string(//div[@id="DivIdToPrint"]//time)'));
+        $publishedText = trim((string) $xpath->evaluate('string(//div[@id="DivIdToPrint"]//time)'));
+        // DAV may include printDiv JavaScript after the visible publication date.
+        // Never expose that script or unrelated page content as date metadata.
+        $published = preg_match('~\\b(\\d{1,2}/\\d{1,2}/\\d{4})\\b~u', $publishedText, $dateMatch)
+            ? $dateMatch[1]
+            : '';
         if (! str_contains(mb_strtolower($title), 'gmp') || ! str_contains(mb_strtolower($title), 'trong nước')) {
             throw new RuntimeException('DAV article does not match domestic GMP publication.');
         }
