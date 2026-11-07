@@ -7,6 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\Pharma\Services\LookupWishlistService;
 use Modules\Pharma\Services\DavPublicPriceLookup;
 use Modules\Pharma\Services\DavMedicineCandidateMatcher;
 use Modules\Pharma\Services\MedicineService;
@@ -49,10 +50,15 @@ final class PharmaDavPriceController extends Controller
         );
         abort_if($feature === null, 404);
 
+        $wishlist = app(LookupWishlistService::class);
+        $savedIds = $wishlist->savedIds((int) $request->user('web')->id, 'dav_price',
+            array_values(array_filter(array_column($result['items'], 'source_id'))));
+
         return view('ClientPortal::applications.pharma.dav-prices', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'savedIds' => $savedIds,
             'keyword' => $keyword,
             'page' => $page,
             'result' => $result,
