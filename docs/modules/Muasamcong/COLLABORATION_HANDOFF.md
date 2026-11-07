@@ -250,3 +250,11 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - Add identity/version columns to canonical Excel export; guarded upload -> preview -> confirm with permission and conflict checks. Canonical table remains sole owner; no production migration.
 - Import preserves provenance `excel`, original snapshot and imported recovery; sync service recognizes Excel overrides.
 - Focused tests PENDING local, module regression PENDING local, UI PENDING user confirmation, PR/merge/deploy NOT DONE.
+
+
+## 2026-11-07 — Legacy KQLCNT 36-column Excel compatibility checkpoint
+
+- User supplied actual 36-column `Danh_muc_trung_thau` export without `_award_id`/`_version`; previously new importer threw uncaught RuntimeException HTTP 500.
+- Import preview now accepts both legacy 36-column and modern 38-column exports; legacy rows only match unique canonical items scoped by TBMT and contractor, then lot number, medicine code, or medicine name + ingredient + concentration. Ambiguous/unmatched rows are rejected and never automatically created. Duplicate headings and partial technical identity columns are validation errors rather than HTTP 500.
+- Confirm rechecks row version under DB lock; unchanged records are skipped. No automatic deletion. This checkpoint does NOT implement new-item creation; that requires separately validated scope/identity and audit/resync protections.
+- Focused test updated for actual 36-column header format. New focused and module regression **PENDING user execution**. UI **PENDING**; no PR/merge/deploy authorized.
