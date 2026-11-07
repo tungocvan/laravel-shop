@@ -41,6 +41,10 @@
             <div class="flex items-center justify-between gap-3"><span aria-hidden="true" class="flex size-12 items-center justify-center rounded-2xl bg-white text-2xl">🛡️</span><span aria-hidden="true" class="text-lg font-bold text-indigo-600">↗</span></div>
             <div class="mt-5"><h2 class="font-bold text-slate-950">Tra cứu GMP</h2><p class="mt-1 text-sm text-slate-600">Cơ sở sản xuất nước ngoài đáp ứng GMP, giấy chứng nhận và phạm vi được công bố.</p></div>
         </a>
+        <a href="{{ route('client.pharma.domestic-gmp') }}" class="group flex min-h-44 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            <div class="flex items-center justify-between gap-3"><span aria-hidden="true" class="flex size-12 items-center justify-center rounded-2xl bg-indigo-50 text-2xl">🏭</span><span aria-hidden="true" class="text-lg font-bold text-indigo-600">↗</span></div>
+            <div class="mt-5"><h2 class="font-bold text-slate-950">GMP cơ sở sản xuất trong nước</h2><p class="mt-1 text-sm text-slate-600">Kiểm tra bài công bố mới và tải ba nhóm Excel từ DAV.</p></div>
+        </a>
     </section>
 </div>
 @endsection
