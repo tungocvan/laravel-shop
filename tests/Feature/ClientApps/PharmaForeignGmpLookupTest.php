@@ -64,7 +64,7 @@ class PharmaForeignGmpLookupTest extends TestCase
         $this->assertSame(0, $payload->skipCount);
         $this->assertSame(15, $payload->maxResultCount);
         $this->assertNull($payload->sorting);
-        $this->assertInstanceOf(\\stdClass::class, $payload->thongTinCoSoGMPNuocNgoai);
+        $this->assertInstanceOf(\stdClass::class, $payload->thongTinCoSoGMPNuocNgoai);
         $this->assertSame([], get_object_vars($payload->thongTinCoSoGMPNuocNgoai));
         $this->assertFalse($request->hasHeader('Cookie'));
         $this->assertFalse($request->hasHeader('X-XSRF-TOKEN'));
