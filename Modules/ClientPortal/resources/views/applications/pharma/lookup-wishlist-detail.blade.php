@@ -45,6 +45,7 @@
         @endunless
     </section>
     <div class="flex flex-wrap gap-3">
+        <a href="{{ route('client.pharma.lookups.wishlist.import.preview', ['sourceType' => $favorite->source_type, 'sourceId' => $favorite->source_id]) }}" class="inline-flex min-h-11 items-center rounded-xl bg-emerald-700 px-5 text-sm font-bold text-white">Đồng bộ vào Danh mục thuốc</a>
         <a href="{{ route($sourceRoute, ['q' => $context['q'] ?? '', 'field' => $context['field'] ?? 'name', 'page' => $context['page'] ?? 1]) }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-5 text-sm font-bold text-white">Tra cứu lại nguồn</a>
         <form method="POST" action="{{ route('client.pharma.lookups.wishlist.remove', ['sourceType' => $favorite->source_type, 'sourceId' => $favorite->source_id]) }}">
             @csrf
