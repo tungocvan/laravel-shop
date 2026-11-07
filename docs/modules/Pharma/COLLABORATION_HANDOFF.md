@@ -1,3 +1,11 @@
+## On-demand GMP focused test correction — 2026-11-07
+
+- DELL Test 1: 2 passed, 2 failed (18 assertions). Both failures occurred after calling `fakeDav('second')` within the same PHPUnit method: expected corrupted second Excel / changed SHA, but prior `Http::fake` callback continued to match. Root cause is test fixture stacking multiple Laravel HTTP fake registrations; production snapshot service not changed.
+- Fixed `PharmaDomesticGmpOnDemandTest::fakeDav()` to register one callback per test, with mutable marker/badPackaging properties read on each request. Consecutive refreshes now receive second-response content; unexpected requests throw. No tests executed by assistant.
+- Run focused test again. Only after PASS run impacted crawler/hub/foreign GMP regression; UI acceptance and download checks remain outstanding. No merge/deploy.
+
+---
+
 ## Domestic GMP on-demand current-only snapshots — 2026-11-07
 
 - User approved replacing open-page DAV crawl and monthly/scheduled checks with explicit on-demand refresh; no historical Excel versions needed. Continued on existing `feat/pharma-domestic-gmp-crawler-20261107` stacked feature branch, main remained `36e43665a` during audit. No worktree, production changes or migration.
