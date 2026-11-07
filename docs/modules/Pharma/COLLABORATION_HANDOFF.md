@@ -1,3 +1,12 @@
+## MOH traditional registry TLS handshake fix — 2026-11-07
+
+- DELL read-only cURL POST initially failed before HTTP with `OpenSSL/3.0.13: dh key too small` (status 0). A separate TLS 1.2 GET restricted to `ECDHE+AESGCM:ECDHE+CHACHA20` negotiated `ECDHE-RSA-AES256-GCM-SHA384` and returned HTTP 200. GET proves a compatible secure cipher exists, **not yet** that API POST works.
+- Fix only for `TraditionalDrugRegistrationLookup`: override shared `transportOptions()` to pin TLS 1.2 and ECDHE cipher list using cURL options, retaining certificate/host verification. `DavDrugRegistrationLookup` defaults to no custom TLS options. No changes to global OpenSSL, .env, Docker, or other clients. Focused contract test asserts transport policy. No actual PHPUnit or UI run by assistant.
+- Checkpoint: fetch/switch/pull `feat/pharma-traditional-drug-registrations-20261107`; focused `PharmaTraditionalDrugRegistrationLookupTest`; if PASS `PharmaDrugRegistrationLookupTest` then lookup hub/GMP impacted. Manual UI query `cold wind` must now be tested against live MOH API; report actual response and check detail. If still fails, diagnose POST HTTP status/content-type (read-only) before further changes; do not weaken TLS.
+- No PR/merge/deploy.
+
+---
+
 ## Traditional drug registration lookup — 2026-11-07 (checkpoint pending)
 
 - User approved Option A (read-only): `https://ydct-dichvucong.moh.gov.vn/congbothuoc`, POST `/api/services/app/soDangKy/GetAllPublicServerPaging`, sample `SoDangKyThuoc.TenThuoc=cold wind`, 15 items/page. Source result `Cold Wind`, id 3886, GPLH `TCT-00158-23`, `446/QĐ-YDCT`, no published expiry. Keep multiline herbal ingredients and packaging; never infer expiry from null.
