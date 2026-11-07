@@ -25,7 +25,11 @@
                     <p class="mt-1 text-sm text-slate-600">Giá trúng thầu: {{ is_numeric($item['donGia'] ?? null) ? number_format((float) $item['donGia'], 0, ',', '.').' đ' : '—' }}</p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <a href="{{ route('client.pharma.award-prices', ['keyword' => $favorite->search_keyword, 'page' => $favorite->source_page]) }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold">Tra cứu lại</a>
+                    <a href="{{ route('client.pharma.award-prices.wishlist.show', ['sourceId' => $sourceId]) }}"
+                        class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-300 text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        aria-label="Xem chi tiết {{ $favorite->medicine_name ?: 'thuốc' }}" title="Xem chi tiết">
+                        <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </a>
                     <form method="POST" action="{{ route('client.pharma.award-prices.wishlist.toggle') }}">
                         @csrf
                         <input type="hidden" name="keyword" value="{{ $favorite->search_keyword }}">
