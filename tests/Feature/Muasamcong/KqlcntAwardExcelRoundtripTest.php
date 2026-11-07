@@ -40,6 +40,9 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         $preview = app(KqlcntAwardExcelImportService::class)->preview($this->workbook([$headers, $row]));
         $this->assertSame(0, $preview['valid']);
         $this->assertSame(1, $preview['errors']);
+        $this->assertSame(1, $preview['total']);
+        $this->assertSame('error', $preview['rows'][0]['status']);
+        $this->assertCount(32, $preview['rows'][0]['comparison']);
         $this->assertStringContainsString('Không tìm thấy', implode(' ', $preview['rows'][0]['errors']));
     }
 
