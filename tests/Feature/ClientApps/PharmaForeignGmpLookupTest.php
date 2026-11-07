@@ -47,14 +47,27 @@ class PharmaForeignGmpLookupTest extends TestCase
         $this->assertTrue($item['active']);
         $this->assertSame($item, $lookup->findOnPage('Kern Pharma', 1, '5358'));
         $this->assertNull($lookup->findOnPage('Kern Pharma', 1, '5135'));
-        Http::assertSent(fn ($request) => $request->method() === 'POST'
-            && $request->url() === 'https://dichvucong.dav.gov.vn/api/services/app/danhSachCoSoDuocChungNhanGMPNuocNgoai/getAllPublicServerPaging'
-            && $request['filter'] === 'Kern Pharma'
-            && $request['skipCount'] === 0
-            && $request['maxResultCount'] === 15
-            && $request['thongTinCoSoGMPNuocNgoai'] === []
-            && ! $request->hasHeader('Cookie')
-            && ! $request->hasHeader('X-XSRF-TOKEN'));
+        Http::assertSentCount(1);
+        $recorded = Http::recorded();
+        $request = $recorded->first()[0];
+
+        $this->assertSame('POST', $request->method());
+        $this->assertSame(
+            'https://dichvucong.dav.gov.vn/api/services/app/danhSachCoSoDuocChungNhanGMPNuocNgoai/getAllPublicServerPaging',
+            $request->url()
+        );
+
+        // Inspect the wire-format JSON: the DAV contract requires an object {},
+        // not a JSON array []. PHP array-access can obscure this distinction.
+        $payload = json_decode($request->body(), false, 512, JSON_THROW_ON_ERROR);
+        $this->assertSame('Kern Pharma', $payload->filter);
+        $this->assertSame(0, $payload->skipCount);
+        $this->assertSame(15, $payload->maxResultCount);
+        $this->assertNull($payload->sorting);
+        $this->assertInstanceOf(\\stdClass::class, $payload->thongTinCoSoGMPNuocNgoai);
+        $this->assertSame([], get_object_vars($payload->thongTinCoSoGMPNuocNgoai));
+        $this->assertFalse($request->hasHeader('Cookie'));
+        $this->assertFalse($request->hasHeader('X-XSRF-TOKEN'));
     }
 
     public function test_empty_public_response_is_not_an_error_and_second_page_uses_offset(): void
