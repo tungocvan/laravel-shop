@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Storage;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Services\DavDomesticGmpCrawler;
+use Modules\Pharma\Services\DavDomesticGmpSnapshot;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -18,59 +19,70 @@ final class PharmaDomesticGmpController extends Controller
         Request $request,
         ApplicationRegistry $registry,
         ClientPortalSettingsService $settings,
-        DavDomesticGmpCrawler $crawler
+        DavDomesticGmpSnapshot $snapshots
     ): View {
         [$application, $feature] = $this->authorizedFeature($request, $registry);
-        $publication = null;
+        $snapshot = null;
         $error = null;
         try {
-            $publication = $crawler->latest();
+            $snapshot = $snapshots->current();
         } catch (RuntimeException $exception) {
             report($exception);
-            $error = 'Không thể kiểm tra bài công bố GMP mới nhất trên DAV. Vui lòng thử lại sau.';
+            $error = 'Dữ liệu GMP đã lưu không đầy đủ. Hãy kiểm tra cập nhật lại.';
         }
 
         return view('ClientPortal::applications.pharma.domestic-gmp', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
-            'publication' => $publication,
+            'snapshot' => $snapshot,
             'error' => $error,
         ]);
+    }
+
+    public function refresh(
+        Request $request,
+        ApplicationRegistry $registry,
+        DavDomesticGmpCrawler $crawler,
+        DavDomesticGmpSnapshot $snapshots
+    ) {
+        $this->authorizedFeature($request, $registry);
+        try {
+            $result = $snapshots->refresh($crawler);
+        } catch (RuntimeException $exception) {
+            report($exception);
+            return redirect()->route('client.pharma.domestic-gmp')
+                ->with('gmp_error', 'Không thể cập nhật đầy đủ ba Excel từ DAV. Dữ liệu đang sử dụng được giữ nguyên.');
+        }
+
+        return redirect()->route('client.pharma.domestic-gmp')
+            ->with('gmp_success', $result['status'] === 'unchanged'
+                ? 'Đã kiểm tra DAV: ba file Excel không thay đổi.'
+                : 'Đã kiểm tra DAV và cập nhật thành công ba file Excel mới nhất.');
     }
 
     public function download(
         Request $request,
         string $group,
         ApplicationRegistry $registry,
-        DavDomesticGmpCrawler $crawler
+        DavDomesticGmpSnapshot $snapshots
     ): BinaryFileResponse {
         $this->authorizedFeature($request, $registry);
         abort_unless(in_array($group, ['manufacturers', 'packaging', 'business_certificates'], true), 404);
         try {
-            // Re-discover from the official category. Never accept an arbitrary URL
-            // from a browser, and never serve a stale attachment as the latest.
-            $publication = $crawler->latest();
-            $file = $publication['files'][$group] ?? null;
-            abort_if($file === null, 404);
-            $bytes = $crawler->download($file['url']);
+            $snapshot = $snapshots->current();
+            abort_if($snapshot === null, 404);
+            $path = $snapshots->filePath($snapshot['version'], $group);
+            $disk = Storage::disk('local');
+            return response()->download(
+                $disk->path($path),
+                $group.'-dav-gmp-'.$snapshot['version'].'.xlsx',
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            );
         } catch (RuntimeException $exception) {
             report($exception);
-            abort(503, 'Không thể tải hoặc xác minh Excel từ DAV.');
+            abort(503, 'Dữ liệu Excel GMP đã lưu không khả dụng.');
         }
-
-        $hash = hash('sha256', $bytes);
-        $path = 'pharma/dav-domestic-gmp/'.substr($hash, 0, 2).'/'.$hash.'.xlsx';
-        $disk = Storage::disk('local');
-        if (! $disk->exists($path)) {
-            $disk->put($path, $bytes);
-        }
-
-        return response()->download(
-            $disk->path($path),
-            $group.'-dav-gmp-'.$hash.'.xlsx',
-            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-        );
     }
 
     private function authorizedFeature(Request $request, ApplicationRegistry $registry): array
