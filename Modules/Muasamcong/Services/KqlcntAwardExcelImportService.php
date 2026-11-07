@@ -30,7 +30,10 @@ class KqlcntAwardExcelImportService
 
     public function preview(UploadedFile $file): array
     {
-        $sheet = IOFactory::load($file->getRealPath())->getSheetByName('Danh_muc_trung_thau');
+        $workbook = IOFactory::load($file->getRealPath());
+        $sheet = $workbook->getSheetByName('Danh_muc_trung_thau');
+        $packageSheet = $workbook->getSheetByName('Thong_tin_trung_thau');
+        $scope = $packageSheet ? $this->readPackageScope($packageSheet->toArray(null, true, true, false)) : null;
         if (! $sheet) {
             throw ValidationException::withMessages(['file' => 'Thiếu sheet Danh_muc_trung_thau.']);
         }
@@ -65,6 +68,14 @@ class KqlcntAwardExcelImportService
                 $data[$field] = $raw[$label] ?? null;
             }
             $errors = [];
+            if ($scope !== null) {
+                if (trim((string) $data['notify_no']) !== $scope['notify_no']) {
+                    $errors[] = 'Dòng không thuộc TBMT của Sheet 1';
+                }
+                if (! in_array(mb_strtolower(trim((string) $data['contractor_code'])), $scope['contractors'], true)) {
+                    $errors[] = 'Nhà thầu chưa được khai báo ở Sheet 1';
+                }
+            }
             if (! $hasIdentity) {
                 $matches = $this->legacyMatches($data);
                 if ($matches->count() === 1) {
@@ -161,6 +172,34 @@ class KqlcntAwardExcelImportService
      * Compare the same normalized values that confirm() writes.
      * Technical identity columns are never mutable.
      */
+    private function readPackageScope(array $rows): array
+    {
+        $notifyNo = '';
+        $contractors = [];
+        $inContractors = false;
+        foreach (array_slice($rows, 1) as $row) {
+            $key = trim((string) ($row[0] ?? ''));
+            if ($key === 'Mã TBMT') {
+                if ($notifyNo !== '') {
+                    throw ValidationException::withMessages(['file' => 'Sheet 1 khai báo mã TBMT nhiều lần.']);
+                }
+                $notifyNo = trim((string) ($row[1] ?? ''));
+            }
+            if ($key === 'DANH SÁCH NHÀ THẦU') $inContractors = true;
+            if ($inContractors) {
+                $contractor = mb_strtolower(trim((string) ($row[2] ?? '')));
+                if ($contractor !== '') $contractors[] = $contractor;
+            }
+        }
+        if ($notifyNo === '' || $contractors === []) {
+            throw ValidationException::withMessages(['file' => 'Sheet 1 phải có một mã TBMT và ít nhất một nhà thầu.']);
+        }
+        if (count($contractors) !== count(array_unique($contractors))) {
+            throw ValidationException::withMessages(['file' => 'Sheet 1 có mã nhà thầu trùng nhau.']);
+        }
+        return ['notify_no' => $notifyNo, 'contractors' => $contractors];
+    }
+
     private function comparison(array $data, ?KqlcntAwardItem $existing): array
     {
         $fields = [];
