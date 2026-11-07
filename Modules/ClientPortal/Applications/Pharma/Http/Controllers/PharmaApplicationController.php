@@ -2317,7 +2317,7 @@ final class PharmaApplicationController extends Controller
         // Lookup sources are child workspaces of the "Tra cứu" hub.
         // Keep their manifest entries, permissions and direct routes intact;
         // only omit their cards from the top-level Pharma dashboard.
-        $lookupChildKeys = ['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp'];
+        $lookupChildKeys = ['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp', 'drug-registrations', 'traditional-drug-registrations'];
         $authorizedFeatures = collect($application['features'] ?? [])
             ->reject(fn (array $feature): bool => in_array($feature['key'] ?? null, $lookupChildKeys, true))
             ->filter(function (array $feature) use ($registry, $user): bool {
