@@ -272,3 +272,12 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - User approved hiding unchanged rows by default after screenshot showed 3 unchanged and 0 actionable rows. Blade defaults Alpine filter to actionable (changed/error), preserves optional all/unchanged filters and summary totals, displays an empty-state message when no changed/error rows, and offers an optional full 32-field inspection while highlighting changed fields by default.
 - No DB, import persistence, export, or route changes in this batch. New focused UI contract test covers default filtering, empty state, optional inspection, and disabled confirm when zero updates.
 - Focused/module tests **PENDING user execution**; rendered UI acceptance **PENDING**. Do not merge/deploy without gates and explicit approval.
+
+
+## 2026-11-07 — V2 two-sheet single-TBMT workbook (partial implementation checkpoint)
+
+- Main and feature compared: feature 15 commits ahead, 0 behind at audit. User approved one workbook per TBMT, Sheet 1 package metadata + multiple contractors, Sheet 2 canonical award medicines.
+- Added `KqlcntAwardWorkbookExport` with two named sheets: `Thong_tin_trung_thau` (metadata and contractor list) and `Danh_muc_trung_thau` (existing 38-column roundtrip rows).
+- Controller export now requires exactly one TBMT in resulting rows; selected IDs spanning multiple TBMT are rejected. Import preview checks TBMT and contractor codes against Sheet 1 when present; legacy one-sheet format remains accepted.
+- New focused export contract test. **LIMITATIONS:** Sheet 1 metadata currently sourced from first award row; shared-field consistency, contractor-specific contract variants, full sheet-1 mutation, safe new-row creation, persistent audit and sync overwrite protection are NOT implemented. Do not treat this as V2 feature complete or authorize real-data import of new rows.
+- Focused and module regression **PENDING user execution**; UI **PENDING**; no PR, merge or deploy.
