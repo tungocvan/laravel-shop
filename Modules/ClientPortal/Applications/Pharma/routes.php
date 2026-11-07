@@ -30,6 +30,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/award-prices/wishlist', [PharmaAwardPriceController::class, 'wishlist'])
             ->middleware('client.feature:pharma,award-prices')->name('award-prices.wishlist');
 
+        Route::get('/award-prices/wishlist/{sourceId}', [PharmaAwardPriceController::class, 'showWishlist'])
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.wishlist.show');
+
         Route::post('/award-prices/wishlist/toggle', [PharmaAwardPriceController::class, 'toggleWishlist'])
             ->middleware('client.feature:pharma,award-prices')->name('award-prices.wishlist.toggle');
 
