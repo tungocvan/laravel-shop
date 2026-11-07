@@ -28,6 +28,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
 
         Route::get('/domestic-gmp', [PharmaDomesticGmpController::class, 'index'])
             ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp');
+        Route::post('/domestic-gmp/refresh', [PharmaDomesticGmpController::class, 'refresh'])
+            ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp.refresh');
         Route::get('/domestic-gmp/download/{group}', [PharmaDomesticGmpController::class, 'download'])
             ->where('group', 'manufacturers|packaging|business_certificates')
             ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp.download');
