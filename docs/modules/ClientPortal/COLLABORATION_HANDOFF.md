@@ -1,3 +1,13 @@
+## PR review checkpoint — 2026-11-07
+
+- User reported **40 passed (373 assertions), 3.32s** for targeted cross-feature regression: PharmaLookupHubContractTest, PharmaUnifiedLookupWishlistTest, PharmaWishlistMedicineSyncContractTest, PharmaDrugRegistrationLookupTest, PharmaTraditionalDrugRegistrationLookupTest, PharmaAwardSyncContractTest, PharmaForeignGmpLookupTest, PharmaDomesticGmpOnDemandTest.
+- User previously confirmed **TEST + UI PASS** for Wishlist → Medicine Master sync and **UI PASS** for auto-filter. This is user-reported acceptance, not independent CI verification.
+- Local DELL checkpoint: `HEAD=92213e4267693cc58055b9ff6b00f3f741aeb6f7`, branch `feat/pharma-wishlist-medicine-sync-20261107`, `origin/main=36e43665a3cf81ab69fdf79f2443e95c8682c4b2`; `git status --short` and `git diff --check` empty. GitHub main/feature refs reconfirmed at the same SHAs before handoff update.
+- A cumulative PR from feature to main includes earlier stacked DAV/MOH lookup, GMP, award, unified wishlist and import commits. Review cumulative scope and CI, including any price-lookup import tests not in the 40-test run, before merging.
+- No production changes; **merge requires explicit user approval**.
+
+---
+
 ## Wishlist -> Medicine Master sync — 2026-11-07 (checkpoint pending)
 
 - Approved by user after wishlist filter UI PASS. Branch `feat/pharma-wishlist-medicine-sync-20261107` based on `feat/pharma-unified-lookup-wishlist-20261107` at `5f21dba`; `main` still `36e43665a` when audited. Stacked dependencies must be merged in order after explicit approval only.
