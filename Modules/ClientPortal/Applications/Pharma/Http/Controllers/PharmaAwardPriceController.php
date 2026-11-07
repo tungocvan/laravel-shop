@@ -13,45 +13,65 @@ use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Services\PublicAwardMedicineSync;
 use Modules\Pharma\Services\PublicAwardPriceLookup;
+use Modules\Pharma\Services\PublicAwardWishlistService;
 
 final class PharmaAwardPriceController extends Controller
 {
-    public function index(Request $request, PublicAwardPriceLookup $lookup, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    public function index(Request $request, PublicAwardPriceLookup $lookup, ApplicationRegistry $registry, ClientPortalSettingsService $settings, PublicAwardWishlistService $wishlist): View
     {
         $this->authorizeView($request, $registry);
         $validated = $request->validate([
             'keyword' => ['nullable', 'string', 'min:2', 'max:200'],
             'page' => ['nullable', 'integer', 'between:1,100'],
             'fresh' => ['nullable', 'boolean'],
-            'unit' => ['nullable', 'string', 'max:100'],
         ]);
         $keyword = trim((string) ($validated['keyword'] ?? ''));
         $page = (int) ($validated['page'] ?? 1);
         $result = $keyword === '' ? null : $lookup->search($keyword, $page, (bool) ($validated['fresh'] ?? false));
-        $items = $result['items'] ?? [];
-        $unit = trim((string) ($validated['unit'] ?? ''));
-        if ($unit !== '') {
-            $items = array_values(array_filter($items, fn (array $item): bool => mb_strtolower(trim((string) ($item['donViTinh'] ?? ''))) === mb_strtolower($unit)));
-        }
-        $prices = array_values(array_map('floatval', array_filter(array_column($items, 'donGia'), 'is_numeric')));
-        if ($result !== null) {
-        $result['items'] = $items;
-        $result['stats'] = [
-            'count' => count($items),
-            'min' => $prices ? min($prices) : null,
-            'max' => $prices ? max($prices) : null,
-            'avg' => $prices ? array_sum($prices) / count($prices) : null,
-        ];
-        }
+        $sourceIds = array_values(array_filter(array_map(
+            static fn (array $item): string => is_scalar($item['id'] ?? null) ? (string) $item['id'] : '',
+            $result['items'] ?? []
+        )));
+        $savedIds = $sourceIds === [] ? [] : $wishlist->savedIds((int) $request->user('web')->id, $sourceIds);
 
         $application = $registry->find('pharma');
         return view('ClientPortal::applications.pharma.award-prices', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'keyword' => $keyword, 'page' => $page, 'unit' => $unit,
+            'keyword' => $keyword, 'page' => $page, 'savedIds' => $savedIds,
             'result' => $result,
             'canSync' => $registry->userCan($request->user('web'), 'client.pharma.products.create'),
         ]);
+    }
+
+    public function toggleWishlist(
+        Request $request,
+        ApplicationRegistry $registry,
+        PublicAwardPriceLookup $lookup,
+        PublicAwardWishlistService $wishlist
+    ): RedirectResponse {
+        $this->authorizeView($request, $registry);
+        $input = $request->validate([
+            'keyword' => ['required', 'string', 'min:2', 'max:200'],
+            'page' => ['required', 'integer', 'between:1,100'],
+            'source_id' => ['required', 'string', 'max:160'],
+        ]);
+
+        $result = $lookup->search($input['keyword'], (int) $input['page']);
+        if (! ($result['success'] ?? false)) {
+            throw ValidationException::withMessages(['source_id' => 'Không thể xác minh dữ liệu nguồn.']);
+        }
+        $item = collect($result['items'])->first(static fn (array $row): bool =>
+            is_scalar($row['id'] ?? null) && (string) $row['id'] === $input['source_id']);
+        if (! is_array($item)) {
+            throw ValidationException::withMessages(['source_id' => 'Bản ghi không còn thuộc trang kết quả này.']);
+        }
+
+        $saved = $wishlist->toggle((int) $request->user('web')->id, $item, $input['keyword'], (int) $input['page']);
+
+        return redirect()->route('client.pharma.award-prices', [
+            'keyword' => $input['keyword'], 'page' => $input['page'],
+        ])->with('success', $saved ? 'Đã lưu thuốc vào danh sách quan tâm.' : 'Đã bỏ thuốc khỏi danh sách quan tâm.');
     }
 
     public function show(Request $request, string $sourceId, ApplicationRegistry $registry, ClientPortalSettingsService $settings, PublicAwardPriceLookup $lookup, PublicAwardMedicineSync $sync): View
