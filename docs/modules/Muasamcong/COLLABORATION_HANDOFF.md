@@ -265,3 +265,10 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - Replaced minimal 4-column preview with responsive Admin Blade workspace: summary counts (total, changed, unchanged, errors), Alpine search/status filter, expandable per-row 32-field current-versus-Excel comparison, highlighted differences, explicit conflicts, and sticky confirmation area.
 - Import service now produces field comparisons using normalized decimals/dates/integers; invalid dates and nonnegative-number violations surface as row errors. Only rows with actual changes are eligible for confirm, and confirm rechecks version under lock. Legacy 36-column import remains scope-restricted and does not create new rows.
 - Focused test assertions cover row status and complete field comparison. Focused tests, module regression and UI acceptance **PENDING local execution**; no PR/merge/deploy.
+
+
+## 2026-11-07 — Excel preview actionable-only UI checkpoint
+
+- User approved hiding unchanged rows by default after screenshot showed 3 unchanged and 0 actionable rows. Blade defaults Alpine filter to actionable (changed/error), preserves optional all/unchanged filters and summary totals, displays an empty-state message when no changed/error rows, and offers an optional full 32-field inspection while highlighting changed fields by default.
+- No DB, import persistence, export, or route changes in this batch. New focused UI contract test covers default filtering, empty state, optional inspection, and disabled confirm when zero updates.
+- Focused/module tests **PENDING user execution**; rendered UI acceptance **PENDING**. Do not merge/deploy without gates and explicit approval.
