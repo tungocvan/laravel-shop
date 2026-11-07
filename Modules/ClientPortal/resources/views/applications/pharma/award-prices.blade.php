@@ -164,6 +164,6 @@
 
 </div>
 @push('application-scripts')
-<script defer src="{{ asset('demo/pharma-award/award-interactions.js') }}"></script>
+<script defer src="{{ asset('demo/pharma-award/award-interactions.js').'?v=20261107-2' }}"></script>
 @endpush
 @endsection
