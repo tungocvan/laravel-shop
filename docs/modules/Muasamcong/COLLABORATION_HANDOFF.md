@@ -258,3 +258,10 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - Import preview now accepts both legacy 36-column and modern 38-column exports; legacy rows only match unique canonical items scoped by TBMT and contractor, then lot number, medicine code, or medicine name + ingredient + concentration. Ambiguous/unmatched rows are rejected and never automatically created. Duplicate headings and partial technical identity columns are validation errors rather than HTTP 500.
 - Confirm rechecks row version under DB lock; unchanged records are skipped. No automatic deletion. This checkpoint does NOT implement new-item creation; that requires separately validated scope/identity and audit/resync protections.
 - Focused test updated for actual 36-column header format. New focused and module regression **PENDING user execution**. UI **PENDING**; no PR/merge/deploy authorized.
+
+
+## 2026-11-07 — KQLCNT Excel preview UI/UX review checkpoint
+
+- Replaced minimal 4-column preview with responsive Admin Blade workspace: summary counts (total, changed, unchanged, errors), Alpine search/status filter, expandable per-row 32-field current-versus-Excel comparison, highlighted differences, explicit conflicts, and sticky confirmation area.
+- Import service now produces field comparisons using normalized decimals/dates/integers; invalid dates and nonnegative-number violations surface as row errors. Only rows with actual changes are eligible for confirm, and confirm rechecks version under lock. Legacy 36-column import remains scope-restricted and does not create new rows.
+- Focused test assertions cover row status and complete field comparison. Focused tests, module regression and UI acceptance **PENDING local execution**; no PR/merge/deploy.
