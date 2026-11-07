@@ -1,3 +1,11 @@
+## DAV GMP attachment parsing checkpoint — 2026-11-07
+
+- User DELL audit of real article n5553: HTTP 200, 49,822 HTML bytes, 88 anchors, `#DivIdToPrint` and `.description` both present, six attachment links: three PDF and three XLSX, all percent-encoded Vietnamese filenames under `/upload_images/files/`. Previous article-scoped XPath found zero XLSX.
+- Updated parser to inspect document-wide anchors, strictly validate HTTPS DAV XLSX paths, deduplicate URLs and map decoded filenames by semantic Vietnamese labels: domestic GMP manufacturers, GMP packaging and business eligibility certificates. Reject missing/ambiguous group rather than assigning by order. Added encoded-name regression fixture. No network/production test executed after fix.
+- Next: pull branch, run focused tests, then read-only `latest()` diagnostic, then real UI/download tests. Stop on FAIL; no merge/deploy.
+
+---
+
 ## Domestic GMP crawler live DAV parsing fix — 2026-11-07
 
 - DELL read-only diagnostic confirmed DAV category HTTP 200, text/html 50,683 bytes, 20 matching article links, latest n5553. Invoking Laravel `DavDomesticGmpCrawler::latest()` failed with `DAV article contains no recognized Excel attachments` at line 81.
