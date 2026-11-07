@@ -1,7 +1,7 @@
 @extends('Admin::layouts.master')
 @section('title', 'Đối chiếu Import Excel KQLCNT')
 @section('content')
-<div class="space-y-5 p-3 md:p-6" x-data="{ search: '', filter: 'all' }">
+<div class="space-y-5 p-3 md:p-6" x-data="{ search: '', filter: 'actionable', showAllFields: false }">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
             <p class="text-xs font-semibold uppercase tracking-wider text-indigo-600">Mua sắm công / KQLCNT</p>
@@ -29,20 +29,28 @@
             <label>
                 <span class="mb-1 block text-xs font-semibold text-gray-600">Lọc trạng thái</span>
                 <select x-model="filter" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm">
-                    <option value="all">Tất cả</option>
+                    <option value="actionable">Cần xử lý (mặc định)</option>
+                    <option value="all">Tất cả (kể cả không thay đổi)</option>
                     <option value="changed">Có thay đổi</option>
                     <option value="unchanged">Không thay đổi</option>
                     <option value="error">Lỗi / xung đột</option>
                 </select>
             </label>
         </div>
+        @if ($preview['valid'] === 0 && $preview['errors'] === 0)
+            <div class="border-b border-green-200 bg-green-50 px-5 py-6 text-center" role="status">
+                <div class="text-lg font-semibold text-green-900">Dữ liệu đã được đồng bộ</div>
+                <p class="mt-2 text-sm text-green-800">Không phát hiện sản phẩm cần cập nhật. Đã bỏ qua {{ $preview['unchanged'] }} dòng không thay đổi.</p>
+                <p class="mt-1 text-xs text-green-700">Bạn có thể chọn “Tất cả” để xem lại dữ liệu đã đối chiếu.</p>
+            </div>
+        @endif
         <div class="divide-y divide-gray-200">
             @foreach ($preview['rows'] as $row)
                 @php
                     $status = $row['status'];
                     $searchText = mb_strtolower(implode(' ', [$row['id'], $row['data']['medicine_name'] ?? '', $row['data']['notify_no'] ?? '', $row['data']['contractor_code'] ?? '', $row['data']['contractor_name'] ?? '']));
                 @endphp
-                <details class="group p-4 open:bg-gray-50" x-show="(filter === 'all' || filter === @js($status)) && (@js($searchText).includes(search.toLowerCase()))">
+                <details class="group p-4 open:bg-gray-50" x-show="(filter === 'all' || (filter === 'actionable' && @js($status) !== 'unchanged') || filter === @js($status)) && (@js($searchText).includes(search.toLowerCase()))">
                     <summary class="flex cursor-pointer list-none flex-wrap items-center gap-3">
                         <div class="min-w-0 flex-1">
                             <div class="font-semibold text-gray-900">{{ $row['data']['medicine_name'] ?: 'Chưa có tên thuốc' }}</div>
@@ -61,7 +69,14 @@
                     @if ($row['errors'])
                         <div role="alert" class="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">{{ implode('; ', $row['errors']) }}</div>
                     @endif
-                    <div class="mt-4 overflow-x-auto rounded-lg border border-gray-200">
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-xs text-gray-600">Mặc định ưu tiên trường thay đổi. Có thể xem đầy đủ 32 trường để kiểm tra.</p>
+                        <label class="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-indigo-700">
+                            <input type="checkbox" x-model="showAllFields" class="rounded border-gray-300 text-indigo-600">
+                            Hiển thị tất cả 32 trường
+                        </label>
+                    </div>
+                    <div class="mt-2 overflow-x-auto rounded-lg border border-gray-200">
                         <table class="min-w-full divide-y divide-gray-200 text-sm">
                             <thead class="bg-gray-100"><tr>
                                 <th scope="col" class="px-3 py-2 text-left">Trường dữ liệu</th>
@@ -71,7 +86,7 @@
                             </tr></thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach ($row['comparison'] as $field)
-                                    <tr @class(['bg-amber-50' => $field['changed']])>
+                                    <tr @class(['bg-amber-50' => $field['changed']]) x-show="showAllFields || @js($status) !== 'changed' || @js($field['changed'])">
                                         <th scope="row" class="whitespace-nowrap px-3 py-2 text-left font-medium text-gray-700">{{ $field['label'] }}</th>
                                         <td class="max-w-xs break-words px-3 py-2 text-gray-600">{{ $field['current'] ?? '—' }}</td>
                                         <td class="max-w-xs break-words px-3 py-2 font-medium text-gray-900">{{ $field['incoming'] ?? '—' }}</td>
@@ -86,7 +101,7 @@
         </div>
     </div>
     <div class="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-lg md:flex-row md:items-center md:justify-between">
-        <p class="text-sm text-gray-600">Chỉ ghi <strong>{{ $preview['valid'] }}</strong> dòng có thay đổi hợp lệ. Phiên xác nhận có hiệu lực 20 phút. Không tự xóa bản ghi.</p>
+        <p class="text-sm text-gray-600">Chỉ ghi <strong>{{ $preview['valid'] }}</strong> dòng có thay đổi hợp lệ; ẩn {{ $preview['unchanged'] }} dòng không thay đổi theo mặc định. Phiên xác nhận có hiệu lực 20 phút. Không tự xóa bản ghi.</p>
         <form method="POST" action="{{ route('muasamcong.kqlcnt-awards.import.confirm') }}" class="flex flex-wrap items-center gap-2">
             @csrf
             <input type="hidden" name="token" value="{{ $preview['token'] }}">
