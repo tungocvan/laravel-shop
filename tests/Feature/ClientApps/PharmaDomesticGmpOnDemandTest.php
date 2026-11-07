@@ -15,6 +15,10 @@ class PharmaDomesticGmpOnDemandTest extends TestCase
 {
     private const ARTICLE = 'https://dav.gov.vn/danh-sach-cac-cssx-trong-nuoc-dat-tieu-chuan-nguyen-tac-gmp-gmp-bao-bi-duoc-pham-cap-nhat-toi-ngay-23102026-n5553.html';
 
+    private string $davMarker = 'first';
+    private bool $davBadPackaging = false;
+    private bool $davFakeRegistered = false;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -85,6 +89,16 @@ class PharmaDomesticGmpOnDemandTest extends TestCase
 
     private function fakeDav(string $marker, bool $badPackaging = false): void
     {
+        // Http::fake() callbacks are cumulative in Laravel; registering a
+        // second fake does not override the first matching callback.
+        // Keep one callback and change the response state between refreshes.
+        $this->davMarker = $marker;
+        $this->davBadPackaging = $badPackaging;
+        if ($this->davFakeRegistered) {
+            return;
+        }
+        $this->davFakeRegistered = true;
+
         $article = self::ARTICLE;
         $category = 'https://dav.gov.vn/danh-sach-cssx-duoc-cap-gmp-cua-dav-cn92.html';
         $files = [
@@ -96,19 +110,29 @@ class PharmaDomesticGmpOnDemandTest extends TestCase
         foreach ($files as $file) {
             $html .= '<a href="/upload_images/files/'.$file.'">Excel</a>';
         }
-        $mocks = [
-            $category => Http::response('<a href="'.$article.'">Latest</a>', 200, ['Content-Type' => 'text/html']),
-            $article => Http::response($html, 200, ['Content-Type' => 'text/html']),
-        ];
-        foreach ($files as $index => $file) {
-            $mocks['https://dav.gov.vn/upload_images/files/'.$file] = Http::response(
-                $badPackaging && $index === 1 ? 'not a ZIP' : $this->xlsx($marker.'-'.$index),
-                200,
-                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
-            );
-        }
+
         Http::preventStrayRequests();
-        Http::fake($mocks);
+        Http::fake(function ($request) use ($category, $article, $html, $files) {
+            $url = $request->url();
+            if ($url === $category) {
+                return Http::response('<a href="'.$article.'">Latest</a>', 200, ['Content-Type' => 'text/html']);
+            }
+            if ($url === $article) {
+                return Http::response($html, 200, ['Content-Type' => 'text/html']);
+            }
+            foreach ($files as $index => $file) {
+                if ($url === 'https://dav.gov.vn/upload_images/files/'.$file) {
+                    return Http::response(
+                        $this->davBadPackaging && $index === 1
+                            ? 'not a ZIP'
+                            : $this->xlsx($this->davMarker.'-'.$index),
+                        200,
+                        ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+                    );
+                }
+            }
+            throw new RuntimeException('Unexpected DAV request: '.$url);
+        });
     }
 
     private function xlsx(string $marker): string
