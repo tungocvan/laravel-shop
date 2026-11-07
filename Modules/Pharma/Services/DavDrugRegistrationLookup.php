@@ -19,6 +19,11 @@ class DavDrugRegistrationLookup
         return 'dav-registration';
     }
 
+    protected function transportOptions(): array
+    {
+        return [];
+    }
+
     protected function perPage(): int
     {
         return self::PER_PAGE;
@@ -50,7 +55,7 @@ class DavDrugRegistrationLookup
         return Cache::remember('pharma:'.$this->cacheNamespace().':v1:'.hash('sha256', $field.'|'.$keyword.'|'.$page), now()->addMinutes(5), function () use ($field, $keyword, $page): array {
             $filters = $keyword === '' ? (object) [] : [self::FIELDS[$field] => $keyword];
             try {
-                $response = Http::acceptJson()->asJson()->connectTimeout(5)->timeout(15)
+                $response = Http::acceptJson()->asJson()->withOptions($this->transportOptions())->connectTimeout(5)->timeout(15)
                     ->post($this->endpoint(), [
                         'filterText' => '',
                         'SoDangKyThuoc' => $filters,
