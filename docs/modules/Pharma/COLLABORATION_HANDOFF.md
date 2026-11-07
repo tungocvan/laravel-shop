@@ -1,3 +1,15 @@
+## Unified lookup wishlist — 2026-11-07 (checkpoint pending)
+
+- User approved Option A: one unified wishlist for four sources (`dav_price`, `traditional_price`, `dav_registration`, `traditional_registration`), with read-only legacy award wishlist adapter. Preserve **all** existing `pharma_award_wishlists` records and existing award toggle/detail/sync routes; no migration/backfill/drop on legacy table. No wishlist-to-Medicine Master sync in this phase.
+- Branch `feat/pharma-unified-lookup-wishlist-20261107` stacked on `fix/pharma-registration-search-reset-hub-20261107` commit `ea9901e7`; latest `main` checked `36e43665a`. PR bases/merge ordering must respect dependency chain.
+- New migration `Modules/Pharma/database/migrations/2026_11_07_170000_create_pharma_lookup_wishlists_table.php` creates `pharma_lookup_wishlists` with unique (`user_id`, `source_type`, `source_id`), snapshot and search context. **Never run blanket `php artisan migrate`** on DELL: other unrelated Pharma migrations were previously pending. Inspect `php artisan migrate:status`, then run only this targeted migration after focused/regression tests and user review.
+- `LookupWishlistService` owns writes and per-user concurrency lock; `PharmaLookupWishlistController` re-fetches source search results and verifies `source_id` before saving; owner-scoped remove and saved detail; source-specific GET-only details. Shared heart partial on four result pages. GET `/apps/pharma/lookups/wishlist` shows new records plus legacy award records through a read-only SQL `UNION ALL`; legacy entries link to existing award wishlist detail and management. New records have snapshot detail and source revisit link; no sync action.
+- Focused test `PharmaUnifiedLookupWishlistTest.php` committed but **not run**; impacted `PharmaLookupHubContractTest.php`, `PharmaDrugRegistrationLookupTest.php`, `PharmaTraditionalDrugRegistrationLookupTest.php`, `PharmaAwardSyncContractTest.php`, price lookup focused tests as applicable. UI PASS requires user validation: hearts save/remove for each of four sources, filter, snapshot detail, legacy award entries and existing award sync, mobile. Never claim PASS without actual output.
+- Source IDs remain scoped to source type. Null/empty registration is displayed as unknown; no name-based deduplication. No background sync, scheduler, or source data mutation. New wishlist feature is only under Tra cứu.
+- No PR, merge or production deploy authorized.
+
+---
+
 ## Registration lookup UI reset + hub nesting — 2026-11-07
 
 - Feature branch `fix/pharma-registration-search-reset-hub-20261107` stacked on `feat/pharma-traditional-drug-registrations-20261107` (not yet merged to main). User confirmed traditional-drug UI PASS before this UI change.
