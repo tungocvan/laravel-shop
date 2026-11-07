@@ -23,6 +23,7 @@ class PharmaDomesticGmpCrawlerTest extends TestCase
         $result = app(DavDomesticGmpCrawler::class)->latest();
         $this->assertSame(self::ARTICLE, $result['url']);
         $this->assertStringContainsString('23/10/2026', $result['title']);
+        $this->assertSame('28/10/2026', $result['published']);
         $this->assertCount(3, $result['files']);
         $this->assertSame('Danh sách các công ty trong nước đạt tiêu chuẩn GMP (23_10_2026).xlsx', $result['files']['manufacturers']['name']);
         $this->assertSame('Danh sách các công ty trong nước đạt tiêu chuẩn GMP bao bì (23_10_2026).xlsx', $result['files']['packaging']['name']);
@@ -65,7 +66,7 @@ class PharmaDomesticGmpCrawlerTest extends TestCase
         return <<<'HTML'
 <html><div id="DivIdToPrint">
 <h1 class="news-title">Danh sách CSSX trong nước đạt GMP (23/10/2026)</h1>
-<time>28/10/2026</time>
+<time>28/10/2026 In function printDiv(id) { var html = '&lt;html&gt;'; }</time>
 <div class="description row-item">
 <p>1. Danh sách CSSX trong nước đạt GMP</p>
 <table><tbody><tr><td><div class="nested-attachments">
