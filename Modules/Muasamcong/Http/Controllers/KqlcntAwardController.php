@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Modules\Muasamcong\Services\KqlcntAwardExcelImportService;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Muasamcong\Exports\KqlcntAwardWorkbookExport;
+use Modules\Muasamcong\Exports\KqlcntAwardImportTemplateExport;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -25,6 +26,11 @@ class KqlcntAwardController extends Controller
         $medicineOptions = (clone $base)->whereNotNull('medicine_name')->distinct()->orderBy('medicine_name')->pluck('medicine_name');
 
         return view('Muasamcong::kqlcnt-awards.index', compact('items', 'filters', 'notifyOptions', 'investorOptions', 'medicineOptions'));
+    }
+
+    public function importTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new KqlcntAwardImportTemplateExport(), 'KQLCNT-Mau-Import.xlsx');
     }
 
     public function importPreview(Request $request, KqlcntAwardExcelImportService $service): View
