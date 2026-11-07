@@ -51,6 +51,29 @@ class PharmaLookupHubContractTest extends TestCase
         $this->assertStringContainsString("'verify' => true", $source);
     }
 
+    public function test_pharma_dashboard_excludes_lookup_children_without_disabling_their_routes(): void
+    {
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
+        $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
+
+        $this->assertStringContainsString(
+            "['dav-prices', 'traditional-prices', 'award-prices', 'gmp']",
+            $controller
+        );
+        $this->assertStringContainsString('->reject(fn (array $feature)', $controller);
+        $this->assertSame('client.pharma.lookups', $manifest['features']['lookups']['route']);
+
+        foreach (['dav-prices', 'traditional-prices', 'award-prices', 'gmp'] as $key) {
+            $this->assertArrayHasKey($key, $manifest['features']);
+            $this->assertNotNull(Route::getRoutes()->getByName($manifest['features'][$key]['route']));
+        }
+
+        $hub = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
+        foreach (['dav-prices', 'traditional-prices', 'award-prices', 'gmp'] as $key) {
+            $this->assertStringContainsString("route('client.pharma.".$key."')", $hub);
+        }
+    }
+
     public function test_lookup_cards_link_to_all_four_independent_sources(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
