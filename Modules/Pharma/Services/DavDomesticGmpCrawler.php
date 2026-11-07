@@ -51,13 +51,12 @@ final class DavDomesticGmpCrawler
             throw new RuntimeException('DAV article does not match domestic GMP publication.');
         }
 
-        // DAV's article HTML may nest the attachment links in tables or
-        // wrapper elements rather than direct children of .description.
-        // Inspect the full article subtree, preserving document order.
-        $article = $xpath->query('//div[@id="DivIdToPrint"]')->item(0);
-        $anchors = $article ? $xpath->query('.//a[@href]', $article) : false;
-        $excel = [];
-        foreach ($anchors ?: [] as $anchor) {
+        // DAV's actual n5553 HTML exposes attachment links in the page, but
+        // not necessarily as descendants of the print container. Search the
+        // document and classify only official, named Excel attachments.
+        $files = [];
+        $seen = [];
+        foreach ($xpath->query('//a[@href]') as $anchor) {
             $href = trim($anchor->getAttribute('href'));
             $path = parse_url($href, PHP_URL_PATH);
             if (! is_string($path) || ! preg_match('~^/upload_images/files/[^?#]+\.xlsx$~i', $path)) {
@@ -69,24 +68,32 @@ final class DavDomesticGmpCrawler
             } catch (RuntimeException) {
                 continue;
             }
-            $excel[$fileUrl] = [
+            if (isset($seen[$fileUrl])) {
+                continue;
+            }
+            $seen[$fileUrl] = true;
+            $name = basename(rawurldecode($path));
+            $normalized = mb_strtolower($name, 'UTF-8');
+            if (str_contains($normalized, 'chứng nhận đủ điều kiện kinh doanh dược')) {
+                $group = 'business_certificates';
+            } elseif (str_contains($normalized, 'gmp bao bì')) {
+                $group = 'packaging';
+            } elseif (str_contains($normalized, 'trong nước') && str_contains($normalized, 'gmp')) {
+                $group = 'manufacturers';
+            } else {
+                continue;
+            }
+            if (isset($files[$group])) {
+                throw new RuntimeException('DAV article has ambiguous Excel attachments for '.$group);
+            }
+            $files[$group] = [
+                'group' => $group,
                 'url' => $fileUrl,
-                'name' => basename(rawurldecode($path)),
+                'name' => $name,
             ];
         }
-
-        // The audited n5553 DAV publication lists three XLSX attachments
-        // in this order: manufacturers, packaging, business certificates.
-        // Fail closed if the layout changes rather than mislabel a download.
-        if (count($excel) !== 3) {
-            throw new RuntimeException('DAV article Excel attachment count differs from the audited three-group layout: '.count($excel));
-        }
-        foreach (['manufacturers', 'packaging', 'business_certificates'] as $index => $group) {
-            $file = array_values($excel)[$index];
-            $files[$group] = ['group' => $group] + $file;
-        }
-        if ($files === []) {
-            throw new RuntimeException('DAV article contains no recognized Excel attachments.');
+        if (count($files) !== 3) {
+            throw new RuntimeException('DAV article has '.count($files).' of the three expected classified Excel groups.');
         }
 
         return ['url' => $url, 'title' => $title, 'published' => $published, 'files' => $files];
