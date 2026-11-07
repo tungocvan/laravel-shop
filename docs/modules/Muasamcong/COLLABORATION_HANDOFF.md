@@ -281,3 +281,12 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - Controller export now requires exactly one TBMT in resulting rows; selected IDs spanning multiple TBMT are rejected. Import preview checks TBMT and contractor codes against Sheet 1 when present; legacy one-sheet format remains accepted.
 - New focused export contract test. **LIMITATIONS:** Sheet 1 metadata currently sourced from first award row; shared-field consistency, contractor-specific contract variants, full sheet-1 mutation, safe new-row creation, persistent audit and sync overwrite protection are NOT implemented. Do not treat this as V2 feature complete or authorize real-data import of new rows.
 - Focused and module regression **PENDING user execution**; UI **PENDING**; no PR, merge or deploy.
+
+
+## 2026-11-07 — V2 simplified one-TBMT/one-contractor Excel checkpoint
+
+- User clarified workbook scope is **one TBMT and one winning contractor**; Sheet 2 must show only legacy columns F–X (19 medicine fields), without _award_id/_version/TBMT/contractor/sync metadata.
+- Export enforces one TBMT + one contractor and outputs Sheet 1 package/contractor details and Sheet 2 exactly 19 medicine fields.
+- V2 import preview detects two-sheet 19-column contract, reads TBMT/contractor from Sheet 1, rejects multiple contractors, matches existing medicine rows using scoped composite identifiers, and compares/writes only medicine fields; dates and package metadata remain untouched.
+- Legacy one-sheet import path remains supported. New unmatched medicines remain blocked (not silently created); Sheet 1 edits are **not** persisted in this checkpoint. There is no exported row ID/version, so concurrency is checked from preview to confirm only, not export to preview. Manual review of ambiguous identifiers is required.
+- Focused test added for V2 scoped preview. Tests and UI **PENDING local user execution**. Do not merge or deploy.
