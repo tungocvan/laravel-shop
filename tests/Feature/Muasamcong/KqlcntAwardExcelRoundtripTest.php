@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
+use Modules\Muasamcong\Exports\KqlcntAwardWorkbookExport;
 use Modules\Muasamcong\Services\KqlcntAwardExcelImportService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -57,6 +58,21 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         $this->assertStringContainsString('Dữ liệu đã được đồng bộ', $blade);
         $this->assertStringContainsString("showAllFields ||", $blade);
         $this->assertStringContainsString("@disabled(\$preview['valid'] === 0)", $blade);
+    }
+
+    public function test_v2_workbook_exports_exactly_two_named_sheets(): void
+    {
+        $export = new KqlcntAwardWorkbookExport(
+            [['Mã TBMT', 'IB2500539527'], ['DANH SÁCH NHÀ THẦU', null], [null, null, 'vn0314492345']],
+            ['_award_id', '_version', 'Mã TBMT', 'Mã nhà thầu'],
+            [[3, '2026-11-07 10:00:00.000000', 'IB2500539527', 'vn0314492345']]
+        );
+        $sheets = $export->sheets();
+        $this->assertCount(2, $sheets);
+        $this->assertSame('Thong_tin_trung_thau', $sheets[0]->title());
+        $this->assertSame('Danh_muc_trung_thau', $sheets[1]->title());
+        $this->assertSame('IB2500539527', $sheets[0]->array()[0][1]);
+        $this->assertSame(3, $sheets[1]->array()[0][0]);
     }
 
     public function test_confirm_rejects_expired_preview_token(): void
