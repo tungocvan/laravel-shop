@@ -9,6 +9,7 @@ use Illuminate\Validation\Rule;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Services\DavDrugRegistrationLookup;
+use Modules\Pharma\Services\LookupWishlistService;
 use RuntimeException;
 
 abstract class BasePharmaRegistrationController extends Controller
@@ -38,10 +39,19 @@ abstract class BasePharmaRegistrationController extends Controller
             }
         }
 
+        $wishlistSource = $featureKey === 'drug-registrations' ? 'dav_registration' : 'traditional_registration';
+        $savedIds = app(LookupWishlistService::class)->savedIds(
+            (int) $request->user('web')->id,
+            $wishlistSource,
+            array_values(array_filter(array_column($result['items'], 'source_id')))
+        );
+
         return view('ClientPortal::applications.pharma.drug-registrations', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'wishlistSource' => $wishlistSource,
+            'savedIds' => $savedIds,
             'field' => $field,
             'keyword' => $keyword,
             'page' => $page,
