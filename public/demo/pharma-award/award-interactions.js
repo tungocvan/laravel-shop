@@ -9,6 +9,13 @@
     const count = root.querySelector('#award-selected-count');
     const selectAll = root.querySelector('#award-select-all');
     const rows = Array.from(root.querySelectorAll('.award-row-select'));
+    const resultRows = Array.from(root.querySelectorAll('.award-result-row'));
+    const localSearch = root.querySelector('#award-local-search');
+    const group = root.querySelector('#award-group-filter');
+    const priceMin = root.querySelector('#award-price-min');
+    const priceMax = root.querySelector('#award-price-max');
+    const filterCount = root.querySelector('#award-filter-count');
+    const noResults = root.querySelector('#award-no-filter-results');
 
     if (input && clear) {
         const updateClear = () => clear.classList.toggle('hidden', input.value.length === 0);
@@ -21,17 +28,55 @@
         updateClear();
     }
 
+    const visibleSelections = () => rows.filter(row => !row.closest('tr').hidden);
     const updateSelection = () => {
         const checked = rows.filter(row => row.checked).length;
         if (count) count.textContent = String(checked);
         if (selectAll) {
-            selectAll.checked = rows.length > 0 && checked === rows.length;
-            selectAll.indeterminate = checked > 0 && checked < rows.length;
+            const visible = visibleSelections();
+            const selectedVisible = visible.filter(row => row.checked).length;
+            selectAll.checked = visible.length > 0 && selectedVisible === visible.length;
+            selectAll.indeterminate = selectedVisible > 0 && selectedVisible < visible.length;
+            selectAll.disabled = visible.length === 0;
         }
     };
+
+    const normalize = value => String(value || '').normalize('NFC').toLocaleLowerCase('vi-VN').trim();
+    const filterRows = () => {
+        const term = normalize(localSearch?.value);
+        const selectedGroup = group?.value || '';
+        const min = priceMin?.value === '' || !priceMin ? null : Number(priceMin.value);
+        const max = priceMax?.value === '' || !priceMax ? null : Number(priceMax.value);
+        let shown = 0;
+        resultRows.forEach(row => {
+            const data = row.dataset;
+            const haystack = normalize([data.name, data.ingredient, data.strength].join(' '));
+            const price = data.price === '' ? null : Number(data.price);
+            const matches = (!term || haystack.includes(term))
+                && (!selectedGroup || data.group === selectedGroup)
+                && (min === null || (price !== null && price >= min))
+                && (max === null || (price !== null && price <= max));
+            row.hidden = !matches;
+            // Preserve checked rows across filter changes; they remain part of the sync form.
+            if (matches) shown++;
+        });
+        if (filterCount) filterCount.textContent = 'Đang hiển thị ' + shown + ' / ' + resultRows.length + ' bản ghi trong trang hiện tại';
+        if (noResults) noResults.classList.toggle('hidden', shown !== 0);
+        updateSelection();
+    };
+    [localSearch, group, priceMin, priceMax].forEach(field => {
+        if (field) {
+            field.addEventListener('input', filterRows);
+            field.addEventListener('change', filterRows);
+        }
+    });
+    root.querySelector('#award-reset-filters')?.addEventListener('click', () => {
+        [localSearch, group, priceMin, priceMax].forEach(field => { if (field) field.value = ''; });
+        filterRows();
+    });
     rows.forEach(row => row.addEventListener('change', updateSelection));
     if (selectAll) selectAll.addEventListener('change', () => {
-        rows.forEach(row => { row.checked = selectAll.checked; });
+        visibleSelections().forEach(row => { row.checked = selectAll.checked; });
         updateSelection();
     });
     if (syncForm) syncForm.addEventListener('submit', event => {
@@ -40,5 +85,5 @@
             window.alert('Vui lòng chọn ít nhất một thuốc để xem trước đồng bộ.');
         }
     });
-    updateSelection();
+    filterRows();
 })();
