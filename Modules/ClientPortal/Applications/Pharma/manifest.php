@@ -170,6 +170,17 @@ return [
             'icon' => 'search',
             'sort_order' => 15,
         ],
+        'gmp' => [
+            'name' => 'Tra cứu GMP',
+            'description' => 'Danh sách cơ sở sản xuất nước ngoài đáp ứng GMP từ nguồn DAV.',
+            'eyebrow' => 'Dữ liệu công khai DAV',
+            'page_title' => 'Cơ sở sản xuất nước ngoài đáp ứng GMP',
+            'page_description' => 'Tra cứu chứng nhận, phạm vi GMP và thời hạn hiệu lực từ Cục Quản lý Dược. Dữ liệu chỉ để tham khảo, không tự cập nhật hồ sơ thuốc.',
+            'route' => 'client.pharma.gmp',
+            'permission' => 'client.pharma.dav-prices.view',
+            'icon' => 'shield-check',
+            'sort_order' => 19,
+        ],
         'dav-prices' => [
             'name' => 'Tra cứu giá thuốc tân dược',
             'description' => 'Tra cứu giá thuốc được công bố công khai từ Cục Quản lý Dược.',
