@@ -1,3 +1,12 @@
+## Wishlist detail and safe sync reuse — 2026-11-07
+
+- Branch: `feat/pharma-award-wishlist-detail-sync-20261107`, based on unmerged `fix/pharma-award-group-filter-20261107`; main remains at `36e43665a` at implementation time.
+- Wishlist eye icon now links to `GET /apps/pharma/award-prices/wishlist/{sourceId}`, guarded by existing ClientPortal Pharma auth/feature and view permission. Controller reads saved `AwardWishlist` strictly by authenticated `user_id + source_id`, checks snapshot identity, then reuses the existing Pharma award detail Blade. This view displays the saved snapshot even when public API is unavailable, shows explicit stale-data warning, and returns to Wishlist.
+- Existing detail Blade displays the same `POST award-prices/sync/preview` button when `client.pharma.products.create` is granted and match is not `review`. The preview re-fetches selected IDs from the public source and refuses missing/invalid entries, then existing user-bound 10-minute token and confirmed transactional sync apply. No direct writes from Wishlist snapshot. No new migration or dependency on Muasamcong module.
+- Focused `PharmaAwardSyncContractTest` extended for owner-scoped route, view reuse and sync revalidation. **Tests not executed by assistant; UI not confirmed.** Run focused then impacted regression; manual verify wishlist eye → detail → preview → confirm, stale-source failure, permissions, another user's wishlist 404, mobile layout. Do not merge/deploy without gates and user approval.
+
+---
+
 ## UI filter regression fix — 2026-11-07
 
 - User reported page-local filters do not hide results, requested removal of min/max price and numeric group options. Follow-up branch `fix/pharma-award-group-filter-20261107` from existing unmerged feature branch.
