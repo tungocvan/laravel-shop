@@ -15,6 +15,10 @@
         <p class="mt-2 text-sm leading-6 text-slate-300">{{ $featurePresentation['page_description'] }}</p>
     </section>
 
+    <a href="{{ route('client.pharma.lookups.wishlist') }}" class="flex min-h-14 items-center justify-between rounded-2xl border border-rose-200 bg-white px-5 py-3 text-sm font-bold text-rose-700 shadow-sm">
+        <span>♥ Danh sách quan tâm chung</span><span aria-hidden="true">→</span>
+    </a>
+
     <section aria-label="Nguồn tra cứu" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <a href="{{ route('client.pharma.dav-prices') }}" class="group flex min-h-44 flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 active:scale-[.99] motion-reduce:transform-none">
             <div class="flex items-center justify-between gap-3">
