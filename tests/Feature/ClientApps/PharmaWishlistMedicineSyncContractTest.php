@@ -48,6 +48,7 @@ class PharmaWishlistMedicineSyncContractTest extends TestCase
         $this->assertStringContainsString("'client.pharma.traditional-prices.import.preview'", $controller);
         $this->assertStringContainsString('return redirect()->route($route', $controller);
         $this->assertStringContainsString('@unless($isAward)', $wishlist);
+        $this->assertStringContainsString('không tự động tạo thuốc khi lưu quan tâm', $wishlist);
         $this->assertStringContainsString('client.pharma.award-prices.wishlist', $wishlist);
     }
 }
