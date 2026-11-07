@@ -67,6 +67,15 @@ class PharmaUnifiedLookupWishlistTest extends TestCase
         $this->assertStringContainsString('client.pharma.lookups.wishlist', $hub);
     }
 
+    public function test_source_filter_submits_immediately_without_extra_filter_button(): void
+    {
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookup-wishlist.blade.php'));
+        $this->assertStringContainsString('onchange="this.form.requestSubmit()"', $view);
+        $this->assertStringContainsString('<option value="">Tất cả nguồn</option>', $view);
+        $this->assertStringNotContainsString('>Lọc</button>', $view);
+        $this->assertStringContainsString("route('client.pharma.award-prices.wishlist.show'", $view);
+    }
+
     public function test_wishlist_does_not_create_or_sync_medicines(): void
     {
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaLookupWishlistController.php'));
