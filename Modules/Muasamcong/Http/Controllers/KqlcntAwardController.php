@@ -88,7 +88,18 @@ class KqlcntAwardController extends Controller
             ]);
         }
         $notifyNo = $notifyNos->first();
-        $rows = $items->map(fn (KqlcntAwardItem $item): array => [$item->id, $item->updated_at?->format('Y-m-d H:i:s.u'), $item->notify_no, $item->contractor_code, $item->contractor_name, $item->lot_no, $item->lot_name, $item->medicine_code, $item->medicine_name, $item->drug_group, $item->active_ingredient, $item->concentration, $item->route, $item->dosage_form, $item->packaging_spec, $item->shelf_life_months, $item->registration_or_import_license, $item->unit, $item->quantity, $item->price_plan, $item->winning_price, $item->amount, $item->manufacturer, $item->country, $item->decision_no, optional($item->decision_date)->format('d/m/Y'), optional($item->published_at)->format('d/m/Y H:i'), $item->investor_code, $item->investor_name, $item->contract_no, $item->contract_period, $item->contract_period_unit, $item->contract_period_text, $item->effect_frame_period, $item->source, $item->sync_source, $item->is_active ? 'Đang hoạt động' : 'Ngưng', optional($item->synced_from_catalog_at)->format('d/m/Y H:i:s')])->all();
+        if ($items->pluck('contractor_code')->map(fn ($v) => mb_strtolower(trim((string) $v)))->unique()->count() !== 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'notify_no' => 'Excel tinh gọn chỉ hỗ trợ một nhà thầu trong mỗi file. Hãy lọc đúng nhà thầu trước khi xuất.',
+            ]);
+        }
+        $rows = $items->map(fn (KqlcntAwardItem $item): array => [
+            $item->lot_no, $item->lot_name, $item->medicine_code, $item->medicine_name,
+            $item->drug_group, $item->active_ingredient, $item->concentration, $item->route,
+            $item->dosage_form, $item->packaging_spec, $item->shelf_life_months,
+            $item->registration_or_import_license, $item->unit, $item->quantity,
+            $item->price_plan, $item->winning_price, $item->amount, $item->manufacturer, $item->country,
+        ])->all();
 
         $first = $items->first();
         $package = [
@@ -108,7 +119,7 @@ class KqlcntAwardController extends Controller
         }
 
         return Excel::download(
-            new KqlcntAwardWorkbookExport($package, $this->headings(), $rows),
+            new KqlcntAwardWorkbookExport($package, array_slice($this->headings(), 5, 19), $rows),
             'KQLCNT-'.preg_replace('/[^a-zA-Z0-9_-]/', '-', $notifyNo).'.xlsx'
         );
     }
