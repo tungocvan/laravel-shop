@@ -57,7 +57,7 @@ class PharmaLookupHubContractTest extends TestCase
         $manifest = require base_path('Modules/ClientPortal/Applications/Pharma/manifest.php');
 
         $this->assertStringContainsString(
-            "['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp']",
+            "['dav-prices', 'traditional-prices', 'award-prices', 'gmp', 'domestic-gmp', 'drug-registrations', 'traditional-drug-registrations']",
             $controller
         );
         $this->assertStringContainsString('->reject(fn (array $feature)', $controller);
