@@ -1,3 +1,14 @@
+## Domestic GMP on-demand current-only snapshots — 2026-11-07
+
+- User approved replacing open-page DAV crawl and monthly/scheduled checks with explicit on-demand refresh; no historical Excel versions needed. Continued on existing `feat/pharma-domestic-gmp-crawler-20261107` stacked feature branch, main remained `36e43665a` during audit. No worktree, production changes or migration.
+- `Modules/Pharma/Services/DavDomesticGmpSnapshot.php` owns private local current manifest and 3 XLSX snapshot files. `refresh()` obtains exclusive nonblocking file lock, fetches latest DAV publication only on explicit POST, downloads all 3, checks XLSX ZIP structure, hashes each, stages files and atomically renames manifest; only then deletes prior managed version. On any failed DAV fetch or validation, prior manifest/files stay usable. Hash detects replacement of same DAV URL. Repeating unchanged refresh reports unchanged.
+- ClientPortal GET `/apps/pharma/domestic-gmp` reads local snapshot only (no DAV requests); POST `/apps/pharma/domestic-gmp/refresh` uses CSRF and existing `client.feature:pharma,domestic-gmp` middleware + web-guard permission; download GET serves only private local current snapshot without calling DAV. Blade shows manual refresh action, status, three stored files or empty state; presentation continues from managed feature manifest.
+- `PharmaDomesticGmpOnDemandTest` covers first refresh, unchanged repeat, rollback on corrupt second workbook, replacement and POST route. Tests have **not run**. Focused tests first; impacted crawler/lookup regression only if focused PASS; manual desktop/iPhone/PWA UI and all 3 downloads required.
+- Legacy content-addressed files from the previous prototype may remain in the old directory layout; not auto-deleted to avoid removing unknown existing files. Only snapshots managed by new manifest are replaced. No scheduler/queue/history DB.
+- Known gates: test ZIP extension availability, actual DAV XLSX validation, PWA download handoff behavior and browser UI; no merge/deploy without approval.
+
+---
+
 ## DAV domestic GMP date display fix — 2026-11-07
 
 - User screenshot confirms article n5553 and all three Excel download cards render, but publication date field contains trailing `In function printDiv(id) { var html=...` script text.
