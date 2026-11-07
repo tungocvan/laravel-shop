@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\Pharma\Services\LookupWishlistService;
 use Modules\Pharma\Models\Medicine;
 use Modules\Pharma\Services\MohTraditionalMedicineMatcher;
 use Modules\Pharma\Services\MedicineService;
@@ -44,10 +45,15 @@ final class PharmaTraditionalPriceController extends Controller
         $feature = collect($application['features'] ?? [])->first(fn (array $item): bool => ($item['key'] ?? null) === 'traditional-prices');
         abort_if($feature === null, 404);
 
+        $wishlist = app(LookupWishlistService::class);
+        $savedIds = $wishlist->savedIds((int) $request->user('web')->id, 'traditional_price',
+            array_values(array_filter(array_column($result['items'], 'source_id'))));
+
         return view('ClientPortal::applications.pharma.traditional-prices', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'featurePresentation' => $settings->featurePresentation($application['key'], $feature),
+            'savedIds' => $savedIds,
             'keyword' => $keyword, 'page' => $page, 'result' => $result, 'error' => $error,
         ]);
     }
