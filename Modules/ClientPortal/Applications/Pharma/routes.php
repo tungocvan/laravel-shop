@@ -2,6 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupWishlistController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaWishlistMedicineSyncController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaGmpLookupController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDrugRegistrationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalDrugRegistrationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDomesticGmpController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaAwardPriceController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineRelationsController;
@@ -17,6 +27,92 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,overview')
             ->name('dashboard');
 
+        Route::get('/lookups', [PharmaLookupController::class, 'index'])
+            ->middleware('client.feature:pharma,lookups')->name('lookups');
+
+        Route::get('/lookups/wishlist', [PharmaLookupWishlistController::class, 'index'])
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist');
+        Route::get('/lookups/wishlist/{sourceType}/{sourceId}', [PharmaLookupWishlistController::class, 'show'])
+            ->where('sourceType', 'dav_price|traditional_price|dav_registration|traditional_registration')
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.show');
+        Route::post('/lookups/wishlist/toggle', [PharmaLookupWishlistController::class, 'toggle'])
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.toggle');
+        Route::delete('/lookups/wishlist/{sourceType}/{sourceId}', [PharmaLookupWishlistController::class, 'remove'])
+            ->where('sourceType', 'dav_price|traditional_price|dav_registration|traditional_registration')
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.remove');
+
+        Route::get('/lookups/wishlist/{sourceType}/{sourceId}/import', [PharmaWishlistMedicineSyncController::class, 'preview'])
+            ->where('sourceType', 'dav_price|traditional_price|dav_registration|traditional_registration')
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.import.preview');
+        Route::post('/lookups/wishlist/{sourceType}/{sourceId}/import', [PharmaWishlistMedicineSyncController::class, 'store'])
+            ->where('sourceType', 'dav_registration|traditional_registration')
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,lookups')->name('lookups.wishlist.import.store');
+
+        Route::get('/domestic-gmp', [PharmaDomesticGmpController::class, 'index'])
+            ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp');
+        Route::post('/domestic-gmp/refresh', [PharmaDomesticGmpController::class, 'refresh'])
+            ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp.refresh');
+        Route::get('/domestic-gmp/download/{group}', [PharmaDomesticGmpController::class, 'download'])
+            ->where('group', 'manufacturers|packaging|business_certificates')
+            ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp.download');
+
+        Route::get('/traditional-drug-registrations', [PharmaTraditionalDrugRegistrationController::class, 'index'])
+            ->middleware('client.feature:pharma,traditional-drug-registrations')->name('traditional-drug-registrations');
+        Route::get('/traditional-drug-registrations/{sourceId}', [PharmaTraditionalDrugRegistrationController::class, 'show'])
+            ->whereNumber('sourceId')
+            ->middleware('client.feature:pharma,traditional-drug-registrations')->name('traditional-drug-registrations.show');
+
+        Route::get('/drug-registrations', [PharmaDrugRegistrationController::class, 'index'])
+            ->middleware('client.feature:pharma,drug-registrations')->name('drug-registrations');
+        Route::get('/drug-registrations/{sourceId}', [PharmaDrugRegistrationController::class, 'show'])
+            ->whereNumber('sourceId')
+            ->middleware('client.feature:pharma,drug-registrations')->name('drug-registrations.show');
+
+        Route::get('/gmp', [PharmaGmpLookupController::class, 'index'])
+            ->middleware('client.feature:pharma,gmp')->name('gmp');
+        Route::get('/gmp/{sourceId}', [PharmaGmpLookupController::class, 'show'])
+            ->whereNumber('sourceId')
+            ->middleware('client.feature:pharma,gmp')->name('gmp.show');
+
+        Route::get('/award-prices', [PharmaAwardPriceController::class, 'index'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices');
+
+        Route::get('/award-prices/wishlist', [PharmaAwardPriceController::class, 'wishlist'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.wishlist');
+
+        Route::get('/award-prices/wishlist/{sourceId}', [PharmaAwardPriceController::class, 'showWishlist'])
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.wishlist.show');
+
+        Route::post('/award-prices/wishlist/toggle', [PharmaAwardPriceController::class, 'toggleWishlist'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.wishlist.toggle');
+
+        Route::get('/award-prices/{sourceId}', [PharmaAwardPriceController::class, 'show'])
+            ->where('sourceId', '[A-Za-z0-9_-]{1,160}')
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.show');
+
+        Route::post('/award-prices/sync/preview', [PharmaAwardPriceController::class, 'preview'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.sync.preview');
+        Route::post('/award-prices/sync', [PharmaAwardPriceController::class, 'sync'])
+            ->middleware('client.feature:pharma,award-prices')->name('award-prices.sync.store');
+
+        Route::get('/traditional-prices', [PharmaTraditionalPriceController::class, 'index'])
+            ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices');
+        Route::get('/traditional-prices/import', [PharmaTraditionalPriceController::class, 'preview'])
+            ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices.import.preview');
+        Route::post('/traditional-prices/import', [PharmaTraditionalPriceController::class, 'import'])
+            ->middleware('client.feature:pharma,traditional-prices')->name('traditional-prices.import.store');
+
+        Route::get('/dav-prices', [PharmaDavPriceController::class, 'index'])
+            ->middleware('client.feature:pharma,dav-prices')->name('dav-prices');
+        Route::get('/dav-prices/import', [PharmaDavPriceController::class, 'preview'])
+            ->middleware('client.feature:pharma,dav-prices')->name('dav-prices.import.preview');
+        Route::post('/dav-prices/import', [PharmaDavPriceController::class, 'import'])
+            ->middleware('client.feature:pharma,dav-prices')->name('dav-prices.import.store');
         Route::get('/products', [PharmaApplicationController::class, 'products'])
             ->middleware('client.feature:pharma,products')
             ->name('products');

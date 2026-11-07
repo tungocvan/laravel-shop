@@ -1,3 +1,304 @@
+## PR #364 pre-merge acceptance — 2026-11-07
+
+- User confirmed both focused and impacted regression layers PASS after PR review copy update; user also confirmed updated Wishlist UI PASS. Earlier 40 tests / 373 assertions PASS.
+- User explicitly authorized final review and merge **if gates pass**. DELL GitHub CLI: `isDraft=false`, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE`, `reviewDecision=""`, `statusCheckRollup=[]`. GitHub API confirms mergeable and no check runs/reviews; no claim of CI PASS or review approval.
+- Latest branch HEAD before handoff refresh: `efc1310302e757439709329b347c4a2ce3cf188e`, base `main=36e43665a3cf81ab69fdf79f2443e95c8682c4b2`. DELL tracked working tree and diff-check were clean before the docs-only and copy/test batches; the user fast-forwarded prior docs batch and reported test/UI PASS after latest batch.
+- Scope cumulative across Pharma/ClientPortal lookups, awards, GMP, wishlist and medicine sync. No production deploy. Post-merge: sync local main with `git pull --ff-only`, verify SHA/status and targeted smoke as needed.
+
+---
+
+## PR #364 review batch — 2026-11-07
+
+- GitHub PR #364 is Draft, base `main`, mergeable without conflict at review time; cumulative scope 253 commits / 67 files. No pull-request workflow runs were returned for prior head `38f13fb36`; this is **not** a CI PASS.
+- Read-only scope audit confirmed lookup, GMP, awards, wishlist, registration and price import files, plus two wishlist migrations. The user-reported 40-test regression did **not** include `PharmaDavImportContractTest`, `PharmaDavPublicPriceLookupTest`, `PharmaTraditionalPriceLookupTest`, or `PharmaAwardPriceLookupTest`; run these as impacted tests before Ready for Review/merge.
+- UI review found stale wishlist copy saying no catalog sync even though explicit preview/confirm is available. Updated the copy to distinguish manual sync from automatic sync and added a focused contract assertion.
+- Await local Git Pull, focused tests, impacted price regression and user confirmation of updated copy. Do not mark CI PASS, do not merge/deploy without explicit approval.
+
+---
+
+## PR review checkpoint — 2026-11-07
+
+- User reported **40 passed (373 assertions), 3.32s** for targeted cross-feature regression: PharmaLookupHubContractTest, PharmaUnifiedLookupWishlistTest, PharmaWishlistMedicineSyncContractTest, PharmaDrugRegistrationLookupTest, PharmaTraditionalDrugRegistrationLookupTest, PharmaAwardSyncContractTest, PharmaForeignGmpLookupTest, PharmaDomesticGmpOnDemandTest.
+- User previously confirmed **TEST + UI PASS** for Wishlist → Medicine Master sync and **UI PASS** for auto-filter. This is user-reported acceptance, not independent CI verification.
+- Local DELL checkpoint: `HEAD=92213e4267693cc58055b9ff6b00f3f741aeb6f7`, branch `feat/pharma-wishlist-medicine-sync-20261107`, `origin/main=36e43665a3cf81ab69fdf79f2443e95c8682c4b2`; `git status --short` and `git diff --check` empty. GitHub main/feature refs reconfirmed at the same SHAs before handoff update.
+- A cumulative PR from feature to main includes earlier stacked DAV/MOH lookup, GMP, award, unified wishlist and import commits. Review cumulative scope and CI, including any price-lookup import tests not in the 40-test run, before merging.
+- No production changes; **merge requires explicit user approval**.
+
+---
+
+## Wishlist -> Medicine Master sync — 2026-11-07 (checkpoint pending)
+
+- Approved by user after wishlist filter UI PASS. Branch `feat/pharma-wishlist-medicine-sync-20261107` based on `feat/pharma-unified-lookup-wishlist-20261107` at `5f21dba`; `main` still `36e43665a` when audited. Stacked dependencies must be merged in order after explicit approval only.
+- New `PharmaWishlistMedicineSyncController` owns ClientPortal permissions, user-scoped wishlist retrieval, and preview/confirmation routes. Requires both lookup permission and `client.pharma.products.create`. GET preview and POST confirmed registration import; CSRF via Blade.
+- `dav_price` / `traditional_price` wishlist links redirect to existing source preview/import endpoints, preserving their re-fetch, candidate matching, price/packaging conflict checks and canonical `MedicineService` logic. Legacy award wishlist sync remains untouched.
+- `dav_registration` / `traditional_registration` use `Modules/Pharma/Services/RegistrationWishlistMedicineSync.php`: re-fetch exact source ID from saved search context, verify name/registration/source_id against snapshot, reject withdrawn/inactive registrations, use existing `DavMedicineCandidateMatcher` (conservative name + registration collision review), require an existing catalog unit selected in preview, acquire cache lock, re-check source and matcher, then call `MedicineService::storeWithDeclaredPriceOnly`. Never infer unit, prices, lots, selling price or auto-sync; do not remove wishlist on import. Existing registration service and wishlist table unchanged.
+- UI entrypoints on unified wishlist index/detail only; new focused Blade preview `lookup-wishlist-import-preview.blade.php`. New routes `client.pharma.lookups.wishlist.import.preview` and `.store`.
+- Focused `tests/Feature/ClientApps/PharmaWishlistMedicineSyncContractTest.php` **not executed**; then `PharmaUnifiedLookupWishlistTest.php`; impacted existing DAV/traditional price import, registration and award sync tests after focused PASS. Manual UI PASS required for both prices and both registrations, existing/ambiguous/inactive, permissions, mobile, and legacy award sync. No migration added in this batch. No PR/merge/deploy.
+- Known conservative behavior: registration records without explicit active status are blocked; unit options are distinct non-empty units already in Medicine Master. Do not relax this without evidence of live source status and approved catalog unit taxonomy.
+
+---
+
+## Unified lookup wishlist — 2026-11-07 (checkpoint pending)
+
+- User approved Option A: one unified wishlist for four sources (`dav_price`, `traditional_price`, `dav_registration`, `traditional_registration`), with read-only legacy award wishlist adapter. Preserve **all** existing `pharma_award_wishlists` records and existing award toggle/detail/sync routes; no migration/backfill/drop on legacy table. No wishlist-to-Medicine Master sync in this phase.
+- Branch `feat/pharma-unified-lookup-wishlist-20261107` stacked on `fix/pharma-registration-search-reset-hub-20261107` commit `ea9901e7`; latest `main` checked `36e43665a`. PR bases/merge ordering must respect dependency chain.
+- New migration `Modules/Pharma/database/migrations/2026_11_07_170000_create_pharma_lookup_wishlists_table.php` creates `pharma_lookup_wishlists` with unique (`user_id`, `source_type`, `source_id`), snapshot and search context. **Never run blanket `php artisan migrate`** on DELL: other unrelated Pharma migrations were previously pending. Inspect `php artisan migrate:status`, then run only this targeted migration after focused/regression tests and user review.
+- `LookupWishlistService` owns writes and per-user concurrency lock; `PharmaLookupWishlistController` re-fetches source search results and verifies `source_id` before saving; owner-scoped remove and saved detail; source-specific GET-only details. Shared heart partial on four result pages. GET `/apps/pharma/lookups/wishlist` shows new records plus legacy award records through a read-only SQL `UNION ALL`; legacy entries link to existing award wishlist detail and management. New records have snapshot detail and source revisit link; no sync action.
+- Focused test `PharmaUnifiedLookupWishlistTest.php` committed but **not run**; impacted `PharmaLookupHubContractTest.php`, `PharmaDrugRegistrationLookupTest.php`, `PharmaTraditionalDrugRegistrationLookupTest.php`, `PharmaAwardSyncContractTest.php`, price lookup focused tests as applicable. UI PASS requires user validation: hearts save/remove for each of four sources, filter, snapshot detail, legacy award entries and existing award sync, mobile. Never claim PASS without actual output.
+- Source IDs remain scoped to source type. Null/empty registration is displayed as unknown; no name-based deduplication. No background sync, scheduler, or source data mutation. New wishlist feature is only under Tra cứu.
+- No PR, merge or production deploy authorized.
+
+---
+
+## Registration lookup UI reset + hub nesting — 2026-11-07
+
+- Feature branch `fix/pharma-registration-search-reset-hub-20261107` stacked on `feat/pharma-traditional-drug-registrations-20261107` (not yet merged to main). User confirmed traditional-drug UI PASS before this UI change.
+- Shared `drug-registrations.blade.php` adds a keyboard-accessible **Xóa lọc** link to `route($routeBase)` with no query params. It resets both field and keyword and removes stale search results for **both** DAV tân dược and MOH đông dược. Search remains GET-only.
+- `PharmaApplicationController::dashboard` excludes `drug-registrations` and `traditional-drug-registrations` from top-level capability cards alongside existing lookup children. Both remain in `lookups.blade.php` with original routes and permissions; no changes to source-module services or manifest permissions.
+- Focused: `PharmaLookupHubContractTest.php`; impacted: `PharmaDrugRegistrationLookupTest.php` and `PharmaTraditionalDrugRegistrationLookupTest.php`. **Not executed by assistant**. Manual UI acceptance required for both search/reset, dashboard visibility and Tra cứu cards on desktop/mobile. No PR/merge/deploy.
+
+---
+
+## MOH traditional registry TLS handshake fix — 2026-11-07
+
+- DELL read-only cURL POST initially failed before HTTP with `OpenSSL/3.0.13: dh key too small` (status 0). A separate TLS 1.2 GET restricted to `ECDHE+AESGCM:ECDHE+CHACHA20` negotiated `ECDHE-RSA-AES256-GCM-SHA384` and returned HTTP 200. GET proves a compatible secure cipher exists, **not yet** that API POST works.
+- Fix only for `TraditionalDrugRegistrationLookup`: override shared `transportOptions()` to pin TLS 1.2 and ECDHE cipher list using cURL options, retaining certificate/host verification. `DavDrugRegistrationLookup` defaults to no custom TLS options. No changes to global OpenSSL, .env, Docker, or other clients. Focused contract test asserts transport policy. No actual PHPUnit or UI run by assistant.
+- Checkpoint: fetch/switch/pull `feat/pharma-traditional-drug-registrations-20261107`; focused `PharmaTraditionalDrugRegistrationLookupTest`; if PASS `PharmaDrugRegistrationLookupTest` then lookup hub/GMP impacted. Manual UI query `cold wind` must now be tested against live MOH API; report actual response and check detail. If still fails, diagnose POST HTTP status/content-type (read-only) before further changes; do not weaken TLS.
+- No PR/merge/deploy.
+
+---
+
+## Traditional drug registration lookup — 2026-11-07 (checkpoint pending)
+
+- User approved Option A (read-only): `https://ydct-dichvucong.moh.gov.vn/congbothuoc`, POST `/api/services/app/soDangKy/GetAllPublicServerPaging`, sample `SoDangKyThuoc.TenThuoc=cold wind`, 15 items/page. Source result `Cold Wind`, id 3886, GPLH `TCT-00158-23`, `446/QĐ-YDCT`, no published expiry. Keep multiline herbal ingredients and packaging; never infer expiry from null.
+- Branch `feat/pharma-traditional-drug-registrations-20261107` stacked on `feat/pharma-dav-drug-registration-lookup-20261107` commit `f1c490f` (prior GMP/lookup hub branches not yet merged to main). Review stacked PR dependencies before any merge.
+- `TraditionalDrugRegistrationLookup` subclasses shared read-only `DavDrugRegistrationLookup`; source-specific endpoint, 15-item pagination and isolated cache namespace; shared nested response mapping. Existing DAV service behavior remains 10 items/page. Shared `BasePharmaRegistrationController` and Blade listing/detail handle both features; thin source-specific controllers. Routes GET-only, protected by `client.feature:pharma,traditional-drug-registrations`; manifest feature appears only under Tra cứu hub, not dashboard/navigation. No database writes, migrations, scheduler, downloads or Medicine Master sync.
+- Focused test: `tests/Feature/ClientApps/PharmaTraditionalDrugRegistrationLookupTest.php`. Test code committed but **not executed**. Existing DAV regression `PharmaDrugRegistrationLookupTest.php` required after focused PASS; impacted lookup hub and GMP contract tests only after focused PASS. Manual UI test: search `cold wind`, detail, no-expiry wording, multiline herbal ingredients/packaging, pagination and responsive.
+- Confirmed API field only `SoDangKyThuoc.TenThuoc`. Other filter field names are inherited from DAV and require live verification before claiming they work for MOH. No browser cookies/XSRF tokens persisted.
+- No PR, merge or production deploy; do not claim TEST/UI PASS until user provides results.
+
+---
+
+## DAV drug registration public lookup — 2026-11-07
+
+- User approved Option A: independent read-only lookup for `https://dichvucong.dav.gov.vn/congbothuoc/index`, POST `/api/services/app/soDangKy/GetAllPublicServerPaging`, no sync into Medicine Master. Sample user-provided response for Venclexta has three independent registrations 539110203326 (10mg), 539110203226 (100mg), 539110203126 (50mg). Nested `thongTinDangKyThuoc`, `thongTinThuocCoBan`, `congTySanXuat`, `congTyDangKy` are mapped.
+- Feature branch `feat/pharma-dav-drug-registration-lookup-20261107` created from current unmerged `feat/pharma-domestic-gmp-crawler-20261107` SHA `32339dbd`, because main remains `36e43665a` and GMP/lookup hub dependencies are not merged. Do not merge child branch before parents; review stacked PR base appropriately.
+- `Modules/Pharma/Services/DavDrugRegistrationLookup.php`: read-only public DAV POST, bounded page/keyword, five-minute cache, strict response validation, no browser cookies/XSRF, no DB writes. `PharmaDrugRegistrationController` validates GET input and verifies selected source ID against the same search page for detail. Two GET routes protected by `auth:web`, `client.application:pharma`, `client.feature:pharma,drug-registrations` and existing DAV read permission. Manifest feature only, no top-level dashboard/nav card; lookup hub includes link. Two responsive Blade pages.
+- API field `SoDangKyThuoc.TenThuoc` is confirmed from supplied request. Other dropdown field keys (`SoDangKy`, `HoatChatChinh`, `TenCongTyDangKy`, `TenCongTySanXuat`) are inferred and **must be validated against actual DAV network requests** before considering those filters accepted; avoid claiming UI PASS for them without evidence. Embedded PDF paths in `thongTinTaiLieu` are not used because download endpoint/security have not been verified.
+- Focused test `tests/Feature/ClientApps/PharmaDrugRegistrationLookupTest.php` added; **not run**. Checkpoint: fetch/switch/pull branch, focused test first; if PASS, impacted `PharmaLookupHubContractTest`, `PharmaForeignGmpLookupTest`, `PharmaDomesticGmpOnDemandTest`; UI search Venclexta and three registration details, empty/error/page, mobile. Do not merge/deploy without approval.
+
+---
+
+## On-demand GMP focused test correction — 2026-11-07
+
+- DELL Test 1: 2 passed, 2 failed (18 assertions). Both failures occurred after calling `fakeDav('second')` within the same PHPUnit method: expected corrupted second Excel / changed SHA, but prior `Http::fake` callback continued to match. Root cause is test fixture stacking multiple Laravel HTTP fake registrations; production snapshot service not changed.
+- Fixed `PharmaDomesticGmpOnDemandTest::fakeDav()` to register one callback per test, with mutable marker/badPackaging properties read on each request. Consecutive refreshes now receive second-response content; unexpected requests throw. No tests executed by assistant.
+- Run focused test again. Only after PASS run impacted crawler/hub/foreign GMP regression; UI acceptance and download checks remain outstanding. No merge/deploy.
+
+---
+
+## Domestic GMP on-demand current-only snapshots — 2026-11-07
+
+- User approved replacing open-page DAV crawl and monthly/scheduled checks with explicit on-demand refresh; no historical Excel versions needed. Continued on existing `feat/pharma-domestic-gmp-crawler-20261107` stacked feature branch, main remained `36e43665a` during audit. No worktree, production changes or migration.
+- `Modules/Pharma/Services/DavDomesticGmpSnapshot.php` owns private local current manifest and 3 XLSX snapshot files. `refresh()` obtains exclusive nonblocking file lock, fetches latest DAV publication only on explicit POST, downloads all 3, checks XLSX ZIP structure, hashes each, stages files and atomically renames manifest; only then deletes prior managed version. On any failed DAV fetch or validation, prior manifest/files stay usable. Hash detects replacement of same DAV URL. Repeating unchanged refresh reports unchanged.
+- ClientPortal GET `/apps/pharma/domestic-gmp` reads local snapshot only (no DAV requests); POST `/apps/pharma/domestic-gmp/refresh` uses CSRF and existing `client.feature:pharma,domestic-gmp` middleware + web-guard permission; download GET serves only private local current snapshot without calling DAV. Blade shows manual refresh action, status, three stored files or empty state; presentation continues from managed feature manifest.
+- `PharmaDomesticGmpOnDemandTest` covers first refresh, unchanged repeat, rollback on corrupt second workbook, replacement and POST route. Tests have **not run**. Focused tests first; impacted crawler/lookup regression only if focused PASS; manual desktop/iPhone/PWA UI and all 3 downloads required.
+- Legacy content-addressed files from the previous prototype may remain in the old directory layout; not auto-deleted to avoid removing unknown existing files. Only snapshots managed by new manifest are replaced. No scheduler/queue/history DB.
+- Known gates: test ZIP extension availability, actual DAV XLSX validation, PWA download handoff behavior and browser UI; no merge/deploy without approval.
+
+---
+
+## DAV domestic GMP date display fix — 2026-11-07
+
+- User screenshot confirms article n5553 and all three Excel download cards render, but publication date field contains trailing `In function printDiv(id) { var html=...` script text.
+- Changed `DavDomesticGmpCrawler::article()` to extract only the first `dd/mm/yyyy` match from DAV `time` node, returning empty date when no date match exists. Added regression fixture containing embedded printDiv text and assertion that `published` is exactly `28/10/2026`.
+- The screenshot proves discovery/rendering only; actual XLSX download, file integrity, tests and full UI acceptance still require confirmation. No merge or deploy.
+
+---
+
+## DAV GMP attachment parsing checkpoint — 2026-11-07
+
+- User DELL audit of real article n5553: HTTP 200, 49,822 HTML bytes, 88 anchors, `#DivIdToPrint` and `.description` both present, six attachment links: three PDF and three XLSX, all percent-encoded Vietnamese filenames under `/upload_images/files/`. Previous article-scoped XPath found zero XLSX.
+- Updated parser to inspect document-wide anchors, strictly validate HTTPS DAV XLSX paths, deduplicate URLs and map decoded filenames by semantic Vietnamese labels: domestic GMP manufacturers, GMP packaging and business eligibility certificates. Reject missing/ambiguous group rather than assigning by order. Added encoded-name regression fixture. No network/production test executed after fix.
+- Next: pull branch, run focused tests, then read-only `latest()` diagnostic, then real UI/download tests. Stop on FAIL; no merge/deploy.
+
+---
+
+## Domestic GMP crawler live DAV parsing fix — 2026-11-07
+
+- DELL read-only diagnostic confirmed DAV category HTTP 200, text/html 50,683 bytes, 20 matching article links, latest n5553. Invoking Laravel `DavDomesticGmpCrawler::latest()` failed with `DAV article contains no recognized Excel attachments` at line 81.
+- Root cause in source: Excel discovery searched only direct child elements of `.description` inside `#DivIdToPrint`; nested DAV markup can hide all anchors. Fix searches all anchors in the article subtree, keeps strict DAV HTTPS /upload_images/files/*.xlsx validation, deduplicates and requires exactly three Excel links before mapping the audited article order to manufacturers, packaging, business certificates. Unexpected count fails closed to prevent mislabeled files. Test fixture now nests links inside table/wrapper.
+- **Not yet verified on DELL**; run focused tests and real read-only latest() diagnostic before UI/download testing. If real article has more/less than three Excel links or different order, stop and inspect real DOM rather than relax mapping blindly. No merge/deploy.
+
+---
+
+## Domestic GMP DAV Excel crawler — 2026-11-07
+
+- User supplied original HTML `1.html` from DAV article `n5553`, posted 28/10/2026, list updated to 23/10/2026. Audited six links in article description: three PDFs and three XLSX files grouped as domestic manufacturers, GMP pharmaceutical packaging and business eligibility certificates.
+- Branch `feat/pharma-domestic-gmp-crawler-20261107` based on `feat/pharma-foreign-gmp-lookup-20261107` (not merged). `Modules/Pharma/Services/DavDomesticGmpCrawler.php` discovers article candidates on official category `cn92` by matching exact domestic-GMP slug and orders by article numeric ID, fetches latest article and classifies three Excel links by heading order. It never synthesizes date/news URLs and restricts outbound HTTPS to `dav.gov.vn`, without cookies, XSRF, disabled TLS or cross-host redirects.
+- ClientPortal route `/apps/pharma/domestic-gmp` and download `/apps/pharma/domestic-gmp/download/{group}`, gated by existing DAV read permission, added only to Tra cứu hub and excluded from top-level dashboard. Downloads re-discover official article, reject non-XLSX signatures/oversized files and store content-addressed copies in private local storage; no database migration, no Medicine Master writes.
+- **Known limitations**: Only first DAV category page is examined, newest article inferred from news ID, not independently validated as globally newest; HTTP fetch from real DAV has not been tested. Historical metadata/index is not persisted, so there is no automatic scheduled monitoring or automatic fallback when DAV is offline. File check currently uses ZIP header/size, not full XLSX internal integrity. Avoid claiming production-ready or fully automatic change tracking before these gates are addressed.
+- Added focused `PharmaDomesticGmpCrawlerTest` and updated `PharmaLookupHubContractTest`; **tests not executed**. Checkpoint `git fetch origin && git switch feat/pharma-domestic-gmp-crawler-20261107 && git pull --ff-only`, then `php artisan test tests/Feature/ClientApps/PharmaDomesticGmpCrawlerTest.php tests/Feature/ClientApps/PharmaLookupHubContractTest.php`. If PASS, impacted PharmaForeignGmpLookupTest and UI desktop/mobile, live DAV downloads for all 3 files. Do not merge/deploy without approval.
+
+---
+
+## Foreign GMP public lookup — 2026-11-07
+
+- User approved implementation after supplying public DAV GMP endpoint and representative Kern Pharma S.L. JSON. Branch `feat/pharma-foreign-gmp-lookup-20261107` is stacked on unmerged `feat/pharma-award-wishlist-detail-sync-20261107`; main was `36e43665a` when work began.
+- `Modules/Pharma/Services/DavForeignGmpLookup.php` owns POST `getAllPublicServerPaging` with `filter`, empty object `thongTinCoSoGMPNuocNgoai`, skip/limit 15, cache 5 minutes, no browser cookies/XSRF tokens and TLS verification left enabled. Keeps `id` and `idCC` separate; maps name, address, GMP standard, certificate, authority, dates, publication batch and complete multiline scope. Distinguishes successful empty result from API failure.
+- ClientPortal `PharmaGmpLookupController` offers authorized browse and source-verified detail via `/apps/pharma/gmp` and `/apps/pharma/gmp/{sourceId}`, using existing `client.pharma.dav-prices.view` permission and managed manifest presentation. Hub GMP card activated. Both focused screens hide global app header and mobile nav, preserve back route. Detail renders multiline scope safely via escaped Blade and whitespace-pre-wrap.
+- Read-only; no DB migration, catalog/HSSP writes, Muasamcong dependency, merge or production changes. No real anonymous server API call verified yet; user must test API on their development environment. Focused `PharmaForeignGmpLookupTest` and updated `PharmaLookupHubContractTest` are committed but **not run**; focused → impacted tests → manual desktop/tablet/iPhone/PWA UI PASS required. If API rejects anonymous calls, stop and inspect read-only diagnostics, do not embed session secrets or disable TLS.
+- Checkpoint: `git fetch origin && git switch feat/pharma-foreign-gmp-lookup-20261107 && git pull --ff-only`, then `php artisan test tests/Feature/ClientApps/PharmaForeignGmpLookupTest.php tests/Feature/ClientApps/PharmaLookupHubContractTest.php`. If PASS, run impacted DAV/traditional/award tests. Never merge/deploy without explicit approval.
+
+---
+
+## Wishlist detail and safe sync reuse — 2026-11-07
+
+- Branch: `feat/pharma-award-wishlist-detail-sync-20261107`, based on unmerged `fix/pharma-award-group-filter-20261107`; main remains at `36e43665a` at implementation time.
+- Wishlist eye icon now links to `GET /apps/pharma/award-prices/wishlist/{sourceId}`, guarded by existing ClientPortal Pharma auth/feature and view permission. Controller reads saved `AwardWishlist` strictly by authenticated `user_id + source_id`, checks snapshot identity, then reuses the existing Pharma award detail Blade. This view displays the saved snapshot even when public API is unavailable, shows explicit stale-data warning, and returns to Wishlist.
+- Existing detail Blade displays the same `POST award-prices/sync/preview` button when `client.pharma.products.create` is granted and match is not `review`. The preview re-fetches selected IDs from the public source and refuses missing/invalid entries, then existing user-bound 10-minute token and confirmed transactional sync apply. No direct writes from Wishlist snapshot. No new migration or dependency on Muasamcong module.
+- Focused `PharmaAwardSyncContractTest` extended for owner-scoped route, view reuse and sync revalidation. **Tests not executed by assistant; UI not confirmed.** Run focused then impacted regression; manual verify wishlist eye → detail → preview → confirm, stale-source failure, permissions, another user's wishlist 404, mobile layout. Do not merge/deploy without gates and user approval.
+
+---
+
+## UI filter regression fix — 2026-11-07
+
+- User reported page-local filters do not hide results, requested removal of min/max price and numeric group options. Follow-up branch `fix/pharma-award-group-filter-20261107` from existing unmerged feature branch.
+- Keep only name/ingredient/strength text and numeric medicine group filters. Normalize public group variants `N1`, `Nhom1`, `Nhóm 1`, `NHÓM1` into integer 1 (not 10). Group choices reflect groups on the current API page only; no source-wide filtering.
+- JavaScript now sets both HTML hidden and explicit `display:none` for filtered table rows, updates visible row selection, preserves already checked sync rows, and uses a versioned JS URL to invalidate browser/PWA cached code. Wishlist and safe sync service unchanged.
+- Contract test updated. **Not executed**; focused tests + manual browser UI and cross-module regression still required. No migration, deployment or merge.
+
+---
+
+## Checkpoint — Award price lookup UX and server wishlist — 2026-11-07
+
+- Branch `feat/pharma-award-filters-server-wishlist-20261107` based on `feat/pharma-award-provisional-catalog-sync-20261107` (prior feature work still not merged into main). User approved server-persisted per-user wishlist and Pharma independence.
+- Removed 4 summary KPI cards, replaced results columns with **Nơi trúng thầu** (public `tenCdtBmt`) and **Nhóm thuốc** (`nhomThuoc`), replaced detail text with eye icon and added real wishlist heart action. Source TBMT remains available in detail. Focused ClientPortal capability hides app header/mobile navigation.
+- Browser-only filters for name + active ingredient + strength, price range and medicine group run over **current 20 API results**. No API search/filter request and no change to source total/pagination. Existing checked sync rows are preserved when filtering; select-all operates on visible rows. The existing bulk sync/preview logic is untouched.
+- Independent Pharma persistence: additive `pharma_award_wishlists` table with unique `(user_id, source_id)`, `Modules/Pharma/Models/AwardWishlist.php`, `PublicAwardWishlistService`. Authenticated ClientPortal GET `/apps/pharma/award-prices/wishlist` and POST `/apps/pharma/award-prices/wishlist/toggle` are guarded by Pharma feature and existing view permission. Additions verify selected public API row; removal of saved entries works even when source disappears. Saved snapshot/keyword/page are per-account; never use Muasamcong models/services/tables/routes. Migration must be applied only in authorized local/dev environment, never auto-run on production.
+- Focused contract test extended for route, module independence, filters, saved account UI and migration. **TEST NOT RUN; UI NOT VERIFIED**. Check migration with `php artisan migrate:status` and `php artisan migrate --pretend`, obtain approval before applying. Then focused tests, impacted tests, desktop/tablet/iPhone/PWA UI acceptance, wishlist add/remove/reload/user isolation, filters and bulk sync regression. No merge/deploy.
+
+---
+
+## Checkpoint — provisional tender medicine creation — 2026-11-07
+
+- User explicitly approved creating a new Pharma catalog medicine when the public tender record has name and unit but registration is missing/unverified, e.g. Dibulaxan `893100307624`. Only a verified triple (normalized name + registration + unit) can match an unlinked existing medicine; different registration or unit is a new medicine. Multiple exact matches or source-binding conflicts still require manual review.
+- `PublicAwardMedicineSync::inspect()` now returns `new` with `registration_verified=false` for unverified registration; missing name/unit remains `review`. Existing `public_tender/award_price/source_record_key` links are checked first for repeat sync and consistency. New catalog medicine is `tan_duoc`, `profile_status=needs_review`, and **official `registration_number` is NULL** when unverified. Original `gdklh_GPNK` is retained in source metadata as `award` and `registration_raw_unverified`, with `requires_catalog_review=true`; price observations remain in MedicineSource, not declared/selling price or stock.
+- Detail and preview explain provisional status and require existing explicit POST confirmation; permissions, source verification, DB transaction and per-identity cache lock remain. No new migration, .env or production operation.
+- Contract test updated; **NOT RUN**. Focused tests, database integration/idempotency (including repeat source sync), cross-module regression and user UI acceptance pending. Avoid declaring PASS. Branch `feat/pharma-award-provisional-catalog-sync-20261107` stacked on earlier unmerged Pharma award feature branches. No merge/deploy.
+
+---
+
+## Award detail field parity fix — 2026-11-07
+
+- Compared read-only with `Modules/ClientPortal/resources/views/applications/muasamcong/drug-pricing-detail.blade.php` on main. Pharma had wrong keys for investor and dates: now `tenCdtBmt`, `ngayBanHanhQuyetDinh`, `ngayDangTaiKqlcnt`. `winningCode` is an array in source and must be joined to show bidder code instead of `—`.
+- Only Pharma detail Blade and focused contract test changed. Source adapter, catalog matching, preview/sync and Muasamcong are unchanged. Await focused test and UI regression confirmation; do not mark PASS yet.
+
+---
+## Checkpoint — Pharma award detail and per-record sync — 2026-11-07
+
+- User requested Muasamcong-style dedicated detail page with a sync button inside. Implemented GET `/apps/pharma/award-prices/{sourceId}?keyword=...&page=...` (Pharma feature guard, web auth); source row is re-fetched/verified against keyword and page, not trusted from URL. Search "Xem chi tiết" links to this independent Pharma page.
+- Detail displays structured public tender fields, winning organization, registration/GPNK, and explicit matching status. When status existing/new and user has `client.pharma.products.create`, button posts `selected[]` to existing safe preview route, then requires final confirmation. Review-only (missing/invalid registration or ambiguous match) never offers sync. No Muasamcong queue or module dependency.
+- Focused contract test updated for detail route and form. Tests and UI not run; verify live source data, preview and safe blocking, mobile, and unchanged bulk sync. No merge or production changes. Branch `feat/pharma-award-detail-sync-20261107` stacked on prior unmerged branches.
+
+---
+
+## Checkpoint — Award lookup UI interaction fixes — 2026-11-06
+
+- User reported: no clear-search X, filter placement, detail button inert, sync preview returns `The selected field is required.` Screenshot verified.
+- Root cause: Blade Alpine expressions and dynamically generated hidden selection inputs were not functioning; `selected[]` was not submitted. Replaced with actual named checkbox controls linked to preview form via HTML `form` attribute. Added tiny dependency-free JS for clear X, select-all, count and empty selection validation. Detail is a native `<details>` disclosure, no Alpine runtime dependency. Filter is a native disclosure after successful search; no longer in search form.
+- This fixes UI interaction plumbing only. Missing or invalid `gdklh_GPNK` remains **review-only** by Option A; no bypass or silent product creation. Actual DB sync, UI click and JS runtime not yet tested. Need focused tests and user UI confirmation before any merge.
+- Branch `fix/pharma-award-interactions-20261106` stacked on unmerged feature parent. No production changes.
+
+---
+
+## Checkpoint — Pharma public tender pricing parity and guarded catalog sync — 2026-11-06
+
+- User chose **Option A**: missing/invalid registration or ambiguous matching is review-only, never automatically matched/created. Source field `gdklh_GPNK` may be GPNK rather than registration; conservative validation intentionally blocks questionable values.
+- Pharma independent award page now has table, per-page statistics, collapsible unit filter, 20/page navigation, refresh, details modal, multi-select and confirmed sync preview. No wishlist. Advanced Muasamcong search fallback, global filters and exports **not fully replicated**; do not claim literal 100% parity.
+- Pharma-owned `PublicAwardMedicineSync` uses normalized name + registration + unit. Existing medicine: upsert `pharma_medicine_sources` observation (unique public_tender/award_price/source ID), never change master fields. New medicine: only after explicit confirmation, type tan_duoc, needs_review, no declared_price/selling_price writes. Source observations preserve each award and price in JSON metadata. Ambiguous, missing registration, conflicting source binding => validation stop.
+- Preview selects only server-fetched IDs (not client payload), stores per-user expiring token for 10 minutes, rechecks identity on commit, wraps batch in DB transaction and uses identity-scoped cache locks. Both POST routes use Pharma feature guard; controller requires `client.pharma.products.create` in addition to view. No Muasamcong module classes or config.
+- Focused contract tests written, **not executed**. Must verify PHP syntax, focused tests, actual source registration availability, page statistics and detailed modal, preview + confirmed create/update, rollback on partial failure, repeated sync idempotency, concurrency, mobile/tablet UI, and Muasamcong disabled in isolated test. UI PASS not yet obtained.
+- Branch `feat/pharma-award-full-ui-safe-sync-20261106` stacked on earlier unmerged feature branches. No migrations, .env changes, merge or production deploy.
+
+---
+
+## Checkpoint — Independent Pharma tender award lookup — 2026-11-06
+
+- Replaces the earlier cross-app link: `/apps/pharma/award-prices` is owned by Pharma and ClientPortal Pharma. It works without Muasamcong app registration, feature permissions, routes, models, services or configuration; no migration or .env changes.
+- `Modules/Pharma/Services/PublicAwardPriceLookup.php` calls the public `muasamcong.mof.gov.vn` pricing endpoint directly with explicit allowlisted URL, SSL verification, 5-minute cache, and fixed 20-row first-page read-only search. The source is the public tender portal; **not** the Muasamcong module. This narrow adapter intentionally does not replicate Muasamcong's extended search, saved snapshots, syncing, wishlist, export, or complex fallback strategies. Source API compatibility and first-page limitation require UI verification.
+- `PharmaAwardPriceController`, Pharma feature manifest and guarded route, standalone Blade search/results; Pharma lookup hub now links internally. GMP placeholder unchanged. Existing Muasamcong feature untouched. Existing `client.pharma.dav-prices.view` permission reused.
+- Focused tests added, **not executed**. Need check live API shape, permission, responsive UI, and behavior when `modules.registry.Muasamcong.enabled=false` in isolated test context (do not alter production config). No UI PASS claimed. Branch `feat/pharma-independent-award-lookup-20261106` stacked on earlier unmerged branches; do not merge/deploy without approval.
+
+---
+
+## Checkpoint — Pharma hub links Muasamcong award pricing — 2026-11-06
+
+- User reported UI PASS for traditional lookup. Enabled `Tra cứu thuốc trúng thầu` card in `/apps/pharma/lookups` to navigate to the existing `client.muasamcong.drug-pricing` route; no duplicate search/sync implementation or new route.
+- Hub checks Muasamcong application and `drug-pricing` feature permissions before rendering an active link; otherwise displays a disabled card. Target route retains its own auth and feature middleware. GMP remains a placeholder.
+- Feature branch `feat/pharma-award-lookup-link-20261106` stacked on unmerged traditional-unit branch; parent branch integration required before PR/merge.
+- Focused tests updated but **not run**; manual cross-app UI access/denial not yet confirmed. No merge/deploy.
+
+---
+
+## Checkpoint — MOH Đông dược unit-aware identity — 2026-11-06
+
+- User confirmed search UI PASS after scoped MOH TLS workaround; import UI not yet revalidated.
+- New `MohTraditionalMedicineMatcher` isolates matching from DAV: normalized name + registration + ĐVT. Same triple existing => existing; duplicate triple => ambiguous; same triple with packaging mismatch or non-traditional type => review. Same name+registration with different ĐVT => eligible as distinct Medicine; missing identity => incomplete. Partial overlaps remain review.
+- ClientPortal import uses unit-aware matcher at list/preview/locked store, lock includes ĐVT, only blocks different package/price within the **same** name+registration+unit in current API page. Other pages may require manual source reconciliation; do not silently overwrite existing.
+- Import explicitly persists `product_type=Medicine::PRODUCT_TYPE_TRADITIONAL` (`dong_duoc`), and `giaBanBuon` to `declared_price` only; no `selling_price` writes, migrations, or global DAV matcher changes.
+- Focused tests added for same-unit conflict/different-unit allowance and static integration contract. Runtime DB persistence, broader regression and UI import confirmation **not yet executed**.
+- Branch `feat/pharma-traditional-unit-identity-20261106` stacked on unmerged traditional lookup parent. No merge/deploy.
+
+---
+
+## MOH YDCT TLS incident — 2026-11-06
+
+- Operator reproduced OpenSSL 3.0.13 `dh key too small` with Python and PHP cURL errno 35 (HTTP 0). `curl --ciphers 'DEFAULT@SECLEVEL=1'` returned HTTPS 200 with SSL verify result 0; POST returned JSON with success=true, totalCount=2 for `cold wind` without cookies/XSRF tokens.
+- Adapter-only fix: `MohTraditionalPriceLookup` sets Guzzle cURL option `CURLOPT_SSL_CIPHER_LIST => 'DEFAULT@SECLEVEL=1'`, `verify => true` for this MOH request only. **Security tradeoff:** weaker accepted DH parameters for this legacy endpoint. No global OpenSSL changes, no `verify=false`, no credentials. Review removal when remote TLS is fixed.
+- Focused test adds TLS source contract; **no runtime PHP tests or UI smoke executed by assistant**. Operator must verify PHP HTTP transport honors cURL option and confirm UI real search; if error persists inspect logs/status before further change.
+
+---
+
+## Traditional medicine public price lookup — checkpoint 2026-11-06
+
+- Branch `feat/pharma-traditional-price-lookup-20261106` is stacked on `feat/pharma-lookup-hub-20261106` (itself stacked on unmerged DAV feature). Resolve parent dependencies before PR/merge; main was `36e43665a` at branch creation.
+- Public MOH YDCT POST `/api/services/app/quanLyGiaThuoc/GetListCongBoPublicPaging` via Pharma-owned `MohTraditionalPriceLookup` with 15/page, bounded timeout, five-minute cache, validated response. Never send copied browser session cookies, XSRF token or anti-forgery credentials. **Live server-to-server access is unverified**; HTTP 403/419 or anti-forgery challenge may require a separate safe integration design.
+- ClientPortal routes `/apps/pharma/traditional-prices`, `/import` GET/POST use existing DAV lookup permission plus products.create for imports; UI hub activates đông dược card. `Medicine::PRODUCT_TYPE_TRADITIONAL`, `giaBanBuon` -> `declared_price`, `thanhPhan` -> active_ingredients (first 255 chars; needs business review for longer formulae), never writes selling_price.
+- Identity check uses existing name+registration matcher and source-id re-fetch. If multiple packaging/unit/price rows for the same name+registration are visible on the current page, auto-import is blocked pending explicit SKU/variant design. This guard is **page-scoped**, not a guarantee against duplicates on other pages; manual verification is required. Existing medicine prices are never overwritten.
+- Focused test `php artisan test tests/Feature/ClientApps/PharmaTraditionalPriceLookupTest.php`; then DAV/lookup hub focused tests and impacted ClientPortal/Pharma regression. No tests run by assistant, UI import not verified. No migration, merge or deploy.
+
+---
+
+## DAV price mapping clarification — 2026-11-06
+
+- Business rule confirmed: DAV `giaBanBuon` maps directly to Medicine Master `declared_price` (nullable). Do not substitute `giaBanLe`; do not populate `selling_price`.
+- `MedicineService::storeWithDeclaredPriceOnly()` reuses canonical creation/quality/transaction logic but intentionally skips legacy `normalizeSellingPrice()` so a pending `selling_price` schema migration is not required for DAV import. Normal `store()`/`update()` remain unchanged.
+- Focused test added for declared-only persistence; tests and UI not yet verified. No migration, production change, or main merge.
+
+---
+
+## DAV → Medicine Master import checkpoint (2026-11-06)
+
+- Added DAV dosage-form/country mapping and visible card fields. Each card inspects normalized medicine name + registration against Medicine Master.
+- New candidate: explicit preview → CSRF-protected confirmation → re-fetch source → identity recheck under cache lock → MedicineService::store. Existing/ambiguous/incomplete candidates cannot auto-create. Import requires both `client.pharma.dav-prices.view` and `client.pharma.products.create`.
+- No DAV public price is written into internal declared/selling prices. Existing Medicine Master records are not overwritten. Missing catalog metadata must be reviewed after import.
+- Known validation gate: check matcher normalization coverage, duplicate concurrency under actual cache backend, existing product routes, permission behavior, source ID stability and real DAV response. Review import field truncation for packaging and complete SKU/package creation; this initial batch creates only a Medicine Master record.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaDavPublicPriceLookupTest.php tests/Feature/ClientApps/PharmaDavImportContractTest.php`; run impacted ClientPortal/Pharma regression only after focused PASS.
+- Tests NOT EXECUTED by assistant; UI import NOT VERIFIED; no merge or deployment.
+
+---
+
+## Checkpoint — DAV public price lookup — 2026-11-06
+
+- Branch: `feat/pharma-dav-price-lookup-20261106`. Read-only DAV search in Pharma domain service and thin ClientPortal PWA adapter. No database writes, migrations, .env edits, production operations, or merge.
+- GET `/apps/pharma/dav-prices`, web permission `client.pharma.dav-prices.view`, managed feature copy and focused PWA shell. Permission must be granted using existing Client Apps Admin management.
+- DAV endpoint/payload are provisional and MUST be validated against real source responses. HTTP failures, XSRF/session requirements, and field mappings must be checked in development before declaring live search successful. Never bypass CAPTCHA or access restrictions.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaDavPublicPriceLookupTest.php`; after PASS, impacted ClientPortal regression: `php artisan test tests/Feature/ClientApps/ClientApplicationAdminTest.php tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`.
+- Automated tests NOT RUN by assistant. Real DAV connectivity and UI NOT VERIFIED. UI PASS requires user confirmation on desktop and iPhone. No merge/deploy.
+
+---
+
 ## Checkpoint — Issue PDF posted/deferred supply separation — 2026-11-03
 
 - Branch: `feat/pharma-price-list-manual-lots-20261103`; no merge/deployment or runtime tests.
