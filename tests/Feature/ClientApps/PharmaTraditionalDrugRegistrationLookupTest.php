@@ -98,6 +98,22 @@ class PharmaTraditionalDrugRegistrationLookupTest extends TestCase
         Http::assertSentCount(2);
     }
 
+    public function test_moh_transport_enforces_verified_ecdhe_without_disabling_certificate_validation(): void
+    {
+        $moh = new \ReflectionMethod(TraditionalDrugRegistrationLookup::class, 'transportOptions');
+        $options = $moh->invoke(app(TraditionalDrugRegistrationLookup::class));
+        $this->assertSame(
+            CURL_SSLVERSION_TLSv1_2 | CURL_SSLVERSION_MAX_TLSv1_2,
+            $options['curl'][CURLOPT_SSLVERSION]
+        );
+        $this->assertSame('ECDHE+AESGCM:ECDHE+CHACHA20', $options['curl'][CURLOPT_SSL_CIPHER_LIST]);
+        $this->assertArrayNotHasKey(CURLOPT_SSL_VERIFYPEER, $options['curl']);
+        $this->assertArrayNotHasKey(CURLOPT_SSL_VERIFYHOST, $options['curl']);
+
+        $dav = new \ReflectionMethod(DavDrugRegistrationLookup::class, 'transportOptions');
+        $this->assertSame([], $dav->invoke(app(DavDrugRegistrationLookup::class)));
+    }
+
     public function test_malformed_moh_response_is_rejected(): void
     {
         Http::preventStrayRequests();
