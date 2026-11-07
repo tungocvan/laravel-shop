@@ -51,7 +51,7 @@ class PharmaLookupHubContractTest extends TestCase
         $this->assertStringContainsString("'verify' => true", $source);
     }
 
-    public function test_lookup_cards_keep_unimplemented_sources_noninteractive(): void
+    public function test_lookup_cards_link_to_all_four_independent_sources(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/lookups.blade.php'));
 
@@ -61,7 +61,8 @@ class PharmaLookupHubContractTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.award-prices')", $blade);
         $this->assertStringNotContainsString('canViewAwardPricing', $blade);
         $this->assertStringContainsString('Tra cứu GMP', $blade);
-        $this->assertStringContainsString('aria-disabled="true"', $blade);
-        $this->assertStringContainsString('Sắp triển khai', $blade);
+        $this->assertStringContainsString("route('client.pharma.gmp')", $blade);
+        $this->assertStringNotContainsString('aria-disabled="true"', $blade);
+        $this->assertStringNotContainsString('Sắp triển khai', $blade);
     }
 }
