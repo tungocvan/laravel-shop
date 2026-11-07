@@ -18,8 +18,8 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
     public function test_preview_rejects_workbook_without_identity_columns(): void
     {
         $file = $this->workbook([['Mã TBMT'], ['TBMT-1']]);
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Thiếu cột bắt buộc');
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
         app(KqlcntAwardExcelImportService::class)->preview($file);
     }
 
