@@ -75,6 +75,27 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         $this->assertSame(3, $sheets[1]->array()[0][0]);
     }
 
+    public function test_v2_preview_accepts_19_medicine_columns_and_inherits_single_contractor(): void
+    {
+        $headers = ['Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Hàm lượng',
+            'Đường dùng', 'Dạng bào chế', 'Quy cách', 'Hạn dùng (tháng)', 'GĐKLH hoặc GPNK',
+            'ĐVT', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Nhà sản xuất', 'Nước SX'];
+        $row = array_fill(0, 19, null);
+        $row[2] = 'MED-001';
+        $row[3] = 'Thuốc thử';
+        $file = $this->workbook([$headers, $row], [
+            ['Trường', 'Giá trị', 'Mã nhà thầu'],
+            ['Mã TBMT', 'IB2500361132'],
+            ['DANH SÁCH NHÀ THẦU'],
+            [null, null, 'vn0314492345'],
+        ]);
+        $preview = app(KqlcntAwardExcelImportService::class)->preview($file);
+        $this->assertSame(1, $preview['errors']);
+        $this->assertSame('IB2500361132', $preview['rows'][0]['data']['notify_no']);
+        $this->assertSame('vn0314492345', $preview['rows'][0]['data']['contractor_code']);
+        $this->assertCount(19, $preview['rows'][0]['comparison']);
+    }
+
     public function test_confirm_rejects_expired_preview_token(): void
     {
         Cache::forget('muasamcong:kqlcnt:excel:'.hash('sha256', 'expired'));
@@ -82,12 +103,17 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         app(KqlcntAwardExcelImportService::class)->confirm('expired');
     }
 
-    private function workbook(array $rows): UploadedFile
+    private function workbook(array $rows, ?array $packageRows = null): UploadedFile
     {
         $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Danh_muc_trung_thau');
         $sheet->fromArray($rows);
+        if ($packageRows !== null) {
+            $package = $spreadsheet->createSheet();
+            $package->setTitle('Thong_tin_trung_thau');
+            $package->fromArray($packageRows);
+        }
         $path = tempnam(sys_get_temp_dir(), 'kqlcnt-').'.xlsx';
         (new Xlsx($spreadsheet))->save($path);
         return new UploadedFile($path, 'kqlcnt.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', null, true);
