@@ -1,3 +1,13 @@
+## Checkpoint — Award price lookup UX and server wishlist — 2026-11-07
+
+- Branch `feat/pharma-award-filters-server-wishlist-20261107` based on `feat/pharma-award-provisional-catalog-sync-20261107` (prior feature work still not merged into main). User approved server-persisted per-user wishlist and Pharma independence.
+- Removed 4 summary KPI cards, replaced results columns with **Nơi trúng thầu** (public `tenCdtBmt`) and **Nhóm thuốc** (`nhomThuoc`), replaced detail text with eye icon and added real wishlist heart action. Source TBMT remains available in detail. Focused ClientPortal capability hides app header/mobile navigation.
+- Browser-only filters for name + active ingredient + strength, price range and medicine group run over **current 20 API results**. No API search/filter request and no change to source total/pagination. Existing checked sync rows are preserved when filtering; select-all operates on visible rows. The existing bulk sync/preview logic is untouched.
+- Independent Pharma persistence: additive `pharma_award_wishlists` table with unique `(user_id, source_id)`, `Modules/Pharma/Models/AwardWishlist.php`, `PublicAwardWishlistService`. Authenticated ClientPortal GET `/apps/pharma/award-prices/wishlist` and POST `/apps/pharma/award-prices/wishlist/toggle` are guarded by Pharma feature and existing view permission. Additions verify selected public API row; removal of saved entries works even when source disappears. Saved snapshot/keyword/page are per-account; never use Muasamcong models/services/tables/routes. Migration must be applied only in authorized local/dev environment, never auto-run on production.
+- Focused contract test extended for route, module independence, filters, saved account UI and migration. **TEST NOT RUN; UI NOT VERIFIED**. Check migration with `php artisan migrate:status` and `php artisan migrate --pretend`, obtain approval before applying. Then focused tests, impacted tests, desktop/tablet/iPhone/PWA UI acceptance, wishlist add/remove/reload/user isolation, filters and bulk sync regression. No merge/deploy.
+
+---
+
 ## Checkpoint — provisional tender medicine creation — 2026-11-07
 
 - User explicitly approved creating a new Pharma catalog medicine when the public tender record has name and unit but registration is missing/unverified, e.g. Dibulaxan `893100307624`. Only a verified triple (normalized name + registration + unit) can match an unlinked existing medicine; different registration or unit is a new medicine. Multiple exact matches or source-binding conflicts still require manual review.
