@@ -34,6 +34,11 @@ class DavDrugRegistrationLookup
         'manufacturer' => 'TenCongTySanXuat',
     ];
 
+    public function pageSize(): int
+    {
+        return $this->perPage();
+    }
+
     public function search(string $field = 'name', string $keyword = '', int $page = 1): array
     {
         if (! array_key_exists($field, self::FIELDS)) {
