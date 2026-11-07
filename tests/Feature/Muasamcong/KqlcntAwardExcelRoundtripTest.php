@@ -46,6 +46,19 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         $this->assertStringContainsString('Không tìm thấy', implode(' ', $preview['rows'][0]['errors']));
     }
 
+    public function test_import_preview_defaults_to_actionable_rows_and_retains_optional_unchanged_inspection(): void
+    {
+        $blade = file_get_contents(base_path('Modules/Muasamcong/resources/views/kqlcnt-awards/import-preview.blade.php'));
+        $this->assertIsString($blade);
+        $this->assertStringContainsString("filter: 'actionable'", $blade);
+        $this->assertStringContainsString("filter === 'actionable'", $blade);
+        $this->assertStringContainsString('value="unchanged"', $blade);
+        $this->assertStringContainsString('value="all"', $blade);
+        $this->assertStringContainsString('Dữ liệu đã được đồng bộ', $blade);
+        $this->assertStringContainsString("showAllFields ||", $blade);
+        $this->assertStringContainsString("@disabled(\$preview['valid'] === 0)", $blade);
+    }
+
     public function test_confirm_rejects_expired_preview_token(): void
     {
         Cache::forget('muasamcong:kqlcnt:excel:'.hash('sha256', 'expired'));
