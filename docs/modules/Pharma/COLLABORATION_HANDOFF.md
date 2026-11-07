@@ -1,3 +1,12 @@
+## PR #364 pre-merge acceptance — 2026-11-07
+
+- User confirmed both focused and impacted regression layers PASS after PR review copy update; user also confirmed updated Wishlist UI PASS. Earlier 40 tests / 373 assertions PASS.
+- User explicitly authorized final review and merge **if gates pass**. DELL GitHub CLI: `isDraft=false`, `mergeStateStatus=CLEAN`, `mergeable=MERGEABLE`, `reviewDecision=""`, `statusCheckRollup=[]`. GitHub API confirms mergeable and no check runs/reviews; no claim of CI PASS or review approval.
+- Latest branch HEAD before handoff refresh: `efc1310302e757439709329b347c4a2ce3cf188e`, base `main=36e43665a3cf81ab69fdf79f2443e95c8682c4b2`. DELL tracked working tree and diff-check were clean before the docs-only and copy/test batches; the user fast-forwarded prior docs batch and reported test/UI PASS after latest batch.
+- Scope cumulative across Pharma/ClientPortal lookups, awards, GMP, wishlist and medicine sync. No production deploy. Post-merge: sync local main with `git pull --ff-only`, verify SHA/status and targeted smoke as needed.
+
+---
+
 ## PR #364 review batch — 2026-11-07
 
 - GitHub PR #364 is Draft, base `main`, mergeable without conflict at review time; cumulative scope 253 commits / 67 files. No pull-request workflow runs were returned for prior head `38f13fb36`; this is **not** a CI PASS.
