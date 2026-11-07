@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaGmpLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaAwardPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
@@ -23,6 +24,12 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
 
         Route::get('/lookups', [PharmaLookupController::class, 'index'])
             ->middleware('client.feature:pharma,lookups')->name('lookups');
+
+        Route::get('/gmp', [PharmaGmpLookupController::class, 'index'])
+            ->middleware('client.feature:pharma,gmp')->name('gmp');
+        Route::get('/gmp/{sourceId}', [PharmaGmpLookupController::class, 'show'])
+            ->whereNumber('sourceId')
+            ->middleware('client.feature:pharma,gmp')->name('gmp.show');
 
         Route::get('/award-prices', [PharmaAwardPriceController::class, 'index'])
             ->middleware('client.feature:pharma,award-prices')->name('award-prices');
