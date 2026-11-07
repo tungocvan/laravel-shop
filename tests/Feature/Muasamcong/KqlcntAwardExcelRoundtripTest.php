@@ -7,6 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
 use Modules\Muasamcong\Exports\KqlcntAwardWorkbookExport;
+use Modules\Muasamcong\Exports\KqlcntAwardImportTemplateExport;
 use Modules\Muasamcong\Services\KqlcntAwardExcelImportService;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -94,6 +95,26 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         $this->assertSame('IB2500361132', $preview['rows'][0]['data']['notify_no']);
         $this->assertSame('vn0314492345', $preview['rows'][0]['data']['contractor_code']);
         $this->assertCount(19, $preview['rows'][0]['comparison']);
+    }
+
+    public function test_import_template_contains_guidance_and_exactly_19_medicine_columns(): void
+    {
+        $sheets = (new KqlcntAwardImportTemplateExport())->sheets();
+        $this->assertCount(3, $sheets);
+        $this->assertSame('Huong_dan_nhap_lieu', $sheets[0]->title());
+        $this->assertSame('Thong_tin_trung_thau', $sheets[1]->title());
+        $this->assertSame('Danh_muc_trung_thau', $sheets[2]->title());
+        $this->assertCount(19, $sheets[2]->headings());
+        $this->assertSame('Mã lô', $sheets[2]->headings()[0]);
+        $this->assertSame('Nước SX', $sheets[2]->headings()[18]);
+    }
+
+    public function test_index_collapses_import_export_and_links_to_template(): void
+    {
+        $blade = file_get_contents(base_path('Modules/Muasamcong/resources/views/kqlcnt-awards/index.blade.php'));
+        $this->assertStringContainsString('<details class=', $blade);
+        $this->assertStringContainsString('kqlcnt-awards.import.template', $blade);
+        $this->assertStringContainsString('form="award-export-form"', $blade);
     }
 
     public function test_confirm_rejects_expired_preview_token(): void
