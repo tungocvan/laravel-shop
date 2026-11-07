@@ -1,3 +1,12 @@
+## PR #364 review batch — 2026-11-07
+
+- GitHub PR #364 is Draft, base `main`, mergeable without conflict at review time; cumulative scope 253 commits / 67 files. No pull-request workflow runs were returned for prior head `38f13fb36`; this is **not** a CI PASS.
+- Read-only scope audit confirmed lookup, GMP, awards, wishlist, registration and price import files, plus two wishlist migrations. The user-reported 40-test regression did **not** include `PharmaDavImportContractTest`, `PharmaDavPublicPriceLookupTest`, `PharmaTraditionalPriceLookupTest`, or `PharmaAwardPriceLookupTest`; run these as impacted tests before Ready for Review/merge.
+- UI review found stale wishlist copy saying no catalog sync even though explicit preview/confirm is available. Updated the copy to distinguish manual sync from automatic sync and added a focused contract assertion.
+- Await local Git Pull, focused tests, impacted price regression and user confirmation of updated copy. Do not mark CI PASS, do not merge/deploy without explicit approval.
+
+---
+
 ## PR review checkpoint — 2026-11-07
 
 - User reported **40 passed (373 assertions), 3.32s** for targeted cross-feature regression: PharmaLookupHubContractTest, PharmaUnifiedLookupWishlistTest, PharmaWishlistMedicineSyncContractTest, PharmaDrugRegistrationLookupTest, PharmaTraditionalDrugRegistrationLookupTest, PharmaAwardSyncContractTest, PharmaForeignGmpLookupTest, PharmaDomesticGmpOnDemandTest.
