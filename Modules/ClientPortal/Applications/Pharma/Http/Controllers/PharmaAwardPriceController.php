@@ -94,6 +94,40 @@ final class PharmaAwardPriceController extends Controller
         ])->with('success', $saved ? 'Đã lưu thuốc vào danh sách quan tâm.' : 'Đã bỏ thuốc khỏi danh sách quan tâm.');
     }
 
+    public function showWishlist(
+        Request $request,
+        string $sourceId,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        PublicAwardMedicineSync $sync
+    ): View {
+        $this->authorizeView($request, $registry);
+
+        // A favorite is private to its owner. Never load by source ID alone.
+        $favorite = AwardWishlist::query()
+            ->where('user_id', (int) $request->user('web')->id)
+            ->where('source_id', $sourceId)
+            ->firstOrFail();
+        $item = $favorite->snapshot;
+        abort_unless(is_array($item)
+            && is_scalar($item['id'] ?? null)
+            && (string) $item['id'] === $sourceId, 404);
+
+        $application = $registry->find('pharma');
+
+        return view('ClientPortal::applications.pharma.award-price-detail', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'item' => $item,
+            'match' => $sync->inspect($item),
+            'keyword' => $favorite->search_keyword,
+            'page' => $favorite->source_page,
+            'sourceId' => $sourceId,
+            'canSync' => $registry->userCan($request->user('web'), 'client.pharma.products.create'),
+            'fromWishlist' => true,
+        ]);
+    }
+
     public function show(Request $request, string $sourceId, ApplicationRegistry $registry, ClientPortalSettingsService $settings, PublicAwardPriceLookup $lookup, PublicAwardMedicineSync $sync): View
     {
         $this->authorizeView($request, $registry);
@@ -118,6 +152,7 @@ final class PharmaAwardPriceController extends Controller
             'page' => $page,
             'sourceId' => $sourceId,
             'canSync' => $registry->userCan($request->user('web'), 'client.pharma.products.create'),
+            'fromWishlist' => false,
         ]);
     }
 
