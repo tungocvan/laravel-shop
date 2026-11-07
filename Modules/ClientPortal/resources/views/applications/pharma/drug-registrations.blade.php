@@ -15,7 +15,7 @@
         <p class="mt-2 text-sm text-slate-300">{{ $featurePresentation['page_description'] }}</p>
     </section>
 
-    <form method="GET" action="{{ route('client.pharma.drug-registrations') }}" class="grid gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_auto] sm:items-end">
+    <form method="GET" action="{{ route($routeBase) }}" class="grid gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-[minmax(0,200px)_minmax(0,1fr)_auto] sm:items-end">
         <label class="block text-sm font-semibold text-slate-800">Tiêu chí
             <select name="field" class="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3 py-2">
                 @foreach (['name' => 'Tên thuốc', 'registration' => 'Số GPLH', 'ingredient' => 'Hoạt chất', 'registrant' => 'Công ty đăng ký', 'manufacturer' => 'Công ty sản xuất'] as $key => $label)
@@ -41,21 +41,21 @@
                     <p class="mt-1 text-sm text-slate-600">Hoạt chất: {{ $item['ingredient'] ?: 'Chưa công bố' }}</p>
                     <p class="mt-1 text-sm text-slate-600">Dạng bào chế: {{ $item['dosage_form'] ?: 'Chưa công bố' }}</p>
                     <p class="mt-1 text-sm text-slate-600">Hết hạn: {{ $item['expires_at'] ? substr($item['expires_at'], 0, 10) : 'Chưa công bố' }}</p>
-                    <a class="mt-4 inline-flex min-h-11 items-center font-bold text-indigo-700 underline" href="{{ route('client.pharma.drug-registrations.show', ['sourceId' => $item['source_id'], 'field' => $field, 'q' => $keyword, 'page' => $page]) }}">Xem chi tiết →</a>
+                    <a class="mt-4 inline-flex min-h-11 items-center font-bold text-indigo-700 underline" href="{{ route($routeBase.'.show', ['sourceId' => $item['source_id'], 'field' => $field, 'q' => $keyword, 'page' => $page]) }}">Xem chi tiết →</a>
                 </article>
             @empty
                 <p class="rounded-2xl bg-white p-5 text-sm text-slate-600">Không có kết quả trên trang này.</p>
             @endforelse
         </section>
-        @if ($result['total'] > 10)
+        @if ($result['total'] > $perPage)
             <nav aria-label="Phân trang" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-white p-4">
-                <span class="text-sm text-slate-600">Trang {{ $page }} / {{ (int) ceil($result['total'] / 10) }}</span>
+                <span class="text-sm text-slate-600">Trang {{ $page }} / {{ (int) ceil($result['total'] / $perPage) }}</span>
                 <div class="flex gap-3">
                     @if ($page > 1)
-                        <a class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold" href="{{ route('client.pharma.drug-registrations', ['field' => $field, 'q' => $keyword, 'page' => $page - 1]) }}">← Trước</a>
+                        <a class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold" href="{{ route($routeBase, ['field' => $field, 'q' => $keyword, 'page' => $page - 1]) }}">← Trước</a>
                     @endif
-                    @if ($page * 10 < $result['total'] && $page < 1000)
-                        <a class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold" href="{{ route('client.pharma.drug-registrations', ['field' => $field, 'q' => $keyword, 'page' => $page + 1]) }}">Tiếp →</a>
+                    @if ($page * $perPage < $result['total'] && $page < 1000)
+                        <a class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold" href="{{ route($routeBase, ['field' => $field, 'q' => $keyword, 'page' => $page + 1]) }}">Tiếp →</a>
                     @endif
                 </div>
             </nav>
@@ -63,6 +63,6 @@
     @else
         <div class="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Nhập từ khóa để bắt đầu tra cứu giấy đăng ký thuốc.</div>
     @endif
-    <p class="text-xs text-slate-500">Nguồn: Cục Quản lý Dược. Dữ liệu chỉ phục vụ tra cứu; không đồng bộ hoặc chỉnh sửa Danh mục thuốc.</p>
+    <p class="text-xs text-slate-500">Nguồn: cơ quan công bố tương ứng. Dữ liệu chỉ phục vụ tra cứu; không đồng bộ hoặc chỉnh sửa Danh mục thuốc.</p>
 </div>
 @endsection
