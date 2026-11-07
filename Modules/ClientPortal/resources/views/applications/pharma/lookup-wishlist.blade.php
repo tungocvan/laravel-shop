@@ -14,15 +14,13 @@
     @if(session('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
     <form method="GET" action="{{ route('client.pharma.lookups.wishlist') }}" class="flex flex-wrap items-end gap-3 rounded-2xl border bg-white p-4">
         <label class="flex-1 text-sm font-semibold text-slate-700">Lọc theo nguồn
-            <select name="source" class="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3">
+            <select name="source" aria-label="Lọc theo nguồn" onchange="this.form.requestSubmit()" class="mt-2 min-h-11 w-full rounded-xl border border-slate-300 px-3">
                 <option value="">Tất cả nguồn</option>
                 @foreach($sources as $key => $label)
                     <option value="{{ $key }}" @selected($source === $key)>{{ $label }}</option>
                 @endforeach
             </select>
         </label>
-        <button type="submit" class="min-h-11 rounded-xl bg-indigo-700 px-5 text-sm font-bold text-white">Lọc</button>
-        <a href="{{ route('client.pharma.lookups.wishlist') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold">Xóa lọc</a>
     </form>
     <p class="text-sm text-slate-600">{{ number_format($saved->total()) }} bản ghi quan tâm</p>
     <div class="space-y-3">
