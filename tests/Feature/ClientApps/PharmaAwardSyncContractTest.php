@@ -109,6 +109,11 @@ class PharmaAwardSyncContractTest extends TestCase
 
     public function test_award_wishlist_is_independent_persistent_and_authorized(): void
     {
+        $list = Route::getRoutes()->getByName('client.pharma.award-prices.wishlist');
+        $this->assertNotNull($list);
+        $this->assertContains('GET', $list->methods());
+        $this->assertContains('auth:web', $list->gatherMiddleware());
+
         $route = Route::getRoutes()->getByName('client.pharma.award-prices.wishlist.toggle');
         $this->assertNotNull($route);
         $this->assertContains('POST', $route->methods());
@@ -120,6 +125,10 @@ class PharmaAwardSyncContractTest extends TestCase
         $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_11_07_000001_create_pharma_award_wishlists_table.php'));
         $service = file_get_contents(base_path('Modules/Pharma/Services/PublicAwardWishlistService.php'));
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaAwardPriceController.php'));
+        $wishlistView = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-wishlist.blade.php'));
+        $this->assertStringContainsString('client.pharma.award-prices.wishlist.toggle', $wishlistView);
+        $this->assertStringContainsString('Bỏ quan tâm', $wishlistView);
+        $this->assertStringContainsString("where('user_id', (int) \$request->user('web')->id)", $controller);
         $this->assertStringContainsString("protected \$table = 'pharma_award_wishlists'", $model);
         $this->assertStringContainsString("['user_id', 'source_id']", $migration);
         $this->assertStringContainsString('lockForUpdate()', $service);
