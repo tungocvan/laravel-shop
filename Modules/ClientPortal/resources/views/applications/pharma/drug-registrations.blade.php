@@ -32,6 +32,8 @@
         </div>
     </form>
 
+    @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
+    @if($errors->has('source_id'))<div role="alert" class="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{{ $errors->first('source_id') }}</div>@endif
     @if ($error)
         <div role="alert" class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-semibold text-amber-900">{{ $error }}</div>
     @elseif ($keyword !== '')
@@ -40,6 +42,7 @@
             @forelse ($result['items'] as $item)
                 <article class="min-w-0 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                     <h2 class="break-words text-lg font-black text-slate-950">{{ $item['name'] }} <span class="text-indigo-700">{{ $item['strength'] }}</span></h2>
+                    @include('ClientPortal::applications.pharma.partials.lookup-wishlist-heart')
                     <p class="mt-2 text-sm font-semibold text-slate-700">Số GPLH: {{ $item['registration'] }}</p>
                     <p class="mt-1 text-sm text-slate-600">Hoạt chất: {{ $item['ingredient'] ?: 'Chưa công bố' }}</p>
                     <p class="mt-1 text-sm text-slate-600">Dạng bào chế: {{ $item['dosage_form'] ?: 'Chưa công bố' }}</p>
