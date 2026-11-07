@@ -14,6 +14,7 @@ use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Pharma\Services\PublicAwardMedicineSync;
 use Modules\Pharma\Services\PublicAwardPriceLookup;
 use Modules\Pharma\Services\PublicAwardWishlistService;
+use Modules\Pharma\Models\AwardWishlist;
 
 final class PharmaAwardPriceController extends Controller
 {
@@ -44,6 +45,20 @@ final class PharmaAwardPriceController extends Controller
         ]);
     }
 
+    public function wishlist(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
+    {
+        $this->authorizeView($request, $registry);
+        $saved = AwardWishlist::query()->where('user_id', (int) $request->user('web')->id)
+            ->latest()->paginate(20);
+
+        $application = $registry->find('pharma');
+        return view('ClientPortal::applications.pharma.award-wishlist', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'saved' => $saved,
+        ]);
+    }
+
     public function toggleWishlist(
         Request $request,
         ApplicationRegistry $registry,
@@ -57,6 +72,11 @@ final class PharmaAwardPriceController extends Controller
             'source_id' => ['required', 'string', 'max:160'],
         ]);
 
+        $userId = (int) $request->user('web')->id;
+        if ($wishlist->remove($userId, $input['source_id'])) {
+            return redirect()->back()->with('success', 'Đã bỏ thuốc khỏi danh sách quan tâm.');
+        }
+
         $result = $lookup->search($input['keyword'], (int) $input['page']);
         if (! ($result['success'] ?? false)) {
             throw ValidationException::withMessages(['source_id' => 'Không thể xác minh dữ liệu nguồn.']);
@@ -67,7 +87,7 @@ final class PharmaAwardPriceController extends Controller
             throw ValidationException::withMessages(['source_id' => 'Bản ghi không còn thuộc trang kết quả này.']);
         }
 
-        $saved = $wishlist->toggle((int) $request->user('web')->id, $item, $input['keyword'], (int) $input['page']);
+        $saved = $wishlist->toggle($userId, $item, $input['keyword'], (int) $input['page']);
 
         return redirect()->route('client.pharma.award-prices', [
             'keyword' => $input['keyword'], 'page' => $input['page'],
