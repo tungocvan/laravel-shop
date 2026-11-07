@@ -1,3 +1,13 @@
+## DAV drug registration public lookup — 2026-11-07
+
+- User approved Option A: independent read-only lookup for `https://dichvucong.dav.gov.vn/congbothuoc/index`, POST `/api/services/app/soDangKy/GetAllPublicServerPaging`, no sync into Medicine Master. Sample user-provided response for Venclexta has three independent registrations 539110203326 (10mg), 539110203226 (100mg), 539110203126 (50mg). Nested `thongTinDangKyThuoc`, `thongTinThuocCoBan`, `congTySanXuat`, `congTyDangKy` are mapped.
+- Feature branch `feat/pharma-dav-drug-registration-lookup-20261107` created from current unmerged `feat/pharma-domestic-gmp-crawler-20261107` SHA `32339dbd`, because main remains `36e43665a` and GMP/lookup hub dependencies are not merged. Do not merge child branch before parents; review stacked PR base appropriately.
+- `Modules/Pharma/Services/DavDrugRegistrationLookup.php`: read-only public DAV POST, bounded page/keyword, five-minute cache, strict response validation, no browser cookies/XSRF, no DB writes. `PharmaDrugRegistrationController` validates GET input and verifies selected source ID against the same search page for detail. Two GET routes protected by `auth:web`, `client.application:pharma`, `client.feature:pharma,drug-registrations` and existing DAV read permission. Manifest feature only, no top-level dashboard/nav card; lookup hub includes link. Two responsive Blade pages.
+- API field `SoDangKyThuoc.TenThuoc` is confirmed from supplied request. Other dropdown field keys (`SoDangKy`, `HoatChatChinh`, `TenCongTyDangKy`, `TenCongTySanXuat`) are inferred and **must be validated against actual DAV network requests** before considering those filters accepted; avoid claiming UI PASS for them without evidence. Embedded PDF paths in `thongTinTaiLieu` are not used because download endpoint/security have not been verified.
+- Focused test `tests/Feature/ClientApps/PharmaDrugRegistrationLookupTest.php` added; **not run**. Checkpoint: fetch/switch/pull branch, focused test first; if PASS, impacted `PharmaLookupHubContractTest`, `PharmaForeignGmpLookupTest`, `PharmaDomesticGmpOnDemandTest`; UI search Venclexta and three registration details, empty/error/page, mobile. Do not merge/deploy without approval.
+
+---
+
 ## Domestic GMP on-demand current-only snapshots — 2026-11-07
 
 - User approved replacing open-page DAV crawl and monthly/scheduled checks with explicit on-demand refresh; no historical Excel versions needed. Continued on existing `feat/pharma-domestic-gmp-crawler-20261107` stacked feature branch, main remained `36e43665a` during audit. No worktree, production changes or migration.
