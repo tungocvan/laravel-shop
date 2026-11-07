@@ -1,3 +1,11 @@
+## DAV domestic GMP date display fix — 2026-11-07
+
+- User screenshot confirms article n5553 and all three Excel download cards render, but publication date field contains trailing `In function printDiv(id) { var html=...` script text.
+- Changed `DavDomesticGmpCrawler::article()` to extract only the first `dd/mm/yyyy` match from DAV `time` node, returning empty date when no date match exists. Added regression fixture containing embedded printDiv text and assertion that `published` is exactly `28/10/2026`.
+- The screenshot proves discovery/rendering only; actual XLSX download, file integrity, tests and full UI acceptance still require confirmation. No merge or deploy.
+
+---
+
 ## DAV GMP attachment parsing checkpoint — 2026-11-07
 
 - User DELL audit of real article n5553: HTTP 200, 49,822 HTML bytes, 88 anchors, `#DivIdToPrint` and `.description` both present, six attachment links: three PDF and three XLSX, all percent-encoded Vietnamese filenames under `/upload_images/files/`. Previous article-scoped XPath found zero XLSX.
