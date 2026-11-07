@@ -1,3 +1,15 @@
+## Wishlist -> Medicine Master sync — 2026-11-07 (checkpoint pending)
+
+- Approved by user after wishlist filter UI PASS. Branch `feat/pharma-wishlist-medicine-sync-20261107` based on `feat/pharma-unified-lookup-wishlist-20261107` at `5f21dba`; `main` still `36e43665a` when audited. Stacked dependencies must be merged in order after explicit approval only.
+- New `PharmaWishlistMedicineSyncController` owns ClientPortal permissions, user-scoped wishlist retrieval, and preview/confirmation routes. Requires both lookup permission and `client.pharma.products.create`. GET preview and POST confirmed registration import; CSRF via Blade.
+- `dav_price` / `traditional_price` wishlist links redirect to existing source preview/import endpoints, preserving their re-fetch, candidate matching, price/packaging conflict checks and canonical `MedicineService` logic. Legacy award wishlist sync remains untouched.
+- `dav_registration` / `traditional_registration` use `Modules/Pharma/Services/RegistrationWishlistMedicineSync.php`: re-fetch exact source ID from saved search context, verify name/registration/source_id against snapshot, reject withdrawn/inactive registrations, use existing `DavMedicineCandidateMatcher` (conservative name + registration collision review), require an existing catalog unit selected in preview, acquire cache lock, re-check source and matcher, then call `MedicineService::storeWithDeclaredPriceOnly`. Never infer unit, prices, lots, selling price or auto-sync; do not remove wishlist on import. Existing registration service and wishlist table unchanged.
+- UI entrypoints on unified wishlist index/detail only; new focused Blade preview `lookup-wishlist-import-preview.blade.php`. New routes `client.pharma.lookups.wishlist.import.preview` and `.store`.
+- Focused `tests/Feature/ClientApps/PharmaWishlistMedicineSyncContractTest.php` **not executed**; then `PharmaUnifiedLookupWishlistTest.php`; impacted existing DAV/traditional price import, registration and award sync tests after focused PASS. Manual UI PASS required for both prices and both registrations, existing/ambiguous/inactive, permissions, mobile, and legacy award sync. No migration added in this batch. No PR/merge/deploy.
+- Known conservative behavior: registration records without explicit active status are blocked; unit options are distinct non-empty units already in Medicine Master. Do not relax this without evidence of live source status and approved catalog unit taxonomy.
+
+---
+
 ## Unified lookup wishlist — 2026-11-07 (checkpoint pending)
 
 - User approved Option A: one unified wishlist for four sources (`dav_price`, `traditional_price`, `dav_registration`, `traditional_registration`), with read-only legacy award wishlist adapter. Preserve **all** existing `pharma_award_wishlists` records and existing award toggle/detail/sync routes; no migration/backfill/drop on legacy table. No wishlist-to-Medicine Master sync in this phase.
