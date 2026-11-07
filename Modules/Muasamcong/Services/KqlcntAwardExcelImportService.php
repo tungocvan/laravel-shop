@@ -93,7 +93,7 @@ class KqlcntAwardExcelImportService
                 }
             }
             if ($isV2) {
-                $matches = $this->legacyMatches($data);
+                $matches = $this->medicineMatches($data);
                 if ($matches->count() === 1) {
                     $existing = $matches->first();
                     $id = (string) $existing->id;
@@ -173,6 +173,7 @@ class KqlcntAwardExcelImportService
                     $fields[$field] = trim((string) ($fields[$field] ?? '')) === '' ? null : $fields[$field];
                 }
                 foreach (['decision_date', 'published_at'] as $field) {
+                    if (! array_key_exists($field, $fields)) continue;
                     $v = trim((string) ($fields[$field] ?? ''));
                     if ($v !== '') {
                         try { $fields[$field] = \Carbon\Carbon::createFromFormat($field === 'decision_date' ? 'd/m/Y' : 'd/m/Y H:i', $v)->format($field === 'decision_date' ? 'Y-m-d' : 'Y-m-d H:i:s'); }
@@ -285,6 +286,28 @@ class KqlcntAwardExcelImportService
             return $date->format($format);
         }
         return $value;
+    }
+
+    private function medicineMatches(array $data): \Illuminate\Support\Collection
+    {
+        $notify = trim((string) ($data['notify_no'] ?? ''));
+        $contractor = trim((string) ($data['contractor_code'] ?? ''));
+        $lot = trim((string) ($data['lot_no'] ?? ''));
+        $code = trim((string) ($data['medicine_code'] ?? ''));
+        $name = trim((string) ($data['medicine_name'] ?? ''));
+        if ($notify === '' || $contractor === '' || ($code === '' && $name === '')) return collect();
+        $query = KqlcntAwardItem::query()->where('notify_no', $notify)
+            ->where('contractor_code', $contractor)->whereNotNull('synced_from_catalog_at');
+        if ($lot !== '') $query->where('lot_no', $lot);
+        if ($code !== '') $query->where('medicine_code', $code);
+        else {
+            $query->where('medicine_name', $name);
+            foreach (['active_ingredient', 'concentration'] as $field) {
+                $value = trim((string) ($data[$field] ?? ''));
+                $value === '' ? $query->whereNull($field) : $query->where($field, $value);
+            }
+        }
+        return $query->limit(2)->get();
     }
 
     private function legacyMatches(array $data): \Illuminate\Support\Collection
