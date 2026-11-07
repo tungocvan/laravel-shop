@@ -26,6 +26,8 @@
         <p class="mt-3 text-xs text-slate-500">Nguồn: Cục Quản lý Dược (DAV). Giá công bố không phải giá bán nội bộ hoặc giá trúng thầu. Thông tin có thể thay đổi tại nguồn.</p>
     </section>
 
+    @if(session('success'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('success') }}</div>@endif
+    @if($errors->has('source_id'))<div role="alert" class="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{{ $errors->first('source_id') }}</div>@endif
     @if($error)
         <div role="alert" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{{ $error }}</div>
     @elseif($keyword === '')
@@ -43,6 +45,7 @@
                     @else
                         <span class="rounded-xl bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800">Cần đối chiếu thủ công</span>
                     @endif</div>
+                    @include('ClientPortal::applications.pharma.partials.lookup-wishlist-heart', ['wishlistSource' => 'dav_price'])
                     <p class="mt-1 text-sm text-slate-600">{{ $item['ingredient'] }} · {{ $item['strength'] }}</p>
                     <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
                         <div><dt class="text-xs text-slate-500">Số đăng ký</dt><dd class="font-semibold">{{ $item['registration'] ?: '—' }}</dd></div>
