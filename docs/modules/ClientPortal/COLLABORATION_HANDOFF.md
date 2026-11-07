@@ -1,3 +1,13 @@
+## Domestic GMP DAV Excel crawler — 2026-11-07
+
+- User supplied original HTML `1.html` from DAV article `n5553`, posted 28/10/2026, list updated to 23/10/2026. Audited six links in article description: three PDFs and three XLSX files grouped as domestic manufacturers, GMP pharmaceutical packaging and business eligibility certificates.
+- Branch `feat/pharma-domestic-gmp-crawler-20261107` based on `feat/pharma-foreign-gmp-lookup-20261107` (not merged). `Modules/Pharma/Services/DavDomesticGmpCrawler.php` discovers article candidates on official category `cn92` by matching exact domestic-GMP slug and orders by article numeric ID, fetches latest article and classifies three Excel links by heading order. It never synthesizes date/news URLs and restricts outbound HTTPS to `dav.gov.vn`, without cookies, XSRF, disabled TLS or cross-host redirects.
+- ClientPortal route `/apps/pharma/domestic-gmp` and download `/apps/pharma/domestic-gmp/download/{group}`, gated by existing DAV read permission, added only to Tra cứu hub and excluded from top-level dashboard. Downloads re-discover official article, reject non-XLSX signatures/oversized files and store content-addressed copies in private local storage; no database migration, no Medicine Master writes.
+- **Known limitations**: Only first DAV category page is examined, newest article inferred from news ID, not independently validated as globally newest; HTTP fetch from real DAV has not been tested. Historical metadata/index is not persisted, so there is no automatic scheduled monitoring or automatic fallback when DAV is offline. File check currently uses ZIP header/size, not full XLSX internal integrity. Avoid claiming production-ready or fully automatic change tracking before these gates are addressed.
+- Added focused `PharmaDomesticGmpCrawlerTest` and updated `PharmaLookupHubContractTest`; **tests not executed**. Checkpoint `git fetch origin && git switch feat/pharma-domestic-gmp-crawler-20261107 && git pull --ff-only`, then `php artisan test tests/Feature/ClientApps/PharmaDomesticGmpCrawlerTest.php tests/Feature/ClientApps/PharmaLookupHubContractTest.php`. If PASS, impacted PharmaForeignGmpLookupTest and UI desktop/mobile, live DAV downloads for all 3 files. Do not merge/deploy without approval.
+
+---
+
 ## Pharma lookup child hierarchy — 2026-11-07
 
 - User reported focused GMP TEST + UI PASS and requested that four lookup sources no longer appear as top-level cards in Pharma dashboard "Chọn workspace".
