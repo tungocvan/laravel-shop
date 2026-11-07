@@ -24,9 +24,9 @@ class PharmaDomesticGmpCrawlerTest extends TestCase
         $this->assertSame(self::ARTICLE, $result['url']);
         $this->assertStringContainsString('23/10/2026', $result['title']);
         $this->assertCount(3, $result['files']);
-        $this->assertSame('GMP-thuoc.xlsx', $result['files']['manufacturers']['name']);
-        $this->assertSame('GMP-bao-bi.xlsx', $result['files']['packaging']['name']);
-        $this->assertSame('DKKD.xlsx', $result['files']['business_certificates']['name']);
+        $this->assertSame('Danh sách các công ty trong nước đạt tiêu chuẩn GMP (23_10_2026).xlsx', $result['files']['manufacturers']['name']);
+        $this->assertSame('Danh sách các công ty trong nước đạt tiêu chuẩn GMP bao bì (23_10_2026).xlsx', $result['files']['packaging']['name']);
+        $this->assertSame('Danh sách chứng nhận đủ điều kiện kinh doanh dược (23_10_2026).xlsx', $result['files']['business_certificates']['name']);
         Http::assertSentCount(2);
     }
 
@@ -70,13 +70,13 @@ class PharmaDomesticGmpCrawlerTest extends TestCase
 <p>1. Danh sách CSSX trong nước đạt GMP</p>
 <table><tbody><tr><td><div class="nested-attachments">
 <p><a href="/upload_images/files/GMP-thuoc.pdf">PDF</a></p>
-<p><a href="/upload_images/files/GMP-thuoc.xlsx">Excel</a></p>
+<p><a href="/upload_images/files/Danh%20s%C3%A1ch%20c%C3%A1c%20c%C3%B4ng%20ty%20trong%20n%C6%B0%E1%BB%9Bc%20%C4%91%E1%BA%A1t%20ti%C3%AAu%20chu%E1%BA%A9n%20GMP%20(23_10_2026).xlsx">Excel</a></p>
 <p>2. Danh sách CSSX trong nước đạt GMP bao bì</p>
-<p><a href="/upload_images/files/GMP-bao-bi.xlsx">Excel</a></p>
+<p><a href="/upload_images/files/Danh%20s%C3%A1ch%20c%C3%A1c%20c%C3%B4ng%20ty%20trong%20n%C6%B0%E1%BB%9Bc%20%C4%91%E1%BA%A1t%20ti%C3%AAu%20chu%E1%BA%A9n%20GMP%20bao%20b%C3%AC%20(23_10_2026).xlsx">Excel</a></p>
 <p>3. Giấy chứng nhận đủ điều kiện kinh doanh dược</p>
-<p><a href="/upload_images/files/DKKD.xlsx">Excel</a></p>
+<p><a href="/upload_images/files/Danh%20s%C3%A1ch%20ch%E1%BB%A9ng%20nh%E1%BA%ADn%20%C4%91%E1%BB%A7%20%C4%91i%E1%BB%81u%20ki%E1%BB%87n%20kinh%20doanh%20d%C6%B0%E1%BB%A3c%20(23_10_2026).xlsx">Excel</a></p>
 </div></td></tr></tbody></table>
-</div></div></html>
+</div></div><div class="attachment-outside-print"><a href="/upload_images/files/Danh%20s%C3%A1ch%20c%C3%A1c%20c%C3%B4ng%20ty%20trong%20n%C6%B0%E1%BB%9Bc%20%C4%91%E1%BA%A1t%20ti%C3%AAu%20chu%E1%BA%A9n%20GMP%20(23_10_2026).xlsx">duplicate</a></div></html>
 HTML;
     }
 }
