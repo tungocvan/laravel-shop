@@ -17,7 +17,7 @@ use RuntimeException;
 final class PharmaWishlistMedicineSyncController extends Controller
 {
     public function preview(Request $request, string $sourceType, string $sourceId,
-        ApplicationRegistry $registry, RegistrationWishlistMedicineSync $sync): View
+        ApplicationRegistry $registry, RegistrationWishlistMedicineSync $sync): View|RedirectResponse
     {
         $favorite = $this->favorite($request, $registry, $sourceType, $sourceId);
         if (in_array($sourceType, ['dav_price', 'traditional_price'], true)) {
@@ -69,7 +69,7 @@ final class PharmaWishlistMedicineSyncController extends Controller
             ->where('source_type', $sourceType)->where('source_id', $sourceId)->firstOrFail();
     }
 
-    private function pricePreview(LookupWishlist $favorite): View
+    private function pricePreview(LookupWishlist $favorite): RedirectResponse
     {
         $context = $favorite->search_context ?? [];
         $q = trim((string) ($context['q'] ?? ''));
@@ -83,10 +83,6 @@ final class PharmaWishlistMedicineSyncController extends Controller
             : 'client.pharma.traditional-prices.import.preview';
 
         // Use the existing source re-fetch, matcher, conflict detection and confirmation.
-        return view('ClientPortal::applications.pharma.lookup-wishlist-price-redirect', [
-            'favorite' => $favorite,
-            'route' => $route,
-            'input' => ['q' => $q, 'page' => $page, 'source_id' => $favorite->source_id],
-        ]);
+        return redirect()->route($route, ['q' => $q, 'page' => $page, 'source_id' => $favorite->source_id]);
     }
 }
