@@ -21,6 +21,10 @@
         </div>
     </div>
 
+    @if ($errors->has('file'))
+        <div role="alert" class="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">{{ $errors->first('file') }}</div>
+    @endif
+
     <form id="award-filter-form" method="GET" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
