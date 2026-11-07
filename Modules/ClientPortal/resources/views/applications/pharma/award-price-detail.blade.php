@@ -27,7 +27,10 @@
     ];
 @endphp
 <div class="mx-auto max-w-5xl space-y-4">
-    <a class="inline-flex min-h-10 items-center text-sm font-semibold text-slate-700" href="{{ route('client.pharma.award-prices', ['keyword' => $keyword, 'page' => $page]) }}">← Quay lại kết quả</a>
+    <a class="inline-flex min-h-10 items-center text-sm font-semibold text-slate-700" href="{{ !empty($fromWishlist) ? route('client.pharma.award-prices.wishlist') : route('client.pharma.award-prices', ['keyword' => $keyword, 'page' => $page]) }}">← {{ !empty($fromWishlist) ? 'Quay lại danh sách quan tâm' : 'Quay lại kết quả' }}</a>
+    @if(!empty($fromWishlist))
+        <p role="status" class="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">Đang xem bản ghi đã lưu trong danh sách quan tâm. Thông tin có thể đã thay đổi ở nguồn công khai; hệ thống sẽ kiểm tra lại dữ liệu mới nhất trước bước xác nhận đồng bộ.</p>
+    @endif
     <article class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <header class="border-b border-slate-200 bg-slate-50 p-5 sm:p-6">
             <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Chi tiết kết quả trúng thầu · Pharma</p>
@@ -60,7 +63,7 @@
             @elseif($match['status'] === 'existing')
                 <p class="text-sm text-emerald-800">Đã xác định thuốc #{{ $match['medicine_id'] }} trong danh mục. Chỉ cập nhật nguồn trúng thầu.</p>
             @else
-                <p class="text-sm text-indigo-800">Chưa có thuốc trùng bộ ba định danh. Bước tiếp theo sẽ yêu cầu xác nhận tạo mới ở trạng thái Cần rà soát.</p>
+                <p class="text-sm text-indigo-800">Chưa có thuốc trùng bộ ba định danh. Bước tiếp theo sẽ kiểm tra lại dữ liệu nguồn và yêu cầu xác nhận tạo mới ở trạng thái Cần rà soát.</p>
             @endif
             @if($match['status'] === 'new' && !($match['registration_verified'] ?? false))
                 <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Số GĐKLH/GPNK chưa được xác minh. Nếu xác nhận đồng bộ, hệ thống sẽ tạo thuốc mới cần rà soát và lưu mã nguồn trong lịch sử trúng thầu, không ghi vào số đăng ký chính thức.</p>
