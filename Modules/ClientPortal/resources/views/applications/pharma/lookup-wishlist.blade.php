@@ -35,6 +35,9 @@
                     <p class="text-xs font-bold uppercase tracking-wide text-indigo-700">{{ $sources[$type] ?? $type }}</p>
                     <h2 class="mt-1 break-words font-bold text-slate-950">{{ $favorite->medicine_name ?: 'Thuốc chưa có tên' }}</h2>
                     <p class="mt-1 text-sm text-slate-600">Số đăng ký: {{ $favorite->registration_number ?: 'Chưa công bố' }}</p>
+                    @unless($isAward)
+                        <a href="{{ route('client.pharma.lookups.wishlist.import.preview', ['sourceType' => $type, 'sourceId' => $favorite->source_id]) }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white">Đồng bộ</a>
+                    @endunless
                     @if($isAward)
                         <p class="mt-1 text-sm text-slate-600">Giá trúng thầu: {{ is_numeric($snapshot['donGia'] ?? null) ? number_format((float) $snapshot['donGia'], 0, ',', '.').' đ' : '—' }}</p>
                     @endif
