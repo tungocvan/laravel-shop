@@ -7,9 +7,22 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
-final class DavDrugRegistrationLookup
+class DavDrugRegistrationLookup
 {
-    private const URL = 'https://dichvucong.dav.gov.vn/api/services/app/soDangKy/GetAllPublicServerPaging';
+    protected function endpoint(): string
+    {
+        return 'https://dichvucong.dav.gov.vn/api/services/app/soDangKy/GetAllPublicServerPaging';
+    }
+
+    protected function cacheNamespace(): string
+    {
+        return 'dav-registration';
+    }
+
+    protected function perPage(): int
+    {
+        return self::PER_PAGE;
+    }
 
     public const PER_PAGE = 10;
 
@@ -29,15 +42,15 @@ final class DavDrugRegistrationLookup
         $keyword = trim($keyword);
         $page = max(1, min(1000, $page));
 
-        return Cache::remember('pharma:dav-registration:v1:'.hash('sha256', $field.'|'.$keyword.'|'.$page), now()->addMinutes(5), function () use ($field, $keyword, $page): array {
+        return Cache::remember('pharma:'.$this->cacheNamespace().':v1:'.hash('sha256', $field.'|'.$keyword.'|'.$page), now()->addMinutes(5), function () use ($field, $keyword, $page): array {
             $filters = $keyword === '' ? (object) [] : [self::FIELDS[$field] => $keyword];
             try {
                 $response = Http::acceptJson()->asJson()->connectTimeout(5)->timeout(15)
-                    ->post(self::URL, [
+                    ->post($this->endpoint(), [
                         'filterText' => '',
                         'SoDangKyThuoc' => $filters,
                         'KichHoat' => true,
-                        'skipCount' => ($page - 1) * self::PER_PAGE,
+                        'skipCount' => ($page - 1) * $this->perPage(),
                         'maxResultCount' => self::PER_PAGE,
                         'sorting' => null,
                     ]);
@@ -66,7 +79,7 @@ final class DavDrugRegistrationLookup
                     'dosage_form' => (string) data_get($row, 'thongTinThuocCoBan.dangBaoChe', ''),
                     'packaging' => (string) data_get($row, 'thongTinThuocCoBan.dongGoi', ''),
                     'standard' => (string) data_get($row, 'thongTinThuocCoBan.tieuChuan', ''),
-                    'shelf_life' => (string) data_get($row, 'thongTinThuocCoBan.tuoiTho', ''),
+                    'shelf_life' => (string) (data_get($row, 'thongTinThuocCoBan.tuoiTho') ?? data_get($row, 'thongTinThuocCoBan.hanDung') ?? ''),
                     'issued_at' => (string) data_get($row, 'thongTinDangKyThuoc.ngayCapSoDangKy', ''),
                     'expires_at' => (string) data_get($row, 'thongTinDangKyThuoc.ngayHetHanSoDangKy', ''),
                     'decision' => (string) data_get($row, 'thongTinDangKyThuoc.soQuyetDinh', ''),
