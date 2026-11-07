@@ -56,7 +56,7 @@ class DavDrugRegistrationLookup
                         'SoDangKyThuoc' => $filters,
                         'KichHoat' => true,
                         'skipCount' => ($page - 1) * $this->perPage(),
-                        'maxResultCount' => self::PER_PAGE,
+                        'maxResultCount' => $this->perPage(),
                         'sorting' => null,
                     ]);
             } catch (ConnectionException $exception) {
