@@ -51,31 +51,39 @@ final class DavDomesticGmpCrawler
             throw new RuntimeException('DAV article does not match domestic GMP publication.');
         }
 
-        $nodes = $xpath->query('//div[@id="DivIdToPrint"]//div[contains(concat(" ",normalize-space(@class)," ")," description ")]/*');
-        $group = null;
-        $files = [];
-        foreach ($nodes as $node) {
-            $text = trim(preg_replace('/\s+/u', ' ', $node->textContent) ?? '');
-            if (preg_match('/^1\.\s/u', $text)) {
-                $group = 'manufacturers';
-            } elseif (preg_match('/^2\.\s/u', $text)) {
-                $group = 'packaging';
-            } elseif (preg_match('/^3\.\s/u', $text)) {
-                $group = 'business_certificates';
+        // DAV's article HTML may nest the attachment links in tables or
+        // wrapper elements rather than direct children of .description.
+        // Inspect the full article subtree, preserving document order.
+        $article = $xpath->query('//div[@id="DivIdToPrint"]')->item(0);
+        $anchors = $article ? $xpath->query('.//a[@href]', $article) : false;
+        $excel = [];
+        foreach ($anchors ?: [] as $anchor) {
+            $href = trim($anchor->getAttribute('href'));
+            $path = parse_url($href, PHP_URL_PATH);
+            if (! is_string($path) || ! preg_match('~^/upload_images/files/[^?#]+\.xlsx$~i', $path)) {
+                continue;
             }
-            foreach ((new DOMXPath($dom))->query('.//a[@href]', $node) as $anchor) {
-                $href = $anchor->getAttribute('href');
-                $path = parse_url($href, PHP_URL_PATH);
-                if (! $group || ! is_string($path) || ! preg_match('~^/upload_images/files/[^?#]+\.xlsx$~i', $path)) {
-                    continue;
-                }
+            try {
                 $fileUrl = $this->absoluteUrl($href);
-                $files[$group] = [
-                    'group' => $group,
-                    'url' => $fileUrl,
-                    'name' => basename(rawurldecode($path)),
-                ];
+                $this->assertFileUrl($fileUrl);
+            } catch (RuntimeException) {
+                continue;
             }
+            $excel[$fileUrl] = [
+                'url' => $fileUrl,
+                'name' => basename(rawurldecode($path)),
+            ];
+        }
+
+        // The audited n5553 DAV publication lists three XLSX attachments
+        // in this order: manufacturers, packaging, business certificates.
+        // Fail closed if the layout changes rather than mislabel a download.
+        if (count($excel) !== 3) {
+            throw new RuntimeException('DAV article Excel attachment count differs from the audited three-group layout: '.count($excel));
+        }
+        foreach (['manufacturers', 'packaging', 'business_certificates'] as $index => $group) {
+            $file = array_values($excel)[$index];
+            $files[$group] = ['group' => $group] + $file;
         }
         if ($files === []) {
             throw new RuntimeException('DAV article contains no recognized Excel attachments.');
