@@ -181,6 +181,17 @@ return [
             'icon' => 'document-arrow-down',
             'sort_order' => 20,
         ],
+        'traditional-drug-registrations' => [
+            'name' => 'Công bố giấy đăng ký thuốc đông dược',
+            'description' => 'Tra cứu giấy đăng ký thuốc đông dược công khai từ Cục Quản lý Y, Dược cổ truyền.',
+            'eyebrow' => 'Dữ liệu công khai Bộ Y tế',
+            'page_title' => 'Công bố giấy đăng ký thuốc đông dược',
+            'page_description' => 'Tra cứu giấy đăng ký, thành phần dược liệu, hàm lượng, dạng bào chế và cơ sở sản xuất.',
+            'route' => 'client.pharma.traditional-drug-registrations',
+            'permission' => 'client.pharma.dav-prices.view',
+            'icon' => 'document-text',
+            'sort_order' => 18,
+        ],
         'drug-registrations' => [
             'name' => 'Công bố giấy đăng ký thuốc tân dược',
             'description' => 'Tra cứu công khai giấy đăng ký lưu hành thuốc từ DAV, không đồng bộ vào danh mục nội bộ.',
