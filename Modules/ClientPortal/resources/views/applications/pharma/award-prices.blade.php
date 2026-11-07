@@ -14,6 +14,7 @@
     @if(session('success'))<div role="status" class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{{ session('success') }}</div>@endif
     @if($errors->any())<div role="alert" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ $errors->first() }}</div>@endif
     <section class="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
+        <div class="mb-3 flex justify-end"><a href="{{ route('client.pharma.award-prices.wishlist') }}" class="inline-flex min-h-10 items-center text-sm font-semibold text-rose-700">♡ Danh sách quan tâm</a></div>
         <form action="{{ route('client.pharma.award-prices') }}" method="GET" class="space-y-3">
             <div class="flex flex-col gap-2 sm:flex-row">
                 <label for="award-keyword" class="sr-only">Tìm thuốc trúng thầu</label>
@@ -25,7 +26,10 @@
     @if($result !== null)
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm">
             <span class="text-slate-600">Bộ nhớ tra cứu · Dữ liệu được lưu tạm 5 phút</span>
-            <a class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 font-semibold text-slate-800" href="{{ route('client.pharma.award-prices', ['keyword' => $keyword, 'page' => $page, 'fresh' => 1]) }}">↻ Tra cứu dữ liệu mới nhất</a>
+            <div class="flex flex-wrap gap-2">
+                <a class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 font-semibold text-rose-700" href="{{ route('client.pharma.award-prices.wishlist') }}">♡ Danh sách quan tâm</a>
+                <a class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 py-2 font-semibold text-slate-800" href="{{ route('client.pharma.award-prices', ['keyword' => $keyword, 'page' => $page, 'fresh' => 1]) }}">↻ Tra cứu dữ liệu mới nhất</a>
+            </div>
         </div>
         @if(!($result['success'] ?? false))
             <div role="alert" class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{{ $result['message'] ?? 'Không thể tra cứu.' }}</div>
