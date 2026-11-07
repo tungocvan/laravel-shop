@@ -181,6 +181,17 @@ return [
             'icon' => 'document-arrow-down',
             'sort_order' => 20,
         ],
+        'drug-registrations' => [
+            'name' => 'Công bố giấy đăng ký thuốc tân dược',
+            'description' => 'Tra cứu công khai giấy đăng ký lưu hành thuốc từ DAV, không đồng bộ vào danh mục nội bộ.',
+            'eyebrow' => 'Dữ liệu công khai DAV',
+            'page_title' => 'Công bố giấy đăng ký thuốc tân dược',
+            'page_description' => 'Tra cứu số đăng ký, hoạt chất, hàm lượng, cơ sở sản xuất và đơn vị đăng ký.',
+            'route' => 'client.pharma.drug-registrations',
+            'permission' => 'client.pharma.dav-prices.view',
+            'icon' => 'document-text',
+            'sort_order' => 18,
+        ],
         'gmp' => [
             'name' => 'Tra cứu GMP',
             'description' => 'Danh sách cơ sở sản xuất nước ngoài đáp ứng GMP từ nguồn DAV.',
