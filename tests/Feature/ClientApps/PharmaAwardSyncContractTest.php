@@ -81,20 +81,55 @@ class PharmaAwardSyncContractTest extends TestCase
         Http::assertSent(fn ($request) => $request->data()[0]['pageNumber'] === 1);
     }
 
-    public function test_ui_exposes_details_bulk_sync_stats_and_filters_without_wishlist(): void
+    public function test_award_ui_has_page_local_filters_independent_wishlist_and_sync(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-prices.blade.php'));
-        foreach (['Bộ lọc', 'Thấp nhất', 'Trung bình', 'Cao nhất', 'Xem chi tiết', 'Đồng bộ đã chọn', 'selected[]', 'form="award-select-form"', 'name="selected[]"', 'id="award-clear"'] as $label) {
+        foreach ([
+            'Bộ lọc kết quả', 'Nơi trúng thầu', 'Nhóm thuốc', 'Tên thuốc, hoạt chất, hàm lượng',
+            'award-local-search', 'award-group-filter', 'award-price-min', 'award-price-max',
+            'award-reset-filters', 'award-filter-count', 'Đồng bộ đã chọn',
+            'form="award-select-form"', 'name="selected[]"', 'id="award-clear"',
+            'client.pharma.award-prices.show', 'client.pharma.award-prices.wishlist.toggle',
+            'tenCdtBmt', 'nhomThuoc', 'aria-pressed',
+        ] as $label) {
             $this->assertStringContainsString($label, $blade);
         }
-        $this->assertStringNotContainsString('Quan tâm', $blade);
-        $this->assertStringNotContainsString('x-model=', $blade);
-        $this->assertStringNotContainsString('x-teleport=', $blade);
-        $this->assertStringContainsString('award-interactions.js', $blade);
-        $this->assertStringContainsString('client.pharma.award-prices.show', $blade);
+        foreach (['Thấp nhất', 'Trung bình', 'Cao nhất', 'ĐVT (lọc trong trang)', '<th class="px-3 py-3">TBMT</th>'] as $removed) {
+            $this->assertStringNotContainsString($removed, $blade);
+        }
+        $this->assertStringContainsString("@section('hide-application-header', true)", $blade);
+        $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $blade);
         $script = file_get_contents(base_path('public/demo/pharma-award/award-interactions.js'));
-        $this->assertStringContainsString("input.value = '';", $script);
-        $this->assertStringContainsString("rows.forEach(row", $script);
+        $this->assertStringContainsString('filterRows()', $script);
+        $this->assertStringContainsString('visibleSelections()', $script);
+        $this->assertStringContainsString('row.hidden = !matches', $script);
+        $this->assertStringContainsString('row.checked', $script);
+        $this->assertStringNotContainsString('fetch(', $script);
+    }
+
+    public function test_award_wishlist_is_independent_persistent_and_authorized(): void
+    {
+        $route = Route::getRoutes()->getByName('client.pharma.award-prices.wishlist.toggle');
+        $this->assertNotNull($route);
+        $this->assertContains('POST', $route->methods());
+        $this->assertNotContains('GET', $route->methods());
+        $this->assertContains('auth:web', $route->gatherMiddleware());
+        $this->assertContains('client.feature:pharma,award-prices', $route->gatherMiddleware());
+
+        $model = file_get_contents(base_path('Modules/Pharma/Models/AwardWishlist.php'));
+        $migration = file_get_contents(base_path('Modules/Pharma/database/migrations/2026_11_07_000001_create_pharma_award_wishlists_table.php'));
+        $service = file_get_contents(base_path('Modules/Pharma/Services/PublicAwardWishlistService.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaAwardPriceController.php'));
+        $this->assertStringContainsString("protected \$table = 'pharma_award_wishlists'", $model);
+        $this->assertStringContainsString("['user_id', 'source_id']", $migration);
+        $this->assertStringContainsString('lockForUpdate()', $service);
+        $this->assertStringContainsString("where('user_id', \$userId)", $service);
+        $this->assertStringContainsString("->where('source_id', \$sourceId)", $service);
+        $this->assertStringContainsString("public function toggleWishlist(", $controller);
+        $this->assertStringContainsString("if (! is_array(\$item))", $controller);
+        foreach ([$model, $migration, $service, $controller] as $source) {
+            $this->assertStringNotContainsString('Modules\\Muasamcong', $source);
+        }
     }
 
     public function test_sync_never_overwrites_medicine_prices_or_stock(): void
