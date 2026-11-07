@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaGmpLookupController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDomesticGmpController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaAwardPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
@@ -24,6 +25,12 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
 
         Route::get('/lookups', [PharmaLookupController::class, 'index'])
             ->middleware('client.feature:pharma,lookups')->name('lookups');
+
+        Route::get('/domestic-gmp', [PharmaDomesticGmpController::class, 'index'])
+            ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp');
+        Route::get('/domestic-gmp/download/{group}', [PharmaDomesticGmpController::class, 'download'])
+            ->where('group', 'manufacturers|packaging|business_certificates')
+            ->middleware('client.feature:pharma,domestic-gmp')->name('domestic-gmp.download');
 
         Route::get('/gmp', [PharmaGmpLookupController::class, 'index'])
             ->middleware('client.feature:pharma,gmp')->name('gmp');
