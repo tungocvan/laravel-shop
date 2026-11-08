@@ -196,8 +196,15 @@ class KqlcntAwardExcelImportService
                         throw ValidationException::withMessages(['file' => 'Hồ sơ đã thay đổi sau khi xem trước. Hãy tải lại Excel.']);
                     }
                 }
+                $packageFields = $snapshot['changes'];
+                foreach (['decision_date' => 'd/m/Y', 'published_at' => 'd/m/Y H:i'] as $field => $format) {
+                    if (array_key_exists($field, $packageFields) && $packageFields[$field] !== null) {
+                        $packageFields[$field] = \Carbon\Carbon::createFromFormat($format, $packageFields[$field])
+                            ->format($field === 'decision_date' ? 'Y-m-d' : 'Y-m-d H:i:s');
+                    }
+                }
                 foreach ($awards as $award) {
-                    $award->fill($snapshot['changes']);
+                    $award->fill($packageFields);
                     if ($award->isDirty()) {
                         $award->source = 'excel';
                         $award->last_verified_at = now();
