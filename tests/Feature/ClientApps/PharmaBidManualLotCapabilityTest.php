@@ -20,7 +20,7 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString("userCan(\$user, 'client.pharma.orders.post')", $controller);
         $this->assertStringContainsString('function orderLots(', $controller);
         $this->assertStringContainsString('function postOrderLots(', $controller);
-        $this->assertStringContainsString("if (\$approved->issue_source === 'bid')", $controller);
+        $this->assertStringContainsString("in_array(\$visible->issue_source, ['bid', 'normal', 'price_list'], true)", $controller);
         $this->assertStringContainsString('DB::transaction(', $service);
         $this->assertStringContainsString('lockForUpdate()', $service);
         $this->assertStringContainsString("whereDate('expiry_date', '>=', now()->toDateString())", $service);
@@ -126,7 +126,7 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
 
         $this->assertStringContainsString('approved_quantities[', $view);
         $this->assertStringContainsString('partial_supply[', $view);
-        $this->assertStringContainsString('approveBidPartially(', $controller);
+        $this->assertStringContainsString('$approval->approvePartially(', $controller);
         $this->assertStringContainsString('function approveBidPartially(', $approval);
         $this->assertStringContainsString('InventoryIssueDeferredSupply::updateOrCreate', $approval);
         $this->assertStringContainsString('$lotTotals[$balanceId]', $posting);
@@ -147,6 +147,6 @@ final class PharmaBidManualLotCapabilityTest extends TestCase
         $this->assertStringContainsString("route('client.pharma.orders.lots',\$issue)", $index);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString("@section('hide-application-header', true)", $view);
-        $this->assertStringContainsString('postApprovedIssueFromAvailableStock($approved', $controller);
+        $this->assertStringContainsString("return redirect()->route('client.pharma.orders.lots', \$issue)", $controller);
     }
 }
