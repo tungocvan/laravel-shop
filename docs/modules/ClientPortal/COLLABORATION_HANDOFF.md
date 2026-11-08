@@ -1,3 +1,11 @@
+## 2026-11-08 — KQLCNT compact filter layout
+
+- Removed redundant free-text contractor/TBMT/investor search control from visible workspace; retained canonical selectors for TBMT, investor, medicine and status.
+- Responsive layout: single column mobile, two columns tablet, one compact 12-column grid on wide desktop (TBMT 3 / investor 4 / medicine 3 / status 2). Actions remain below the controls. Existing query search support is preserved for backward compatibility, but no free-text input is shown.
+- Focused contract updated. TEST PENDING, UI PENDING. No merge/deploy.
+
+---
+
 ## 2026-11-08 — KQLCNT selector UI fix checkpoint
 
 - User screenshot showed custom Alpine combobox dropdowns obscuring adjacent inputs; replaced both with canonical shared `<x-pwa-select-search>` and converted medicine selection to the same component.
