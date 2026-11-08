@@ -33,7 +33,7 @@
     </section>
     <p class="text-xs text-slate-500">Chỉ số “đang hoạt động” dựa trên trạng thái dữ liệu KQLCNT, chưa xác nhận thời hạn hiệu lực hợp đồng.</p>
 
-    <form method="GET" action="{{ route('client.pharma.kqlcnt-awards.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+    <form id="kqlcnt-live-filters" method="GET" action="{{ route('client.pharma.kqlcnt-awards.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-base font-bold text-slate-950">Bộ lọc hồ sơ</h2>
         <p class="mt-1 text-xs text-slate-500">Lọc theo mã TBMT, chủ đầu tư, thuốc hoặc trạng thái.</p>
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
@@ -72,13 +72,11 @@
                 </select>
             </label>
         </div>
-        <div class="mt-4 flex flex-wrap items-center gap-2">
-            <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Lọc hồ sơ</button>
-            <a href="{{ route('client.pharma.kqlcnt-awards.index') }}" class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold {{ collect($filters)->filter(fn ($value) => filled($value))->isNotEmpty() ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100' : 'border-slate-300 text-slate-600' }}">Xóa lọc</a>
-            @if(filled($filters['medicine'] ?? null))
-                <span class="text-xs text-slate-500">Kết quả là hồ sơ có chứa thuốc/hoạt chất đã tìm.</span>
-            @endif
-        </div>
+        @if(collect($filters)->only(['notify_no', 'investor_code', 'medicine', 'active'])->contains(fn ($value) => filled($value)))
+            <div class="mt-3 flex items-center justify-end">
+                <a href="{{ route('client.pharma.kqlcnt-awards.index') }}" class="inline-flex min-h-10 items-center rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 hover:bg-red-100">Xóa lọc</a>
+            </div>
+        @endif
     </form>
 
     <section class="space-y-3" aria-label="Danh sách hồ sơ trúng thầu">
@@ -131,3 +129,33 @@
     {{ $items->links() }}
 </div>
 @endsection
+
+@push('application-scripts')
+<script>
+(() => {
+    const form = document.getElementById('kqlcnt-live-filters');
+    if (!form || form.dataset.liveBound === '1') return;
+    form.dataset.liveBound = '1';
+    let pending = false;
+    const submit = () => {
+        if (pending) return;
+        pending = true;
+        // The shared PWA selector updates its hidden input during option click.
+        // Wait until its own event handler finishes before reading the form.
+        window.setTimeout(() => {
+            const params = new URLSearchParams(new FormData(form));
+            for (const [key, value] of [...params]) {
+                if (!value) params.delete(key);
+            }
+            const url = new URL(form.action, window.location.href);
+            url.search = params.toString();
+            window.location.assign(url.toString());
+        }, 0);
+    };
+    form.addEventListener('click', (event) => {
+        if (event.target.closest('[data-pwa-select-search-option]')) submit();
+    }, true);
+    form.querySelector('select[name="active"]')?.addEventListener('change', submit);
+})();
+</script>
+@endpush
