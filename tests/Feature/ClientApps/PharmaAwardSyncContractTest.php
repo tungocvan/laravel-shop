@@ -134,7 +134,9 @@ class PharmaAwardSyncContractTest extends TestCase
         }
         $this->assertStringContainsString("@section('hide-application-header', true)", $blade);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $blade);
-        $script = file_get_contents(base_path('public/demo/pharma-award/award-interactions.js'));
+        $this->assertFileDoesNotExist(base_path('public/demo/pharma-award/award-interactions.js'));
+        $this->assertStringContainsString("assets/client-portal/pharma/award-interactions.js", file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-prices.blade.php')));
+        $script = file_get_contents(base_path('public/assets/client-portal/pharma/award-interactions.js'));
         $this->assertStringContainsString('filterRows()', $script);
         $this->assertStringContainsString('visibleSelections()', $script);
         $this->assertStringContainsString('row.hidden = !matches', $script);
