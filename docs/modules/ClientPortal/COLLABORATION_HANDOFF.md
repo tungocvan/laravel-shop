@@ -1903,3 +1903,8 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Updated security contract to check actual canonical manual-lot service expiry and aggregate-stock checks; added focused shell directives to `award-price-detail.blade.php`.
 - Replaced eight raw date inputs in five Blade files (`inventory-movements`, `inventory-opening`, `medicine-editor`, `medicine-hssp`, `medicine-supplier-conditions`) with `<x-pwa-date>`; preserved field names, old values, required attributes, and existing validation messages. No domain service or database change.
 - **TEST PENDING**: rerun four focused files, then full ClientApps only on focused PASS. **UI PENDING**: inspect date fields and focused shells on mobile/desktop. No PR/merge/deploy.
+
+### 2026-11-08 — Consolidated focused-shell contract remediation
+- User ran focused shell contract and supplied the complete missing-section inventory (10 Blade files). Added only missing `hide-application-header` / `hide-mobile-navigation` sections to: `excel-config`, `import-batch`, `import`, `inventory-excel-config`, `inventory-movements`, `inventory-opening`, `medicine-editor`, `medicine-hssp`, `medicine-supplier-conditions`, `variant-create`.
+- Dashboard remains exempt; no changes to route, authorization, inventory, Excel import/export, or database logic.
+- **TEST PENDING**: focused 4 files first, then ClientApps regression. **UI PENDING**: desktop/mobile shell and forms; no merge/deploy.
