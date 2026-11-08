@@ -19,6 +19,7 @@ class KqlcntAwardPackageMetadataImportTest extends TestCase
     {
         KqlcntAwardItem::query()->create([
             'identity_key' => 'test-ib-001-vn-test-001-med-001',
+            'fingerprint' => hash('sha256', 'test-ib-001-vn-test-001-med-001'),
             'notify_no' => 'IB-TEST-001', 'contractor_code' => 'vn-test-001',
             'contractor_name' => 'Nhà thầu thử', 'medicine_code' => 'MED-TEST-001',
             'medicine_name' => 'Thuốc thử', 'contract_period' => 24,
