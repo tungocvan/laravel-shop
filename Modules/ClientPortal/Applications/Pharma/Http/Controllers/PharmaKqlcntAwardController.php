@@ -7,6 +7,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingDiagnostics;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 
@@ -61,8 +62,9 @@ final class PharmaKqlcntAwardController extends Controller
         ClientPortalSettingsService $settings,
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
+        KqlcntMappingDiagnostics $diagnostics,
     ): View {
-        return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness);
+        return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness, $diagnostics);
     }
 
     public function commercialPolicy(
@@ -71,8 +73,9 @@ final class PharmaKqlcntAwardController extends Controller
         ClientPortalSettingsService $settings,
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
+        KqlcntMappingDiagnostics $diagnostics,
     ): View {
-        return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness);
+        return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness, $diagnostics);
     }
 
     private function workflowPreview(
@@ -82,6 +85,7 @@ final class PharmaKqlcntAwardController extends Controller
         ClientPortalSettingsService $settings,
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
+        KqlcntMappingDiagnostics $diagnostics,
     ): View {
         $permission = $mode === 'allocation'
             ? 'client.pharma.bid-awards.allocate'
@@ -99,6 +103,7 @@ final class PharmaKqlcntAwardController extends Controller
             'item' => $item,
             'mode' => $mode,
             'readiness' => $readiness->forAward($awardItem),
+            'mappingDiagnostics' => $diagnostics->inspect($awardItem),
             'medicines' => $awards->medicines($awardItem),
         ]);
     }
