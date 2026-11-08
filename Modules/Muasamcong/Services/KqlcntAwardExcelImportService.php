@@ -176,8 +176,12 @@ class KqlcntAwardExcelImportService
         $batch = Cache::get($key);
         abort_unless(in_array($guard, ['admin', 'web'], true) && auth($guard)->check(), 403);
         if (! $batch || ($batch['guard'] ?? 'admin') !== $guard || $batch['user'] !== auth($guard)->id()) abort(422, 'Phiên preview hết hạn hoặc không hợp lệ.');
+        if (! empty($batch['package']['errors'])) {
+            throw ValidationException::withMessages(['file' => implode('; ', $batch['package']['errors'])]);
+        }
         $result = DB::transaction(function () use ($batch, $overwrite): array {
             $packageUpdated = 0;
+            $packageVersions = [];
             if (! empty($batch['package']['changes']) && empty($batch['package']['errors'])) {
                 $snapshot = $batch['package'];
                 $awards = KqlcntAwardItem::query()->where('notify_no', $snapshot['notify_no'])
@@ -198,6 +202,7 @@ class KqlcntAwardExcelImportService
                         $award->source = 'excel';
                         $award->last_verified_at = now();
                         $award->save();
+                        $packageVersions[$award->id] = $award->updated_at?->format('Y-m-d H:i:s.u');
                         $packageUpdated++;
                     }
                 }
@@ -206,7 +211,7 @@ class KqlcntAwardExcelImportService
             foreach ($batch['rows'] as $row) {
                 if ($row['errors'] !== [] || ($row['status'] ?? 'error') !== 'changed') { $skipped++; continue; }
                 $award = KqlcntAwardItem::query()->lockForUpdate()->find($row['id']);
-                if (! $award || $award->updated_at?->format('Y-m-d H:i:s.u') !== $row['version']) {
+                if (! $award || $award->updated_at?->format('Y-m-d H:i:s.u') !== ($packageVersions[$award->id] ?? $row['version'])) {
                     if (! $overwrite) { $skipped++; continue; }
                     // Overwrite must never bypass an identity or version mismatch.
                     $skipped++; continue;
