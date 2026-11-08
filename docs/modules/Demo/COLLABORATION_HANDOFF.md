@@ -257,3 +257,12 @@ Checkpoint: focused tests, impacted regression and UI review are pending. Do not
 - Impacted gate PENDING: Demo asset route/ownership regression, then HTTP smoke for enterprise report CSS/JS, shared sidebar CSS/JS and representative other Demo asset routes. UI PASS is user-confirmed only.
 - Production deploy is NOT authorized: source pull alone does not update the running Nginx config if image-baked. Before any web-service rebuild/recreate/reload, inspect actual mount/image delivery, get operator approval, plan rollback, and verify HTTP status/MIME + browser console. Preserve production-only overlays and `.env`.
 - No PR merge or Production mutation without separate approval.
+
+
+## Pharma award public/demo collision cleanup (2026-11-08)
+
+- Move the actively referenced Pharma award lookup JavaScript unchanged from `public/demo/pharma-award/award-interactions.js` to `public/assets/client-portal/pharma/award-interactions.js`.
+- Update ClientPortal Pharma award Blade asset URL and `PharmaAwardSyncContractTest`; assert the legacy file is absent. No business logic, authorization, database or Nginx configuration changes.
+- This was the only tracked file remaining under `public/demo`; its removal avoids Nginx directory precedence over Laravel's `/demo` Hub route on the observed host, provided no untracked files keep the directory present.
+- Focused test PENDING: `php artisan test tests/Feature/ClientApps/PharmaAwardSyncContractTest.php tests/Feature/DemoHubAndRouteOwnershipTest.php`.
+- Run ClientApps impacted regression only after focused PASS; verify Pharma award interactions and `/demo` Hub on desktop/mobile. No TEST/UI PASS claimed. No production mutation authorized.
