@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 
@@ -52,4 +53,47 @@ final class PharmaKqlcntAwardController extends Controller
             'medicines' => $medicines,
         ]);
     }
+    public function allocation(
+        int $awardItem,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        KqlcntAwardReadService $awards,
+        KqlcntWorkflowReadiness $readiness,
+    ): View {
+        return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness);
+    }
+
+    public function commercialPolicy(
+        int $awardItem,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        KqlcntAwardReadService $awards,
+        KqlcntWorkflowReadiness $readiness,
+    ): View {
+        return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness);
+    }
+
+    private function workflowPreview(
+        int $awardItem,
+        string $mode,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+        KqlcntAwardReadService $awards,
+        KqlcntWorkflowReadiness $readiness,
+    ): View {
+        $item = $awards->find($awardItem);
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        return view('ClientPortal::applications.pharma.kqlcnt-workflow-preview', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
+            'item' => $item,
+            'mode' => $mode,
+            'readiness' => $readiness->forAward($awardItem),
+            'medicines' => $awards->medicines($awardItem),
+        ]);
+    }
+
 }
