@@ -1952,3 +1952,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Regression failure: `PharmaKqlcntAwardWorkspaceContractTest::normalized_feature_is_resolved_by_key_not_associative_index` expected two normalized `firstWhere('key', 'kqlcnt-awards')` occurrences in `PharmaKqlcntAwardController`, but the new preview added a third.
 - Root cause: duplicate presentation resolution in `workflowPreview()`. Refactored detail and preview to share a private `featurePresentation()` helper, retaining the existing index lookup and normalized-key behavior; no route, authorization, data or UI change.
 - **TEST PENDING**: rerun failing focused test and preview contract, then rerun the failed Pharma/ClientPortal regression batch. Only if PASS proceed to Muasamcong impacted regression and UI acceptance. No merge/deploy.
+
+### 2026-11-08 — KQLCNT Phase 2 Batch D1/D2 mapping evidence checkpoint
+- UI observation: KQLCNT group 22 shows `requires_mapping`, 0/1 canonical lines linked; this is evidence of a missing *direct* `source_type=muasamcong, source_id=canonical_line_id` association, not proof that a Pharma record is absent.
+- Added read-only `KqlcntMappingDiagnostics`: per-canonical-line direct-link classification, conflicting identity checks, and candidate counts restricted to TBMT + contractor + medicine name. Candidate counts are **not proof** of equivalence and must never authorize writes.
+- Tightened `KqlcntCanonicalProductScope` and `KqlcntWorkflowReadiness` to also compare contractor name when contractor code is blank; prevents same-TBMT identity collision.
+- Read-only previews show reconciliation evidence. No automatic `updateOrCreate`, migrations, link writes, allocations or policies were enabled. Existing Bid Awards remains intact.
+- D2 persistence is **blocked pending audit** of actual Pharma sync/provenance services, `pharma_drug_bid_award_sources` identity keys, uniqueness constraints and existing records. Do not backfill based on name-only candidates; propose an explicit verified mapping/approval flow before any mutation.
+- Focused tests pending: `PharmaKqlcntMappingDiagnosticsContractTest`, `PharmaKqlcntCanonicalProductScopeTest`, `PharmaKqlcntCanonicalWorkflowReadinessContractTest`, `PharmaKqlcntWorkflowPreviewContractTest`. After PASS run Pharma/ClientPortal regression. UI PASS pending. No merge/deploy.
