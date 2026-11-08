@@ -1,3 +1,11 @@
+## 2026-11-08 — KQLCNT live filters checkpoint
+
+- User requested automatic filtering on TBMT/investor/medicine combobox option selection or status change; removed manual submit button.
+- Page-specific event capture listens to shared PWA selector option clicks, defers navigation until the shared selector has updated its hidden input; preserves all selected filters and drops empty query parameters. No global PWA component change.
+- Red 'Xóa lọc' link is rendered only when a supported filter is applied. Focused contract updated; TEST PENDING and UI PENDING (especially shared PWA selection event ordering and browser back navigation). No merge/deploy.
+
+---
+
 ## 2026-11-08 — KQLCNT compact filter layout
 
 - Removed redundant free-text contractor/TBMT/investor search control from visible workspace; retained canonical selectors for TBMT, investor, medicine and status.
