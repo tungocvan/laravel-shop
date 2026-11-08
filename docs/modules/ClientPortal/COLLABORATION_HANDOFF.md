@@ -1917,3 +1917,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - This was the only tracked file remaining under `public/demo`; its removal avoids Nginx directory precedence over Laravel's `/demo` Hub route on the observed host, provided no untracked files keep the directory present.
 - Focused test PENDING: `php artisan test tests/Feature/ClientApps/PharmaAwardSyncContractTest.php tests/Feature/DemoHubAndRouteOwnershipTest.php`.
 - Run ClientApps impacted regression only after focused PASS; verify Pharma award interactions and `/demo` Hub on desktop/mobile. No TEST/UI PASS claimed. No production mutation authorized.
+
+### 2026-11-08 — PWA application Bottom Navigation missing icon save fix
+- Root cause: Admin application navigation form uses radio icon choices; a saved/manifest icon outside the static choices has no checked radio and the browser omits `items.*.bottom_icon`. The controller previously required this field for every item, including disabled mobile shortcuts.
+- Controller now validates optional submitted icons (string, max 60) and falls back to the existing application navigation presentation icon, then the manifest default, when the radio value is missing/empty. Explicitly selected icons still override. Visibility remains presentation-only; routes and permissions unchanged.
+- Admin Blade now includes the current icon in each item's selectable radio choices when absent from the standard palette; valid current selection is checked. Existing `$navPresentation['bottom_icon']` syntax on main was already correct.
+- Added focused controller regression tests for disabled item with missing icon, missing default icon, re-enable with explicit icon, and oversized icon rejection.
+- **TEST PENDING**: `php artisan test tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php`. After focused PASS, run `php artisan test tests/Feature/ClientApps/ClientAdaptiveNavigationTest.php` and impacted ClientApps regression if needed. **UI PENDING**: Admin Pharma navigation save/reload, disable/re-enable on mobile, selected icon persistence; user confirmation required. No PR, merge or production deploy authorized.
