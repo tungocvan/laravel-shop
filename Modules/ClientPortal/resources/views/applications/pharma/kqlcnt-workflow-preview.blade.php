@@ -22,6 +22,21 @@
         <p class="mt-2 text-xs text-amber-900">Trạng thái liên kết: {{ $readiness['status'] }} · {{ $readiness['linked_count'] }}/{{ $readiness['canonical_count'] }} dòng. Chỉ kích hoạt nghiệp vụ ghi khi hồ sơ KQLCNT khớp chính xác phạm vi Bid Awards.</p>
     </section>
 
+    @if($mode === 'allocation' && $canConfirmMapping)
+        <section class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+            <h2 class="font-black text-emerald-950">Xác nhận liên kết sản phẩm KQLCNT → Pharma</h2>
+            <p class="mt-2 text-sm text-emerald-900">Đã tìm thấy tập sản phẩm Pharma duy nhất, khớp TBMT, nhà thầu, tên thuốc, số lượng và giá trúng thầu. Việc xác nhận sẽ gắn nguồn KQLCNT cho các bản ghi Pharma thủ công chưa liên kết, không tạo thêm sản phẩm.</p>
+            <form method="POST" action="{{ route('client.pharma.kqlcnt-awards.mapping.confirm', $item->id) }}" class="mt-4 space-y-3">
+                @csrf
+                <label class="flex items-start gap-2 text-sm text-emerald-950">
+                    <input type="checkbox" required name="acknowledge" value="1" class="mt-1 rounded border-emerald-400" />
+                    Tôi đã kiểm tra thông tin hồ sơ và đồng ý xác nhận liên kết nguồn dữ liệu.
+                </label>
+                <button type="submit" class="min-h-11 rounded-xl bg-emerald-800 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-900">Xác nhận liên kết và mở phân bổ</button>
+            </form>
+        </section>
+    @endif
+
     @if($mode === 'allocation')
         <details class="rounded-[24px] border border-indigo-200 bg-white shadow-sm" open>
             <summary class="flex min-h-16 cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5">
