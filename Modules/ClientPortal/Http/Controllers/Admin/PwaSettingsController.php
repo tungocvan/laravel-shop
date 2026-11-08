@@ -166,11 +166,11 @@ class PwaSettingsController extends Controller
             $defaultIcon = $navigation->get($item['key'])['icon'] ?? 'squares-2x2';
             $savedIcon = $presentation->get($item['key'])['bottom_icon'] ?? $defaultIcon;
             return [
-            'key' => $item['key'],
-            'bottom_enabled' => (bool) $item['bottom_enabled'],
-            'bottom_sort_order' => (int) $item['bottom_sort_order'],
-            'bottom_icon' => trim((string) ($item['bottom_icon'] ?? '')) ?: (trim((string) $savedIcon) ?: $defaultIcon),
-            'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
+                'key' => $item['key'],
+                'bottom_enabled' => (bool) $item['bottom_enabled'],
+                'bottom_sort_order' => (int) $item['bottom_sort_order'],
+                'bottom_icon' => trim((string) ($item['bottom_icon'] ?? '')) ?: (trim((string) $savedIcon) ?: $defaultIcon),
+                'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
             ];
         })->values()->all();
         $settings->updateApplicationNavigationPresentation($manifest['key'], ['items' => $items], $request->user('admin')?->getAuthIdentifier());
