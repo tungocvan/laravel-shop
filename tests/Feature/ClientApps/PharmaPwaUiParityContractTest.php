@@ -440,6 +440,7 @@ class PharmaPwaUiParityContractTest extends TestCase
 
         $this->assertNotEmpty($views);
 
+        $missing = [];
         foreach ($views as $view) {
             $name = basename($view);
             $source = file_get_contents($view);
@@ -450,11 +451,15 @@ class PharmaPwaUiParityContractTest extends TestCase
                 continue;
             }
 
-            $this->assertStringContainsString("@section('hide-application-header'", $source, $name);
-            $this->assertStringContainsString("@section('hide-mobile-navigation'", $source, $name);
+            foreach (['hide-application-header', 'hide-mobile-navigation'] as $section) {
+                if (! str_contains($source, "@section('".$section."'")) {
+                    $missing[$name][] = $section;
+                }
+            }
         }
-    }
 
+        $this->assertSame([], $missing, 'Pharma Blade views missing focused shell sections: '.json_encode($missing, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    }
 
     public function test_pharma_browse_surfaces_use_progressive_loading_contract(): void
     {
