@@ -59,6 +59,33 @@ final class KqlcntLegacyWorkflowBridge
      *
      * @return list<int>
      */
+    /**
+     * Returns an exact, unique legacy product set suitable for an explicit
+     * human-reviewed mapping action. Never returns candidates by name alone.
+     *
+     * @return list<int>
+     */
+    public function verifiedMappingCandidateIds(int $awardItemId): array
+    {
+        $ids = $this->verifiedExistingProductIds($awardItemId);
+        if ($ids === []) {
+            return [];
+        }
+
+        $award = DrugBidAward::query()->find($ids[0]);
+        if ($award === null) {
+            return [];
+        }
+
+        $legacyIds = $this->groups->awardsQuery($award)
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        sort($ids);
+        sort($legacyIds);
+
+        return $ids === $legacyIds ? $ids : [];
+    }
+
     private function verifiedExistingProductIds(int $awardItemId): array
     {
         $lines = $this->canonical->medicines($awardItemId);
