@@ -50,7 +50,7 @@ final class PharmaKqlcntAwardController extends Controller
         return view('ClientPortal::applications.pharma.kqlcnt-award-detail', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
+            'presentation' => $this->featurePresentation($settings, $application),
             'item' => $item,
             'medicines' => $medicines,
         ]);
@@ -95,12 +95,23 @@ final class PharmaKqlcntAwardController extends Controller
         return view('ClientPortal::applications.pharma.kqlcnt-workflow-preview', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
+            'presentation' => $this->featurePresentation($settings, $application),
             'item' => $item,
             'mode' => $mode,
             'readiness' => $readiness->forAward($awardItem),
             'medicines' => $awards->medicines($awardItem),
         ]);
+    }
+
+    /**
+     * Shared managed feature presentation for detail and workflow previews.
+     * Keep the normalized feature lookup in one place.
+     */
+    private function featurePresentation(ClientPortalSettingsService $settings, array $application): array
+    {
+        $feature = collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404);
+
+        return $settings->featurePresentation('pharma', $feature);
     }
 
 }
