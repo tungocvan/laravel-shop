@@ -200,7 +200,9 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertNotFalse($allocationHero);
         $this->assertStringContainsString('partials.bid-award-workflow-hero', $allocation);
         $this->assertStringContainsString('aria-label="Quay lại kết quả trúng thầu"', $allocationHero);
-        $this->assertStringContainsString("route('client.pharma.bid-awards.show',\$scope)", $allocation);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.show', \$scope)", $allocation);
+        $this->assertStringContainsString("'backUrl' => route('client.pharma.bid-awards.show', \$scope)", $allocation);
+        $this->assertStringContainsString('href="{{ $backUrl }}"', $allocationHero);
         $this->assertStringContainsString('① Phạm vi & hiệu lực', $allocation);
         $this->assertStringContainsString('② Chọn cơ sở KCB', $allocation);
         $this->assertStringContainsString('③ Kiểm tra & lưu', $allocation);
