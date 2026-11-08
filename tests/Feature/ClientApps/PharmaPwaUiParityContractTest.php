@@ -348,7 +348,7 @@ class PharmaPwaUiParityContractTest extends TestCase
             $view = file_get_contents($path);
             $name = basename($path);
 
-            $this->assertStringNotContainsString('type="date"', $view, $name.' must use <x-pwa-date>');
+            $this->assertStringNotContainsString('type="date"', $view, 'Offending Blade: '.$name.' must use <x-pwa-date>');
             $this->assertStringNotContainsString('data-date-native=', $view, $name.' must not restore date overlays');
             $this->assertStringNotContainsString('data-date-display=', $view, $name.' must not restore date overlays');
             $this->assertStringNotContainsString('data-filter-date-native=', $view, $name.' must not restore filter date overlays');
