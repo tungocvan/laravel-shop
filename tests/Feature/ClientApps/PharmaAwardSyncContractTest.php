@@ -143,7 +143,7 @@ class PharmaAwardSyncContractTest extends TestCase
         $this->assertStringContainsString("row.style.display = matches ? '' : 'none'", $script);
         $this->assertStringContainsString('data.group === selectedGroup', $script);
         $this->assertStringContainsString('row.closest(\'tr\')?.style.display', $script);
-        $this->assertStringContainsString('v=20261107-2', $blade);
+        $this->assertStringContainsString('v=20261108-1', $blade);
         $this->assertStringContainsString('normalizedGroup', $blade);
         $this->assertStringContainsString('preg_match(', $blade);
         $this->assertStringContainsString('row.checked', $script);
