@@ -2,6 +2,8 @@
 @section('title', 'Xác nhận đồng bộ thuốc trúng thầu')
 @section('app-name', 'Pharma')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 <div class="mx-auto max-w-5xl space-y-5">
     <section class="rounded-3xl bg-slate-950 p-6 text-white">
