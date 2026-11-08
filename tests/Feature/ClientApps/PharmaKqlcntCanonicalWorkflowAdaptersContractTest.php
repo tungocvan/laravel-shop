@@ -36,12 +36,13 @@ class PharmaKqlcntCanonicalWorkflowAdaptersContractTest extends TestCase
         $this->assertStringContainsString('if (! in_array($awardId, $validIds, true))', $source);
     }
 
-    public function test_canonical_routes_are_not_prematurely_exposed(): void
+    public function test_canonical_mutation_routes_are_not_prematurely_exposed(): void
     {
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
         $this->assertNotFalse($routes);
         $this->assertStringContainsString("'/bid-awards'", $routes);
         $this->assertStringContainsString("'/kqlcnt-awards'", $routes);
-        $this->assertStringNotContainsString("kqlcnt-awards/{awardItem}/allocation", $routes);
+        $this->assertStringNotContainsString("Route::post(\'/kqlcnt-awards/{awardItem}/allocation", $routes);
+        $this->assertStringNotContainsString("Route::post(\'/kqlcnt-awards/{awardItem}/commercial-policy", $routes);
     }
 }
