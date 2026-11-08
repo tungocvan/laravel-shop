@@ -71,7 +71,6 @@
                     <option value="0" @selected(($filters['active'] ?? '') === '0')>Không hoạt động</option>
                 </select>
             </label>
-            <x-pwa-search name="search" :value="$filters['search'] ?? ''" label="Tìm nhà thầu / TBMT / Chủ đầu tư" placeholder="Nhập từ khóa..." />
         </div>
         <div class="mt-4 flex flex-wrap items-center gap-2">
             <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Lọc hồ sơ</button>
