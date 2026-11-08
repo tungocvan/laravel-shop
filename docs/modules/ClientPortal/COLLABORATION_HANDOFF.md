@@ -1,3 +1,67 @@
+## 2026-11-08 — KQLCNT inline clear filter UX checkpoint
+
+- Narrowed TBMT combobox to 11rem on wide desktop, preserved flexible widths for investor and medicine, and fixed status width to 11rem.
+- Conditional red 'Xóa lọc' now occupies the same flex row as four selectors on wide desktop, rather than creating an extra row; mobile/tablet continue responsive wrapping.
+- Updated focused layout contract. TEST PENDING / UI PENDING. No merge or deployment.
+
+---
+
+## 2026-11-08 — KQLCNT live filters checkpoint
+
+- User requested automatic filtering on TBMT/investor/medicine combobox option selection or status change; removed manual submit button.
+- Page-specific event capture listens to shared PWA selector option clicks, defers navigation until the shared selector has updated its hidden input; preserves all selected filters and drops empty query parameters. No global PWA component change.
+- Red 'Xóa lọc' link is rendered only when a supported filter is applied. Focused contract updated; TEST PENDING and UI PENDING (especially shared PWA selection event ordering and browser back navigation). No merge/deploy.
+
+---
+
+## 2026-11-08 — KQLCNT compact filter layout
+
+- Removed redundant free-text contractor/TBMT/investor search control from visible workspace; retained canonical selectors for TBMT, investor, medicine and status.
+- Responsive layout: single column mobile, two columns tablet, one compact 12-column grid on wide desktop (TBMT 3 / investor 4 / medicine 3 / status 2). Actions remain below the controls. Existing query search support is preserved for backward compatibility, but no free-text input is shown.
+- Focused contract updated. TEST PENDING, UI PENDING. No merge/deploy.
+
+---
+
+## 2026-11-08 — KQLCNT selector UI fix checkpoint
+
+- User screenshot showed custom Alpine combobox dropdowns obscuring adjacent inputs; replaced both with canonical shared `<x-pwa-select-search>` and converted medicine selection to the same component.
+- Medicine choices are read from distinct canonical `medicine_name` values; canonical medicine/ingredient search service is preserved. Current dropdown choices represent medicine names, not a separate active-ingredient list.
+- `Xóa lọc` receives red visual treatment when a query filter is applied. Filter status and dashboard semantics unchanged.
+- Focused test extended to require three shared selectors. **TEST PENDING / UI PENDING**; verify shared JS dropdown selection, filter results, mobile scroll/overlay, and clear behavior before accepting. No full-module suite, PR, merge or production changes.
+
+---
+
+## 2026-11-08 — KQLCNT dashboard + searchable filters checkpoint
+
+- User UI screenshots identified literal `@filled` rendering, text-only filters instead of Admin-like searchable combobox, and missing dashboard.
+- Added searchable Alpine combobox for TBMT and investor, with selected code submitted to canonical Muasamcong read service; kept free-text contractor and medicine/ingredient searches and status filter.
+- Added four aggregate dashboard metrics: all TBMT+contractor records, fully active records, total awarded value and fully active value. **These are is_active data flags, NOT legally verified contract validity.** No contract expiration claim without trustworthy dates.
+- Replaced unsupported Blade `@filled` directive with `@if(filled(...))`. Expanded focused contract assertions.
+- Await local focused tests and real browser UI verification. No full-module regression, merge or production operations at this checkpoint.
+
+---
+
+## 2026-11-08 — Pharma KQLCNT grouped TBMT UX checkpoint
+
+- User approved TBMT-first listing: group by TBMT + contractor code/name, avoiding collapse of distinct contractors; detail shows all medicine lines of the selected group.
+- Canonical Muasamcong read service now supports contractor/investor/TBMT search, medicine name/active ingredient group discovery, whole-group active status, group amount and item counts, and contract period summary. No schema or canonical write changes.
+- ClientPortal Blade uses a reusable `<x-pwa-search>` component, compact managed header, TBMT cards with contractor, investor, total amount, medicine count, contract period, status and detail link. Detail lists full medicines.
+- Amount derives from canonical `amount` or quantity × winning_price fallback, summed per group. Status is 'mixed' when constituent medicine records differ. Missing duration/investor values show 'Chưa cập nhật'. Per-group contract-period values are a summary from the canonical records and must be verified with representative real data during UI acceptance.
+- Focused contract test extended; **TEST PENDING** on latest commit; **UI PENDING** desktop/iPhone. No full module regression required at this batch. Do not merge/deploy before acceptance.
+- Remaining feature work (separate batches): export/import preview-confirm/edit with independent web permissions and PWA file handoff.
+
+---
+
+## 2026-11-08 — Pharma KQLCNT workspace, batch 1 checkpoint
+
+- Branch `feat/client-pharma-kqlcnt-awards-20261108` created from main `b1a02707e33877811688efbc9ad9ef81f7620d5f`.
+- Added separate web-guard feature `client.pharma.kqlcnt-awards.view`, Pharma manifest navigation and configurable feature copy, protected list/detail routes, responsive read-only Blade and canonical Muasamcong read service.
+- Intentionally not enabled: import, export, edit mutations. Action permission declarations are reserved for subsequent batches; no buttons or routes imply functionality that has not been implemented.
+- No data migration, no production operations. Pending local focused tests, ClientPortal and Muasamcong impacted regression, mobile UI acceptance.
+- Next batches: shared Muasamcong Excel export and guarded import preview/confirm, PWA external-file handoff, edit capability with web permissions and tests; ensure existing Admin contracts remain unchanged.
+
+---
+
 ## PR #364 pre-merge acceptance — 2026-11-07
 
 - User confirmed both focused and impacted regression layers PASS after PR review copy update; user also confirmed updated Wishlist UI PASS. Earlier 40 tests / 373 assertions PASS.
@@ -1796,3 +1860,33 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Local application logs show HTTP 200 JSON with 17 total/15 page-one rows and eligible CAPTCHA cookies, followed by `Undefined array key "first_page"` in `InvoicesApplicationController::submitPosCaptcha()` at line 270/275. This is a ClientPortal adapter bug, **not evidence of incorrect CAPTCHA**.
 - `GdtInvoiceService::takePosFirstPage()` returns a snapshot keyed `rows`, `cursor`, `total`, `cookies`; Admin Livewire already consumes `$snapshot['rows']`. ClientPortal preview and sync page-two continuation both incorrectly used `first_page`. Corrected both to `rows`; the encrypted continuation storage contract remains unchanged.
 - Added assertions in `InvoicesPosPwaContinuationContractTest` for both callers. **Focused tests/UI not yet run after this fix.** Next: ClientPortal focused tests, then POS impacted tests; manual 17-row page-two CAPTCHA. Do not merge/deploy before user confirms.
+
+
+### 2026-11-08 — Client Pharma KQLCNT Excel Import/Export checkpoint
+- Branch: `feat/client-pharma-kqlcnt-awards-20261108`; scope: ClientPortal Excel UI/controller/routes + Muasamcong import guard isolation.
+- Added template download (same Admin 3-sheet export), per TBMT/contractor workbook export (same canonical workbook class), import preview with row/field comparison and explicit confirm.
+- Server-side actions require `client.pharma.kqlcnt-awards.import` or `client.pharma.kqlcnt-awards.export` via `ApplicationRegistry::userCan`; viewing the page alone does not authorize mutations/downloads.
+- `KqlcntAwardExcelImportService::preview/confirm` now accept optional guard (`admin` default for backward compatibility, `web` for ClientPortal); cached preview is bound to guard and user ID. No automatic new canonical medicine creation; existing optimistic-lock and validation remain.
+- Installed-PWA Excel handoff uses authenticated fetch and explicit second-tap Web Share; normal browser uses native download. iOS/Android PWA manual acceptance pending.
+- Tests PENDING: `tests/Feature/ClientApps/PharmaKqlcntAwardExcelContractTest.php`, existing `PharmaKqlcntAwardWorkspaceContractTest.php`, impacted `tests/Feature/Muasamcong/KqlcntAwardExcelRoundtripTest.php`.
+- UI PENDING; no PR/merge/deploy. Preserve all untracked and production files.
+
+### 2026-11-08 — KQLCNT Sheet 1 package metadata import checkpoint
+- Root cause: V2 import previously only matched package scope; explicitly copied canonical metadata into medicine rows, so changes to contract period in Sheet 1 were ignored.
+- Added shared package metadata preview (TBMT + one contractor) with before/after values, validation, consistency checks across canonical medicine rows, snapshot of row IDs and versions, and atomic package update on confirm. Medicine changes remain separately scoped to 19 fields. Date formats normalized before write. Both Admin and ClientPortal previews show package diffs; package-only change can be confirmed.
+- Security: guard/user preview ownership remains in place; package errors block confirm; optimistic concurrency checks run under transaction with row locks. No new canonical medicines are created.
+- Focused tests added in `tests/Feature/Muasamcong/KqlcntAwardPackageMetadataImportTest.php`; adjusted Admin preview contract. TEST PENDING / UI PENDING. Confirm 24→12 months, medicine quantity update, simultaneous changes, stale preview rejection, and no cross-contractor update.
+- Checkpoint only; no PR, main merge or production deploy.
+
+### 2026-11-08 — KQLCNT contract duration display follow-up
+- User confirmed focused tests PASS but ClientPortal still displayed the old contract duration after Excel import.
+- Read-only audit found list/detail Blade favored `contract_period_text` over `contract_period`; the former is a distinct legacy package-description field and may remain unchanged when contractor duration is updated.
+- List and detail now prioritize non-null canonical `contract_period` plus `contract_period_unit`, falling back to `contract_period_text` only if the numeric period is absent. Added regression contract assertions.
+- Checkpoint TEST PENDING for this UI fix; user must confirm UI PASS after re-export and reload. No production changes or merge.
+
+## 2026-11-08 — KQLCNT merge readiness checkpoint
+- User confirmed focused tests PASS and KQLCNT UI PASS, including contract duration import/display.
+- User executed `php artisan test tests/Feature/Muasamcong`: **72 passed (618 assertions), 8.49s**.
+- User executed `php artisan test tests/Feature/ClientApps`: **320 passed, 8 failed (4588 assertions)**. The exact same eight failures were reproduced on the up-to-date `main` with the four failing test files (**32 passed, 8 failed; 605 assertions**); treat as **documented baseline failures, not a ClientApps PASS**. Failures concern legacy Bid/Orders string assertions, stale Pharma feature enumeration, and PWA UI parity contracts.
+- Feature diff against main: 16 changed files, ahead 72, behind 0 at checkpoint. No evidence the eight baseline failures originate in this branch. Keep follow-up remediation separate; do not change UI/business behavior solely to satisfy string-based contracts.
+- No full-project suite executed (module-scoped regression strategy). PR review/CI and tracked working-tree gate still required before merge. No production deploy authorized.

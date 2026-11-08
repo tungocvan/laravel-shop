@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaApplicationController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaKqlcntAwardController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaKqlcntAwardExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaLookupWishlistController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaWishlistMedicineSyncController;
@@ -77,6 +79,19 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::get('/gmp/{sourceId}', [PharmaGmpLookupController::class, 'show'])
             ->whereNumber('sourceId')
             ->middleware('client.feature:pharma,gmp')->name('gmp.show');
+
+        Route::get('/kqlcnt-awards', [PharmaKqlcntAwardController::class, 'index'])
+            ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.index');
+        Route::get('/kqlcnt-awards/import/template', [PharmaKqlcntAwardExcelController::class, 'template'])
+            ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.template');
+        Route::post('/kqlcnt-awards/import/preview', [PharmaKqlcntAwardExcelController::class, 'preview'])
+            ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.preview');
+        Route::post('/kqlcnt-awards/import/confirm', [PharmaKqlcntAwardExcelController::class, 'confirm'])
+            ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.confirm');
+        Route::post('/kqlcnt-awards/export', [PharmaKqlcntAwardExcelController::class, 'export'])
+            ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.export');
+        Route::get('/kqlcnt-awards/{awardItem}', [PharmaKqlcntAwardController::class, 'show'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.show');
 
         Route::get('/award-prices', [PharmaAwardPriceController::class, 'index'])
             ->middleware('client.feature:pharma,award-prices')->name('award-prices');

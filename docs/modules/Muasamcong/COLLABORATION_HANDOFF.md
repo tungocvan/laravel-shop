@@ -299,3 +299,10 @@ The branch is ready to open against `main`. User has accepted the latest focused
 - Added permission-protected GET route `muasamcong.kqlcnt-awards.import.template` and `KqlcntAwardImportTemplateExport`: guidance, package/contractor information, and exactly 19 medicine columns. Guidance sheet is ignored by existing import preview parser.
 - Added focused tests for template contract and collapsed UI. **Focused tests PENDING; module regression PENDING; UI PASS PENDING user confirmation.** No PR/merge/deploy.
 - Existing V2 limitation remains: unmatched medicines cannot be created; Sheet 1 metadata changes not persisted. Do not interpret template as enabling creation.
+
+## 2026-11-08 — KQLCNT merge readiness checkpoint
+- User confirmed focused tests PASS and KQLCNT UI PASS, including contract duration import/display.
+- User executed `php artisan test tests/Feature/Muasamcong`: **72 passed (618 assertions), 8.49s**.
+- User executed `php artisan test tests/Feature/ClientApps`: **320 passed, 8 failed (4588 assertions)**. The exact same eight failures were reproduced on the up-to-date `main` with the four failing test files (**32 passed, 8 failed; 605 assertions**); treat as **documented baseline failures, not a ClientApps PASS**. Failures concern legacy Bid/Orders string assertions, stale Pharma feature enumeration, and PWA UI parity contracts.
+- Feature diff against main: 16 changed files, ahead 72, behind 0 at checkpoint. No evidence the eight baseline failures originate in this branch. Keep follow-up remediation separate; do not change UI/business behavior solely to satisfy string-based contracts.
+- No full-project suite executed (module-scoped regression strategy). PR review/CI and tracked working-tree gate still required before merge. No production deploy authorized.

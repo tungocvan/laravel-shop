@@ -1,6 +1,26 @@
 @extends('Admin::layouts.master')
 @section('title', 'Đối chiếu Import Excel KQLCNT')
 @section('content')
+    @if(!empty($preview['package']))
+    <section class="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 sm:p-5">
+        <h2 class="text-base font-bold text-slate-950">Thay đổi thông tin trúng thầu (Sheet 1)</h2>
+        <p class="mt-1 text-sm text-slate-600">Áp dụng đồng nhất cho các dòng thuốc thuộc đúng TBMT và nhà thầu đã chọn.</p>
+        @foreach($preview['package']['errors'] as $error)
+            <p role="alert" class="mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ $error }}</p>
+        @endforeach
+        @if(count($preview['package']['comparison']) > 0)
+            <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table class="min-w-full text-left text-sm"><thead class="bg-slate-100"><tr><th class="p-3">Thông tin</th><th class="p-3">Hiện tại</th><th class="p-3">Sau Import</th></tr></thead><tbody>
+                @foreach($preview['package']['comparison'] as $change)
+                    <tr class="border-t border-slate-100"><th class="p-3">{{ $change['label'] }}</th><td class="p-3">{{ $change['current'] ?? '—' }}</td><td class="p-3 font-semibold text-indigo-800">{{ $change['incoming'] ?? '—' }}</td></tr>
+                @endforeach
+                </tbody></table>
+            </div>
+        @else
+            <p class="mt-2 text-sm text-slate-600">Không có thay đổi thông tin hợp đồng.</p>
+        @endif
+    </section>
+    @endif
 <div class="space-y-5 p-3 md:p-6" x-data="{ search: '', filter: 'actionable', showAllFields: false }">
     <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
@@ -106,7 +126,7 @@
             @csrf
             <input type="hidden" name="token" value="{{ $preview['token'] }}">
             <a href="{{ route('muasamcong.kqlcnt-awards.index') }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700">Hủy</a>
-            <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50" @disabled($preview['valid'] === 0)>Xác nhận cập nhật {{ $preview['valid'] }} dòng</button>
+            <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50" @disabled(($preview['valid'] === 0 && empty($preview['package']['changes'])) || !empty($preview['package']['errors']))>Xác nhận cập nhật {{ $preview['valid'] }} dòng</button>
         </form>
     </div>
 </div>

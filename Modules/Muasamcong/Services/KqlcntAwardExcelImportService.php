@@ -28,6 +28,20 @@ class KqlcntAwardExcelImportService
         'effect_frame_period' => 'Thời hạn hiệu lực',
     ];
 
+    private const PACKAGE_FIELDS = [
+        'decision_no' => 'Số quyết định KQLCNT',
+        'decision_date' => 'Ngày quyết định',
+        'published_at' => 'Ngày đăng KQLCNT',
+        'investor_code' => 'Mã chủ đầu tư',
+        'investor_name' => 'Chủ đầu tư',
+        'contract_period_text' => 'Thời gian thực hiện gói thầu',
+        'effect_frame_period' => 'Thời hạn hiệu lực',
+        'contractor_name' => 'Tên nhà thầu',
+        'contract_no' => 'Số hợp đồng',
+        'contract_period' => 'Thời gian thực hiện',
+        'contract_period_unit' => 'Đơn vị thời gian',
+    ];
+
     private const MEDICINE_FIELDS = [
         'lot_no', 'lot_name', 'medicine_code', 'medicine_name', 'drug_group',
         'active_ingredient', 'concentration', 'route', 'dosage_form', 'packaging_spec',
@@ -35,7 +49,7 @@ class KqlcntAwardExcelImportService
         'price_plan', 'winning_price', 'amount', 'manufacturer', 'country',
     ];
 
-    public function preview(UploadedFile $file): array
+    public function preview(UploadedFile $file, string $guard = 'admin'): array
     {
         $workbook = IOFactory::load($file->getRealPath());
         $sheet = $workbook->getSheetByName('Danh_muc_trung_thau');
@@ -140,28 +154,71 @@ class KqlcntAwardExcelImportService
             ];
         }
         if ($rows === []) throw ValidationException::withMessages(['file' => 'File không có dữ liệu.']);
+        $package = $isV2 ? $this->previewPackageChanges($scope) : null;
         $token = bin2hex(random_bytes(24));
-        Cache::put($this->cacheKey($token), ['user' => auth('admin')->id(), 'rows' => $rows], now()->addMinutes(20));
+        // Legacy Admin parsing tests call preview() without an authenticated request.
+        // ClientPortal must always authenticate before creating a web-owned preview.
+        abort_unless(in_array($guard, ['admin', 'web'], true), 403);
+        if ($guard === 'web') abort_unless(auth('web')->check(), 403);
+        Cache::put($this->cacheKey($token), ['guard' => $guard, 'user' => auth($guard)->id(), 'rows' => $rows, 'package' => $package], now()->addMinutes(20));
         return [
             'token' => $token, 'rows' => $rows,
             'valid' => collect($rows)->where('status', 'changed')->count(),
             'unchanged' => collect($rows)->where('status', 'unchanged')->count(),
             'errors' => collect($rows)->where('status', 'error')->count(),
-            'total' => count($rows), 'labels' => self::FIELDS,
+            'total' => count($rows), 'labels' => self::FIELDS, 'package' => $package,
         ];
     }
 
-    public function confirm(string $token, bool $overwrite = false): array
+    public function confirm(string $token, bool $overwrite = false, string $guard = 'admin'): array
     {
         $key = $this->cacheKey($token);
         $batch = Cache::get($key);
-        if (! $batch || $batch['user'] !== auth('admin')->id()) abort(422, 'Phiên preview hết hạn hoặc không hợp lệ.');
+        abort_unless(in_array($guard, ['admin', 'web'], true) && auth($guard)->check(), 403);
+        if (! $batch || ($batch['guard'] ?? 'admin') !== $guard || $batch['user'] !== auth($guard)->id()) abort(422, 'Phiên preview hết hạn hoặc không hợp lệ.');
+        if (! empty($batch['package']['errors'])) {
+            throw ValidationException::withMessages(['file' => implode('; ', $batch['package']['errors'])]);
+        }
         $result = DB::transaction(function () use ($batch, $overwrite): array {
+            $packageUpdated = 0;
+            $packageVersions = [];
+            if (! empty($batch['package']['changes']) && empty($batch['package']['errors'])) {
+                $snapshot = $batch['package'];
+                $awards = KqlcntAwardItem::query()->where('notify_no', $snapshot['notify_no'])
+                    ->where('contractor_code', $snapshot['contractor_code'])
+                    ->whereNotNull('synced_from_catalog_at')->orderBy('id')->lockForUpdate()->get();
+                if ($awards->count() !== count($snapshot['versions'])
+                    || $awards->pluck('id')->all() !== array_keys($snapshot['versions'])) {
+                    throw ValidationException::withMessages(['file' => 'Hồ sơ đã thay đổi sau khi xem trước. Hãy tải lại Excel.']);
+                }
+                foreach ($awards as $award) {
+                    if ($award->updated_at?->format('Y-m-d H:i:s.u') !== $snapshot['versions'][$award->id]) {
+                        throw ValidationException::withMessages(['file' => 'Hồ sơ đã thay đổi sau khi xem trước. Hãy tải lại Excel.']);
+                    }
+                }
+                $packageFields = $snapshot['changes'];
+                foreach (['decision_date' => 'd/m/Y', 'published_at' => 'd/m/Y H:i'] as $field => $format) {
+                    if (array_key_exists($field, $packageFields) && $packageFields[$field] !== null) {
+                        $packageFields[$field] = \Carbon\Carbon::createFromFormat($format, $packageFields[$field])
+                            ->format($field === 'decision_date' ? 'Y-m-d' : 'Y-m-d H:i:s');
+                    }
+                }
+                foreach ($awards as $award) {
+                    $award->fill($packageFields);
+                    if ($award->isDirty()) {
+                        $award->source = 'excel';
+                        $award->last_verified_at = now();
+                        $award->save();
+                        $packageVersions[$award->id] = $award->updated_at?->format('Y-m-d H:i:s.u');
+                        $packageUpdated++;
+                    }
+                }
+            }
             $updated = 0; $skipped = 0;
             foreach ($batch['rows'] as $row) {
                 if ($row['errors'] !== [] || ($row['status'] ?? 'error') !== 'changed') { $skipped++; continue; }
                 $award = KqlcntAwardItem::query()->lockForUpdate()->find($row['id']);
-                if (! $award || $award->updated_at?->format('Y-m-d H:i:s.u') !== $row['version']) {
+                if (! $award || $award->updated_at?->format('Y-m-d H:i:s.u') !== ($packageVersions[$award->id] ?? $row['version'])) {
                     if (! $overwrite) { $skipped++; continue; }
                     // Overwrite must never bypass an identity or version mismatch.
                     $skipped++; continue;
@@ -195,7 +252,7 @@ class KqlcntAwardExcelImportService
                 $award->save();
                 $updated++;
             }
-            return ['updated' => $updated, 'created' => 0, 'skipped' => $skipped];
+            return ['updated' => $updated, 'created' => 0, 'skipped' => $skipped, 'package_updated' => $packageUpdated];
         });
         Cache::forget($key);
         return $result;
@@ -230,7 +287,72 @@ class KqlcntAwardExcelImportService
         if (count($contractors) !== count(array_unique($contractors))) {
             throw ValidationException::withMessages(['file' => 'Sheet 1 có mã nhà thầu trùng nhau.']);
         }
-        return ['notify_no' => $notifyNo, 'contractors' => $contractors];
+        $values = [];
+        $contractorDetails = null;
+        foreach (array_slice($rows, 1) as $row) {
+            $key = trim((string) ($row[0] ?? ''));
+            if (array_key_exists($key, array_flip(array_values(self::PACKAGE_FIELDS)))) {
+                $values[$key] = $row[1] ?? null;
+            }
+            if (trim((string) ($row[2] ?? '')) !== '') {
+                $contractorDetails = $row;
+            }
+        }
+        return ['notify_no' => $notifyNo, 'contractors' => $contractors,
+            'values' => $values, 'contractor_row' => $contractorDetails];
+    }
+
+    private function previewPackageChanges(array $scope): array
+    {
+        $awards = KqlcntAwardItem::query()->where('notify_no', $scope['notify_no'])
+            ->where('contractor_code', $scope['contractors'][0])
+            ->whereNotNull('synced_from_catalog_at')->orderBy('id')->get();
+        $errors = [];
+        if ($awards->isEmpty()) $errors[] = 'Không tìm thấy hồ sơ canonical để cập nhật thông tin hợp đồng';
+        $first = $awards->first();
+        $incoming = [];
+        foreach (self::PACKAGE_FIELDS as $field => $label) {
+            if (in_array($field, ['contractor_name', 'contract_no', 'contract_period', 'contract_period_unit'], true)) {
+                $column = ['contractor_name' => 3, 'contract_no' => 4, 'contract_period' => 5, 'contract_period_unit' => 6][$field];
+                $value = $scope['contractor_row'][$column] ?? null;
+            } else {
+                if (! array_key_exists($label, $scope['values'])) continue;
+                $value = $scope['values'][$label];
+            }
+            $invalid = [];
+            $normalized = $this->normalizeValue($field, $value, $invalid);
+            $errors = array_merge($errors, $invalid);
+            $incoming[$field] = $normalized;
+        }
+        $changes = [];
+        $comparison = [];
+        if ($first) {
+            foreach ($incoming as $field => $value) {
+                $ignored = [];
+                $current = $this->normalizeValue($field, $first->{$field}, $ignored);
+                if ($current !== $value) {
+                    $changes[$field] = $value;
+                    $comparison[] = ['field' => $field, 'label' => self::PACKAGE_FIELDS[$field],
+                        'current' => $current, 'incoming' => $value];
+                }
+            }
+            foreach ($awards as $award) {
+                foreach ($incoming as $field => $value) {
+                    $ignored = [];
+                    $current = $this->normalizeValue($field, $award->{$field}, $ignored);
+                    $baseline = $this->normalizeValue($field, $first->{$field}, $ignored);
+                    if ($current !== $baseline) {
+                        $errors[] = 'Thông tin hợp đồng không đồng nhất giữa các dòng thuốc; cần xử lý thủ công';
+                        break 2;
+                    }
+                }
+            }
+        }
+        // Store the exact canonical row set and versions to prevent stale or partial updates.
+        return ['notify_no' => $scope['notify_no'], 'contractor_code' => $scope['contractors'][0],
+            'changes' => $changes, 'comparison' => $comparison,
+            'versions' => $awards->mapWithKeys(fn ($award) => [$award->id => $award->updated_at?->format('Y-m-d H:i:s.u')])->all(),
+            'errors' => array_values(array_unique($errors))];
     }
 
     private function comparison(array $data, ?KqlcntAwardItem $existing, ?array $allowedFields = null): array

@@ -76,6 +76,18 @@ return [
                 ],
             ],
         ],
+        'kqlcnt-awards' => [
+            'name' => 'Theo dõi thầu',
+            'route' => 'client.pharma.kqlcnt-awards.index',
+            'permission' => 'client.pharma.kqlcnt-awards.view',
+            'icon' => 'clipboard-document-list',
+            'sort_order' => 25,
+            'actions' => [
+                'export' => ['name' => 'Xuất Excel KQLCNT', 'permission' => 'client.pharma.kqlcnt-awards.export', 'sort_order' => 10],
+                'import' => ['name' => 'Nhập Excel KQLCNT', 'permission' => 'client.pharma.kqlcnt-awards.import', 'sort_order' => 20],
+                'edit' => ['name' => 'Sửa KQLCNT', 'permission' => 'client.pharma.kqlcnt-awards.edit', 'sort_order' => 30],
+            ],
+        ],
         'price-lists' => [
             'name' => 'Bảng giá của tôi',
             'route' => 'client.pharma.price-lists',
@@ -138,6 +150,17 @@ return [
         ],
     ],
     'features' => [
+        'kqlcnt-awards' => [
+            'name' => 'Theo dõi thầu',
+            'description' => 'Theo dõi danh mục KQLCNT đã lưu từ Mua sắm công.',
+            'eyebrow' => 'KQLCNT canonical',
+            'page_title' => 'Theo dõi thầu',
+            'page_description' => 'Tra cứu gói thầu, nhà thầu và danh mục thuốc trúng thầu đã lưu.',
+            'route' => 'client.pharma.kqlcnt-awards.index',
+            'permission' => 'client.pharma.kqlcnt-awards.view',
+            'icon' => 'clipboard-document-list',
+            'sort_order' => 24,
+        ],
         'award-prices' => [
             'name' => 'Tra cứu thuốc trúng thầu',
             'description' => 'Tra cứu độc lập giá thuốc trúng thầu từ nguồn công khai.',
