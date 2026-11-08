@@ -67,7 +67,8 @@
                     </div>
                     <input type="hidden" name="items[{{ $index }}][key]" value="{{ $item['key'] }}">
                     <input type="hidden" name="items[{{ $index }}][bottom_enabled]" value="0">
-                    @php($selectedBottomIcon = old("items.$index.bottom_icon", $navPresentation['bottom_icon'] ?? $item['icon']))
+                    @php($selectedBottomIcon = old("items.$index.bottom_icon", $navPresentation['bottom_icon'] ?? $item['icon'] ?? 'squares-2x2'))
+                    @php($itemBottomIconChoices = in_array($selectedBottomIcon, $bottomIconChoices, true) ? $bottomIconChoices : array_merge([$selectedBottomIcon], $bottomIconChoices))
                     <details class="relative">
                         <summary class="flex min-w-40 cursor-pointer list-none items-center gap-2 rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
                             @include('ClientPortal::partials.navigation-icon', ['name' => $selectedBottomIcon, 'class' => 'h-5 w-5'])
@@ -75,7 +76,7 @@
                             <span class="ml-auto text-gray-400">⌄</span>
                         </summary>
                         <div class="absolute right-0 z-30 mt-2 grid w-72 grid-cols-4 gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl">
-                            @foreach($bottomIconChoices as $iconChoice)
+                            @foreach($itemBottomIconChoices as $iconChoice)
                                 <label class="cursor-pointer">
                                     <input type="radio" name="items[{{ $index }}][bottom_icon]" value="{{ $iconChoice }}" @checked($selectedBottomIcon === $iconChoice) class="peer sr-only">
                                     <span class="flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-gray-200 p-2 text-[10px] text-gray-600 peer-checked:border-indigo-500 peer-checked:bg-indigo-50 peer-checked:text-indigo-700">
