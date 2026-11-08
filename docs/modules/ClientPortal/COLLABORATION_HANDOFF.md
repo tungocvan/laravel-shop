@@ -1,3 +1,13 @@
+## 2026-11-08 — Pharma KQLCNT workspace, batch 1 checkpoint
+
+- Branch `feat/client-pharma-kqlcnt-awards-20261108` created from main `b1a02707e33877811688efbc9ad9ef81f7620d5f`.
+- Added separate web-guard feature `client.pharma.kqlcnt-awards.view`, Pharma manifest navigation and configurable feature copy, protected list/detail routes, responsive read-only Blade and canonical Muasamcong read service.
+- Intentionally not enabled: import, export, edit mutations. Action permission declarations are reserved for subsequent batches; no buttons or routes imply functionality that has not been implemented.
+- No data migration, no production operations. Pending local focused tests, ClientPortal and Muasamcong impacted regression, mobile UI acceptance.
+- Next batches: shared Muasamcong Excel export and guarded import preview/confirm, PWA external-file handoff, edit capability with web permissions and tests; ensure existing Admin contracts remain unchanged.
+
+---
+
 ## PR #364 pre-merge acceptance — 2026-11-07
 
 - User confirmed both focused and impacted regression layers PASS after PR review copy update; user also confirmed updated Wishlist UI PASS. Earlier 40 tests / 373 assertions PASS.
