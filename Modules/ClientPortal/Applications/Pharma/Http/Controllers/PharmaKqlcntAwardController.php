@@ -35,6 +35,8 @@ final class PharmaKqlcntAwardController extends Controller
             'filters' => $filters,
             'canImportAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.kqlcnt-awards.import'),
             'canExportAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.kqlcnt-awards.export'),
+            'canAllocateAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.bid-awards.allocate'),
+            'canPolicyAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.bid-awards.commercial-policy'),
         ]);
     }
 
@@ -81,6 +83,11 @@ final class PharmaKqlcntAwardController extends Controller
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
     ): View {
+        $permission = $mode === 'allocation'
+            ? 'client.pharma.bid-awards.allocate'
+            : 'client.pharma.bid-awards.commercial-policy';
+        abort_unless(request()->user('web') && $registry->userCan(request()->user('web'), $permission), 403);
+
         $item = $awards->find($awardItem);
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
