@@ -39,8 +39,8 @@ final class KqlcntAwardReadService
                 $query->whereExists(function ($sub) use ($matches): void {
                     $sub->selectRaw('1')->fromSub($matches, 'matches')
                         ->whereColumn('matches.notify_no', 'muasamcong_kqlcnt_award_items.notify_no')
-                        ->whereRaw('matches.contractor_code <=> muasamcong_kqlcnt_award_items.contractor_code')
-                        ->whereRaw('matches.contractor_name <=> muasamcong_kqlcnt_award_items.contractor_name');
+                        ->whereRaw('(matches.contractor_code = muasamcong_kqlcnt_award_items.contractor_code OR (matches.contractor_code IS NULL AND muasamcong_kqlcnt_award_items.contractor_code IS NULL))')
+                        ->whereRaw('(matches.contractor_name = muasamcong_kqlcnt_award_items.contractor_name OR (matches.contractor_name IS NULL AND muasamcong_kqlcnt_award_items.contractor_name IS NULL))');
                 });
             })
             ;
