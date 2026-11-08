@@ -43,9 +43,7 @@ final class KqlcntAwardReadService
                         ->whereRaw('matches.contractor_name <=> muasamcong_kqlcnt_award_items.contractor_name');
                 });
             })
-            ->when(isset($filters['active']) && $filters['active'] !== '', function (Builder $query) use ($filters): void {
-                $query->where('is_active', $filters['active'] === '1');
-            });
+            ;
 
         return $query->selectRaw('MIN(id) AS id, notify_no, contractor_code, contractor_name')
             ->selectRaw('MAX(investor_name) AS investor_name, COUNT(*) AS products_count')
@@ -53,6 +51,10 @@ final class KqlcntAwardReadService
             ->selectRaw('MAX(contract_period_text) AS contract_period_text, MAX(contract_period) AS contract_period, MAX(contract_period_unit) AS contract_period_unit')
             ->selectRaw('MIN(is_active) AS all_active, MAX(is_active) AS any_active')
             ->groupBy('notify_no', 'contractor_code', 'contractor_name')
+            ->when(isset($filters['active']) && $filters['active'] !== '', function (Builder $q) use ($filters): void {
+                // Filter entire records; do not shrink the medicine counts or amounts.
+                $q->havingRaw($filters['active'] === '1' ? 'MIN(is_active) = 1' : 'MAX(is_active) = 0');
+            })
             ->orderByDesc('id')
             ->paginate($perPage)->withQueryString();
     }
