@@ -1,5 +1,7 @@
 @extends('ClientPortal::layouts.application')
 @section('title','Xuất – Nhập – Tồn')
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="mx-auto w-full max-w-7xl space-y-5 px-3 py-4 sm:px-5">
