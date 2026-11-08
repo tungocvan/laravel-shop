@@ -68,7 +68,12 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('xl:col-span-2', $list);
         $this->assertStringContainsString('name="notify_no"', $list);
         $this->assertSame(3, substr_count($list, '<x-pwa-select-search'));
-        $this->assertStringContainsString("'border-red-300 bg-red-50 text-red-700", $list);
+        $this->assertStringContainsString('border-red-200 bg-red-50', $list);
+        $this->assertStringContainsString('id="kqlcnt-live-filters"', $list);
+        $this->assertStringContainsString("[data-pwa-select-search-option]", $list);
+        $this->assertStringContainsString("select[name=\"active\"]", $list);
+        $this->assertStringContainsString("window.location.assign", $list);
+        $this->assertStringNotContainsString('>Lọc hồ sơ</button>', $list);
         $this->assertStringContainsString('name="investor_code"', $list);
         $this->assertStringContainsString('Tổng giá trị trúng thầu', $list);
         $this->assertStringContainsString('Giá trị đang hoạt động', $list);
