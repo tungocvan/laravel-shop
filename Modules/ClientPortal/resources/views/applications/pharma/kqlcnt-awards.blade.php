@@ -37,27 +37,23 @@
         <h2 class="text-base font-bold text-slate-950">Bộ lọc hồ sơ</h2>
         <p class="mt-1 text-xs text-slate-500">Chọn mã TBMT hoặc chủ đầu tư từ danh sách có tìm kiếm.</p>
         <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <div x-data="{ open: false, term: '', selected: @js($filters['notify_no'] ?? ''), options: @js($options['notices']) }" x-init="term = selected" @click.outside="open = false" class="relative min-w-0">
-                <label for="kqlcnt-notify" class="block text-xs font-semibold text-slate-700">Mã TBMT</label>
-                <input type="hidden" name="notify_no" :value="selected">
-                <input id="kqlcnt-notify" type="search" x-model="term" @focus="open = true" @input="selected = ''; open = true" @keydown.escape="open = false" autocomplete="off" placeholder="Tìm và chọn mã TBMT..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
-                <div x-show="open" x-cloak class="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-                    <button type="button" @click="selected = ''; term = ''; open = false" class="block w-full px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả mã TBMT</button>
-                    <template x-for="option in options.filter(v => v.toLowerCase().includes(term.toLowerCase()))" :key="option">
-                        <button type="button" @click="selected = option; term = option; open = false" x-text="option" class="block w-full px-3 py-2 text-left text-sm hover:bg-indigo-50"></button>
-                    </template>
-                </div>
+            <div class="min-w-0">
+                <label for="kqlcnt-notify" class="mb-1 block text-xs font-semibold text-slate-700">Mã TBMT</label>
+                <x-pwa-select-search id="kqlcnt-notify" name="notify_no" :selected="$filters['notify_no'] ?? ''" placeholder="Tất cả mã TBMT" search-placeholder="Tìm mã TBMT...">
+                    <button type="button" data-pwa-select-search-option data-value="" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả mã TBMT</button>
+                    @foreach($options['notices'] as $notice)
+                        <button type="button" data-pwa-select-search-option data-value="{{ $notice }}" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">{{ $notice }}</button>
+                    @endforeach
+                </x-pwa-select-search>
             </div>
-            <div x-data="{ open: false, selected: @js($filters['investor_code'] ?? ''), term: '', options: @js($options['investors']->map(fn ($i) => ['code' => $i->investor_code, 'name' => $i->investor_name])->values()) }" x-init="term = options.find(v => v.code === selected)?.name || ''" @click.outside="open = false" class="relative min-w-0">
-                <label for="kqlcnt-investor" class="block text-xs font-semibold text-slate-700">Chủ đầu tư</label>
-                <input type="hidden" name="investor_code" :value="selected">
-                <input id="kqlcnt-investor" type="search" x-model="term" @focus="open = true" @input="selected = ''; open = true" @keydown.escape="open = false" autocomplete="off" placeholder="Tìm và chọn chủ đầu tư..." class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
-                <div x-show="open" x-cloak class="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
-                    <button type="button" @click="selected = ''; term = ''; open = false" class="block w-full px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả chủ đầu tư</button>
-                    <template x-for="option in options.filter(v => (v.name || '').toLowerCase().includes(term.toLowerCase()) || (v.code || '').toLowerCase().includes(term.toLowerCase()))" :key="option.code">
-                        <button type="button" @click="selected = option.code; term = option.name; open = false" x-text="option.name + ' — ' + option.code" class="block w-full px-3 py-2 text-left text-sm hover:bg-indigo-50"></button>
-                    </template>
-                </div>
+            <div class="min-w-0">
+                <label for="kqlcnt-investor" class="mb-1 block text-xs font-semibold text-slate-700">Chủ đầu tư</label>
+                <x-pwa-select-search id="kqlcnt-investor" name="investor_code" :selected="$filters['investor_code'] ?? ''" placeholder="Tất cả chủ đầu tư" search-placeholder="Tìm chủ đầu tư...">
+                    <button type="button" data-pwa-select-search-option data-value="" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả chủ đầu tư</button>
+                    @foreach($options['investors'] as $investor)
+                        <button type="button" data-pwa-select-search-option data-value="{{ $investor->investor_code }}" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">{{ $investor->investor_name }} — {{ $investor->investor_code }}</button>
+                    @endforeach
+                </x-pwa-select-search>
             </div>
             <label class="block text-xs font-semibold text-slate-700">Trạng thái
                 <select name="active" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900">
@@ -67,11 +63,19 @@
                 </select>
             </label>
             <x-pwa-search name="search" :value="$filters['search'] ?? ''" label="Tìm nhà thầu / TBMT / Chủ đầu tư" placeholder="Nhập từ khóa..." />
-            <x-pwa-search name="medicine" :value="$filters['medicine'] ?? ''" label="Tên thuốc / Hoạt chất" placeholder="Nhập tên thuốc hoặc hoạt chất..." />
+            <div class="min-w-0">
+                <label for="kqlcnt-medicine" class="mb-1 block text-xs font-semibold text-slate-700">Tên thuốc / Hoạt chất</label>
+                <x-pwa-select-search id="kqlcnt-medicine" name="medicine" :selected="$filters['medicine'] ?? ''" placeholder="Tất cả thuốc" search-placeholder="Tìm tên thuốc...">
+                    <button type="button" data-pwa-select-search-option data-value="" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả thuốc</button>
+                    @foreach($options['medicines'] as $medicine)
+                        <button type="button" data-pwa-select-search-option data-value="{{ $medicine }}" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">{{ $medicine }}</button>
+                    @endforeach
+                </x-pwa-select-search>
+            </div>
         </div>
         <div class="mt-4 flex flex-wrap items-center gap-2">
             <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Lọc hồ sơ</button>
-            <a href="{{ route('client.pharma.kqlcnt-awards.index') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700">Xóa lọc</a>
+            <a href="{{ route('client.pharma.kqlcnt-awards.index') }}" class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold {{ collect($filters)->filter(fn ($value) => filled($value))->isNotEmpty() ? 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100' : 'border-slate-300 text-slate-600' }}">Xóa lọc</a>
             @if(filled($filters['medicine'] ?? null))
                 <span class="text-xs text-slate-500">Kết quả là hồ sơ có chứa thuốc/hoạt chất đã tìm.</span>
             @endif
