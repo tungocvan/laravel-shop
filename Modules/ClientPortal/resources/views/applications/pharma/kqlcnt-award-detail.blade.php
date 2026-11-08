@@ -6,7 +6,7 @@
 @section('content')
 @php
     $totalAmount = $medicines->sum(fn ($medicine) => $medicine->amount !== null ? (float) $medicine->amount : ((float) $medicine->quantity * (float) $medicine->winning_price));
-    $contractPeriod = $item->contract_period_text ?: ($item->contract_period ? $item->contract_period.' '.($item->contract_period_unit ?: 'tháng') : 'Chưa cập nhật');
+    $contractPeriod = $item->contract_period !== null ? $item->contract_period.' '.($item->contract_period_unit ?: 'tháng') : ($item->contract_period_text ?: 'Chưa cập nhật');
 @endphp
 <div class="min-w-0 space-y-4 pb-6">
     <header class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
