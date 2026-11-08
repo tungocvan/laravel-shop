@@ -1883,3 +1883,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Read-only audit found list/detail Blade favored `contract_period_text` over `contract_period`; the former is a distinct legacy package-description field and may remain unchanged when contractor duration is updated.
 - List and detail now prioritize non-null canonical `contract_period` plus `contract_period_unit`, falling back to `contract_period_text` only if the numeric period is absent. Added regression contract assertions.
 - Checkpoint TEST PENDING for this UI fix; user must confirm UI PASS after re-export and reload. No production changes or merge.
+
+## 2026-11-08 — KQLCNT merge readiness checkpoint
+- User confirmed focused tests PASS and KQLCNT UI PASS, including contract duration import/display.
+- User executed `php artisan test tests/Feature/Muasamcong`: **72 passed (618 assertions), 8.49s**.
+- User executed `php artisan test tests/Feature/ClientApps`: **320 passed, 8 failed (4588 assertions)**. The exact same eight failures were reproduced on the up-to-date `main` with the four failing test files (**32 passed, 8 failed; 605 assertions**); treat as **documented baseline failures, not a ClientApps PASS**. Failures concern legacy Bid/Orders string assertions, stale Pharma feature enumeration, and PWA UI parity contracts.
+- Feature diff against main: 16 changed files, ahead 72, behind 0 at checkpoint. No evidence the eight baseline failures originate in this branch. Keep follow-up remediation separate; do not change UI/business behavior solely to satisfy string-based contracts.
+- No full-project suite executed (module-scoped regression strategy). PR review/CI and tracked working-tree gate still required before merge. No production deploy authorized.
