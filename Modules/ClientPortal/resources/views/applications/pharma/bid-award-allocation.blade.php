@@ -6,11 +6,13 @@
 @section('content')
 @php($savedScope=$setup['scope'])
 <div class="mx-auto w-full max-w-5xl space-y-4 px-1 pb-4 sm:px-3 lg:px-4">
-<header class="flex min-h-16 items-center gap-3 border-b border-slate-200 bg-white pb-4">
-<a href="{{ route('client.pharma.bid-awards.show',$scope) }}" aria-label="Quay lại kết quả trúng thầu" class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-black text-slate-700 shadow-sm">←</a>
-<div class="min-w-0"><h1 class="truncate text-lg font-black text-slate-950">Phân bổ số lượng</h1><p class="truncate text-xs text-slate-500">{{ $award->investor_name }}</p></div>
-</header>
-<section class="rounded-[28px] bg-slate-950 p-5 text-white sm:p-6"><p class="text-[11px] font-black uppercase tracking-[.18em] text-slate-300">Allocation</p><h1 class="mt-1 text-2xl font-black">Phân bổ số lượng</h1><p class="mt-2 text-sm text-slate-300">{{ $award->investor_name }} · {{ $award->bidding_notice_code ?: $award->decision_number }}</p></section>
+@include('ClientPortal::applications.pharma.partials.bid-award-workflow-hero', [
+    'backUrl' => route('client.pharma.bid-awards.show', $scope),
+    'heading' => 'Phân bổ số lượng',
+    'subtitle' => $award->investor_name,
+    'reference' => $award->bidding_notice_code ?: $award->decision_number,
+    'eyebrow' => 'Allocation',
+])
 @if(session('success'))<div class="rounded-2xl bg-emerald-50 p-4 text-sm font-bold text-emerald-700">{{ session('success') }}</div>@endif
 @if($errors->any())<div class="rounded-2xl bg-rose-50 p-4 text-sm text-rose-700">{{ $errors->first() }}</div>@endif
 
