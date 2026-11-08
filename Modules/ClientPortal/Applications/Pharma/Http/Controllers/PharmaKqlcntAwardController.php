@@ -10,6 +10,7 @@ use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingDiagnostics;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntLegacyWorkflowBridge;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAllocationBlockers;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 
@@ -117,6 +118,7 @@ final class PharmaKqlcntAwardController extends Controller
             'mode' => $mode,
             'readiness' => $readiness->forAward($awardItem),
             'mappingDiagnostics' => $diagnostics->inspect($awardItem),
+            'allocationBlockers' => app(KqlcntAllocationBlockers::class)->inspect($awardItem),
             'medicines' => $awards->medicines($awardItem),
         ]);
     }
