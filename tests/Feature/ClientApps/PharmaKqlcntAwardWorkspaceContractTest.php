@@ -50,6 +50,28 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
     }
 
     #[Test]
+    public function workspace_groups_by_tbmt_and_contractor_and_exposes_medicine_search(): void
+    {
+        $service = file_get_contents(base_path('Modules/Muasamcong/Services/KqlcntAwardReadService.php'));
+        $this->assertStringContainsString("groupBy('notify_no', 'contractor_code', 'contractor_name')", $service);
+        $this->assertStringContainsString("orWhere('active_ingredient'", $service);
+        $this->assertStringContainsString('whereExists(', $service);
+        $this->assertStringContainsString('SUM(COALESCE(amount, quantity * winning_price, 0))', $service);
+        $this->assertStringContainsString('havingRaw(', $service);
+
+        $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-awards.blade.php'));
+        $this->assertStringContainsString('<x-pwa-search', $list);
+        $this->assertStringContainsString('Chủ đầu tư', $list);
+        $this->assertStringContainsString('Thời gian thực hiện hợp đồng', $list);
+        $this->assertStringContainsString('Số tiền trúng thầu', $list);
+        $this->assertStringContainsString('Số lượng sản phẩm', $list);
+
+        $detail = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-award-detail.blade.php'));
+        $this->assertStringContainsString('@foreach($medicines as $medicine)', $detail);
+        $this->assertStringContainsString('Danh mục thuốc trúng thầu', $detail);
+    }
+
+    #[Test]
     public function client_workspace_does_not_call_admin_controller_or_modify_canonical_records(): void
     {
         $source = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaKqlcntAwardController.php'));
