@@ -110,8 +110,8 @@
             <p class="mt-2 text-sm text-slate-600">Tạo bộ hồ sơ theo template Pharma chuẩn gồm GMP, giấy đăng ký lưu hành, hướng dẫn sử dụng, nhãn và thay đổi. Trạng thái ban đầu: chưa đầy đủ, chưa xác minh.</p>
             <form method="POST" action="{{ route('client.pharma.products.hssp.store', $medicine->id) }}" class="mt-5 grid gap-4 sm:grid-cols-2" onsubmit="return confirm('Tạo HSSP nháp cho thuốc này?');">
                 @csrf
-                <label class="block text-sm font-bold">Hiệu lực GMP đến <input required type="date" name="gmp_effective_to" value="{{ old('gmp_effective_to') }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
-                <label class="block text-sm font-bold">Hiệu lực GPLH đến <input required type="date" name="registration_effective_to" value="{{ old('registration_effective_to') }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
+                <x-pwa-date label="Hiệu lực GMP đến" name="gmp_effective_to" :value="old('gmp_effective_to')" required class="min-h-11" />
+                <x-pwa-date label="Hiệu lực GPLH đến" name="registration_effective_to" :value="old('registration_effective_to')" required class="min-h-11" />
                 <label class="block text-sm font-bold sm:col-span-2">Ghi chú <textarea name="notes" rows="3" class="mt-2 block w-full rounded-xl border border-slate-300 p-3">{{ old('notes') }}</textarea></label>
                 <button type="submit" class="min-h-11 rounded-xl bg-indigo-700 px-5 font-bold text-white sm:col-span-2">Tạo HSSP nháp</button>
             </form>
