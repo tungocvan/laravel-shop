@@ -49,7 +49,8 @@ final class PharmaP5SecurityRegressionTest extends TestCase
 
         $this->assertStringContainsString('InventoryIssue::query()->lockForUpdate()->findOrFail', $approval);
         $this->assertStringNotContainsString('postIssue(', $approval);
-        $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $controller);
+        $this->assertStringContainsString("return redirect()->route('client.pharma.orders.lots', \$issue)", $controller);
+        $this->assertStringContainsString('$lotPosting->post($visible, $data[\'batches\']', $controller);
         $this->assertStringContainsString("->where('quantity_on_hand', '>', 0)", $inventory);
         $this->assertStringContainsString('->lockForUpdate()', $inventory);
         $this->assertStringContainsString('$quantity = min($remaining, (float) $balance->quantity_on_hand);', $inventory);
