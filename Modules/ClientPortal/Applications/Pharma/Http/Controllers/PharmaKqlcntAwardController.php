@@ -15,6 +15,8 @@ final class PharmaKqlcntAwardController extends Controller
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
+            'notify_no' => ['nullable', 'string', 'max:255'],
+            'investor_code' => ['nullable', 'string', 'max:255'],
             'medicine' => ['nullable', 'string', 'max:255'],
             'active' => ['nullable', 'in:0,1'],
         ]);
@@ -27,6 +29,8 @@ final class PharmaKqlcntAwardController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
             'items' => $items,
+            'options' => $awards->filterOptions(),
+            'dashboard' => $awards->dashboard(),
             'filters' => $filters,
         ]);
     }
