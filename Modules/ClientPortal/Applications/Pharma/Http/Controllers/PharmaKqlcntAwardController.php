@@ -4,10 +4,12 @@ namespace Modules\ClientPortal\Applications\Pharma\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingDiagnostics;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntLegacyWorkflowBridge;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 
@@ -63,8 +65,8 @@ final class PharmaKqlcntAwardController extends Controller
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
         KqlcntMappingDiagnostics $diagnostics,
-    ): View {
-        return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness, $diagnostics);
+    ): View|RedirectResponse {
+        return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness, $diagnostics, app(KqlcntLegacyWorkflowBridge::class));
     }
 
     public function commercialPolicy(
@@ -75,7 +77,7 @@ final class PharmaKqlcntAwardController extends Controller
         KqlcntWorkflowReadiness $readiness,
         KqlcntMappingDiagnostics $diagnostics,
     ): View {
-        return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness, $diagnostics);
+        return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness, $diagnostics, app(KqlcntLegacyWorkflowBridge::class));
     }
 
     private function workflowPreview(
@@ -86,11 +88,22 @@ final class PharmaKqlcntAwardController extends Controller
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
         KqlcntMappingDiagnostics $diagnostics,
-    ): View {
+        KqlcntLegacyWorkflowBridge $bridge,
+    ): View|RedirectResponse {
         $permission = $mode === 'allocation'
             ? 'client.pharma.bid-awards.allocate'
             : 'client.pharma.bid-awards.commercial-policy';
         abort_unless(request()->user('web') && $registry->userCan(request()->user('web'), $permission), 403);
+
+        $scopeKey = $bridge->scopeKey($awardItem);
+        if ($scopeKey !== null) {
+            return redirect()->route(
+                $mode === 'allocation'
+                    ? 'client.pharma.bid-awards.allocation'
+                    : 'client.pharma.bid-awards.commercial-policy',
+                ['scope' => $scopeKey]
+            );
+        }
 
         $item = $awards->find($awardItem);
         $application = $registry->find('pharma');
