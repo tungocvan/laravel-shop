@@ -2,21 +2,23 @@
 
 namespace Modules\ClientPortal\Applications\Pharma\Services;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Modules\Pharma\Services\DrugBidAwardResultGroupService;
+use Modules\Muasamcong\Services\KqlcntAwardReadService;
 use Modules\Pharma\Models\DrugBidAward;
+use Modules\Pharma\Services\DrugBidAwardResultGroupService;
 
 /**
- * Reuses the legacy TBMT-wide workflow ONLY when its exact product set is
- * identical to the canonical KQLCNT group. Otherwise legacy writes could
- * affect a different contractor and must remain unavailable.
+ * Redirect to the tested legacy workflow only if the entire legacy TBMT group
+ * is provably identical to one canonical TBMT/contractor group.
+ *
+ * Read-only: never changes source provenance, allocations or product records.
  */
 final class KqlcntLegacyWorkflowBridge
 {
     public function __construct(
         private readonly KqlcntWorkflowReadiness $readiness,
         private readonly DrugBidAwardResultGroupService $groups,
+        private readonly KqlcntAwardReadService $canonical,
     ) {}
 
     public function scopeKey(int $awardItemId): ?string
@@ -24,7 +26,9 @@ final class KqlcntLegacyWorkflowBridge
         try {
             $ids = $this->readiness->scopedProductIds($awardItemId);
         } catch (ValidationException $exception) {
-            return null;
+            // Historical Pharma rows can predate direct KQLCNT source links.
+            // In that case attempt a strictly unique, read-only reconciliation.
+            $ids = $this->verifiedExistingProductIds($awardItemId);
         }
 
         if ($ids === []) {
@@ -47,5 +51,71 @@ final class KqlcntLegacyWorkflowBridge
         }
 
         return sha1($this->groups->resultKey($award));
+    }
+
+    /**
+     * Strict fallback for existing manual/historical Pharma records.
+     * A medicine name alone, or a single apparent candidate, is insufficient.
+     *
+     * @return list<int>
+     */
+    private function verifiedExistingProductIds(int $awardItemId): array
+    {
+        $lines = $this->canonical->medicines($awardItemId);
+        if ($lines->isEmpty()) {
+            return [];
+        }
+
+        $resolved = [];
+
+        foreach ($lines as $line) {
+            $notice = trim((string) $line->notify_no);
+            $contractorName = trim((string) $line->contractor_name);
+            $medicineName = trim((string) $line->medicine_name);
+
+            if ($notice === '' || $contractorName === '' || $medicineName === ''
+                || $line->quantity === null || $line->winning_price === null) {
+                return [];
+            }
+
+            $candidates = DrugBidAward::query()
+                ->where('bidding_notice_code', $notice)
+                ->where('contractor_code', $line->contractor_code)
+                ->where('winning_company_name', $contractorName)
+                ->where('medicine_name', $medicineName)
+                ->where(function ($query): void {
+                    $query->whereNull('source_id')
+                        ->orWhere(function ($q): void {
+                            $q->where('source_type', DrugBidAward::SOURCE_MANUAL)
+                                ->whereNull('source_id');
+                        });
+                })
+                ->get();
+
+            // Enforce exact numeric values in PHP to avoid driver-specific
+            // decimal formatting differences, and reject any ambiguity.
+            $matches = $candidates->filter(fn (DrugBidAward $candidate): bool =>
+                $this->sameDecimal($candidate->quantity, $line->quantity)
+                && $this->sameDecimal($candidate->winning_price, $line->winning_price)
+            );
+
+            if ($matches->count() !== 1) {
+                return [];
+            }
+
+            $id = (int) $matches->first()->id;
+            if (in_array($id, $resolved, true)) {
+                return [];
+            }
+            $resolved[] = $id;
+        }
+
+        return $resolved;
+    }
+
+    private function sameDecimal(mixed $a, mixed $b): bool
+    {
+        return $a !== null && $b !== null
+            && number_format((float) $a, 4, '.', '') === number_format((float) $b, 4, '.', '');
     }
 }
