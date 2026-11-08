@@ -242,3 +242,60 @@ Accepted behaviors include:
 **READY FOR PR REVIEW.**
 
 The branch is ready to open against `main`. User has accepted the latest focused tests and Dashboard UI. Production enablement/deployment remains outside this delivery and must not be changed by the PR.
+
+
+## 2026-11-07 — KQLCNT canonical Excel round-trip (checkpoint pending)
+
+- Branch `feat/muasamcong-kqlcnt-excel-roundtrip-20261107` from main `cbc9775a29a67f7180634a04d32eea117632fa71`.
+- Add identity/version columns to canonical Excel export; guarded upload -> preview -> confirm with permission and conflict checks. Canonical table remains sole owner; no production migration.
+- Import preserves provenance `excel`, original snapshot and imported recovery; sync service recognizes Excel overrides.
+- Focused tests PENDING local, module regression PENDING local, UI PENDING user confirmation, PR/merge/deploy NOT DONE.
+
+
+## 2026-11-07 — Legacy KQLCNT 36-column Excel compatibility checkpoint
+
+- User supplied actual 36-column `Danh_muc_trung_thau` export without `_award_id`/`_version`; previously new importer threw uncaught RuntimeException HTTP 500.
+- Import preview now accepts both legacy 36-column and modern 38-column exports; legacy rows only match unique canonical items scoped by TBMT and contractor, then lot number, medicine code, or medicine name + ingredient + concentration. Ambiguous/unmatched rows are rejected and never automatically created. Duplicate headings and partial technical identity columns are validation errors rather than HTTP 500.
+- Confirm rechecks row version under DB lock; unchanged records are skipped. No automatic deletion. This checkpoint does NOT implement new-item creation; that requires separately validated scope/identity and audit/resync protections.
+- Focused test updated for actual 36-column header format. New focused and module regression **PENDING user execution**. UI **PENDING**; no PR/merge/deploy authorized.
+
+
+## 2026-11-07 — KQLCNT Excel preview UI/UX review checkpoint
+
+- Replaced minimal 4-column preview with responsive Admin Blade workspace: summary counts (total, changed, unchanged, errors), Alpine search/status filter, expandable per-row 32-field current-versus-Excel comparison, highlighted differences, explicit conflicts, and sticky confirmation area.
+- Import service now produces field comparisons using normalized decimals/dates/integers; invalid dates and nonnegative-number violations surface as row errors. Only rows with actual changes are eligible for confirm, and confirm rechecks version under lock. Legacy 36-column import remains scope-restricted and does not create new rows.
+- Focused test assertions cover row status and complete field comparison. Focused tests, module regression and UI acceptance **PENDING local execution**; no PR/merge/deploy.
+
+
+## 2026-11-07 — Excel preview actionable-only UI checkpoint
+
+- User approved hiding unchanged rows by default after screenshot showed 3 unchanged and 0 actionable rows. Blade defaults Alpine filter to actionable (changed/error), preserves optional all/unchanged filters and summary totals, displays an empty-state message when no changed/error rows, and offers an optional full 32-field inspection while highlighting changed fields by default.
+- No DB, import persistence, export, or route changes in this batch. New focused UI contract test covers default filtering, empty state, optional inspection, and disabled confirm when zero updates.
+- Focused/module tests **PENDING user execution**; rendered UI acceptance **PENDING**. Do not merge/deploy without gates and explicit approval.
+
+
+## 2026-11-07 — V2 two-sheet single-TBMT workbook (partial implementation checkpoint)
+
+- Main and feature compared: feature 15 commits ahead, 0 behind at audit. User approved one workbook per TBMT, Sheet 1 package metadata + multiple contractors, Sheet 2 canonical award medicines.
+- Added `KqlcntAwardWorkbookExport` with two named sheets: `Thong_tin_trung_thau` (metadata and contractor list) and `Danh_muc_trung_thau` (existing 38-column roundtrip rows).
+- Controller export now requires exactly one TBMT in resulting rows; selected IDs spanning multiple TBMT are rejected. Import preview checks TBMT and contractor codes against Sheet 1 when present; legacy one-sheet format remains accepted.
+- New focused export contract test. **LIMITATIONS:** Sheet 1 metadata currently sourced from first award row; shared-field consistency, contractor-specific contract variants, full sheet-1 mutation, safe new-row creation, persistent audit and sync overwrite protection are NOT implemented. Do not treat this as V2 feature complete or authorize real-data import of new rows.
+- Focused and module regression **PENDING user execution**; UI **PENDING**; no PR, merge or deploy.
+
+
+## 2026-11-07 — V2 simplified one-TBMT/one-contractor Excel checkpoint
+
+- User clarified workbook scope is **one TBMT and one winning contractor**; Sheet 2 must show only legacy columns F–X (19 medicine fields), without _award_id/_version/TBMT/contractor/sync metadata.
+- Export enforces one TBMT + one contractor and outputs Sheet 1 package/contractor details and Sheet 2 exactly 19 medicine fields.
+- V2 import preview detects two-sheet 19-column contract, reads TBMT/contractor from Sheet 1, rejects multiple contractors, matches existing medicine rows using scoped composite identifiers, and compares/writes only medicine fields; dates and package metadata remain untouched.
+- Legacy one-sheet import path remains supported. New unmatched medicines remain blocked (not silently created); Sheet 1 edits are **not** persisted in this checkpoint. There is no exported row ID/version, so concurrency is checked from preview to confirm only, not export to preview. Manual review of ambiguous identifiers is required.
+- Focused test added for V2 scoped preview. Tests and UI **PENDING local user execution**. Do not merge or deploy.
+
+
+## 2026-11-07 — Collapsible KQLCNT Import/Export and 3-sheet template
+
+- Branch: `feat/muasamcong-kqlcnt-excel-roundtrip-20261107` (main comparison at audit: ahead 25, behind 0).
+- Admin KQLCNT index now puts Import/Export controls in native accessible `details/summary` collapsed by default; file validation errors reopen the panel. Existing table selection and POST export form retained.
+- Added permission-protected GET route `muasamcong.kqlcnt-awards.import.template` and `KqlcntAwardImportTemplateExport`: guidance, package/contractor information, and exactly 19 medicine columns. Guidance sheet is ignored by existing import preview parser.
+- Added focused tests for template contract and collapsed UI. **Focused tests PENDING; module regression PENDING; UI PASS PENDING user confirmation.** No PR/merge/deploy.
+- Existing V2 limitation remains: unmatched medicines cannot be created; Sheet 1 metadata changes not persisted. Do not interpret template as enabling creation.

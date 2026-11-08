@@ -7,8 +7,10 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Modules\Muasamcong\Services\KqlcntAwardExcelImportService;
 use Maatwebsite\Excel\Facades\Excel;
-use Modules\Muasamcong\Exports\KqlcntArraySheetExport;
+use Modules\Muasamcong\Exports\KqlcntAwardWorkbookExport;
+use Modules\Muasamcong\Exports\KqlcntAwardImportTemplateExport;
 use Modules\Muasamcong\Models\KqlcntAwardItem;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -24,6 +26,25 @@ class KqlcntAwardController extends Controller
         $medicineOptions = (clone $base)->whereNotNull('medicine_name')->distinct()->orderBy('medicine_name')->pluck('medicine_name');
 
         return view('Muasamcong::kqlcnt-awards.index', compact('items', 'filters', 'notifyOptions', 'investorOptions', 'medicineOptions'));
+    }
+
+    public function importTemplate(): BinaryFileResponse
+    {
+        return Excel::download(new KqlcntAwardImportTemplateExport(), 'KQLCNT-Mau-Import.xlsx');
+    }
+
+    public function importPreview(Request $request, KqlcntAwardExcelImportService $service): View
+    {
+        $request->validate(['file' => ['required', 'file', 'mimes:xlsx,xls', 'max:5120']]);
+        $preview = $service->preview($request->file('file'));
+        return view('Muasamcong::kqlcnt-awards.import-preview', compact('preview'));
+    }
+
+    public function importConfirm(Request $request, KqlcntAwardExcelImportService $service): RedirectResponse
+    {
+        $request->validate(['token' => ['required', 'string'], 'overwrite' => ['nullable', 'boolean']]);
+        $result = $service->confirm($request->string('token')->toString(), $request->boolean('overwrite'));
+        return redirect()->route('muasamcong.kqlcnt-awards.index')->with('success', 'Đã import: '.$result['updated'].' cập nhật, '.$result['created'].' thêm mới, '.$result['skipped'].' bỏ qua.');
     }
 
     public function edit(KqlcntAwardItem $awardItem): View
@@ -65,9 +86,48 @@ class KqlcntAwardController extends Controller
         if ($ids->isNotEmpty()) {
             $query->whereIn('id', $ids);
         }
-        $rows = $query->get()->map(fn (KqlcntAwardItem $item): array => [$item->notify_no, $item->contractor_code, $item->contractor_name, $item->lot_no, $item->lot_name, $item->medicine_code, $item->medicine_name, $item->drug_group, $item->active_ingredient, $item->concentration, $item->route, $item->dosage_form, $item->packaging_spec, $item->shelf_life_months, $item->registration_or_import_license, $item->unit, $item->quantity, $item->price_plan, $item->winning_price, $item->amount, $item->manufacturer, $item->country, $item->decision_no, optional($item->decision_date)->format('d/m/Y'), optional($item->published_at)->format('d/m/Y H:i'), $item->investor_code, $item->investor_name, $item->contract_no, $item->contract_period, $item->contract_period_unit, $item->contract_period_text, $item->effect_frame_period, $item->source, $item->sync_source, $item->is_active ? 'Đang hoạt động' : 'Ngưng', optional($item->synced_from_catalog_at)->format('d/m/Y H:i:s')])->all();
+        $items = $query->get();
+        $notifyNos = $items->pluck('notify_no')->map(fn ($v) => trim((string) $v))->unique();
+        if ($notifyNos->count() !== 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'notify_no' => 'Export Excel V2 yêu cầu chọn đúng một TBMT có dữ liệu. Hãy lọc mã TBMT trước khi xuất.',
+            ]);
+        }
+        $notifyNo = $notifyNos->first();
+        if ($items->pluck('contractor_code')->map(fn ($v) => mb_strtolower(trim((string) $v)))->unique()->count() !== 1) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'notify_no' => 'Excel tinh gọn chỉ hỗ trợ một nhà thầu trong mỗi file. Hãy lọc đúng nhà thầu trước khi xuất.',
+            ]);
+        }
+        $rows = $items->map(fn (KqlcntAwardItem $item): array => [
+            $item->lot_no, $item->lot_name, $item->medicine_code, $item->medicine_name,
+            $item->drug_group, $item->active_ingredient, $item->concentration, $item->route,
+            $item->dosage_form, $item->packaging_spec, $item->shelf_life_months,
+            $item->registration_or_import_license, $item->unit, $item->quantity,
+            $item->price_plan, $item->winning_price, $item->amount, $item->manufacturer, $item->country,
+        ])->all();
 
-        return Excel::download(new KqlcntArraySheetExport('Danh_muc_trung_thau', $this->headings(), $rows), 'KQLCNT-Awards-'.now()->format('Ymd-His').'.xlsx');
+        $first = $items->first();
+        $package = [
+            ['Mã TBMT', $notifyNo],
+            ['Số quyết định KQLCNT', $first->decision_no],
+            ['Ngày quyết định', optional($first->decision_date)->format('d/m/Y')],
+            ['Ngày đăng KQLCNT', optional($first->published_at)->format('d/m/Y H:i')],
+            ['Mã chủ đầu tư', $first->investor_code],
+            ['Chủ đầu tư', $first->investor_name],
+            ['Thời gian thực hiện gói thầu', $first->contract_period_text],
+            ['Thời hạn hiệu lực', $first->effect_frame_period],
+            ['DANH SÁCH NHÀ THẦU', null],
+        ];
+        foreach ($items->unique('contractor_code') as $contractor) {
+            $package[] = [null, null, $contractor->contractor_code, $contractor->contractor_name,
+                $contractor->contract_no, $contractor->contract_period, $contractor->contract_period_unit];
+        }
+
+        return Excel::download(
+            new KqlcntAwardWorkbookExport($package, array_slice($this->headings(), 5, 19), $rows),
+            'KQLCNT-'.preg_replace('/[^a-zA-Z0-9_-]/', '-', $notifyNo).'.xlsx'
+        );
     }
 
     private function query(array $filters): Builder
@@ -92,6 +152,6 @@ class KqlcntAwardController extends Controller
 
     private function headings(): array
     {
-        return ['Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Quy cách', 'Hạn dùng (tháng)', 'GĐKLH hoặc GPNK', 'ĐVT', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Nhà sản xuất', 'Nước SX', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Mã chủ đầu tư', 'Chủ đầu tư', 'Số hợp đồng', 'Thời gian thực hiện', 'Đơn vị thời gian', 'Thời gian thực hiện gói thầu', 'Thời hạn hiệu lực', 'Nguồn dữ liệu', 'Nguồn đồng bộ', 'Trạng thái', 'Đồng bộ lúc'];
+        return ['_award_id', '_version', 'Mã TBMT', 'Mã nhà thầu', 'Tên nhà thầu', 'Mã lô', 'Tên lô', 'Mã thuốc', 'Tên thuốc', 'Nhóm thuốc', 'Hoạt chất', 'Hàm lượng', 'Đường dùng', 'Dạng bào chế', 'Quy cách', 'Hạn dùng (tháng)', 'GĐKLH hoặc GPNK', 'ĐVT', 'Số lượng', 'Giá kế hoạch', 'Giá trúng thầu', 'Thành tiền', 'Nhà sản xuất', 'Nước SX', 'Số quyết định', 'Ngày quyết định', 'Ngày đăng KQLCNT', 'Mã chủ đầu tư', 'Chủ đầu tư', 'Số hợp đồng', 'Thời gian thực hiện', 'Đơn vị thời gian', 'Thời gian thực hiện gói thầu', 'Thời hạn hiệu lực', 'Nguồn dữ liệu', 'Nguồn đồng bộ', 'Trạng thái', 'Đồng bộ lúc'];
     }
 }

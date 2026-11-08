@@ -10,9 +10,37 @@
         </div>
         <div class="flex flex-wrap gap-2">
             @include('Muasamcong::partials.dashboard-return-link')
-            <button form="award-export-form" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700">Xuất Excel</button>
         </div>
     </div>
+
+    @if ($errors->has('file'))
+        <div role="alert" class="rounded-xl border border-red-300 bg-red-50 p-3 text-sm text-red-800">{{ $errors->first('file') }}</div>
+    @endif
+
+    <details class="rounded-2xl border border-gray-200 bg-white shadow-sm" @if($errors->has('file') || $errors->has('notify_no')) open @endif>
+        <summary class="cursor-pointer select-none px-5 py-4 text-sm font-semibold text-gray-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500">
+            Công cụ Import / Export Excel <span class="ml-2 text-xs font-normal text-gray-500">(nhấn để mở hoặc thu gọn)</span>
+        </summary>
+        <div class="grid gap-4 border-t border-gray-100 p-5 md:grid-cols-2">
+            @can('muasamcong.pricing.sync')
+                <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                    <h2 class="text-sm font-semibold text-gray-900">Import danh mục trúng thầu</h2>
+                    <p class="text-xs text-gray-600">Một file gồm một TBMT, một nhà thầu và 19 cột thuốc.</p>
+                    <a href="{{ route('muasamcong.kqlcnt-awards.import.template') }}" class="inline-flex rounded-lg border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-50">Tải Excel mẫu kèm hướng dẫn</a>
+                    <form method="POST" action="{{ route('muasamcong.kqlcnt-awards.import.preview') }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">@csrf
+                        <label for="kqlcnt-import-file" class="sr-only">Chọn Excel KQLCNT</label>
+                        <input id="kqlcnt-import-file" type="file" name="file" accept=".xlsx,.xls" required class="max-w-full rounded-lg border border-gray-300 bg-white p-2 text-xs" />
+                        <button type="submit" class="rounded-xl border border-indigo-300 bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">Xem trước Import</button>
+                    </form>
+                </div>
+            @endcan
+            <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <h2 class="text-sm font-semibold text-gray-900">Export danh mục trúng thầu</h2>
+                <p class="text-xs text-gray-600">Lọc một TBMT và một nhà thầu trước khi xuất. Có thể chọn các dòng ở bảng bên dưới.</p>
+                <button type="submit" form="award-export-form" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700">Xuất Excel</button>
+            </div>
+        </div>
+    </details>
 
     <form id="award-filter-form" method="GET" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
         <div class="flex flex-col gap-3 border-b border-gray-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
