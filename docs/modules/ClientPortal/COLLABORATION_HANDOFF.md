@@ -1,3 +1,11 @@
+## 2026-11-08 — KQLCNT inline clear filter UX checkpoint
+
+- Narrowed TBMT combobox to 11rem on wide desktop, preserved flexible widths for investor and medicine, and fixed status width to 11rem.
+- Conditional red 'Xóa lọc' now occupies the same flex row as four selectors on wide desktop, rather than creating an extra row; mobile/tablet continue responsive wrapping.
+- Updated focused layout contract. TEST PENDING / UI PENDING. No merge or deployment.
+
+---
+
 ## 2026-11-08 — KQLCNT live filters checkpoint
 
 - User requested automatic filtering on TBMT/investor/medicine combobox option selection or status change; removed manual submit button.
