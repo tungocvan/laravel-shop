@@ -358,7 +358,7 @@ class ClientPortalPwaSettingsTest extends TestCase
         $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
         $this->assertFalse($items['overview']['bottom_enabled']);
         $this->assertSame('beaker', $items['overview']['bottom_icon']);
-        $this->assertSame('magnifying-glass', $items['products']['bottom_icon']);
+        $this->assertSame('beaker', $items['products']['bottom_icon']);
 
         $controller->updateApplicationNavigation(Request::create('/', 'PUT', ['items' => [
             ['key' => 'overview', 'bottom_enabled' => '1', 'bottom_sort_order' => '10', 'bottom_icon' => 'home'],
