@@ -1,3 +1,13 @@
+## 2026-11-08 — KQLCNT dashboard + searchable filters checkpoint
+
+- User UI screenshots identified literal `@filled` rendering, text-only filters instead of Admin-like searchable combobox, and missing dashboard.
+- Added searchable Alpine combobox for TBMT and investor, with selected code submitted to canonical Muasamcong read service; kept free-text contractor and medicine/ingredient searches and status filter.
+- Added four aggregate dashboard metrics: all TBMT+contractor records, fully active records, total awarded value and fully active value. **These are is_active data flags, NOT legally verified contract validity.** No contract expiration claim without trustworthy dates.
+- Replaced unsupported Blade `@filled` directive with `@if(filled(...))`. Expanded focused contract assertions.
+- Await local focused tests and real browser UI verification. No full-module regression, merge or production operations at this checkpoint.
+
+---
+
 ## 2026-11-08 — Pharma KQLCNT grouped TBMT UX checkpoint
 
 - User approved TBMT-first listing: group by TBMT + contractor code/name, avoiding collapse of distinct contractors; detail shows all medicine lines of the selected group.
