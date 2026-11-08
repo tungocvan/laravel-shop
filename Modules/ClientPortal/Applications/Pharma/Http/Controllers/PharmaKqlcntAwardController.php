@@ -11,6 +11,7 @@ use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingDiagnostics;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntLegacyWorkflowBridge;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAllocationBlockers;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingConfirmation;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 
@@ -70,6 +71,19 @@ final class PharmaKqlcntAwardController extends Controller
         return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness, $diagnostics, app(KqlcntLegacyWorkflowBridge::class));
     }
 
+    public function confirmMapping(
+        int $awardItem,
+        ApplicationRegistry $registry,
+        KqlcntMappingConfirmation $confirmation,
+    ): RedirectResponse {
+        $user = request()->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
+        $confirmation->confirm($awardItem, (int) $user->id);
+
+        return redirect()->route('client.pharma.kqlcnt-awards.allocation', ['awardItem' => $awardItem])
+            ->with('success', 'Đã xác nhận liên kết KQLCNT với Pharma.');
+    }
+
     public function commercialPolicy(
         int $awardItem,
         ApplicationRegistry $registry,
@@ -119,6 +133,7 @@ final class PharmaKqlcntAwardController extends Controller
             'readiness' => $readiness->forAward($awardItem),
             'mappingDiagnostics' => $diagnostics->inspect($awardItem),
             'allocationBlockers' => app(KqlcntAllocationBlockers::class)->inspect($awardItem),
+            'canConfirmMapping' => $mode === 'allocation' && app(KqlcntLegacyWorkflowBridge::class)->verifiedMappingCandidateIds($awardItem) !== [],
             'medicines' => $awards->medicines($awardItem),
         ]);
     }
