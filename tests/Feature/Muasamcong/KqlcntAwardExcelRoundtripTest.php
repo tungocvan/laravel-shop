@@ -58,7 +58,7 @@ class KqlcntAwardExcelRoundtripTest extends TestCase
         $this->assertStringContainsString('value="all"', $blade);
         $this->assertStringContainsString('Dữ liệu đã được đồng bộ', $blade);
         $this->assertStringContainsString("showAllFields ||", $blade);
-        $this->assertStringContainsString("@disabled(\$preview['valid'] === 0)", $blade);
+        $this->assertStringContainsString("empty(\$preview['package']['changes'])", $blade);
     }
 
     public function test_v2_workbook_exports_exactly_two_named_sheets(): void
