@@ -32,7 +32,7 @@ final class PharmaKqlcntAwardController extends Controller
         return view('ClientPortal::applications.pharma.kqlcnt-awards', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
-            'presentation' => $settings->featurePresentation($application, 'kqlcnt-awards'),
+            'presentation' => $settings->featurePresentation('pharma', ['key' => 'kqlcnt-awards'] + $application['features']['kqlcnt-awards']),
             'items' => $items,
             'filters' => $filters,
         ]);
