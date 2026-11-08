@@ -4,6 +4,7 @@
 @section('app-name', 'Pharma')
 @section('app-subtitle', 'Excel Designer V4')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
 
 @push('application-head')
