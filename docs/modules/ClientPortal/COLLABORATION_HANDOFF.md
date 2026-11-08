@@ -1924,3 +1924,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Added `KqlcntWorkflowReadiness` read-only identity check: exact `source_type=muasamcong` + `source_id` mapping, 1:1 canonical medicine lines, TBMT and contractor consistency. No route, UI, database migration, writes, or production operations in this phase.
 - Before enabling allocation or policy from canonical cards, design a contractor-scoped workflow and explicit canonical-line foreign-key strategy; preserve existing allocations/policies and test multi-contractor collision cases. Do not expose legacy scope links based on TBMT alone.
 - Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaKqlcntCanonicalWorkflowReadinessContractTest.php`. TEST PENDING; UI not changed; UI PASS not claimed. Next batch requires reviewed schema and integration tests. No merge or deploy authorized.
+
+
+### 2026-11-08 — KQLCNT canonical workflow Phase 2, batch A: exact product scope
+- Added `KqlcntCanonicalProductScope` to resolve only 1:1 canonical line-to-Pharma product IDs. Reject empty/incomplete/duplicate mappings and contractor or TBMT mismatches. A TBMT alone is never sufficient to authorize an allocation/policy write.
+- `KqlcntWorkflowReadiness::scopedProductIds()` now exposes validated product IDs for future ID-scoped read/write adapters. **Do not call the legacy TBMT-wide `DrugBidAwardResultGroupService::awardsQuery()` for canonical-card mutations.**
+- Added focused runtime unit-style tests covering exact mapping, different contractors sharing TBMT, duplicate/missing/unrelated links, and empty groups. No UI, routes, migration, database writes, or legacy behavior changed.
+- **TEST PENDING**: `php artisan test tests/Feature/ClientApps/PharmaKqlcntCanonicalProductScopeTest.php tests/Feature/ClientApps/PharmaKqlcntCanonicalWorkflowReadinessContractTest.php`. After PASS, run relevant ClientApps/KQLCNT regression; UI PASS not claimed.
+- Next batch: audit allocation/policy service contracts and DB schema; add canonical-ID-scoped workflow adapter and authorized routes; add UI only after focused and impacted regression. Preserve `/apps/pharma/bid-awards` until user-approved retirement.
