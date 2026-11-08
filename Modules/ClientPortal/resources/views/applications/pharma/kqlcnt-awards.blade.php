@@ -136,7 +136,7 @@
                     </div>
                     <div class="min-w-0">
                         <p class="text-xs text-slate-500">Thời gian thực hiện hợp đồng</p>
-                        <p class="mt-1 text-sm font-semibold text-slate-900">{{ $item->contract_period_text ?: ($item->contract_period ? $item->contract_period.' '.($item->contract_period_unit ?: 'tháng') : 'Chưa cập nhật') }}</p>
+                        <p class="mt-1 text-sm font-semibold text-slate-900">{{ $item->contract_period !== null ? $item->contract_period.' '.($item->contract_period_unit ?: 'tháng') : ($item->contract_period_text ?: 'Chưa cập nhật') }}</p>
                     </div>
                     <div class="rounded-xl bg-slate-50 p-3">
                         <p class="text-xs text-slate-500">Số tiền trúng thầu</p>
