@@ -18,6 +18,7 @@ class KqlcntAwardPackageMetadataImportTest extends TestCase
     public function test_sheet_one_contract_period_is_previewed_and_updates_all_scoped_medicines(): void
     {
         KqlcntAwardItem::query()->create([
+            'identity_key' => 'test-ib-001-vn-test-001-med-001',
             'notify_no' => 'IB-TEST-001', 'contractor_code' => 'vn-test-001',
             'contractor_name' => 'Nhà thầu thử', 'medicine_code' => 'MED-TEST-001',
             'medicine_name' => 'Thuốc thử', 'contract_period' => 24,
@@ -60,7 +61,7 @@ class KqlcntAwardPackageMetadataImportTest extends TestCase
         $source = file_get_contents(base_path('Modules/Muasamcong/Services/KqlcntAwardExcelImportService.php'));
         $this->assertStringContainsString('previewPackageChanges($scope)', $source);
         $this->assertStringContainsString('lockForUpdate()->get()', $source);
-        $this->assertStringContainsString("'package_updated' => $packageUpdated", $source);
+        $this->assertStringContainsString("'package_updated' => ".'$packageUpdated', $source);
         $this->assertStringContainsString("! empty(\$batch['package']['errors'])", $source);
     }
 }
