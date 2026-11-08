@@ -46,6 +46,7 @@ final class KqlcntMappingConfirmation
                 $matches = $rows->filter(fn (DrugBidAward $row): bool =>
                     $row->source_id === null
                     && in_array($row->source_type, [null, DrugBidAward::SOURCE_MANUAL], true)
+                    && ! $row->sources()->exists()
                     && trim((string) $row->bidding_notice_code) === trim((string) $line->notify_no)
                     && trim((string) $row->contractor_code) === trim((string) $line->contractor_code)
                     && trim((string) $row->winning_company_name) === trim((string) $line->contractor_name)
