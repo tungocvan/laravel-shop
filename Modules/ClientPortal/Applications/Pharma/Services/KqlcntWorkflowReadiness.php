@@ -35,7 +35,7 @@ final class KqlcntWorkflowReadiness
         $links = DB::table('pharma_drug_bid_awards')
             ->where('source_type', 'muasamcong')
             ->whereIn('source_id', $ids)
-            ->get(['id', 'source_id', 'bidding_notice_code', 'contractor_code']);
+            ->get(['id', 'source_id', 'bidding_notice_code', 'contractor_code', 'winning_company_name']);
 
         return $this->scope->resolve($medicines, $links);
     }
@@ -68,7 +68,9 @@ final class KqlcntWorkflowReadiness
 
             return $linked !== null
                 && trim((string) $linked->bidding_notice_code) === trim((string) $medicine->notify_no)
-                && trim((string) $linked->contractor_code) === trim((string) $medicine->contractor_code);
+                && trim((string) $linked->contractor_code) === trim((string) $medicine->contractor_code)
+                && (trim((string) $medicine->contractor_code) !== ''
+                    || trim((string) $linked->winning_company_name) === trim((string) $medicine->contractor_name));
         });
 
         return [
