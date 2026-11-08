@@ -2,6 +2,8 @@
 @section('title', 'Chi tiết thuốc trúng thầu')
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 @php
     $winning = $item['winningName'] ?? null;

@@ -1,5 +1,7 @@
 @extends('ClientPortal::layouts.application')
 @section('title','Xuất – Nhập – Tồn')
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 
 @section('content')
 <div class="mx-auto w-full max-w-7xl space-y-5 px-3 py-4 sm:px-5">
@@ -25,8 +27,8 @@
 
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <form method="GET" class="grid gap-3 lg:grid-cols-[auto_auto_minmax(280px,1fr)_auto_auto_auto] lg:items-end">
-            <label class="text-xs font-semibold text-slate-600">Từ ngày<input type="date" name="from" value="{{ $from->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"></label>
-            <label class="text-xs font-semibold text-slate-600">Đến ngày<input type="date" name="to" value="{{ $to->format('Y-m-d') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm"></label>
+            <x-pwa-date label="Từ ngày" name="from" :value="$from->format('Y-m-d')" class="min-h-11" />
+            <x-pwa-date label="Đến ngày" name="to" :value="$to->format('Y-m-d')" class="min-h-11" />
             <label class="text-xs font-semibold text-slate-600">Tên thuốc
                 <select id="inventory-movement-medicine" name="movement_medicine_id" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm">
                     <option value="">Tất cả thuốc</option>

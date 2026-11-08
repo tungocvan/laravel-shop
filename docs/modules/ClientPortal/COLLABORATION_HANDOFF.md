@@ -1890,3 +1890,21 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - User executed `php artisan test tests/Feature/ClientApps`: **320 passed, 8 failed (4588 assertions)**. The exact same eight failures were reproduced on the up-to-date `main` with the four failing test files (**32 passed, 8 failed; 605 assertions**); treat as **documented baseline failures, not a ClientApps PASS**. Failures concern legacy Bid/Orders string assertions, stale Pharma feature enumeration, and PWA UI parity contracts.
 - Feature diff against main: 16 changed files, ahead 72, behind 0 at checkpoint. No evidence the eight baseline failures originate in this branch. Keep follow-up remediation separate; do not change UI/business behavior solely to satisfy string-based contracts.
 - No full-project suite executed (module-scoped regression strategy). PR review/CI and tracked working-tree gate still required before merge. No production deploy authorized.
+
+## 2026-11-08 — Pharma ClientApps baseline regression remediation checkpoint
+- New branch `test/clientapps-pharma-baseline-regression-20261108` from merged main. Prior ClientApps regression: 320 passed / 8 failed; same eight failures reproduced on main (32 passed / 8 failed in four focused files).
+- Read-only audit: legacy source-string assertions expected bid-only lot posting, `approveBidPartially()` controller call, and direct auto-FEFO posting. Current controller uses authorized manual lot selection for bid/normal/price_list, calls `approvePartially()`, and redirects post action to manual lots. Tests updated to assert actual authorization/workflow without changing Pharma domain services.
+- Feature registry test now checks stable required keys including KQLCNT and uniqueness rather than freezing the evolving feature inventory.
+- PWA UI parity: added missing focused shell mobile-navigation suppression to KQLCNT index/detail; replaced raw date input for partial bid supply with shared `<x-pwa-date>` retaining input name, value, and `data-partial-supply-input` hook; preserved separate master-only medicine server pagination as explicit exception to progressive browse list assertion.
+- **TEST PENDING** focused four files and ClientApps regression. **UI PENDING** actual mobile/desktop KQLCNT shell and partial supply date input. No PR/merge/deploy; no production changes.
+
+### 2026-11-08 — Follow-up focused failures (37 pass / 3 fail)
+- User reported three remaining focused failures: stale FEFO error text in `PharmaP5SecurityRegressionTest`, raw date inputs in Pharma Blade, and missing focused shell directives in award price detail.
+- Updated security contract to check actual canonical manual-lot service expiry and aggregate-stock checks; added focused shell directives to `award-price-detail.blade.php`.
+- Replaced eight raw date inputs in five Blade files (`inventory-movements`, `inventory-opening`, `medicine-editor`, `medicine-hssp`, `medicine-supplier-conditions`) with `<x-pwa-date>`; preserved field names, old values, required attributes, and existing validation messages. No domain service or database change.
+- **TEST PENDING**: rerun four focused files, then full ClientApps only on focused PASS. **UI PENDING**: inspect date fields and focused shells on mobile/desktop. No PR/merge/deploy.
+
+### 2026-11-08 — Consolidated focused-shell contract remediation
+- User ran focused shell contract and supplied the complete missing-section inventory (10 Blade files). Added only missing `hide-application-header` / `hide-mobile-navigation` sections to: `excel-config`, `import-batch`, `import`, `inventory-excel-config`, `inventory-movements`, `inventory-opening`, `medicine-editor`, `medicine-hssp`, `medicine-supplier-conditions`, `variant-create`.
+- Dashboard remains exempt; no changes to route, authorization, inventory, Excel import/export, or database logic.
+- **TEST PENDING**: focused 4 files first, then ClientApps regression. **UI PENDING**: desktop/mobile shell and forms; no merge/deploy.

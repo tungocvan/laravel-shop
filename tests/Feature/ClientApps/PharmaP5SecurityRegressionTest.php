@@ -49,11 +49,15 @@ final class PharmaP5SecurityRegressionTest extends TestCase
 
         $this->assertStringContainsString('InventoryIssue::query()->lockForUpdate()->findOrFail', $approval);
         $this->assertStringNotContainsString('postIssue(', $approval);
-        $this->assertStringContainsString('postApprovedIssueFromAvailableStock', $controller);
+        $this->assertStringContainsString("return redirect()->route('client.pharma.orders.lots', \$issue)", $controller);
+        $this->assertStringContainsString('$lotPosting->post($visible, $data[\'batches\']', $controller);
         $this->assertStringContainsString("->where('quantity_on_hand', '>', 0)", $inventory);
         $this->assertStringContainsString('->lockForUpdate()', $inventory);
         $this->assertStringContainsString('$quantity = min($remaining, (float) $balance->quantity_on_hand);', $inventory);
-        $this->assertStringContainsString('đủ tổng tồn khả dụng qua các lô còn hạn', $controller);
+        $lotPosting = file_get_contents(base_path('Modules/Pharma/Services/BidIssueManualLotPostingService.php'));
+        $this->assertStringContainsString("whereDate('expiry_date', '>=', now()->toDateString())", $lotPosting);
+        $this->assertStringContainsString('$lotTotals[$balanceId] > (float) $balance->quantity_on_hand', $lotPosting);
+        $this->assertStringContainsString('Tổng số lượng chọn lô phải bằng số lượng đã được phê duyệt', $lotPosting);
         $this->assertStringNotContainsString('Mỗi sản phẩm phải có một lô còn hạn đủ số lượng', $controller);
     }
 

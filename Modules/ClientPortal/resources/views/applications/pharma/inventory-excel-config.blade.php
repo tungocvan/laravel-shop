@@ -1,5 +1,7 @@
 @extends('ClientPortal::layouts.application')
 @section('title', 'Cấu hình Excel kho')
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 @php
     $back = $report === 'stock' ? 'client.pharma.inventory' : 'client.pharma.inventory.movements';

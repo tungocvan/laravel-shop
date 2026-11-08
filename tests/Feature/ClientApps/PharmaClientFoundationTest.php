@@ -27,10 +27,11 @@ class PharmaClientFoundationTest extends TestCase
         $this->assertSame('Pharma PWA', $application['hub']['eyebrow']);
         $this->assertSame('Không gian làm việc Pharma', $application['hub']['title']);
         $this->assertSame('Làm việc theo phạm vi được giao', $application['hub']['supporting']['title']);
-        $this->assertSame(
-            ['products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions'],
-            collect($application['features'])->pluck('key')->all(),
-        );
+        $featureKeys = collect($application['features'])->pluck('key')->all();
+        foreach (['products', 'price-lists', 'bid-awards', 'commercial', 'orders', 'inventory', 'commissions', 'kqlcnt-awards'] as $key) {
+            $this->assertContains($key, $featureKeys);
+        }
+        $this->assertSame(count($featureKeys), count(array_unique($featureKeys)), 'Feature keys must be unique.');
         $this->assertSame('overview', collect($application['navigation'])->firstWhere('key', 'overview')['key']);
         $this->assertSame('client.pharma.dashboard', collect($application['navigation'])->firstWhere('key', 'overview')['route']);
         $this->assertNull(collect($application['features'])->firstWhere('key', 'overview'));

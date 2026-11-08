@@ -229,9 +229,13 @@
                                 </label>
                                 <p data-partial-bid-summary role="status" aria-live="polite" class="mt-2 text-xs font-semibold text-emerald-700"></p>
                                 <div data-partial-supply-fields class="mt-2 grid gap-2 sm:grid-cols-2">
-                                    <label class="text-xs font-bold text-slate-700">Ngày dự kiến cung ứng phần thiếu
-                                        <input type="date" data-partial-supply-input name="partial_supply[{{ $row['item_id'] }}][expected_supply_date]" value="{{ old('partial_supply.'.$row['item_id'].'.expected_supply_date', $row['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d')) }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
-                                    </label>
+                                    <x-pwa-date
+                                        label="Ngày dự kiến cung ứng phần thiếu"
+                                        name="partial_supply[{{ $row['item_id'] }}][expected_supply_date]"
+                                        :value="old('partial_supply.'.$row['item_id'].'.expected_supply_date', $row['supply_expected_date'] ?: now()->addMonth()->format('Y-m-d'))"
+                                        data-partial-supply-input
+                                        class="min-h-11"
+                                    />
                                     <label class="text-xs font-bold text-slate-700">Ghi chú chờ cung ứng
                                         <input type="text" data-partial-supply-input maxlength="2000" name="partial_supply[{{ $row['item_id'] }}][note]" value="{{ old('partial_supply.'.$row['item_id'].'.note', $row['supply_note'] ?: 'Chờ cung ứng phần số lượng chưa xuất.') }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3">
                                     </label>

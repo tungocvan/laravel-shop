@@ -3,6 +3,7 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 <div class="min-w-0 space-y-4 pb-6">
     <header class="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
