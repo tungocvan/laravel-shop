@@ -14,8 +14,7 @@ final class PharmaKqlcntAwardController extends Controller
     public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards): View
     {
         $filters = $request->validate([
-            'notify_no' => ['nullable', 'string', 'max:255'],
-            'contractor' => ['nullable', 'string', 'max:255'],
+            'search' => ['nullable', 'string', 'max:255'],
             'medicine' => ['nullable', 'string', 'max:255'],
             'active' => ['nullable', 'in:0,1'],
         ]);
@@ -35,6 +34,7 @@ final class PharmaKqlcntAwardController extends Controller
     public function show(int $awardItem, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards): View
     {
         $item = $awards->find($awardItem);
+        $medicines = $awards->medicines($awardItem);
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
 
@@ -43,6 +43,7 @@ final class PharmaKqlcntAwardController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
             'item' => $item,
+            'medicines' => $medicines,
         ]);
     }
 }
