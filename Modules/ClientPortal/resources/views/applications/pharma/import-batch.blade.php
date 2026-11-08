@@ -4,6 +4,7 @@
 @section('app-name', 'Pharma')
 @section('app-subtitle', 'Rà soát import')
 @section('app-dashboard-route', route('client.pharma.dashboard'))
+@section('hide-mobile-navigation', true)
 @section('hide-application-header', true)
 
 @section('content')
