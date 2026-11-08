@@ -472,7 +472,13 @@ class PharmaPwaUiParityContractTest extends TestCase
             $this->assertStringContainsString('data-pwa-search-clear-button', $view);
             $this->assertStringContainsString('data-pwa-load-more', $view);
             $this->assertStringContainsString('Xem thêm', $view);
-            $this->assertStringNotContainsString('->links()', $view);
+            // Master-only medicine management is a separate server-paginated section.
+            if ($view === $products) {
+                $this->assertStringContainsString('$masterOnlyMedicines->links()', $view);
+                $this->assertSame(1, substr_count($view, '->links()'));
+            } else {
+                $this->assertStringNotContainsString('->links()', $view);
+            }
             $this->assertStringNotContainsString('name="per_page"', $view);
         }
 
