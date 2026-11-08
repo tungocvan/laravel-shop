@@ -17,6 +17,24 @@
         <p class="mt-2 text-sm text-amber-900">{{ $readiness['reason'] }}</p>
         <p class="mt-2 text-xs text-amber-900">Trạng thái liên kết: {{ $readiness['status'] }} · {{ $readiness['linked_count'] }}/{{ $readiness['canonical_count'] }} dòng. Phạm vi bệnh viện hiện còn dùng khóa TBMT chung; chức năng ghi sẽ chỉ được mở sau khi tách an toàn theo nhà thầu và kiểm tra quyền.</p>
     </section>
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5" aria-label="Đối soát liên kết">
+        <h2 class="text-base font-bold text-slate-950">Đối soát liên kết KQLCNT → Pharma</h2>
+        <p class="mt-1 text-sm text-slate-600">Chỉ kiểm tra, không tự động liên kết hoặc tạo sản phẩm Pharma.</p>
+        <dl class="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+            <div><dt class="text-slate-500">Đã liên kết</dt><dd class="font-bold">{{ $mappingDiagnostics['linked_count'] }}</dd></div>
+            <div><dt class="text-slate-500">Thiếu liên kết</dt><dd class="font-bold">{{ $mappingDiagnostics['missing_count'] }}</dd></div>
+            <div><dt class="text-slate-500">Xung đột</dt><dd class="font-bold">{{ $mappingDiagnostics['ambiguous_count'] }}</dd></div>
+            <div><dt class="text-slate-500">Ứng viên cần xác minh</dt><dd class="font-bold">{{ $mappingDiagnostics['candidates_count'] }}</dd></div>
+        </dl>
+        <div class="mt-3 divide-y divide-slate-100">
+            @foreach($mappingDiagnostics['lines'] as $line)
+                <div class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                    <span class="min-w-0 break-words text-slate-800">{{ $line['medicine_name'] ?: 'Sản phẩm chưa có tên' }} · #{{ $line['canonical_id'] }}</span>
+                    <span class="font-semibold text-slate-700">{{ $line['status'] === 'linked' ? 'Đã liên kết' : ($line['status'] === 'conflict' ? 'Xung đột định danh' : 'Chưa liên kết') }}</span>
+                </div>
+            @endforeach
+        </div>
+    </section>
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div class="border-b border-slate-100 p-4 sm:p-5">
             <h2 class="text-base font-bold text-slate-950">Sản phẩm thuộc hồ sơ canonical</h2>
