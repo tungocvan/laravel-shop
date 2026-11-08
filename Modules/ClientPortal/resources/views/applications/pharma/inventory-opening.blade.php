@@ -36,7 +36,7 @@
                         <input name="batch_number" value="{{ old('batch_number') }}" required maxlength="100" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
                     </label>
                     <label class="block text-sm font-semibold text-slate-700">Hạn dùng <span class="text-rose-600">*</span>
-                        <input type="date" name="expiry_date" value="{{ old('expiry_date') }}" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
+                        <x-pwa-date name="expiry_date" :value="old('expiry_date')" required class="min-h-11" />
                     </label>
                     <label class="block text-sm font-semibold text-slate-700">Tồn đầu kỳ <span class="text-rose-600">*</span>
                         <input type="number" name="opening_quantity" value="{{ old('opening_quantity') }}" required min="0.000001" step="any" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
