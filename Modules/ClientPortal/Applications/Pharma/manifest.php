@@ -77,7 +77,7 @@ return [
             ],
         ],
         'kqlcnt-awards' => [
-            'name' => 'Theo dõi kết quả trúng thầu',
+            'name' => 'Theo dõi thầu',
             'route' => 'client.pharma.kqlcnt-awards.index',
             'permission' => 'client.pharma.kqlcnt-awards.view',
             'icon' => 'clipboard-document-list',
@@ -151,10 +151,10 @@ return [
     ],
     'features' => [
         'kqlcnt-awards' => [
-            'name' => 'Theo dõi kết quả trúng thầu',
+            'name' => 'Theo dõi thầu',
             'description' => 'Theo dõi danh mục KQLCNT đã lưu từ Mua sắm công.',
             'eyebrow' => 'KQLCNT canonical',
-            'page_title' => 'Theo dõi kết quả trúng thầu',
+            'page_title' => 'Theo dõi thầu',
             'page_description' => 'Tra cứu gói thầu, nhà thầu và danh mục thuốc trúng thầu đã lưu.',
             'route' => 'client.pharma.kqlcnt-awards.index',
             'permission' => 'client.pharma.kqlcnt-awards.view',
