@@ -35,9 +35,9 @@
 
     <form method="GET" action="{{ route('client.pharma.kqlcnt-awards.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-base font-bold text-slate-950">Bộ lọc hồ sơ</h2>
-        <p class="mt-1 text-xs text-slate-500">Chọn mã TBMT hoặc chủ đầu tư từ danh sách có tìm kiếm.</p>
-        <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <div class="min-w-0">
+        <p class="mt-1 text-xs text-slate-500">Lọc theo mã TBMT, chủ đầu tư, thuốc hoặc trạng thái.</p>
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-12 xl:items-end">
+            <div class="min-w-0 xl:col-span-3">
                 <label for="kqlcnt-notify" class="mb-1 block text-xs font-semibold text-slate-700">Mã TBMT</label>
                 <x-pwa-select-search id="kqlcnt-notify" name="notify_no" :selected="$filters['notify_no'] ?? ''" placeholder="Tất cả mã TBMT" search-placeholder="Tìm mã TBMT...">
                     <button type="button" data-pwa-select-search-option data-value="" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả mã TBMT</button>
@@ -46,7 +46,7 @@
                     @endforeach
                 </x-pwa-select-search>
             </div>
-            <div class="min-w-0">
+            <div class="min-w-0 xl:col-span-4">
                 <label for="kqlcnt-investor" class="mb-1 block text-xs font-semibold text-slate-700">Chủ đầu tư</label>
                 <x-pwa-select-search id="kqlcnt-investor" name="investor_code" :selected="$filters['investor_code'] ?? ''" placeholder="Tất cả chủ đầu tư" search-placeholder="Tìm chủ đầu tư...">
                     <button type="button" data-pwa-select-search-option data-value="" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả chủ đầu tư</button>
@@ -55,15 +55,7 @@
                     @endforeach
                 </x-pwa-select-search>
             </div>
-            <label class="block text-xs font-semibold text-slate-700">Trạng thái
-                <select name="active" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="1" @selected(($filters['active'] ?? '') === '1')>Đang hoạt động</option>
-                    <option value="0" @selected(($filters['active'] ?? '') === '0')>Không hoạt động</option>
-                </select>
-            </label>
-            <x-pwa-search name="search" :value="$filters['search'] ?? ''" label="Tìm nhà thầu / TBMT / Chủ đầu tư" placeholder="Nhập từ khóa..." />
-            <div class="min-w-0">
+            <div class="min-w-0 xl:col-span-3">
                 <label for="kqlcnt-medicine" class="mb-1 block text-xs font-semibold text-slate-700">Tên thuốc / Hoạt chất</label>
                 <x-pwa-select-search id="kqlcnt-medicine" name="medicine" :selected="$filters['medicine'] ?? ''" placeholder="Tất cả thuốc" search-placeholder="Tìm tên thuốc...">
                     <button type="button" data-pwa-select-search-option data-value="" class="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-indigo-50">Tất cả thuốc</button>
@@ -72,6 +64,14 @@
                     @endforeach
                 </x-pwa-select-search>
             </div>
+            <label class="block min-w-0 text-xs font-semibold text-slate-700 xl:col-span-2">Trạng thái
+                <select name="active" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900">
+                    <option value="">Tất cả trạng thái</option>
+                    <option value="1" @selected(($filters['active'] ?? '') === '1')>Đang hoạt động</option>
+                    <option value="0" @selected(($filters['active'] ?? '') === '0')>Không hoạt động</option>
+                </select>
+            </label>
+            <x-pwa-search name="search" :value="$filters['search'] ?? ''" label="Tìm nhà thầu / TBMT / Chủ đầu tư" placeholder="Nhập từ khóa..." />
         </div>
         <div class="mt-4 flex flex-wrap items-center gap-2">
             <button type="submit" class="inline-flex min-h-11 items-center justify-center rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white">Lọc hồ sơ</button>
