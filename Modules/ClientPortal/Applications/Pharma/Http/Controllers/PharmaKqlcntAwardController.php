@@ -78,6 +78,7 @@ final class PharmaKqlcntAwardController extends Controller
     ): RedirectResponse {
         $user = request()->user('web');
         abort_unless($user && $registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
+        request()->validate(['acknowledge' => ['required', 'accepted']]);
         $confirmation->confirm($awardItem, (int) $user->id);
 
         return redirect()->route('client.pharma.kqlcnt-awards.allocation', ['awardItem' => $awardItem])
