@@ -134,14 +134,16 @@ class PharmaAwardSyncContractTest extends TestCase
         }
         $this->assertStringContainsString("@section('hide-application-header', true)", $blade);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $blade);
-        $script = file_get_contents(base_path('public/demo/pharma-award/award-interactions.js'));
+        $this->assertFileDoesNotExist(base_path('public/demo/pharma-award/award-interactions.js'));
+        $this->assertStringContainsString("assets/client-portal/pharma/award-interactions.js", file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/award-prices.blade.php')));
+        $script = file_get_contents(base_path('public/assets/client-portal/pharma/award-interactions.js'));
         $this->assertStringContainsString('filterRows()', $script);
         $this->assertStringContainsString('visibleSelections()', $script);
         $this->assertStringContainsString('row.hidden = !matches', $script);
         $this->assertStringContainsString("row.style.display = matches ? '' : 'none'", $script);
         $this->assertStringContainsString('data.group === selectedGroup', $script);
         $this->assertStringContainsString('row.closest(\'tr\')?.style.display', $script);
-        $this->assertStringContainsString('v=20261107-2', $blade);
+        $this->assertStringContainsString('v=20261108-1', $blade);
         $this->assertStringContainsString('normalizedGroup', $blade);
         $this->assertStringContainsString('preg_match(', $blade);
         $this->assertStringContainsString('row.checked', $script);

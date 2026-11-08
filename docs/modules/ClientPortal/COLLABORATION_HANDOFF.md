@@ -1908,3 +1908,12 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - User ran focused shell contract and supplied the complete missing-section inventory (10 Blade files). Added only missing `hide-application-header` / `hide-mobile-navigation` sections to: `excel-config`, `import-batch`, `import`, `inventory-excel-config`, `inventory-movements`, `inventory-opening`, `medicine-editor`, `medicine-hssp`, `medicine-supplier-conditions`, `variant-create`.
 - Dashboard remains exempt; no changes to route, authorization, inventory, Excel import/export, or database logic.
 - **TEST PENDING**: focused 4 files first, then ClientApps regression. **UI PENDING**: desktop/mobile shell and forms; no merge/deploy.
+
+
+## Pharma award public/demo collision cleanup (2026-11-08)
+
+- Move the actively referenced Pharma award lookup JavaScript unchanged from `public/demo/pharma-award/award-interactions.js` to `public/assets/client-portal/pharma/award-interactions.js`.
+- Update ClientPortal Pharma award Blade asset URL and `PharmaAwardSyncContractTest`; assert the legacy file is absent. No business logic, authorization, database or Nginx configuration changes.
+- This was the only tracked file remaining under `public/demo`; its removal avoids Nginx directory precedence over Laravel's `/demo` Hub route on the observed host, provided no untracked files keep the directory present.
+- Focused test PENDING: `php artisan test tests/Feature/ClientApps/PharmaAwardSyncContractTest.php tests/Feature/DemoHubAndRouteOwnershipTest.php`.
+- Run ClientApps impacted regression only after focused PASS; verify Pharma award interactions and `/demo` Hub on desktop/mobile. No TEST/UI PASS claimed. No production mutation authorized.
