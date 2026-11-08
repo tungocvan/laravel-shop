@@ -1,5 +1,7 @@
 @extends('ClientPortal::layouts.application')
 @section('title', 'Tồn đầu kỳ')
+@section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 <div class="mx-auto w-full max-w-6xl space-y-5 px-4 py-6">
     <header class="border-b border-slate-200 pb-4">
