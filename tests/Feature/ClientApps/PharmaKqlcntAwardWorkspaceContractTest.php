@@ -58,9 +58,16 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('whereExists(', $service);
         $this->assertStringContainsString('SUM(COALESCE(amount, quantity * winning_price, 0))', $service);
         $this->assertStringContainsString('havingRaw(', $service);
+        $this->assertStringContainsString('public function dashboard()', $service);
+        $this->assertStringContainsString('public function filterOptions()', $service);
 
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-awards.blade.php'));
         $this->assertStringContainsString('<x-pwa-search', $list);
+        $this->assertStringContainsString('name="notify_no"', $list);
+        $this->assertStringContainsString('name="investor_code"', $list);
+        $this->assertStringContainsString('Tổng giá trị trúng thầu', $list);
+        $this->assertStringContainsString('Giá trị đang hoạt động', $list);
+        $this->assertStringNotContainsString('@filled(', $list);
         $this->assertStringContainsString('Chủ đầu tư', $list);
         $this->assertStringContainsString('Thời gian thực hiện hợp đồng', $list);
         $this->assertStringContainsString('Số tiền trúng thầu', $list);
