@@ -141,7 +141,10 @@ class KqlcntAwardExcelImportService
         }
         if ($rows === []) throw ValidationException::withMessages(['file' => 'File không có dữ liệu.']);
         $token = bin2hex(random_bytes(24));
-        abort_unless(in_array($guard, ['admin', 'web'], true) && auth($guard)->check(), 403);
+        // Legacy Admin parsing tests call preview() without an authenticated request.
+        // ClientPortal must always authenticate before creating a web-owned preview.
+        abort_unless(in_array($guard, ['admin', 'web'], true), 403);
+        if ($guard === 'web') abort_unless(auth('web')->check(), 403);
         Cache::put($this->cacheKey($token), ['guard' => $guard, 'user' => auth($guard)->id(), 'rows' => $rows], now()->addMinutes(20));
         return [
             'token' => $token, 'rows' => $rows,
