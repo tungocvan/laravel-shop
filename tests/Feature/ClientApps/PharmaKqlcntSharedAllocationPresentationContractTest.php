@@ -31,8 +31,8 @@ class PharmaKqlcntSharedAllocationPresentationContractTest extends TestCase
         $this->assertStringContainsString('disabled', $canonical);
         $this->assertStringContainsString('Chưa xác minh', $canonical);
         $this->assertStringContainsString('mappingDiagnostics', $canonical);
-        $this->assertStringNotContainsString('<form', $canonical);
-        $this->assertStringNotContainsString('method="POST"', $canonical);
+        $this->assertStringContainsString("kqlcnt-awards.mapping.confirm", $canonical);
+        $this->assertStringContainsString('name="acknowledge"', $canonical);
         $this->assertStringNotContainsString('bid-awards.allocation.setup', $canonical);
         $this->assertStringNotContainsString('bid-awards.allocation.hospital', $canonical);
     }
