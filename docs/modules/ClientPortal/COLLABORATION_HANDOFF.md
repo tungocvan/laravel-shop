@@ -1987,3 +1987,7 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - User reported `PharmaBidAwardsCapabilityTest` failure at assertion requiring `aria-label="Quay lại kết quả trúng thầu"` directly inside `bid-award-allocation.blade.php`. Root cause: D4 extracted the header to `partials/bid-award-workflow-hero.blade.php`; rendered UI still has the label.
 - Updated the contract to assert the main allocation view includes the shared partial and the label exists in the partial. Preserved the route assertion and all existing Bid Awards forms/services. No UI or business changes in this fix.
 - TEST PENDING: rerun focused `PharmaBidAwardsCapabilityTest.php` and `PharmaKqlcntSharedAllocationPresentationContractTest.php`; if PASS, run related KQLCNT and Pharma module regression. Do not claim UI PASS without user confirmation.
+
+### 2026-11-08 — Batch D4 contract follow-up: back URL binding
+- User reported next `PharmaBidAwardsCapabilityTest` failure at line 203: the test required the literal `route('client.pharma.bid-awards.show',$scope)`, while the view now passes `'backUrl' => route('client.pharma.bid-awards.show', $scope)` to the extracted hero.
+- Updated the assertion to verify the actual route binding in the parent Blade and `href="{{ $backUrl }}"` in the shared partial. No functional/UI changes. Focused and regression tests PENDING; stop on any next failure and inspect root cause.
