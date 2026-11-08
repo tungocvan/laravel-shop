@@ -1897,3 +1897,9 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Feature registry test now checks stable required keys including KQLCNT and uniqueness rather than freezing the evolving feature inventory.
 - PWA UI parity: added missing focused shell mobile-navigation suppression to KQLCNT index/detail; replaced raw date input for partial bid supply with shared `<x-pwa-date>` retaining input name, value, and `data-partial-supply-input` hook; preserved separate master-only medicine server pagination as explicit exception to progressive browse list assertion.
 - **TEST PENDING** focused four files and ClientApps regression. **UI PENDING** actual mobile/desktop KQLCNT shell and partial supply date input. No PR/merge/deploy; no production changes.
+
+### 2026-11-08 — Follow-up focused failures (37 pass / 3 fail)
+- User reported three remaining focused failures: stale FEFO error text in `PharmaP5SecurityRegressionTest`, raw date inputs in Pharma Blade, and missing focused shell directives in award price detail.
+- Updated security contract to check actual canonical manual-lot service expiry and aggregate-stock checks; added focused shell directives to `award-price-detail.blade.php`.
+- Replaced eight raw date inputs in five Blade files (`inventory-movements`, `inventory-opening`, `medicine-editor`, `medicine-hssp`, `medicine-supplier-conditions`) with `<x-pwa-date>`; preserved field names, old values, required attributes, and existing validation messages. No domain service or database change.
+- **TEST PENDING**: rerun four focused files, then full ClientApps only on focused PASS. **UI PENDING**: inspect date fields and focused shells on mobile/desktop. No PR/merge/deploy.
