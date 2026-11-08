@@ -33,6 +33,36 @@
     </section>
     <p class="text-xs text-slate-500">Chỉ số “đang hoạt động” dựa trên trạng thái dữ liệu KQLCNT, chưa xác nhận thời hạn hiệu lực hợp đồng.</p>
 
+    @if(session('success'))<div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-800">{{ session('success') }}</div>@endif
+    @if($errors->any())<div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">{{ $errors->first() }}</div>@endif
+    @if($canImportAwards || $canExportAwards)
+    <details class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <summary class="flex min-h-12 cursor-pointer items-center justify-between gap-2 px-4 py-3 text-sm font-bold text-slate-900 sm:px-5">Công cụ Import / Export Excel <span class="text-xs font-medium text-indigo-700">Mở / thu gọn ▾</span></summary>
+        <div class="grid gap-4 border-t border-slate-100 p-4 sm:p-5 lg:grid-cols-2">
+            @if($canImportAwards)
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <h2 class="text-sm font-bold text-slate-950">Import danh mục trúng thầu</h2>
+                <p class="mt-1 text-xs leading-5 text-slate-600">Mỗi file gồm một TBMT, một nhà thầu. Xem trước và đối chiếu trước khi ghi; không tự thêm thuốc mới.</p>
+                <a data-pwa-file-handoff href="{{ route('client.pharma.kqlcnt-awards.import.template') }}" class="mt-3 inline-flex min-h-11 items-center rounded-xl border border-emerald-300 bg-emerald-50 px-4 text-sm font-semibold text-emerald-800">↓ Tải Excel mẫu kèm hướng dẫn</a>
+                <form method="POST" action="{{ route('client.pharma.kqlcnt-awards.import.preview') }}" enctype="multipart/form-data" class="mt-3 space-y-3">
+                    @csrf
+                    <label class="block text-xs font-semibold text-slate-700" for="kqlcnt-import-file">Chọn file Excel (.xlsx, .xls; tối đa 5 MB)</label>
+                    <input id="kqlcnt-import-file" type="file" name="file" accept=".xlsx,.xls" required class="block w-full rounded-xl border border-slate-300 bg-white p-2 text-sm">
+                    <button type="submit" class="min-h-11 rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white hover:bg-indigo-800">Xem trước Import</button>
+                </form>
+            </div>
+            @endif
+            @if($canExportAwards)
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <h2 class="text-sm font-bold text-slate-950">Export danh mục trúng thầu</h2>
+                <p class="mt-1 text-xs leading-5 text-slate-600">Xuất đúng một TBMT và một nhà thầu. Chọn “Xuất Excel” trên hồ sơ tương ứng ở danh sách bên dưới.</p>
+                <p class="mt-3 text-xs font-medium text-slate-500">File có hai sheet: thông tin trúng thầu và danh mục thuốc, tương thích với mẫu Admin.</p>
+            </div>
+            @endif
+        </div>
+    </details>
+    @endif
+
     <form id="kqlcnt-live-filters" method="GET" action="{{ route('client.pharma.kqlcnt-awards.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-base font-bold text-slate-950">Bộ lọc hồ sơ</h2>
         <p class="mt-1 text-xs text-slate-500">Lọc theo mã TBMT, chủ đầu tư, thuốc hoặc trạng thái.</p>
@@ -119,6 +149,14 @@
                 </div>
                 <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/60 px-4 py-3 sm:px-5">
                     <span class="text-sm font-semibold text-slate-700">Danh mục thuốc trúng thầu</span>
+                    @if($canExportAwards)
+                        <form method="POST" action="{{ route('client.pharma.kqlcnt-awards.export') }}" data-pwa-file-handoff-form class="ml-auto">
+                            @csrf
+                            <input type="hidden" name="notify_no" value="{{ $item->notify_no }}">
+                            <input type="hidden" name="contractor_code" value="{{ $item->contractor_code }}">
+                            <button type="submit" class="inline-flex min-h-11 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800">↓ Xuất Excel</button>
+                        </form>
+                    @endif
                     <a href="{{ route('client.pharma.kqlcnt-awards.show', $item->id) }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white hover:bg-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Xem chi tiết <span aria-hidden="true" class="ml-2">→</span></a>
                 </div>
             </article>
