@@ -64,6 +64,8 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-awards.blade.php'));
         $this->assertStringContainsString('<x-pwa-search', $list);
         $this->assertStringContainsString('name="notify_no"', $list);
+        $this->assertSame(3, substr_count($list, '<x-pwa-select-search'));
+        $this->assertStringContainsString("'border-red-300 bg-red-50 text-red-700", $list);
         $this->assertStringContainsString('name="investor_code"', $list);
         $this->assertStringContainsString('Tổng giá trị trúng thầu', $list);
         $this->assertStringContainsString('Giá trị đang hoạt động', $list);
