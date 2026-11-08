@@ -3,6 +3,7 @@
 namespace Modules\ClientPortal\Applications\Pharma\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 
 /**
@@ -11,7 +12,33 @@ use Modules\Muasamcong\Services\KqlcntAwardReadService;
  */
 final class KqlcntWorkflowReadiness
 {
-    public function __construct(private readonly KqlcntAwardReadService $awards) {}
+    public function __construct(
+        private readonly KqlcntAwardReadService $awards,
+        private readonly KqlcntCanonicalProductScope $scope,
+    ) {}
+
+    /**
+     * Returns only product IDs from the exact canonical KQLCNT group.
+     * Consumers must use whereIn('id', $ids), never a TBMT-wide group query.
+     *
+     * @return list<int>
+     */
+    public function scopedProductIds(int $awardItemId): array
+    {
+        $medicines = $this->awards->medicines($awardItemId);
+        $ids = $medicines->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        if ($ids === []) {
+            throw ValidationException::withMessages(['award' => 'Hồ sơ KQLCNT không có sản phẩm.']);
+        }
+
+        $links = DB::table('pharma_drug_bid_awards')
+            ->where('source_type', 'muasamcong')
+            ->whereIn('source_id', $ids)
+            ->get(['id', 'source_id', 'bidding_notice_code', 'contractor_code']);
+
+        return $this->scope->resolve($medicines, $links);
+    }
 
     /**
      * @return array{status: string, canonical_count: int, linked_count: int, reason: string}
