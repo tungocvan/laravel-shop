@@ -1870,3 +1870,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Installed-PWA Excel handoff uses authenticated fetch and explicit second-tap Web Share; normal browser uses native download. iOS/Android PWA manual acceptance pending.
 - Tests PENDING: `tests/Feature/ClientApps/PharmaKqlcntAwardExcelContractTest.php`, existing `PharmaKqlcntAwardWorkspaceContractTest.php`, impacted `tests/Feature/Muasamcong/KqlcntAwardExcelRoundtripTest.php`.
 - UI PENDING; no PR/merge/deploy. Preserve all untracked and production files.
+
+### 2026-11-08 — KQLCNT Sheet 1 package metadata import checkpoint
+- Root cause: V2 import previously only matched package scope; explicitly copied canonical metadata into medicine rows, so changes to contract period in Sheet 1 were ignored.
+- Added shared package metadata preview (TBMT + one contractor) with before/after values, validation, consistency checks across canonical medicine rows, snapshot of row IDs and versions, and atomic package update on confirm. Medicine changes remain separately scoped to 19 fields. Date formats normalized before write. Both Admin and ClientPortal previews show package diffs; package-only change can be confirmed.
+- Security: guard/user preview ownership remains in place; package errors block confirm; optimistic concurrency checks run under transaction with row locks. No new canonical medicines are created.
+- Focused tests added in `tests/Feature/Muasamcong/KqlcntAwardPackageMetadataImportTest.php`; adjusted Admin preview contract. TEST PENDING / UI PENDING. Confirm 24→12 months, medicine quantity update, simultaneous changes, stale preview rejection, and no cross-contractor update.
+- Checkpoint only; no PR, main merge or production deploy.
