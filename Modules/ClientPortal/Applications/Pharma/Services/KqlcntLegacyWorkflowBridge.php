@@ -83,12 +83,10 @@ final class KqlcntLegacyWorkflowBridge
                 ->where('contractor_code', $line->contractor_code)
                 ->where('winning_company_name', $contractorName)
                 ->where('medicine_name', $medicineName)
+                ->whereNull('source_id')
                 ->where(function ($query): void {
-                    $query->whereNull('source_id')
-                        ->orWhere(function ($q): void {
-                            $q->where('source_type', DrugBidAward::SOURCE_MANUAL)
-                                ->whereNull('source_id');
-                        });
+                    $query->whereNull('source_type')
+                        ->orWhere('source_type', DrugBidAward::SOURCE_MANUAL);
                 })
                 ->get();
 
