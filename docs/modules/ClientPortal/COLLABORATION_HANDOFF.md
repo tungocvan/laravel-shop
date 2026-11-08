@@ -1,3 +1,12 @@
+## 2026-11-08 — KQLCNT selector UI fix checkpoint
+
+- User screenshot showed custom Alpine combobox dropdowns obscuring adjacent inputs; replaced both with canonical shared `<x-pwa-select-search>` and converted medicine selection to the same component.
+- Medicine choices are read from distinct canonical `medicine_name` values; canonical medicine/ingredient search service is preserved. Current dropdown choices represent medicine names, not a separate active-ingredient list.
+- `Xóa lọc` receives red visual treatment when a query filter is applied. Filter status and dashboard semantics unchanged.
+- Focused test extended to require three shared selectors. **TEST PENDING / UI PENDING**; verify shared JS dropdown selection, filter results, mobile scroll/overlay, and clear behavior before accepting. No full-module suite, PR, merge or production changes.
+
+---
+
 ## 2026-11-08 — KQLCNT dashboard + searchable filters checkpoint
 
 - User UI screenshots identified literal `@filled` rendering, text-only filters instead of Admin-like searchable combobox, and missing dashboard.
