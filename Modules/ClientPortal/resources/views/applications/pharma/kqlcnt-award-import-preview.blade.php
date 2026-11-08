@@ -11,6 +11,26 @@
         <h1 class="mt-2 text-xl font-extrabold text-slate-950 sm:text-2xl">Xem trước Import Excel</h1>
         <p class="mt-1 text-sm text-slate-600">Đối chiếu dữ liệu canonical trước khi xác nhận. Dòng lỗi và không thay đổi sẽ được bỏ qua.</p>
     </header>
+    @if(!empty($preview['package']))
+    <section class="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 sm:p-5">
+        <h2 class="text-base font-bold text-slate-950">Thay đổi thông tin trúng thầu (Sheet 1)</h2>
+        <p class="mt-1 text-sm text-slate-600">Áp dụng đồng nhất cho các dòng thuốc thuộc đúng TBMT và nhà thầu đã chọn.</p>
+        @foreach($preview['package']['errors'] as $error)
+            <p role="alert" class="mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-800">{{ $error }}</p>
+        @endforeach
+        @if(count($preview['package']['comparison']) > 0)
+            <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table class="min-w-full text-left text-sm"><thead class="bg-slate-100"><tr><th class="p-3">Thông tin</th><th class="p-3">Hiện tại</th><th class="p-3">Sau Import</th></tr></thead><tbody>
+                @foreach($preview['package']['comparison'] as $change)
+                    <tr class="border-t border-slate-100"><th class="p-3">{{ $change['label'] }}</th><td class="p-3">{{ $change['current'] ?? '—' }}</td><td class="p-3 font-semibold text-indigo-800">{{ $change['incoming'] ?? '—' }}</td></tr>
+                @endforeach
+                </tbody></table>
+            </div>
+        @else
+            <p class="mt-2 text-sm text-slate-600">Không có thay đổi thông tin hợp đồng.</p>
+        @endif
+    </section>
+    @endif
     <section class="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="Thống kê đối chiếu">
         @foreach([['Tổng dòng', $preview['total']], ['Cần cập nhật', $preview['valid']], ['Không thay đổi', $preview['unchanged']], ['Lỗi / xung đột', $preview['errors']]] as $metric)
             <div class="rounded-xl border border-slate-200 bg-white p-4"><p class="text-xs text-slate-600">{{ $metric[0] }}</p><p class="mt-1 text-2xl font-extrabold text-slate-950">{{ $metric[1] }}</p></div>
@@ -50,12 +70,12 @@
         </div>
     </section>
     <div class="sticky bottom-3 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg">
-        <p class="text-xs text-slate-600">Chỉ cập nhật {{ $preview['valid'] }} dòng hợp lệ. Phiên xác nhận hết hạn sau 20 phút.</p>
+        <p class="text-xs text-slate-600">Cập nhật {{ $preview['valid'] }} dòng thuốc hợp lệ và các thay đổi thông tin hợp đồng (nếu có). Phiên xác nhận hết hạn sau 20 phút.</p>
         <form method="POST" action="{{ route('client.pharma.kqlcnt-awards.import.confirm') }}" class="flex flex-wrap gap-2" onsubmit="return confirm('Xác nhận cập nhật dữ liệu KQLCNT canonical?')">
             @csrf
             <input type="hidden" name="token" value="{{ $preview['token'] }}">
             <a href="{{ route('client.pharma.kqlcnt-awards.index') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm font-semibold">Hủy</a>
-            <button type="submit" @disabled($preview['valid'] === 0) class="min-h-11 rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white disabled:opacity-50">Xác nhận cập nhật {{ $preview['valid'] }} dòng</button>
+            <button type="submit" @disabled(($preview['valid'] === 0 && empty($preview['package']['changes'])) || !empty($preview['package']['errors'])) class="min-h-11 rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white disabled:opacity-50">Xác nhận cập nhật {{ $preview['valid'] }} dòng</button>
         </form>
     </div>
 </div>
