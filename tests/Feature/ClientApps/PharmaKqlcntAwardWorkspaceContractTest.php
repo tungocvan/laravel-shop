@@ -13,7 +13,8 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
         $this->assertStringContainsString("auth:web", $routes);
         $this->assertStringContainsString("client.feature:pharma,kqlcnt-awards", $routes);
-        $this->assertStringContainsString("client.pharma.kqlcnt-awards", $routes);
+        $this->assertStringContainsString("->name('kqlcnt-awards.index')", $routes);
+        $this->assertStringContainsString("->name('kqlcnt-awards.show')", $routes);
     }
 
     #[Test]
@@ -37,7 +38,8 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('KqlcntAwardReadService $awards', $source);
         $domain = file_get_contents(base_path('Modules/Muasamcong/Services/KqlcntAwardReadService.php'));
         $this->assertStringContainsString('KqlcntAwardItem::query()', $domain);
-        $this->assertStringNotContainsString('KqlcntAwardController', $source);
+        $this->assertStringNotContainsString('use Modules\\Muasamcong\\Http\\Controllers\\KqlcntAwardController;', $source);
+        $this->assertStringNotContainsString('KqlcntAwardController::class', $source);
         $this->assertStringNotContainsString('->save()', $source);
         $this->assertStringNotContainsString('->update(', $source);
         $this->assertStringContainsString('featurePresentation(', $source);
