@@ -48,6 +48,8 @@ final class KqlcntCanonicalProductScope
             if ((int) $product->id <= 0
                 || trim((string) $product->bidding_notice_code) !== trim((string) $line->notify_no)
                 || trim((string) $product->contractor_code) !== trim((string) $line->contractor_code)
+                || (trim((string) $line->contractor_code) === ''
+                    && trim((string) ($product->winning_company_name ?? '')) !== trim((string) $line->contractor_name))
             ) {
                 throw $invalid();
             }
