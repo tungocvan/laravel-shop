@@ -57,7 +57,7 @@ final class KqlcntWorkflowReadiness
         $links = DB::table('pharma_drug_bid_awards')
             ->where('source_type', 'muasamcong')
             ->whereIn('source_id', $ids)
-            ->get(['id', 'source_id', 'bidding_notice_code', 'contractor_code']);
+            ->get(['id', 'source_id', 'bidding_notice_code', 'contractor_code', 'winning_company_name']);
 
         $bySource = $links->groupBy(fn ($row) => (int) $row->source_id);
         $complete = $links->count() === $count && $bySource->count() === $count
