@@ -34,19 +34,19 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
     #[Test]
     public function normalized_feature_is_resolved_by_key_not_associative_index(): void
     {
-        $registry = app(\\Modules\\ClientPortal\\Services\\ApplicationRegistry::class);
+        $registry = app(\Modules\ClientPortal\Services\ApplicationRegistry::class);
         $application = $registry->find('pharma');
         $this->assertNotNull($application);
         $feature = collect($application['features'])->firstWhere('key', 'kqlcnt-awards');
         $this->assertIsArray($feature);
         $this->assertSame('kqlcnt-awards', $feature['key']);
-        $presentation = app(\\Modules\\ClientPortal\\Services\\ClientPortalSettingsService::class)
+        $presentation = app(\Modules\ClientPortal\Services\ClientPortalSettingsService::class)
             ->featurePresentation('pharma', $feature);
         $this->assertNotEmpty($presentation['page_title']);
 
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaKqlcntAwardController.php'));
         $this->assertSame(2, substr_count($controller, "firstWhere('key', 'kqlcnt-awards')"));
-        $this->assertStringNotContainsString("\\$application['features']['kqlcnt-awards']", $controller);
+        $this->assertStringNotContainsString("$application['features']['kqlcnt-awards']", $controller);
     }
 
     #[Test]
