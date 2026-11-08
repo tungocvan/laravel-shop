@@ -3,6 +3,7 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('app-dashboard-route', route('client.pharma.dashboard'))
 @section('hide-application-header', true)
+@section('hide-mobile-navigation', true)
 @section('content')
 @php
     $totalAmount = $medicines->sum(fn ($medicine) => $medicine->amount !== null ? (float) $medicine->amount : ((float) $medicine->quantity * (float) $medicine->winning_price));
