@@ -17,6 +17,8 @@
     <section class="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5" role="status">
         <h2 class="text-sm font-bold text-amber-950">Chế độ kiểm tra — chưa cho phép lưu</h2>
         <p class="mt-2 text-sm text-amber-900">{{ $readiness['reason'] }}</p>
+        <p class="mt-2 text-sm font-semibold text-amber-950">Nguyên nhân chặn nghiệp vụ: {{ $allocationBlockers['reason'] }}</p>
+        <p class="mt-1 text-xs text-amber-900">Mã kiểm tra: {{ $allocationBlockers['status'] }} · Dòng Pharma cùng TBMT: {{ $allocationBlockers['legacy_count'] }}</p>
         <p class="mt-2 text-xs text-amber-900">Trạng thái liên kết: {{ $readiness['status'] }} · {{ $readiness['linked_count'] }}/{{ $readiness['canonical_count'] }} dòng. Chỉ kích hoạt nghiệp vụ ghi khi hồ sơ KQLCNT khớp chính xác phạm vi Bid Awards.</p>
     </section>
 
