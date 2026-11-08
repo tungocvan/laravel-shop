@@ -35,7 +35,7 @@ class KqlcntAwardExcelImportService
         'price_plan', 'winning_price', 'amount', 'manufacturer', 'country',
     ];
 
-    public function preview(UploadedFile $file): array
+    public function preview(UploadedFile $file, string $guard = 'admin'): array
     {
         $workbook = IOFactory::load($file->getRealPath());
         $sheet = $workbook->getSheetByName('Danh_muc_trung_thau');
@@ -141,7 +141,8 @@ class KqlcntAwardExcelImportService
         }
         if ($rows === []) throw ValidationException::withMessages(['file' => 'File không có dữ liệu.']);
         $token = bin2hex(random_bytes(24));
-        Cache::put($this->cacheKey($token), ['user' => auth('admin')->id(), 'rows' => $rows], now()->addMinutes(20));
+        abort_unless(in_array($guard, ['admin', 'web'], true) && auth($guard)->check(), 403);
+        Cache::put($this->cacheKey($token), ['guard' => $guard, 'user' => auth($guard)->id(), 'rows' => $rows], now()->addMinutes(20));
         return [
             'token' => $token, 'rows' => $rows,
             'valid' => collect($rows)->where('status', 'changed')->count(),
@@ -151,11 +152,12 @@ class KqlcntAwardExcelImportService
         ];
     }
 
-    public function confirm(string $token, bool $overwrite = false): array
+    public function confirm(string $token, bool $overwrite = false, string $guard = 'admin'): array
     {
         $key = $this->cacheKey($token);
         $batch = Cache::get($key);
-        if (! $batch || $batch['user'] !== auth('admin')->id()) abort(422, 'Phiên preview hết hạn hoặc không hợp lệ.');
+        abort_unless(in_array($guard, ['admin', 'web'], true) && auth($guard)->check(), 403);
+        if (! $batch || ($batch['guard'] ?? 'admin') !== $guard || $batch['user'] !== auth($guard)->id()) abort(422, 'Phiên preview hết hạn hoặc không hợp lệ.');
         $result = DB::transaction(function () use ($batch, $overwrite): array {
             $updated = 0; $skipped = 0;
             foreach ($batch['rows'] as $row) {
