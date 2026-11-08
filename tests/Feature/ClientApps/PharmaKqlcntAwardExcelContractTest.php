@@ -44,4 +44,17 @@ class PharmaKqlcntAwardExcelContractTest extends TestCase
         $this->assertStringContainsString('data-pwa-file-handoff-form', $index);
         $this->assertStringContainsString('navigator.share(', $index);
     }
+    public function test_contract_duration_ui_prefers_canonical_period_over_legacy_text(): void
+    {
+        foreach ([
+            'Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-awards.blade.php',
+            'Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-award-detail.blade.php',
+        ] as $path) {
+            $blade = file_get_contents(base_path($path));
+            $this->assertStringContainsString('$item->contract_period !== null', $blade);
+            $this->assertStringContainsString('$item->contract_period_text', $blade);
+        }
+    }
+
+
 }
