@@ -1,3 +1,14 @@
+## 2026-11-08 — Pharma KQLCNT grouped TBMT UX checkpoint
+
+- User approved TBMT-first listing: group by TBMT + contractor code/name, avoiding collapse of distinct contractors; detail shows all medicine lines of the selected group.
+- Canonical Muasamcong read service now supports contractor/investor/TBMT search, medicine name/active ingredient group discovery, whole-group active status, group amount and item counts, and contract period summary. No schema or canonical write changes.
+- ClientPortal Blade uses a reusable `<x-pwa-search>` component, compact managed header, TBMT cards with contractor, investor, total amount, medicine count, contract period, status and detail link. Detail lists full medicines.
+- Amount derives from canonical `amount` or quantity × winning_price fallback, summed per group. Status is 'mixed' when constituent medicine records differ. Missing duration/investor values show 'Chưa cập nhật'. Per-group contract-period values are a summary from the canonical records and must be verified with representative real data during UI acceptance.
+- Focused contract test extended; **TEST PENDING** on latest commit; **UI PENDING** desktop/iPhone. No full module regression required at this batch. Do not merge/deploy before acceptance.
+- Remaining feature work (separate batches): export/import preview-confirm/edit with independent web permissions and PWA file handoff.
+
+---
+
 ## 2026-11-08 — Pharma KQLCNT workspace, batch 1 checkpoint
 
 - Branch `feat/client-pharma-kqlcnt-awards-20261108` created from main `b1a02707e33877811688efbc9ad9ef81f7620d5f`.
