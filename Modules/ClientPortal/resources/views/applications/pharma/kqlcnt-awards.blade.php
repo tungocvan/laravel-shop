@@ -171,6 +171,47 @@
 @push('application-scripts')
 <script>
 (() => {
+    // Installed PWA: fetch authenticated binary without navigating away; share on a second tap.
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (standalone) {
+        const prepare = async (url, body, control) => {
+            const oldLabel = control.textContent;
+            control.disabled = true;
+            control.textContent = 'Đang chuẩn bị Excel...';
+            try {
+                const response = await fetch(url, { method: body ? 'POST' : 'GET', body, credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' } });
+                if (!response.ok) throw new Error('Không thể tải Excel (' + response.status + '). Kiểm tra quyền hoặc dữ liệu hồ sơ.');
+                const blob = await response.blob();
+                const filename = (response.headers.get('Content-Disposition') || '').match(/filename="?([^";]+)"?/i)?.[1] || 'KQLCNT.xlsx';
+                const file = new File([blob], filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                if (!navigator.canShare?.({ files: [file] })) throw new Error('Thiết bị không hỗ trợ chia sẻ file trong PWA. Hãy mở bằng trình duyệt để tải Excel.');
+                control.textContent = 'Chia sẻ / lưu Excel';
+                control.disabled = false;
+                control.addEventListener('click', async (event) => {
+                    event.preventDefault();
+                    if (control.tagName === 'BUTTON') event.stopPropagation();
+                    try { await navigator.share({ files: [file], title: filename }); }
+                    catch (error) { if (error.name !== 'AbortError') alert(error.message); }
+                }, { capture: true });
+            } catch (error) {
+                control.textContent = oldLabel;
+                control.disabled = false;
+                alert(error.message);
+            }
+        };
+        document.querySelectorAll('a[data-pwa-file-handoff]').forEach(link => link.addEventListener('click', event => {
+            event.preventDefault();
+            if (link.dataset.prepared) return;
+            link.dataset.prepared = '1';
+            prepare(link.href, null, link);
+        }, { once: true }));
+        document.querySelectorAll('form[data-pwa-file-handoff-form]').forEach(exportForm => exportForm.addEventListener('submit', event => {
+            event.preventDefault();
+            if (exportForm.dataset.prepared) return;
+            exportForm.dataset.prepared = '1';
+            prepare(exportForm.action, new FormData(exportForm), exportForm.querySelector('button'));
+        }, { once: true }));
+    }
     const form = document.getElementById('kqlcnt-live-filters');
     if (!form || form.dataset.liveBound === '1') return;
     form.dataset.liveBound = '1';
