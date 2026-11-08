@@ -21,6 +21,8 @@ final class KqlcntAwardReadService
     public function paginate(array $filters, int $perPage = 15): LengthAwarePaginator
     {
         $query = $this->base()
+            ->when($filters['notify_no'] ?? null, fn (Builder $q, string $v) => $q->where('notify_no', $v))
+            ->when($filters['investor_code'] ?? null, fn (Builder $q, string $v) => $q->where('investor_code', $v))
             ->when($filters['search'] ?? null, function (Builder $query, string $term): void {
                 $query->where(function (Builder $q) use ($term): void {
                     $q->where('notify_no', 'like', '%'.$term.'%')
@@ -57,6 +59,34 @@ final class KqlcntAwardReadService
             })
             ->orderByDesc('id')
             ->paginate($perPage)->withQueryString();
+    }
+
+
+    public function filterOptions(): array
+    {
+        $base = $this->base();
+
+        return [
+            'notices' => (clone $base)->whereNotNull('notify_no')->distinct()->orderBy('notify_no')->pluck('notify_no'),
+            'investors' => (clone $base)->whereNotNull('investor_code')
+                ->select('investor_code', 'investor_name')->distinct()->orderBy('investor_name')->get(),
+        ];
+    }
+
+    public function dashboard(): array
+    {
+        $groups = $this->base()->selectRaw('notify_no, contractor_code, contractor_name')
+            ->selectRaw('SUM(COALESCE(amount, quantity * winning_price, 0)) AS winning_amount')
+            ->selectRaw('MIN(is_active) AS all_active')
+            ->groupBy('notify_no', 'contractor_code', 'contractor_name')
+            ->get();
+
+        return [
+            'total' => $groups->count(),
+            'active' => $groups->where('all_active', 1)->count(),
+            'amount' => $groups->sum('winning_amount'),
+            'active_amount' => $groups->where('all_active', 1)->sum('winning_amount'),
+        ];
     }
 
     public function find(int $id): KqlcntAwardItem
