@@ -68,6 +68,7 @@ final class KqlcntAwardReadService
 
         return [
             'notices' => (clone $base)->whereNotNull('notify_no')->distinct()->orderBy('notify_no')->pluck('notify_no'),
+            'medicines' => (clone $base)->whereNotNull('medicine_name')->where('medicine_name', '<>', '')->distinct()->orderBy('medicine_name')->pluck('medicine_name'),
             'investors' => (clone $base)->whereNotNull('investor_code')
                 ->select('investor_code', 'investor_name')->distinct()->orderBy('investor_name')->get(),
         ];
