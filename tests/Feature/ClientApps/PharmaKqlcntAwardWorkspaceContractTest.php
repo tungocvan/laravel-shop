@@ -62,7 +62,10 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('public function filterOptions()', $service);
 
         $list = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-awards.blade.php'));
-        $this->assertStringContainsString('<x-pwa-search', $list);
+        $this->assertStringNotContainsString('<x-pwa-search', $list);
+        $this->assertStringNotContainsString('name="search"', $list);
+        $this->assertStringContainsString('xl:grid-cols-12', $list);
+        $this->assertStringContainsString('xl:col-span-2', $list);
         $this->assertStringContainsString('name="notify_no"', $list);
         $this->assertSame(3, substr_count($list, '<x-pwa-select-search'));
         $this->assertStringContainsString("'border-red-300 bg-red-50 text-red-700", $list);
