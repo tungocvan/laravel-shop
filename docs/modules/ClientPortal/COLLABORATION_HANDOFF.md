@@ -1917,3 +1917,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - This was the only tracked file remaining under `public/demo`; its removal avoids Nginx directory precedence over Laravel's `/demo` Hub route on the observed host, provided no untracked files keep the directory present.
 - Focused test PENDING: `php artisan test tests/Feature/ClientApps/PharmaAwardSyncContractTest.php tests/Feature/DemoHubAndRouteOwnershipTest.php`.
 - Run ClientApps impacted regression only after focused PASS; verify Pharma award interactions and `/demo` Hub on desktop/mobile. No TEST/UI PASS claimed. No production mutation authorized.
+
+### 2026-11-08 — KQLCNT canonical workflow migration, phase 1 (read-only)
+- Target: `/apps/pharma/kqlcnt-awards` is the sole canonical award source and eventual entry point for allocation and commercial policy; `/apps/pharma/bid-awards` remains intact until all behavior and UI gates pass and the user approves retirement.
+- Audit: Muasamcong groups by TBMT + contractor, whereas existing Pharma workflow groups by TBMT only and stores allocations against `pharma_drug_bid_awards.id`. Directly linking a canonical card to the legacy SHA-1 scope is unsafe, especially with multiple contractors per TBMT.
+- Added `KqlcntWorkflowReadiness` read-only identity check: exact `source_type=muasamcong` + `source_id` mapping, 1:1 canonical medicine lines, TBMT and contractor consistency. No route, UI, database migration, writes, or production operations in this phase.
+- Before enabling allocation or policy from canonical cards, design a contractor-scoped workflow and explicit canonical-line foreign-key strategy; preserve existing allocations/policies and test multi-contractor collision cases. Do not expose legacy scope links based on TBMT alone.
+- Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaKqlcntCanonicalWorkflowReadinessContractTest.php`. TEST PENDING; UI not changed; UI PASS not claimed. Next batch requires reviewed schema and integration tests. No merge or deploy authorized.
