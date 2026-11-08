@@ -27,6 +27,6 @@ class PharmaKqlcntAllocationBlockersContractTest extends TestCase
         $this->assertStringContainsString("'allocationBlockers' => app(KqlcntAllocationBlockers::class)->inspect(\$awardItem)", $controller);
         $this->assertStringContainsString("allocationBlockers['reason']", $view);
         $this->assertStringContainsString("allocationBlockers['status']", $view);
-        $this->assertStringNotContainsString('<form', $view);
+        $this->assertStringContainsString("kqlcnt-awards.mapping.confirm", $view);
     }
 }
