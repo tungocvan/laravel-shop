@@ -158,6 +158,12 @@
                             <button type="submit" class="inline-flex min-h-11 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800">↓ Xuất Excel</button>
                         </form>
                     @endif
+                    @if($canAllocateAwards)
+                        <a href="{{ route('client.pharma.kqlcnt-awards.allocation', $item->id) }}" class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 bg-white px-4 text-sm font-bold text-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">Phân bổ số lượng <span class="ml-1 text-[10px] font-normal">(xem trước)</span></a>
+                    @endif
+                    @if($canPolicyAwards)
+                        <a href="{{ route('client.pharma.kqlcnt-awards.commercial-policy', $item->id) }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600">Chính sách kinh doanh <span class="ml-1 text-[10px] font-normal">(xem trước)</span></a>
+                    @endif
                     <a href="{{ route('client.pharma.kqlcnt-awards.show', $item->id) }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 text-sm font-bold text-white hover:bg-indigo-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">Xem chi tiết <span aria-hidden="true" class="ml-2">→</span></a>
                 </div>
             </article>
