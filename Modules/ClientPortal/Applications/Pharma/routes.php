@@ -90,6 +90,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.confirm');
         Route::post('/kqlcnt-awards/export', [PharmaKqlcntAwardExcelController::class, 'export'])
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.export');
+        Route::get('/kqlcnt-awards/{awardItem}/allocation', [PharmaKqlcntAwardController::class, 'allocation'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation');
+        Route::get('/kqlcnt-awards/{awardItem}/commercial-policy', [PharmaKqlcntAwardController::class, 'commercialPolicy'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.commercial-policy');
         Route::get('/kqlcnt-awards/{awardItem}', [PharmaKqlcntAwardController::class, 'show'])
             ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.show');
 
