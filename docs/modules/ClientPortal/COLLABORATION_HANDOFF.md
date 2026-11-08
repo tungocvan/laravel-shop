@@ -1860,3 +1860,13 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Local application logs show HTTP 200 JSON with 17 total/15 page-one rows and eligible CAPTCHA cookies, followed by `Undefined array key "first_page"` in `InvoicesApplicationController::submitPosCaptcha()` at line 270/275. This is a ClientPortal adapter bug, **not evidence of incorrect CAPTCHA**.
 - `GdtInvoiceService::takePosFirstPage()` returns a snapshot keyed `rows`, `cursor`, `total`, `cookies`; Admin Livewire already consumes `$snapshot['rows']`. ClientPortal preview and sync page-two continuation both incorrectly used `first_page`. Corrected both to `rows`; the encrypted continuation storage contract remains unchanged.
 - Added assertions in `InvoicesPosPwaContinuationContractTest` for both callers. **Focused tests/UI not yet run after this fix.** Next: ClientPortal focused tests, then POS impacted tests; manual 17-row page-two CAPTCHA. Do not merge/deploy before user confirms.
+
+
+### 2026-11-08 — Client Pharma KQLCNT Excel Import/Export checkpoint
+- Branch: `feat/client-pharma-kqlcnt-awards-20261108`; scope: ClientPortal Excel UI/controller/routes + Muasamcong import guard isolation.
+- Added template download (same Admin 3-sheet export), per TBMT/contractor workbook export (same canonical workbook class), import preview with row/field comparison and explicit confirm.
+- Server-side actions require `client.pharma.kqlcnt-awards.import` or `client.pharma.kqlcnt-awards.export` via `ApplicationRegistry::userCan`; viewing the page alone does not authorize mutations/downloads.
+- `KqlcntAwardExcelImportService::preview/confirm` now accept optional guard (`admin` default for backward compatibility, `web` for ClientPortal); cached preview is bound to guard and user ID. No automatic new canonical medicine creation; existing optimistic-lock and validation remain.
+- Installed-PWA Excel handoff uses authenticated fetch and explicit second-tap Web Share; normal browser uses native download. iOS/Android PWA manual acceptance pending.
+- Tests PENDING: `tests/Feature/ClientApps/PharmaKqlcntAwardExcelContractTest.php`, existing `PharmaKqlcntAwardWorkspaceContractTest.php`, impacted `tests/Feature/Muasamcong/KqlcntAwardExcelRoundtripTest.php`.
+- UI PENDING; no PR/merge/deploy. Preserve all untracked and production files.
