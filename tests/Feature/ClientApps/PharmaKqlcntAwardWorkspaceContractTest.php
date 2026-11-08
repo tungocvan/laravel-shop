@@ -34,7 +34,9 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
     public function client_workspace_does_not_call_admin_controller_or_modify_canonical_records(): void
     {
         $source = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaKqlcntAwardController.php'));
-        $this->assertStringContainsString('KqlcntAwardItem::query()', $source);
+        $this->assertStringContainsString('KqlcntAwardReadService $awards', $source);
+        $domain = file_get_contents(base_path('Modules/Muasamcong/Services/KqlcntAwardReadService.php'));
+        $this->assertStringContainsString('KqlcntAwardItem::query()', $domain);
         $this->assertStringNotContainsString('KqlcntAwardController', $source);
         $this->assertStringNotContainsString('->save()', $source);
         $this->assertStringNotContainsString('->update(', $source);
