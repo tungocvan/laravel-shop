@@ -39,7 +39,7 @@ class PharmaKqlcntWorkflowPreviewContractTest extends TestCase
         $this->assertStringContainsString('kqlcnt-awards.allocation', $cards);
         $this->assertStringContainsString('kqlcnt-awards.commercial-policy', $cards);
         $this->assertStringContainsString('Chế độ kiểm tra', $preview);
-        $this->assertStringNotContainsString('<form', $preview);
-        $this->assertStringNotContainsString('method="POST"', $preview);
+        $this->assertStringContainsString("kqlcnt-awards.mapping.confirm", $preview);
+        $this->assertStringContainsString('name="acknowledge"', $preview);
     }
 }
