@@ -3,6 +3,9 @@
 namespace Tests\Feature\ClientApps;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Modules\ClientPortal\Http\Controllers\Admin\PwaSettingsController;
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Models\ClientPortalSetting;
 use Modules\ClientPortal\Services\ApplicationRegistry;
@@ -334,6 +337,50 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertTrue($items['products']['bottom_enabled']);
         $this->assertSame(5, $items['products']['bottom_sort_order']);
         $this->assertSame('json', ClientPortalSetting::query()->where('group_name', 'application.pharma.navigation')->where('key', 'items')->value('type'));
+    }
+
+    public function test_navigation_save_preserves_icons_when_radio_values_are_missing(): void
+    {
+        $registry = app(ApplicationRegistry::class);
+        $settings = app(ClientPortalSettingsService::class);
+        $application = $registry->find('pharma');
+
+        $settings->updateApplicationNavigationPresentation('pharma', ['items' => [
+            ['key' => 'overview', 'bottom_enabled' => true, 'bottom_sort_order' => 10, 'bottom_icon' => 'beaker', 'bottom_label' => 'Tổng quan'],
+        ]]);
+
+        $controller = app(PwaSettingsController::class);
+        $controller->updateApplicationNavigation(Request::create('/', 'PUT', ['items' => [
+            ['key' => 'overview', 'bottom_enabled' => '0', 'bottom_sort_order' => '10', 'bottom_label' => 'Tổng quan'],
+            ['key' => 'products', 'bottom_enabled' => '1', 'bottom_sort_order' => '20', 'bottom_label' => 'Sản phẩm'],
+        ]]), 'pharma', $registry, $settings);
+
+        $items = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+        $this->assertFalse($items['overview']['bottom_enabled']);
+        $this->assertSame('beaker', $items['overview']['bottom_icon']);
+        $this->assertSame('magnifying-glass', $items['products']['bottom_icon']);
+
+        $controller->updateApplicationNavigation(Request::create('/', 'PUT', ['items' => [
+            ['key' => 'overview', 'bottom_enabled' => '1', 'bottom_sort_order' => '10', 'bottom_icon' => 'home'],
+        ]]), 'pharma', $registry, $settings);
+
+        $restored = collect($settings->applicationNavigationPresentation($application)['items'])->keyBy('key');
+        $this->assertTrue($restored['overview']['bottom_enabled']);
+        $this->assertSame('home', $restored['overview']['bottom_icon']);
+    }
+
+    public function test_navigation_save_rejects_oversized_icon_values(): void
+    {
+        $this->expectException(ValidationException::class);
+
+        app(PwaSettingsController::class)->updateApplicationNavigation(
+            Request::create('/', 'PUT', ['items' => [
+                ['key' => 'overview', 'bottom_enabled' => '0', 'bottom_sort_order' => '10', 'bottom_icon' => str_repeat('x', 61)],
+            ]]),
+            'pharma',
+            app(ApplicationRegistry::class),
+            app(ClientPortalSettingsService::class),
+        );
     }
 
     public function test_mobile_navigation_label_is_presentation_only_and_falls_back_to_manifest_name(): void
