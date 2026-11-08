@@ -1877,3 +1877,9 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Security: guard/user preview ownership remains in place; package errors block confirm; optimistic concurrency checks run under transaction with row locks. No new canonical medicines are created.
 - Focused tests added in `tests/Feature/Muasamcong/KqlcntAwardPackageMetadataImportTest.php`; adjusted Admin preview contract. TEST PENDING / UI PENDING. Confirm 24→12 months, medicine quantity update, simultaneous changes, stale preview rejection, and no cross-contractor update.
 - Checkpoint only; no PR, main merge or production deploy.
+
+### 2026-11-08 — KQLCNT contract duration display follow-up
+- User confirmed focused tests PASS but ClientPortal still displayed the old contract duration after Excel import.
+- Read-only audit found list/detail Blade favored `contract_period_text` over `contract_period`; the former is a distinct legacy package-description field and may remain unchanged when contractor duration is updated.
+- List and detail now prioritize non-null canonical `contract_period` plus `contract_period_unit`, falling back to `contract_period_text` only if the numeric period is absent. Added regression contract assertions.
+- Checkpoint TEST PENDING for this UI fix; user must confirm UI PASS after re-export and reload. No production changes or merge.
