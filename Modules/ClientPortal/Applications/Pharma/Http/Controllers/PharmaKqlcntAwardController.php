@@ -32,6 +32,8 @@ final class PharmaKqlcntAwardController extends Controller
             'options' => $awards->filterOptions(),
             'dashboard' => $awards->dashboard(),
             'filters' => $filters,
+            'canImportAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.kqlcnt-awards.import'),
+            'canExportAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.kqlcnt-awards.export'),
         ]);
     }
 
