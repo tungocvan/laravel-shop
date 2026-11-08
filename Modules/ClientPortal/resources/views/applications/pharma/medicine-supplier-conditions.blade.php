@@ -52,7 +52,7 @@
                     <p id="supplier-partner-error" role="alert" class="mt-2 hidden text-sm font-semibold text-red-700">Vui lòng chọn nhà cung cấp trước khi lưu.</p>
                 </div>
                 @foreach(['start_date'=>'Hiệu lực từ','end_date'=>'Hiệu lực đến','working_date'=>'Ngày ghi nhận'] as $key=>$title)
-                    <label class="text-sm font-bold">{{ $title }} <input type="date" name="{{ $key }}" value="{{ old($key, $editing?->{$key}?->format('Y-m-d')) }}" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
+                    <x-pwa-date :label="$title" :name="$key" :value="old($key, $editing?->{$key}?->format('Y-m-d'))" class="min-h-11" />
                 @endforeach
                 <label class="text-sm font-bold">Trạng thái
                     <select name="status" class="mt-2 block min-h-11 w-full rounded-xl border border-slate-300 px-3">
