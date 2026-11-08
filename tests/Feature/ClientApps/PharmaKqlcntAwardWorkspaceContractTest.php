@@ -46,7 +46,7 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
 
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaKqlcntAwardController.php'));
         $this->assertSame(2, substr_count($controller, "firstWhere('key', 'kqlcnt-awards')"));
-        $this->assertStringNotContainsString("$application['features']['kqlcnt-awards']", $controller);
+        $this->assertStringNotContainsString("['features']['kqlcnt-awards']", $controller);
     }
 
     #[Test]
