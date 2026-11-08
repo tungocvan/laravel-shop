@@ -76,7 +76,7 @@ final class PharmaKqlcntAwardController extends Controller
         KqlcntAwardReadService $awards,
         KqlcntWorkflowReadiness $readiness,
         KqlcntMappingDiagnostics $diagnostics,
-    ): View {
+    ): View|RedirectResponse {
         return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness, $diagnostics, app(KqlcntLegacyWorkflowBridge::class));
     }
 
