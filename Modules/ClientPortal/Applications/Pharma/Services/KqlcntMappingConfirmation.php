@@ -45,7 +45,7 @@ final class KqlcntMappingConfirmation
             foreach ($lines as $line) {
                 $matches = $rows->filter(fn (DrugBidAward $row): bool =>
                     $row->source_id === null
-                    && in_array($row->source_type, [null, DrugBidAward::SOURCE_MANUAL], true)
+                    && in_array($row->source_type, [null, DrugBidAward::SOURCE_MANUAL, DrugBidAward::SOURCE_MUASAMCONG], true)
                     && ! $row->sources()->exists()
                     && trim((string) $row->bidding_notice_code) === trim((string) $line->notify_no)
                     && trim((string) $row->contractor_code) === trim((string) $line->contractor_code)
@@ -67,8 +67,8 @@ final class KqlcntMappingConfirmation
                     $this->reject();
                 }
                 $used[] = (int) $row->id;
-                // Explicit provenance reassignment of a previously unlinked
-                // manual award; never overwrite an existing source reference.
+                // Explicit provenance confirmation of an unlinked manual or
+                // Muasamcong-origin award; never overwrite a source reference.
                 $row->source_type = DrugBidAward::SOURCE_MUASAMCONG;
                 $row->source_id = (int) $line->id;
                 $row->source_synced_at = now();
