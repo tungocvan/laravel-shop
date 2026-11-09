@@ -90,6 +90,10 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.confirm');
         Route::post('/kqlcnt-awards/export', [PharmaKqlcntAwardExcelController::class, 'export'])
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.export');
+        Route::post('/kqlcnt-awards/{awardItem}/reset-excel-setup', [PharmaKqlcntAwardController::class, 'resetExcelSetup'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.reset-excel-setup');
+        Route::delete('/kqlcnt-awards/{awardItem}/excel', [PharmaKqlcntAwardController::class, 'deleteExcel'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.delete-excel');
         Route::post('/kqlcnt-awards/{awardItem}/bootstrap-excel', [PharmaKqlcntAwardController::class, 'bootstrapExcel'])
             ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.bootstrap-excel');
         Route::post('/kqlcnt-awards/{awardItem}/mapping/confirm', [PharmaKqlcntAwardController::class, 'confirmMapping'])
