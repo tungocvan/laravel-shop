@@ -87,7 +87,7 @@ final class PharmaKqlcntAwardController extends Controller
             'presentation' => $this->featurePresentation($settings, $application),
             'item' => $item,
             'medicines' => $medicines,
-            'canResetExcel' => request()->user('web') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.allocate') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.commercial-policy'),
+            'canResetExcel' => request()->user('web') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.allocate') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.commercial-policy') && app(KqlcntExcelAwardRemovalService::class)->hasSetup($awardItem),
             'canDeleteExcel' => request()->user('web') && $registry->userCan(request()->user('web'), 'client.pharma.kqlcnt-awards.import') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.allocate'),
         ]);
     }
