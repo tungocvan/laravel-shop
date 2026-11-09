@@ -2014,3 +2014,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Confirmation service rechecks candidate IDs inside a transaction with row locks, requires existing permission and explicit acknowledgement, and rejects any existing source reference or duplicate canonical mapping. No automatic write on GET.
 - Existing Bid Awards allocation and commercial-policy controllers, views and mutations remain authoritative; KQLCNT redirects to them only after a verified mapping. Legacy routes unchanged.
 - Added focused source contract coverage. TEST PENDING; UI PENDING. Do not merge until user confirms both. Do not alter production or local data automatically.
+
+
+## 2026-11-09 — D7.1 exact existing source provenance bridge (checkpoint)
+- User evidence: KQLCNT #22 ↔ Pharma #21 matches TBMT, contractor, medicine, quantity and winning price; `source_id=NULL` but a single active `DrugBidAwardSource` has `source_system=muasamcong`, `source_record_type=kqlcnt_award_item`, `source_reference=muasamcong_kqlcnt_award_items:22`. Source metadata medicine match remains unresolved; do not confuse medicine-catalog mapping with canonical award provenance.
+- Read-only bridge now recognizes exact active source references, including null direct source_id; enforces exact row attributes, uniqueness, no conflicting references, and full legacy TBMT group equality before redirecting to the tested Bid Awards allocation/commercial-policy workflows.
+- Manual/imported records with no source relationship remain strict explicit-confirmation candidates, never automatic routing. Existing source-linked records are excluded from confirmation to avoid overwriting provenance. No schema changes, source writes, new Pharma records, or automatic allocation mutations.
+- Added `PharmaKqlcntSourceProvenanceBridgeContractTest`. **TEST PENDING**, UI PENDING; source contracts do not replace database-backed positive/negative integration tests (cross-contractor, duplicate, inactive source, conflicting source, manual import, price mismatch).
+- Next checkpoint: focused bridge/provenance/confirmation contracts; then impacted ClientApps + Pharma regression. If tests PASS, user to verify KQLCNT #22 allocation and policy redirects to existing Bid Awards screens, including real permission and save/refresh behavior. No PR/merge until gates and user approval.
