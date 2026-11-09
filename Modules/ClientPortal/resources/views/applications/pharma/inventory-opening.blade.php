@@ -117,7 +117,8 @@
                 <button type="submit" class="min-h-11 w-full rounded-xl bg-slate-950 px-4 text-sm font-bold text-white hover:bg-slate-800">Import tồn đầu kỳ</button>
             </form>
         </section>
-    </div>
+        </div>
+    </details>
     <div id="opening-edit-dialog" class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-950/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="opening-edit-title">
         <div class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
             <div class="flex items-center justify-between gap-3">
@@ -138,8 +139,7 @@
                 </div>
             </form>
         </div>
-        </div>
-    </details>
+    </div>
     <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Lưu ý: Chỉ khởi tạo lô chưa có số dư hoặc giao dịch kho. Không ghi đè lô đã phát sinh tồn; hãy kiểm tra dữ liệu trước khi lưu.</p>
 </div>
 <script>
