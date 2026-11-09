@@ -77,6 +77,22 @@
         </section>
         </div>
     </details>
+    <details class="rounded-2xl border border-rose-200 bg-white p-4 shadow-sm">
+        <summary class="cursor-pointer text-sm font-bold text-rose-700">Xóa toàn bộ tồn đầu kỳ (chỉ khi chưa có bất kỳ phiếu nhập/xuất nào)</summary>
+        <div class="mt-3 space-y-3 text-sm text-slate-700">
+            <p>Thao tác không thể hoàn tác tự động. Hệ thống sẽ từ chối nếu Pharma đã có phiếu nhập, phiếu xuất (kể cả nháp), phát sinh sổ kho hoặc dữ liệu tồn không nhất quán.</p>
+            <a class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 px-4 font-semibold text-indigo-700" href="{{ route('client.pharma.inventory.opening.export') }}" data-pwa-file-handoff>1. Tải bản sao lưu Excel trước</a>
+            <form method="POST" action="{{ route('client.pharma.inventory.opening.reset') }}" class="space-y-3" onsubmit="return confirm('XÁC NHẬN LẦN CUỐI: Xóa TOÀN BỘ tồn đầu kỳ trên mọi kho Pharma?');">
+                @csrf
+                @method('DELETE')
+                <label class="flex items-start gap-2"><input type="checkbox" name="backup_confirmed" value="1" required class="mt-1"><span>Tôi xác nhận đã tải và kiểm tra file sao lưu tồn đầu kỳ.</span></label>
+                <label class="block font-semibold">2. Nhập chính xác <code>XOA TON DAU KY</code> để xác nhận
+                    <input name="confirmation" required autocomplete="off" pattern="XOA TON DAU KY" placeholder="XOA TON DAU KY" class="mt-1 block min-h-11 w-full max-w-sm rounded-xl border border-rose-300 px-3">
+                </label>
+                <button type="submit" class="min-h-11 rounded-xl bg-rose-700 px-4 font-bold text-white">Xóa toàn bộ tồn đầu kỳ</button>
+            </form>
+        </div>
+    </details>
     <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
