@@ -88,7 +88,7 @@ final class KqlcntExcelAwardRemovalService
 
         $canonicalIds = $lines->pluck('id')->all();
         $awards = DrugBidAward::query()->where('bidding_notice_code', $notice)->lockForUpdate()->get();
-        if ($awards->count() > $lines->count()
+        if (($awards->isNotEmpty() && $awards->count() !== $lines->count())
             || $awards->contains(fn ($award) => $award->source_type !== DrugBidAward::SOURCE_MUASAMCONG
                 || ! in_array((int) $award->source_id, $canonicalIds, true))
             || $awards->pluck('source_id')->unique()->count() !== $awards->count()) {
