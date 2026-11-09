@@ -11,6 +11,7 @@ use Modules\ClientPortal\Applications\Pharma\Services\ClientMedicineImportCreato
 use Modules\ClientPortal\Applications\Pharma\Services\ClientMedicineImportReviewResolver;
 use Modules\Pharma\Models\Medicine;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\Pharma\Services\MedicineCatalog;
@@ -33,6 +34,32 @@ final class PharmaMedicineExcelController extends Controller
             ->paginate(12);
 
         return view('ClientPortal::applications.pharma.import', compact('batches'));
+    }
+
+    public function clearImportHistory(Request $request, ApplicationRegistry $registry): RedirectResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+
+        $request->validate(['confirmation' => ['required', 'in:XOA LICH SU IMPORT']]);
+
+        $count = DB::transaction(function () use ($user): int {
+            $batches = MedicineImportBatch::query()
+                ->where('source', 'clientportal_pharma')
+                ->where('created_by', (int) $user->id)
+                ->whereIn('status', [MedicineImportBatch::STATUS_READY, MedicineImportBatch::STATUS_FAILED, MedicineImportBatch::STATUS_STAGED])
+                ->lockForUpdate()->get();
+
+            foreach ($batches as $batch) {
+                $batch->rows()->delete();
+                $batch->delete();
+            }
+
+            return $batches->count();
+        });
+
+        return redirect()->route('client.pharma.products.import.page')
+            ->with('status', "Đã xóa {$count} batch staging khỏi lịch sử import của bạn. Medicine Master và SKU không bị thay đổi.");
     }
 
     public function importBatch(Request $request, ApplicationRegistry $registry, MedicineImportBatch $batch): \Illuminate\View\View
