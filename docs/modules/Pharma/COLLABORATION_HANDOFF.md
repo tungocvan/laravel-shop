@@ -1,3 +1,11 @@
+## 2026-11-09 — Capability regression contract follow-up (TEST PENDING)
+
+- User regression: 1 failed, 9 passed (199 assertions), failure in `PharmaInventoryCapabilityTest` expecting `SupplierTracking::query()` inside `UserInventoryWorkspace`. This is an obsolete implementation-detail assertion after moving supplier cost lookup to Pharma-owned `InventoryLotCostResolver`.
+- Updated only the contract test to assert workspace injects and calls the shared resolver, resolver owns supplier tracking query, and workspace no longer directly queries SupplierTracking. No production logic changed.
+- Focused rerun the failed test, then same impacted regression set. Do not mark PASS until user reports real result. PR #370 remains unmerged pending gates.
+
+---
+
 ## 2026-11-09 — Inventory valuation parity (CHECKPOINT, TEST PENDING)
 
 - User screenshot: stock dashboard 5,529,369,100 VND versus movements closing 4,944,895,500 VND, a 584,473,600 VND difference. No database reconciliation has been performed; these values may also reflect report date range.
