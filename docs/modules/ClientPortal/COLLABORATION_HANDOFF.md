@@ -2060,3 +2060,8 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - **TEST PENDING / UI PENDING**. Test focused then impacted regression; UI verify new award selected HCMC -> refresh -> list hospitals, then actual save and revisit; compare old award behavior. Legacy Bid Awards preserved. No merge/deploy.
 
 - 2026-11-09 D7.2B follow-up: after facility GET refresh fix, UI displays hospitals; POST setup fails expected required `effective_until` when empty, but validation redirect collapsed sections and lost selected facilities. Controller now uses flashed `old('province_names')` and `old('facility_ids')` for POST validation redirects, Blade expands setup/review sections on validation errors. Dates remain required, no inferred contract expiry. Added focused contract assertions. TEST/UI PENDING, no merge/deploy.
+
+## 2026-11-09 — D7.2B preserve effective dates on hospital GET refresh
+- User confirms Pharma allocation save PASS and KCB selection PASS for imported IB2500361133; remaining UI regression: `Cập nhật theo Tỉnh/Thành` GET refresh loses unsaved `effective_until`.
+- Shared legacy Bid Awards Blade now reads GET query for `effective_from` and `effective_until` as fallback to flashed old input and saved setup; retains original validation and existing controller province/facility handling. Focused source contract extended. No DB changes, no parallel KQLCNT logic, legacy route preserved.
+- TEST PENDING, UI PENDING for date preservation; focused -> impacted regression -> desktop/mobile manual check. No merge/deploy.
