@@ -90,6 +90,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.confirm');
         Route::post('/kqlcnt-awards/export', [PharmaKqlcntAwardExcelController::class, 'export'])
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.export');
+        Route::post('/kqlcnt-awards/{awardItem}/bootstrap-excel', [PharmaKqlcntAwardController::class, 'bootstrapExcel'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.bootstrap-excel');
         Route::post('/kqlcnt-awards/{awardItem}/mapping/confirm', [PharmaKqlcntAwardController::class, 'confirmMapping'])
             ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.mapping.confirm');
         Route::get('/kqlcnt-awards/{awardItem}/allocation', [PharmaKqlcntAwardController::class, 'allocation'])
