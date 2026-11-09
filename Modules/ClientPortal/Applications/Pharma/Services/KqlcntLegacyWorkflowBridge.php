@@ -28,7 +28,7 @@ final class KqlcntLegacyWorkflowBridge
         } catch (ValidationException $exception) {
             // Historical Pharma rows can predate direct KQLCNT source links.
             // In that case attempt a strictly unique, read-only reconciliation.
-            $ids = $this->verifiedExistingProductIds($awardItemId);
+            $ids = $this->verifiedProvenanceProductIds($awardItemId);
         }
 
         if ($ids === []) {
@@ -86,6 +86,29 @@ final class KqlcntLegacyWorkflowBridge
         return $ids === $legacyIds ? $ids : [];
     }
 
+    /**
+     * Automatic legacy routing requires existing verified provenance on every
+     * line. Unlinked imports require the explicit confirmation workflow.
+     *
+     * @return list<int>
+     */
+    private function verifiedProvenanceProductIds(int $awardItemId): array
+    {
+        $ids = $this->verifiedExistingProductIds($awardItemId);
+        if ($ids === []) {
+            return [];
+        }
+
+        foreach ($ids as $id) {
+            $award = DrugBidAward::query()->find($id);
+            if ($award === null || ($award->source_id === null && ! $award->sources()->exists())) {
+                return [];
+            }
+        }
+
+        return $ids;
+    }
+
     private function verifiedExistingProductIds(int $awardItemId): array
     {
         $lines = $this->canonical->medicines($awardItemId);
@@ -110,21 +133,63 @@ final class KqlcntLegacyWorkflowBridge
                 ->where('contractor_code', $line->contractor_code)
                 ->where('winning_company_name', $contractorName)
                 ->where('medicine_name', $medicineName)
-                ->whereNull('source_id')
-                ->whereDoesntHave('sources')
-                ->where(function ($query): void {
-                    $query->whereNull('source_type')
-                        ->orWhere('source_type', DrugBidAward::SOURCE_MANUAL)
-                        ->orWhere('source_type', DrugBidAward::SOURCE_MUASAMCONG);
+                ->where(function ($query) use ($line): void {
+                    // A direct canonical link or an exact active source-record
+                    // reference is authoritative. Manual imports without a
+                    // source link remain confirmation candidates only.
+                    $query->where(function ($direct) use ($line): void {
+                        $direct->where('source_type', DrugBidAward::SOURCE_MUASAMCONG)
+                            ->where('source_id', $line->id);
+                    })->orWhere(function ($provenance) use ($line): void {
+                        $provenance->whereNull('source_id')
+                            ->whereHas('sources', function ($source) use ($line): void {
+                                $source->where('source_system', 'muasamcong')
+                                    ->where('source_record_type', 'kqlcnt_award_item')
+                                    ->where('source_reference', 'muasamcong_kqlcnt_award_items:'.$line->id)
+                                    ->where('is_active', true);
+                            });
+                    })->orWhere(function ($unlinked): void {
+                        $unlinked->whereNull('source_id')
+                            ->whereDoesntHave('sources')
+                            ->where(function ($types): void {
+                                $types->whereNull('source_type')
+                                    ->orWhere('source_type', DrugBidAward::SOURCE_MANUAL)
+                                    ->orWhere('source_type', DrugBidAward::SOURCE_MUASAMCONG);
+                            });
+                    });
                 })
                 ->get();
 
             // Enforce exact numeric values in PHP to avoid driver-specific
             // decimal formatting differences, and reject any ambiguity.
-            $matches = $candidates->filter(fn (DrugBidAward $candidate): bool =>
-                $this->sameDecimal($candidate->quantity, $line->quantity)
-                && $this->sameDecimal($candidate->winning_price, $line->winning_price)
-            );
+            $matches = $candidates->filter(function (DrugBidAward $candidate) use ($line): bool {
+                if (! $this->sameDecimal($candidate->quantity, $line->quantity)
+                    || ! $this->sameDecimal($candidate->winning_price, $line->winning_price)) {
+                    return false;
+                }
+
+                // Never accept a row whose existing provenance points at a
+                // different canonical medicine, even if text/numbers match.
+                if ($candidate->source_id !== null) {
+                    return $candidate->source_type === DrugBidAward::SOURCE_MUASAMCONG
+                        && (int) $candidate->source_id === (int) $line->id
+                        && ! $candidate->sources()->where(function ($source) use ($line): void {
+                            $source->where('source_system', 'muasamcong')
+                                ->where('source_record_type', 'kqlcnt_award_item')
+                                ->where('source_reference', '!=', 'muasamcong_kqlcnt_award_items:'.$line->id);
+                        })->exists();
+                }
+
+                if ($candidate->sources()->exists()) {
+                    return $candidate->sources()->count() === 1
+                        && $candidate->sources()->where('source_system', 'muasamcong')
+                            ->where('source_record_type', 'kqlcnt_award_item')
+                            ->where('source_reference', 'muasamcong_kqlcnt_award_items:'.$line->id)
+                            ->where('is_active', true)->exists();
+                }
+
+                return true;
+            });
 
             if ($matches->count() !== 1) {
                 return [];
