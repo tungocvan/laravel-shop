@@ -17,11 +17,26 @@ class DrugBidAwardCommercialPolicyService
     {
         $validIds = $this->groups->awardsQuery($contextAward)->pluck('id')->map(fn ($id) => (int) $id)->all();
 
+        $this->saveProductPoliciesForIds($validIds, $percentages, $actorId);
+    }
+
+    /**
+     * Explicit product scope for canonical KQLCNT callers. Keep the same
+     * validation and persistence behavior as the legacy TBMT-scoped workflow.
+     *
+     * @param list<int> $validIds
+     */
+    public function saveProductPoliciesForIds(array $validIds, array $percentages, ?int $actorId): void
+    {
+        if ($validIds === []) {
+            throw ValidationException::withMessages(['productPolicies' => 'Không có sản phẩm hợp lệ trong hồ sơ KQLCNT.']);
+        }
+
         DB::transaction(function () use ($percentages, $validIds, $actorId) {
             foreach ($percentages as $awardId => $percentage) {
                 $awardId = (int) $awardId;
                 if (! in_array($awardId, $validIds, true)) {
-                    throw ValidationException::withMessages(['productPolicies' => 'Có sản phẩm không thuộc TBMT hiện tại.']);
+                    throw ValidationException::withMessages(['productPolicies' => 'Có sản phẩm không thuộc phạm vi kết quả trúng thầu hiện tại.']);
                 }
                 if ($percentage === '' || $percentage === null) continue;
                 $value = (float) $percentage;

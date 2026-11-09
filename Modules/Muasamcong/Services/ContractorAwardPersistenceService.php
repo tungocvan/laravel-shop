@@ -271,13 +271,13 @@ class ContractorAwardPersistenceService
         return $parts->isEmpty() ? null : 'medicine:'.hash('sha256', $parts->implode('|'));
     }
 
-    private function identityKey(string $notifyNo, string $contractorCode, array $row): string
+    public function identityKey(string $notifyNo, string $contractorCode, array $row): string
     {
         $identity = $row['lot_no'] ?: ($row['medicine_code'] ?: implode('|', [Str::lower((string) $row['medicine_name']), Str::lower((string) $row['active_ingredient']), Str::lower((string) $row['concentration'])]));
         return hash('sha256', $notifyNo.'|'.$contractorCode.'|'.$identity);
     }
 
-    private function fingerprint(array $row): string
+    public function fingerprint(array $row): string
     {
         return hash('sha256', json_encode(Arr::only($row, self::FIELDS), JSON_UNESCAPED_UNICODE | JSON_PRESERVE_ZERO_FRACTION));
     }

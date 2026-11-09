@@ -90,6 +90,30 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.import.confirm');
         Route::post('/kqlcnt-awards/export', [PharmaKqlcntAwardExcelController::class, 'export'])
             ->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.export');
+        Route::post('/kqlcnt-awards/{awardItem}/reset-excel-setup', [PharmaKqlcntAwardController::class, 'resetExcelSetup'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.reset-excel-setup');
+        Route::delete('/kqlcnt-awards/{awardItem}/excel', [PharmaKqlcntAwardController::class, 'deleteExcel'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.delete-excel');
+        Route::post('/kqlcnt-awards/{awardItem}/bootstrap-excel', [PharmaKqlcntAwardController::class, 'bootstrapExcel'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.bootstrap-excel');
+        Route::post('/kqlcnt-awards/{awardItem}/mapping/confirm', [PharmaKqlcntAwardController::class, 'confirmMapping'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.mapping.confirm');
+        Route::post('/kqlcnt-awards/{awardItem}/allocation/setup', [PharmaKqlcntAwardController::class, 'saveAllocationSetup'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation.setup');
+        Route::get('/kqlcnt-awards/{awardItem}/allocation/hospitals/{partner}', [PharmaKqlcntAwardController::class, 'hospitalAllocation'])
+            ->whereNumber('awardItem')->whereNumber('partner')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation.hospital');
+        Route::post('/kqlcnt-awards/{awardItem}/allocation/hospitals/{partner}', [PharmaKqlcntAwardController::class, 'saveHospitalAllocation'])
+            ->whereNumber('awardItem')->whereNumber('partner')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation.hospital.store');
+        Route::get('/kqlcnt-awards/{awardItem}/allocation/hospitals/{partner}/commercial-policy', [PharmaKqlcntAwardController::class, 'hospitalPolicy'])
+            ->whereNumber('awardItem')->whereNumber('partner')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation.hospital.policy');
+        Route::post('/kqlcnt-awards/{awardItem}/allocation/hospitals/{partner}/commercial-policy', [PharmaKqlcntAwardController::class, 'saveHospitalPolicy'])
+            ->whereNumber('awardItem')->whereNumber('partner')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation.hospital.policy.store');
+        Route::post('/kqlcnt-awards/{awardItem}/commercial-policy', [PharmaKqlcntAwardController::class, 'saveCommercialPolicy'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.commercial-policy.store');
+        Route::get('/kqlcnt-awards/{awardItem}/allocation', [PharmaKqlcntAwardController::class, 'allocation'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.allocation');
+        Route::get('/kqlcnt-awards/{awardItem}/commercial-policy', [PharmaKqlcntAwardController::class, 'commercialPolicy'])
+            ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.commercial-policy');
         Route::get('/kqlcnt-awards/{awardItem}', [PharmaKqlcntAwardController::class, 'show'])
             ->whereNumber('awardItem')->middleware('client.feature:pharma,kqlcnt-awards')->name('kqlcnt-awards.show');
 

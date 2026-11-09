@@ -80,8 +80,13 @@ class KqlcntAwardExcelImportService
         if (count($headers) !== count(array_unique($headers))) {
             throw ValidationException::withMessages(['file' => 'File có tiêu đề cột trùng nhau.']);
         }
+        // Creation is only allowed for a completely new notice via the
+        // two-sheet workbook. Existing notices keep the update-only contract.
+        $createNew = $isV2 && ! KqlcntAwardItem::query()
+            ->where('notify_no', $scope['notify_no'])->exists();
         $rows = [];
         $seen = [];
+        $newMedicineKeys = [];
         foreach ($values as $index => $valuesRow) {
             if (! collect($valuesRow)->filter(fn ($v) => $v !== null && trim((string) $v) !== '')->count()) {
                 continue;
@@ -117,7 +122,7 @@ class KqlcntAwardExcelImportService
                     }
                 } elseif ($matches->count() > 1) {
                     $errors[] = 'Nhiều bản ghi cùng định danh; không thể cập nhật an toàn';
-                } else {
+                } elseif (! $createNew) {
                     $errors[] = 'Thuốc chưa có bản ghi canonical; thêm mới cần quy trình riêng';
                 }
             } elseif (! $hasIdentity) {
@@ -135,6 +140,24 @@ class KqlcntAwardExcelImportService
             } elseif ($id === '') {
                 $errors[] = 'Dòng mới chưa có ID: cần quy trình thêm mới có kiểm soát';
             }
+            if ($createNew) {
+                $medicineCode = trim((string) ($data['medicine_code'] ?? ''));
+                $medicineName = trim((string) ($data['medicine_name'] ?? ''));
+                $medicineKey = implode('|', [
+                    trim((string) ($data['lot_no'] ?? '')),
+                    $medicineCode !== '' ? 'code:'.$medicineCode : 'name:'.$medicineName,
+                    trim((string) ($data['active_ingredient'] ?? '')),
+                    trim((string) ($data['concentration'] ?? '')),
+                ]);
+                if ($medicineName === '' || trim((string) ($data['quantity'] ?? '')) === ''
+                    || trim((string) ($data['winning_price'] ?? '')) === '') {
+                    $errors[] = 'Thuốc mới cần tên thuốc, số lượng và giá trúng thầu';
+                }
+                if (isset($newMedicineKeys[$medicineKey])) {
+                    $errors[] = 'Dòng thuốc trùng định danh trong file';
+                }
+                $newMedicineKeys[$medicineKey] = true;
+            }
             if ($existing && ($existing->notify_no !== trim((string) $data['notify_no']) || $existing->contractor_code !== trim((string) $data['contractor_code']))) $errors[] = 'Không được thay đổi TBMT/nhà thầu';
             if ($existing && $existing->synced_from_catalog_at === null) $errors[] = 'Không thuộc danh mục canonical';
             if ($existing && $hasIdentity && (string) $existing->updated_at?->format('Y-m-d H:i:s.u') !== (string) ($raw['_version'] ?? '')) $errors[] = 'Dữ liệu đã thay đổi sau khi export';
@@ -145,7 +168,7 @@ class KqlcntAwardExcelImportService
             }
             $comparison = $this->comparison($data, $existing, $isV2 ? self::MEDICINE_FIELDS : null);
             if ($comparison['invalid']) $errors = array_merge($errors, $comparison['invalid']);
-            $status = $errors !== [] ? 'error' : ($comparison['changes'] === 0 ? 'unchanged' : 'changed');
+            $status = $errors !== [] ? 'error' : ($createNew ? 'created' : ($comparison['changes'] === 0 ? 'unchanged' : 'changed'));
             $rows[] = [
                 'line' => $index + 2, 'id' => $id, 'data' => $data,
                 'version' => $hasIdentity ? (string) ($raw['_version'] ?? '') : ($existing?->updated_at?->format('Y-m-d H:i:s.u') ?? ''),
@@ -154,16 +177,21 @@ class KqlcntAwardExcelImportService
             ];
         }
         if ($rows === []) throw ValidationException::withMessages(['file' => 'File không có dữ liệu.']);
-        $package = $isV2 ? $this->previewPackageChanges($scope) : null;
+        $package = $isV2 ? $this->previewPackageChanges($scope, $createNew) : null;
+        if ($createNew && collect($rows)->contains(fn (array $row): bool => $row['status'] === 'error')) {
+            $package['errors'][] = 'Tạo hồ sơ mới yêu cầu tất cả dòng thuốc hợp lệ; không import một phần.';
+        }
         $token = bin2hex(random_bytes(24));
         // Legacy Admin parsing tests call preview() without an authenticated request.
         // ClientPortal must always authenticate before creating a web-owned preview.
         abort_unless(in_array($guard, ['admin', 'web'], true), 403);
         if ($guard === 'web') abort_unless(auth('web')->check(), 403);
-        Cache::put($this->cacheKey($token), ['guard' => $guard, 'user' => auth($guard)->id(), 'rows' => $rows, 'package' => $package], now()->addMinutes(20));
+        Cache::put($this->cacheKey($token), ['guard' => $guard, 'user' => auth($guard)->id(), 'rows' => $rows, 'package' => $package, 'create_new' => $createNew], now()->addMinutes(20));
         return [
             'token' => $token, 'rows' => $rows,
-            'valid' => collect($rows)->where('status', 'changed')->count(),
+            'valid' => collect($rows)->whereIn('status', ['changed', 'created'])->count(),
+            'created' => collect($rows)->where('status', 'created')->count(),
+            'create_new' => $createNew,
             'unchanged' => collect($rows)->where('status', 'unchanged')->count(),
             'errors' => collect($rows)->where('status', 'error')->count(),
             'total' => count($rows), 'labels' => self::FIELDS, 'package' => $package,
@@ -180,6 +208,9 @@ class KqlcntAwardExcelImportService
             throw ValidationException::withMessages(['file' => implode('; ', $batch['package']['errors'])]);
         }
         $result = DB::transaction(function () use ($batch, $overwrite): array {
+            if ($batch['create_new'] ?? false) {
+                return $this->confirmNewNotice($batch);
+            }
             $packageUpdated = 0;
             $packageVersions = [];
             if (! empty($batch['package']['changes']) && empty($batch['package']['errors'])) {
@@ -259,6 +290,62 @@ class KqlcntAwardExcelImportService
     }
 
     /**
+     * Atomic, all-or-nothing creation. Never clone allocations or alter the
+     * source notice. A concurrent import must fail closed before any insert.
+     */
+    private function confirmNewNotice(array $batch): array
+    {
+        $package = $batch['package'] ?? [];
+        $rows = $batch['rows'] ?? [];
+        if ($rows === [] || ! empty($package['errors'])
+            || collect($rows)->contains(fn (array $row): bool => $row['status'] !== 'created' || $row['errors'] !== [])) {
+            throw ValidationException::withMessages(['file' => 'Dữ liệu tạo mới không hợp lệ; hãy xem trước lại Excel.']);
+        }
+
+        $notice = trim((string) ($package['notify_no'] ?? ''));
+        $contractor = trim((string) ($package['contractor_code'] ?? ''));
+        if ($notice === '' || $contractor === '' || KqlcntAwardItem::query()->where('notify_no', $notice)->exists()) {
+            throw ValidationException::withMessages(['file' => 'TBMT đã tồn tại hoặc đã được import bởi phiên khác. Hãy xem trước lại.']);
+        }
+
+        $metadata = $package['changes'] ?? [];
+        foreach (['decision_date' => 'd/m/Y', 'published_at' => 'd/m/Y H:i'] as $field => $format) {
+            if (! empty($metadata[$field])) {
+                $metadata[$field] = \Carbon\Carbon::createFromFormat($format, $metadata[$field])
+                    ->format($field === 'decision_date' ? 'Y-m-d' : 'Y-m-d H:i:s');
+            }
+        }
+        $created = 0;
+        foreach ($rows as $row) {
+            $data = Arr::only($row['data'], self::MEDICINE_FIELDS);
+            foreach (self::MEDICINE_FIELDS as $field) {
+                $invalid = [];
+                $data[$field] = $this->normalizeValue($field, $data[$field] ?? null, $invalid);
+                if ($invalid !== []) {
+                    throw ValidationException::withMessages(['file' => 'Dữ liệu thuốc thay đổi sau Preview.']);
+                }
+            }
+            $data = array_merge($data, $metadata, [
+                'notify_no' => $notice,
+                'contractor_code' => $contractor,
+                'source' => 'excel',
+                'synced_from_catalog_at' => now(),
+                'last_verified_at' => now(),
+                'is_active' => true,
+            ]);
+            // Reuse the canonical catalog persistence algorithm, including
+            // its exact field subset for the content fingerprint.
+            $identity = app(ContractorAwardPersistenceService::class);
+            $data['identity_key'] = $identity->identityKey($notice, $contractor, $data);
+            $data['fingerprint'] = $identity->fingerprint($data);
+            KqlcntAwardItem::query()->create($data);
+            $created++;
+        }
+
+        return ['updated' => 0, 'created' => $created, 'skipped' => 0, 'package_updated' => 0];
+    }
+
+    /**
      * Compare the same normalized values that confirm() writes.
      * Technical identity columns are never mutable.
      */
@@ -302,13 +389,13 @@ class KqlcntAwardExcelImportService
             'values' => $values, 'contractor_row' => $contractorDetails];
     }
 
-    private function previewPackageChanges(array $scope): array
+    private function previewPackageChanges(array $scope, bool $createNew = false): array
     {
         $awards = KqlcntAwardItem::query()->where('notify_no', $scope['notify_no'])
             ->where('contractor_code', $scope['contractors'][0])
             ->whereNotNull('synced_from_catalog_at')->orderBy('id')->get();
         $errors = [];
-        if ($awards->isEmpty()) $errors[] = 'Không tìm thấy hồ sơ canonical để cập nhật thông tin hợp đồng';
+        if ($awards->isEmpty() && ! $createNew) $errors[] = 'Không tìm thấy hồ sơ canonical để cập nhật thông tin hợp đồng';
         $first = $awards->first();
         $incoming = [];
         foreach (self::PACKAGE_FIELDS as $field => $label) {
@@ -346,6 +433,16 @@ class KqlcntAwardExcelImportService
                         break 2;
                     }
                 }
+            }
+        }
+        if ($createNew) {
+            if (trim((string) ($incoming['contractor_name'] ?? '')) === '') {
+                $errors[] = 'Hồ sơ mới cần tên nhà thầu';
+            }
+            $changes = $incoming;
+            foreach ($incoming as $field => $value) {
+                $comparison[] = ['field' => $field, 'label' => self::PACKAGE_FIELDS[$field],
+                    'current' => null, 'incoming' => $value];
             }
         }
         // Store the exact canonical row set and versions to prevent stale or partial updates.
@@ -399,6 +496,11 @@ class KqlcntAwardExcelImportService
             return (string) (int) $value;
         }
         if (in_array($field, ['decision_date', 'published_at'], true)) {
+            // Excel may provide a date without a time. Preserve explicit
+            // times; only default a missing published_at time to midnight.
+            if ($field === 'published_at' && preg_match('/^\\d{2}\\/\\d{2}\\/\\d{4}$/D', $value)) {
+                $value .= ' 00:00';
+            }
             $format = $field === 'decision_date' ? 'd/m/Y' : 'd/m/Y H:i';
             $date = \DateTimeImmutable::createFromFormat('!'.$format, $value);
             if (! $date || $date->format($format) !== $value) {

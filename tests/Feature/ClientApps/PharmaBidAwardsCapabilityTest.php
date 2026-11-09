@@ -195,8 +195,14 @@ class PharmaBidAwardsCapabilityTest extends TestCase
         $this->assertStringContainsString("@section('hide-application-header', true)", $allocation);
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $allocation);
         $this->assertStringContainsString("@section('app-dashboard-route', route('client.pharma.dashboard'))", $allocation);
-        $this->assertStringContainsString('aria-label="Quay lại kết quả trúng thầu"', $allocation);
-        $this->assertStringContainsString("route('client.pharma.bid-awards.show',\$scope)", $allocation);
+        // The back-link markup is rendered by the shared allocation hero partial.
+        $allocationHero = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/partials/bid-award-workflow-hero.blade.php'));
+        $this->assertNotFalse($allocationHero);
+        $this->assertStringContainsString('partials.bid-award-workflow-hero', $allocation);
+        $this->assertStringContainsString('aria-label="Quay lại kết quả trúng thầu"', $allocationHero);
+        $this->assertStringContainsString("route('client.pharma.bid-awards.show', \$scope)", $allocation);
+        $this->assertStringContainsString("'backUrl' => route('client.pharma.bid-awards.show', \$scope)", $allocation);
+        $this->assertStringContainsString('href="{{ $backUrl }}"', $allocationHero);
         $this->assertStringContainsString('① Phạm vi & hiệu lực', $allocation);
         $this->assertStringContainsString('② Chọn cơ sở KCB', $allocation);
         $this->assertStringContainsString('③ Kiểm tra & lưu', $allocation);
