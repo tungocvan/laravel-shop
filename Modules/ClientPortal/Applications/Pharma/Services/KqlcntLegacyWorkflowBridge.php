@@ -72,6 +72,15 @@ final class KqlcntLegacyWorkflowBridge
             return [];
         }
 
+        // Confirmation must never rewrite an existing provenance link.
+        // Already-linked rows are routed read-only via scopeKey().
+        foreach ($ids as $id) {
+            $candidate = DrugBidAward::query()->find($id);
+            if ($candidate === null || $candidate->source_id !== null || $candidate->sources()->exists()) {
+                return [];
+            }
+        }
+
         $award = DrugBidAward::query()->find($ids[0]);
         if ($award === null) {
             return [];
