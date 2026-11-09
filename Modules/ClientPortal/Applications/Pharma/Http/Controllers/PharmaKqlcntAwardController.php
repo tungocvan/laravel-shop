@@ -14,6 +14,7 @@ use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAllocationBlockers;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingConfirmation;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
+use Modules\Pharma\Services\KqlcntExcelAwardBootstrapService;
 
 final class PharmaKqlcntAwardController extends Controller
 {
@@ -85,6 +86,20 @@ final class PharmaKqlcntAwardController extends Controller
             ->with('success', 'Đã xác nhận liên kết KQLCNT với Pharma.');
     }
 
+    public function bootstrapExcel(
+        int $awardItem,
+        ApplicationRegistry $registry,
+        KqlcntExcelAwardBootstrapService $bootstrap,
+    ): RedirectResponse {
+        $user = request()->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
+        request()->validate(['acknowledge' => ['required', 'accepted']]);
+        $created = $bootstrap->confirm($awardItem, (int) $user->id);
+
+        return redirect()->route('client.pharma.kqlcnt-awards.allocation', ['awardItem' => $awardItem])
+            ->with('success', 'Đã khởi tạo '.$created.' sản phẩm Pharma từ hồ sơ Excel. Bạn có thể thiết lập phân bổ và chính sách kinh doanh.');
+    }
+
     public function commercialPolicy(
         int $awardItem,
         ApplicationRegistry $registry,
@@ -135,6 +150,7 @@ final class PharmaKqlcntAwardController extends Controller
             'mappingDiagnostics' => $diagnostics->inspect($awardItem),
             'allocationBlockers' => app(KqlcntAllocationBlockers::class)->inspect($awardItem),
             'canConfirmMapping' => $mode === 'allocation' && app(KqlcntLegacyWorkflowBridge::class)->verifiedMappingCandidateIds($awardItem) !== [],
+            'canBootstrapExcel' => $mode === 'allocation' && app(KqlcntExcelAwardBootstrapService::class)->eligible($awardItem),
             'medicines' => $awards->medicines($awardItem),
         ]);
     }
