@@ -13,7 +13,7 @@ use Modules\Pharma\Models\SupplierTracking;
 
 final class UserInventoryWorkspace
 {
-    public function __construct(private readonly InventoryService $inventory)
+    public function __construct(private readonly InventoryService $inventory, private readonly InventoryLotCostResolver $costResolver)
     {
     }
 
@@ -243,14 +243,20 @@ final class UserInventoryWorkspace
 
         $value = function (InventoryBalance $row) use ($costs): float {
             $supplier = $costs->get($row->medicine_id)?->average_cost_price;
-            $cost = $row->manual_cost_price !== null && (float) $row->manual_cost_price > 0 ? (float) $row->manual_cost_price : ($supplier !== null ? (float) $supplier : null);
+            $cost = $this->costResolver->effectiveCost(
+                $row->manual_cost_price === null ? null : (float) $row->manual_cost_price,
+                $supplier === null ? null : (float) $supplier,
+            );
 
             return $cost === null ? 0.0 : (float) $row->quantity_on_hand * $cost;
         };
 
         $unpriced = $balances->filter(function (InventoryBalance $row) use ($costs): bool {
             $supplier = $costs->get($row->medicine_id)?->average_cost_price;
-            $cost = $row->manual_cost_price !== null && (float) $row->manual_cost_price > 0 ? (float) $row->manual_cost_price : ($supplier !== null ? (float) $supplier : null);
+            $cost = $this->costResolver->effectiveCost(
+                $row->manual_cost_price === null ? null : (float) $row->manual_cost_price,
+                $supplier === null ? null : (float) $supplier,
+            );
 
             return $cost === null || $cost <= 0;
         });
@@ -272,30 +278,12 @@ final class UserInventoryWorkspace
 
     private function activeSupplierCostSubquery()
     {
-        $today = now()->toDateString();
-
-        return SupplierTracking::query()
-            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price'))
-            ->where('status', 'active')
-            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
-            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
-            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
-            ->groupBy('medicine_id');
+        return $this->costResolver->activeSupplierCostQuery();
     }
 
     private function activeSupplierCosts()
     {
-        $today = now()->toDateString();
-
-        return SupplierTracking::query()
-            ->select('medicine_id', DB::raw('AVG(COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0))) as average_cost_price'))
-            ->where('status', 'active')
-            ->whereRaw('COALESCE(NULLIF(cost_price, 0), NULLIF(import_price, 0)) > 0')
-            ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
-            ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
-            ->groupBy('medicine_id')
-            ->get()
-            ->keyBy('medicine_id');
+        return $this->activeSupplierCostSubquery()->get()->keyBy('medicine_id');
     }
 
     private function applyExpiryFilter(Builder $query, string $warning): void

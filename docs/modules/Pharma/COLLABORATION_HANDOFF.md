@@ -1,3 +1,97 @@
+## 2026-11-09 — Capability regression contract follow-up (TEST PENDING)
+
+- User regression: 1 failed, 9 passed (199 assertions), failure in `PharmaInventoryCapabilityTest` expecting `SupplierTracking::query()` inside `UserInventoryWorkspace`. This is an obsolete implementation-detail assertion after moving supplier cost lookup to Pharma-owned `InventoryLotCostResolver`.
+- Updated only the contract test to assert workspace injects and calls the shared resolver, resolver owns supplier tracking query, and workspace no longer directly queries SupplierTracking. No production logic changed.
+- Focused rerun the failed test, then same impacted regression set. Do not mark PASS until user reports real result. PR #370 remains unmerged pending gates.
+
+---
+
+## 2026-11-09 — Inventory valuation parity (CHECKPOINT, TEST PENDING)
+
+- User screenshot: stock dashboard 5,529,369,100 VND versus movements closing 4,944,895,500 VND, a 584,473,600 VND difference. No database reconciliation has been performed; these values may also reflect report date range.
+- Root cause in code: `UserInventoryWorkspace` previously used positive manual cost then supplier average of positive cost_price with import_price fallback, whereas `InventoryMovementSummaryService` used non-null manual cost (including zero) then supplier AVG(cost_price) only. Added Pharma-owned `InventoryLotCostResolver` to share supplier query and effective-cost policy across both services.
+- Added `tests/Feature/ClientApps/PharmaInventoryValuationParityTest.php` with resolver unit cases and shared-policy contract. No tests executed remotely; require local focused tests and actual read-only per-lot reconciliation before asserting monetary totals match. Historical period report values remain period-scoped; dashboard remains current positive stock.
+- Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaInventoryValuationParityTest.php tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Then Pharma/ClientPortal impacted regression only after PASS. UI PASS required for modified valuation displays.
+- PR #370 remains draft; do not merge or deploy production.
+
+---
+
+## 2026-11-09 — PR #370 safety follow-up (CHECKPOINT, TEST PENDING)
+
+- Added isolated in-memory SQLite integration test `tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php` covering pristine reset/cutoff/reimport, fully reversed orphan ledger, surviving receipt document, unmatched reversal, cross-document cancellation, wrong source type and balance mismatch. This is a real service/database test, not just a string contract; results must be supplied by local test runner.
+- Fixed `OpeningInventoryResetService`: reject orphan opening transactions with no balance and clear `pharma_inventory_warehouses.opening_cutoff_at` in the same transaction after successful reset. Existing per-document reversal guards remain.
+- IMPORTANT: do not click destructive reset against operational data until focused/integration tests pass, affected FK/dependency tables are audited and a recoverable database backup exists. Excel export alone does not preserve historical transaction records. UI PASS for prior revision does not validate new behavior.
+- Run focused tests first: `php artisan test tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Regression only after PASS. PR #370 remains draft; no merge or production deployment.
+
+---
+
+## 2026-11-09 — Reset fully reversed legacy stock ledger (TEST PENDING)
+
+- User observed 56 opening rows and 34 non-opening rows (16 issue + 16 issue_reversal, 1 receipt + 1 receipt_reversal). User's read-only per-lot net delta query returned []. This is evidence of net-zero movements, NOT proof of zero remaining documents or fully matched source identities.
+- Updated `OpeningInventoryResetService` to allow reset only when all Pharma receipt and issue tables are empty, all non-opening types are recognized, canonical source types and IDs are present, each source/warehouse/medicine/batch/expiry group has both original and reversal with opposite signed quantities and zero net, and each opening balance equals its unique opening ledger entry. Locks relevant rows in transaction and rechecks before deleting stock balances and fully reversed history; logs affected transaction IDs and counts. Requires existing Excel backup checkbox and typed confirmation.
+- CRITICAL: deletion is destructive and history removal requires operator-approved backup. No live reset performed. No test execution available in GitHub connector. Add real DB integration tests (including residual document rows, unmatched reversal, incorrect source, mixed warehouse, malformed ledger, FK dependencies and re-import) before clicking reset; inspect possible other referencing tables. UI PASS pending.
+- Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Do not run regression until focused PASS. Do not merge/deploy.
+
+---
+
+## 2026-11-09 — Guarded all-Pharma opening reset (checkpoint, TEST PENDING)
+
+- Added a collapsed destructive reset panel above the opening inventory list, with Excel backup link, explicit backup checkbox, typed `XOA TON DAU KY`, browser final confirmation, and CSRF-protected DELETE endpoint.
+- `OpeningInventoryResetService` owns the mutation in Pharma. All-Pharma eligibility fails if ANY receipt or issue exists (including drafts, any warehouse), ANY non-opening inventory transaction exists, opening entries reference a document, or balance/ledger identities or amounts disagree. The transaction locks warehouse/balance/ledger rows and rechecks before deleting opening ledger entries and balances; no document or medicine is deleted. User/lot count logged.
+- Scope is ALL Pharma warehouses, not just default warehouse. Import remains existing create-only implementation. No production changes and no automatic execution.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Run impacted inventory regression only if focused PASS; prior InventoryContractTest baseline failures should be recorded, not silently declared PASS.
+- CRITICAL: contract tests alone do not prove runtime safety. Before enabling destructive use, add/run DB integration tests covering zero documents, draft receipt/issue, posted/reversed ledger, inconsistent balance, multiple warehouses, rollback, authorization and re-import. Verify backup Excel. UI PASS requires user confirmation. Do NOT click reset against operational data until these gates are complete.
+- No PR/merge/deploy approval granted.
+
+---
+
+## 2026-11-09 — Opening edit modal numeric display
+
+- Strip trailing decimal zeros for integer-valued opening quantity and manual unit cost when populating edit dialog. Preserve fractional values and original database precision; no backend write/validation changes.
+- Focused test and UI verification pending. Prior InventoryContractTest baseline failures remain outside scope.
+
+---
+
+## 2026-11-09 — Opening UI presentation follow-up
+
+- Opening creation/import `<details>` now starts collapsed, still positioned above opening lot list.
+- Opening quantity, persisted unit cost, and supplier reference unit cost in list use zero-decimal display formatting only. Underlying decimal precision, validation, edits, ledger and Excel are unchanged. UI/test confirmation pending.
+
+---
+
+## 2026-11-09 — Opening workspace UI follow-up (checkpoint 3)
+
+- Moved the existing Add opening lot / Import Excel collapsible tools **above** the opening-lot table, expanded by default.
+- Unit cost table cell now shows persisted `manual_cost_price` when present; otherwise displays a clearly marked supplier tracking reference average (*) where available. This reference is NOT persisted, does not change inventory valuation and is never silently treated as authoritative. A dash indicates neither price exists.
+- Existing edit dialog already accepts `manual_cost_price`; the existing `OpeningLotEditor` only permits editing pristine opening lots. Editing cost on a posted lot remains intentionally blocked. No migrations, mass backfill or production writes.
+- Previous regression 2 FAIL in `InventoryContractTest` are baseline mismatches verified identical in `main` and feature; not fixed in this scope. UI and new tests pending.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`; impacted tests only after PASS. Verify layout, supplier reference label, and edit cost on a disposable pristine lot only; do not use operational stock for testing.
+
+---
+
+## 2026-11-09 — Opening inventory editable workspace (checkpoint 2)
+
+- User confirmed prior focused and module regression PASS, then requested debounce search and editable opening lots. This batch is untested locally; TEST PENDING / UI PENDING.
+- Existing feature branch `feat/pharma-opening-lot-search-excel-20261109` extended (main still at `320602d1d` at audit).
+- UI: debounced 350ms search without submit button, table with unit cost and edit action, responsive correction dialog using shared `x-pwa-date`. Existing add/import forms remain accessible below list.
+- `OpeningLotEditor` is Pharma-owned; locks warehouse and balance, rejects any non-pristine ledger (requires exactly one opening transaction, matching quantity, no other movement), checks target lot/expiry identity collisions, atomically updates opening/current quantity and opening transaction. Existing permissions gate `client.pharma.inventory.opening.manage` remains mandatory. Price correction is deliberately limited to pristine lots in this batch; no change to posted lots.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. After PASS, impacted: `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php tests/Feature/PharmaInventoryFastExcelImportContractTest.php Modules/Pharma/Tests/Unit/InventoryContractTest.php`.
+- UI PENDING: desktop/iPhone search debounce, edit dialog, date control, collision rejection, historical transaction rejection, supplier price auto-fill, add/import/export, pagination. No PR, merge or deploy without subsequent gates.
+
+---
+
+## 2026-11-09 — Opening inventory searchable lots and Excel export (checkpoint)
+
+- Branch: `feat/pharma-opening-lot-search-excel-20261109` based on `main=320602d1d16fdd30c62aa23ca4e92bac939672da`. No main merge or production changes.
+- Opening inventory PWA uses existing shared `x-pwa-select-search` (with embedded search) for medicine selection; preserves hidden medicine_id change event for supplier cost calculation. Separate `x-pwa-search` filters opening-lot list by medicine name/code or batch.
+- Canonical warehouse-scoped `InventoryBalance` read-only opening-lot table uses `opening_quantity > 0`, 25/page, no new persistence. Export uses same four headers as existing FastExcel importer and ISO date, exports original opening quantity (not current balance), guarded by existing opening manage permission.
+- Import remains create-only and atomic, rejects any lot already posted or with existing opening stock; exported existing lots cannot be reimported unchanged. No overwrite/update behavior added. No preview workflow yet; scope intentionally limited to search, table and export.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Module regression: `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php tests/Feature/PharmaInventoryFastExcelImportContractTest.php`. TEST PENDING; do not claim PASS.
+- Manual UI acceptance pending: desktop/tablet/iPhone picker search and cost update, table/filter/pagination, Excel headers/date, import of a NEW lot, safe rejection of existing lot, installed-PWA file handoff and permission checks. UI PASS requires user confirmation.
+- Existing untracked local files are not touched. Before PR review inspect tracked working tree, route behavior and tests; do not merge without explicit approval.
+
+---
+
 ## PR #364 pre-merge acceptance — 2026-11-07
 
 - User confirmed both focused and impacted regression layers PASS after PR review copy update; user also confirmed updated Wishlist UI PASS. Earlier 40 tests / 373 assertions PASS.
