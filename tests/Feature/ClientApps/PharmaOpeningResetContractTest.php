@@ -25,10 +25,14 @@ final class PharmaOpeningResetContractTest extends TestCase
         $service = file_get_contents(base_path('Modules/Pharma/Services/OpeningInventoryResetService.php'));
         $this->assertStringContainsString('InventoryReceipt::query()->exists()', $service);
         $this->assertStringContainsString('InventoryIssue::query()->exists()', $service);
-        $this->assertStringContainsString("where('type', '!=', 'opening')->exists()", $service);
+        $this->assertStringContainsString("where('type', '!=', 'opening')", $service);
         $this->assertStringContainsString('DB::transaction(', $service);
         $this->assertStringContainsString('lockForUpdate()', $service);
-        $this->assertStringContainsString("InventoryTransaction::query()->where('type', 'opening')->delete()", $service);
+        $this->assertStringContainsString('InventoryTransaction::query()->delete()', $service);
+        $this->assertStringContainsString("groupBy(fn (\$tx)", $service);
+        $this->assertStringContainsString("source_type !== InventoryReceipt::class", $service);
+        $this->assertStringContainsString("source_type !== InventoryIssue::class", $service);
+        $this->assertStringContainsString("abs((float) \$group->sum('quantity_delta')) > 0.0001", $service);
         $this->assertStringContainsString('InventoryBalance::query()->delete()', $service);
         $this->assertStringNotContainsString('truncate(', $service);
     }
