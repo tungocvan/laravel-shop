@@ -153,7 +153,50 @@ final class PharmaInventoryReportsController extends Controller
             ->where(fn ($query) => $query->whereNull('start_date')->orWhereDate('start_date', '<=', $today))
             ->where(fn ($query) => $query->whereNull('end_date')->orWhereDate('end_date', '>=', $today))
             ->groupBy('medicine_id')->pluck('price', 'medicine_id');
-        return view('ClientPortal::applications.pharma.inventory-opening', compact('medicines', 'supplierCosts'));
+        $warehouse = app(InventoryService::class)->defaultWarehouse();
+        $filters = $request->validate([
+            'search' => 'nullable|string|max:255',
+            'page' => 'nullable|integer|min:1',
+        ]);
+        $search = trim($filters['search'] ?? '');
+        $openingLots = InventoryBalance::query()
+            ->with('medicine:id,medicine_code,name')
+            ->where('warehouse_id', $warehouse->id)
+            ->where('opening_quantity', '>', 0)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('batch_number', 'like', '%'.$search.'%')
+                        ->orWhereHas('medicine', fn ($medicine) => $medicine
+                            ->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('medicine_code', 'like', '%'.$search.'%'));
+                });
+            })
+            ->orderBy('medicine_id')->orderBy('batch_number')->orderBy('id')
+            ->paginate(25)->withQueryString();
+        return view('ClientPortal::applications.pharma.inventory-opening', compact('medicines', 'supplierCosts', 'openingLots', 'search'));
+    }
+
+    public function exportOpening(Request $request, ApplicationRegistry $registry, InventoryService $inventory): StreamedResponse
+    {
+        $this->authorizeInventory($request, $registry, true);
+        $warehouse = $inventory->defaultWarehouse();
+        // Use exactly the importer headers and ISO date format; never export current stock as opening stock.
+        $rows = InventoryBalance::query()
+            ->with('medicine:id,medicine_code')
+            ->where('warehouse_id', $warehouse->id)
+            ->where('opening_quantity', '>', 0)
+            ->orderBy('medicine_id')->orderBy('batch_number')->orderBy('id')
+            ->get()
+            ->map(fn ($lot) => [
+                'Ma thuoc' => $lot->medicine->medicine_code,
+                'So lo' => $lot->batch_number,
+                'Han dung' => $lot->expiry_date->format('Y-m-d'),
+                'Ton dau ky' => (float) $lot->opening_quantity,
+            ]);
+        if ($rows->isEmpty()) {
+            $rows = collect([['Ma thuoc' => '', 'So lo' => '', 'Han dung' => '', 'Ton dau ky' => '']]);
+        }
+        return (new FastExcel($rows))->download('client-pharma-ton-dau-ky-'.now()->format('Ymd-His').'.xlsx');
     }
 
     public function storeOpeningManual(Request $request, ApplicationRegistry $registry, InventoryService $inventory): RedirectResponse
