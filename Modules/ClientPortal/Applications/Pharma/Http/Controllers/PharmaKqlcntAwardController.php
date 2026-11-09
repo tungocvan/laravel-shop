@@ -15,6 +15,7 @@ use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingConfirmation;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 use Modules\Pharma\Services\KqlcntExcelAwardBootstrapService;
+use Modules\ClientPortal\Applications\Pharma\Services\ClientBidAwardWorkflow;
 
 final class PharmaKqlcntAwardController extends Controller
 {
@@ -61,15 +62,90 @@ final class PharmaKqlcntAwardController extends Controller
             'medicines' => $medicines,
         ]);
     }
+    /**
+     * Canonical KQLCNT routes reuse the existing Bid Awards workflow and views.
+     * The bridge must resolve a verified one-to-one scope before any mutation.
+     */
+    private function linkedScope(int $awardItem, KqlcntLegacyWorkflowBridge $bridge): string
+    {
+        $scope = $bridge->scopeKey($awardItem);
+        abort_if($scope === null, 409, 'Hồ sơ KQLCNT chưa xác minh liên kết Pharma.');
+
+        return $scope;
+    }
+
+    private function canonicalView(View $view, int $awardItem): View
+    {
+        return $view->with('kqlcntAwardItem', $awardItem);
+    }
+
     public function allocation(
-        int $awardItem,
-        ApplicationRegistry $registry,
-        ClientPortalSettingsService $settings,
-        KqlcntAwardReadService $awards,
-        KqlcntWorkflowReadiness $readiness,
-        KqlcntMappingDiagnostics $diagnostics,
+        int $awardItem, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
     ): View|RedirectResponse {
-        return $this->workflowPreview($awardItem, 'allocation', $registry, $settings, $awards, $readiness, $diagnostics, app(KqlcntLegacyWorkflowBridge::class));
+        if ($bridge->scopeKey($awardItem) === null) {
+            return $this->workflowPreview($awardItem, 'allocation', $registry, app(ClientPortalSettingsService::class), app(KqlcntAwardReadService::class), app(KqlcntWorkflowReadiness::class), app(KqlcntMappingDiagnostics::class), $bridge);
+        }
+
+        return $this->canonicalView(app(PharmaApplicationController::class)->bidAwardAllocation(
+            $this->linkedScope($awardItem, $bridge), $request, $registry, $workflow
+        ), $awardItem);
+    }
+
+    public function saveAllocationSetup(
+        int $awardItem, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
+    ): RedirectResponse {
+        app(PharmaApplicationController::class)->storeBidAwardDistributionSetup(
+            $this->linkedScope($awardItem, $bridge), $request, $registry, $workflow
+        );
+
+        return redirect()->route('client.pharma.kqlcnt-awards.allocation', ['awardItem' => $awardItem])
+            ->with('success', 'Đã lưu thiết lập phân bổ.');
+    }
+
+    public function hospitalAllocation(
+        int $awardItem, int $partner, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
+    ): View {
+        return $this->canonicalView(app(PharmaApplicationController::class)->bidAwardHospitalAllocation(
+            $this->linkedScope($awardItem, $bridge), $partner, $request, $registry, $workflow
+        ), $awardItem);
+    }
+
+    public function saveHospitalAllocation(
+        int $awardItem, int $partner, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
+    ): RedirectResponse {
+        app(PharmaApplicationController::class)->storeBidAwardHospitalAllocation(
+            $this->linkedScope($awardItem, $bridge), $partner, $request, $registry, $workflow
+        );
+
+        return redirect()->route('client.pharma.kqlcnt-awards.allocation.hospital', [
+            'awardItem' => $awardItem, 'partner' => $partner,
+        ])->with('success', 'Đã lưu phân bổ số lượng.');
+    }
+
+    public function hospitalPolicy(
+        int $awardItem, int $partner, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
+    ): View {
+        return $this->canonicalView(app(PharmaApplicationController::class)->bidAwardHospitalCommercialPolicy(
+            $this->linkedScope($awardItem, $bridge), $partner, $request, $registry, $workflow
+        ), $awardItem);
+    }
+
+    public function saveHospitalPolicy(
+        int $awardItem, int $partner, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
+    ): RedirectResponse {
+        app(PharmaApplicationController::class)->storeBidAwardHospitalCommercialPolicy(
+            $this->linkedScope($awardItem, $bridge), $partner, $request, $registry, $workflow
+        );
+
+        return redirect()->route('client.pharma.kqlcnt-awards.allocation.hospital.policy', [
+            'awardItem' => $awardItem, 'partner' => $partner,
+        ])->with('success', 'Đã lưu chính sách kinh doanh bệnh viện.');
     }
 
     public function confirmMapping(
@@ -101,14 +177,33 @@ final class PharmaKqlcntAwardController extends Controller
     }
 
     public function commercialPolicy(
-        int $awardItem,
-        ApplicationRegistry $registry,
-        ClientPortalSettingsService $settings,
-        KqlcntAwardReadService $awards,
-        KqlcntWorkflowReadiness $readiness,
-        KqlcntMappingDiagnostics $diagnostics,
+        int $awardItem, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
     ): View|RedirectResponse {
-        return $this->workflowPreview($awardItem, 'commercial-policy', $registry, $settings, $awards, $readiness, $diagnostics, app(KqlcntLegacyWorkflowBridge::class));
+        if ($bridge->scopeKey($awardItem) === null) {
+            return $this->workflowPreview($awardItem, 'commercial-policy', $registry, app(ClientPortalSettingsService::class), app(KqlcntAwardReadService::class), app(KqlcntWorkflowReadiness::class), app(KqlcntMappingDiagnostics::class), $bridge);
+        }
+
+        return $this->canonicalView(app(PharmaApplicationController::class)->bidAwardCommercialPolicy(
+            $this->linkedScope($awardItem, $bridge), $request, $registry, $workflow
+        ), $awardItem);
+    }
+
+    public function saveCommercialPolicy(
+        int $awardItem, Request $request, ApplicationRegistry $registry,
+        ClientBidAwardWorkflow $workflow, KqlcntLegacyWorkflowBridge $bridge,
+    ): RedirectResponse {
+        $result = app(PharmaApplicationController::class)->storeBidAwardCommercialPolicy(
+            $this->linkedScope($awardItem, $bridge), $request, $registry, $workflow
+        );
+
+        if (! $workflow->commercialPolicyReady($workflow->contextAward($this->linkedScope($awardItem, $bridge)))) {
+            return redirect()->route('client.pharma.kqlcnt-awards.commercial-policy', ['awardItem' => $awardItem])
+                ->withErrors(['commercial_policy' => 'Hãy nhập chính sách (%) cho tất cả sản phẩm đang được phân bổ trước khi tiếp tục phân công User quản lý.']);
+        }
+
+        // Manager assignment remains a legacy downstream workflow in this batch.
+        return $result;
     }
 
     private function workflowPreview(
