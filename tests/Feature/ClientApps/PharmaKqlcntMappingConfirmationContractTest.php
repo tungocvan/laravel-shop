@@ -38,6 +38,22 @@ class PharmaKqlcntMappingConfirmationContractTest extends TestCase
         $this->assertStringContainsString('manual_note', $source);
     }
 
+    public function test_unlinked_muasamcong_provenance_is_a_candidate_only_with_explicit_confirmation(): void
+    {
+        $bridge = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/KqlcntLegacyWorkflowBridge.php'));
+        $confirmation = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/KqlcntMappingConfirmation.php'));
+        $this->assertNotFalse($bridge);
+        $this->assertNotFalse($confirmation);
+
+        $this->assertStringContainsString("->whereNull('source_id')", $bridge);
+        $this->assertStringContainsString("->whereDoesntHave('sources')", $bridge);
+        $this->assertStringContainsString("->orWhere('source_type', DrugBidAward::SOURCE_MUASAMCONG)", $bridge);
+        $this->assertStringContainsString('DrugBidAward::SOURCE_MANUAL, DrugBidAward::SOURCE_MUASAMCONG', $confirmation);
+        $this->assertStringContainsString('! $row->sources()->exists()', $confirmation);
+        $this->assertStringContainsString('$row->source_id === null', $confirmation);
+        $this->assertStringContainsString('lockForUpdate()', $confirmation);
+    }
+
     public function test_quantity_and_price_comparison_is_null_safe(): void
     {
         $service = app(KqlcntMappingConfirmation::class);
