@@ -2006,3 +2006,11 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Canonical preview shows the confirmation action only when the strict full-scope candidate set passes; otherwise retains disabled allocation form and diagnostic. Existing Bid Awards allocation POST routes/services are unchanged. No automatic linking on GET.
 - Updated three preview contract tests to allow the guarded mapping POST and added `PharmaKqlcntMappingConfirmationContractTest`. **TEST PENDING**; these are source/contract tests and do not establish database-backed persistence PASS. Add integration tests with seeded DB (unique mapping, duplicate source, mismatched contractor, mismatched price, mixed-contractor TBMT, permission, idempotence, rollback) before merge. UI PASS requires actual confirm + allocation save/refresh.
 - Important: KQLCNT #22 may still be blocked if its historical Pharma candidate fails strict equality (e.g. price or medicine text). Do not relax comparisons without examining actual row-level evidence. No PR/merge/deploy; never execute confirmation on production without separate production approval.
+
+## 2026-11-09 — D7 exact Muasamcong null-source mapping candidate
+
+- Local read-only evidence: canonical KQLCNT #22 and Pharma #21 match notice, contractor code/name, medicine, quantity and winning price. Pharma row has `source_type=muasamcong` with `source_id=NULL`.
+- Bridge now accepts `SOURCE_MUASAMCONG` with NULL `source_id` as an explicit confirmation candidate only, additionally requiring no existing source relationships, unique exact matching and exact full legacy group identity.
+- Confirmation service rechecks candidate IDs inside a transaction with row locks, requires existing permission and explicit acknowledgement, and rejects any existing source reference or duplicate canonical mapping. No automatic write on GET.
+- Existing Bid Awards allocation and commercial-policy controllers, views and mutations remain authoritative; KQLCNT redirects to them only after a verified mapping. Legacy routes unchanged.
+- Added focused source contract coverage. TEST PENDING; UI PENDING. Do not merge until user confirms both. Do not alter production or local data automatically.
