@@ -1,3 +1,14 @@
+## 2026-11-09 — Guarded all-Pharma opening reset (checkpoint, TEST PENDING)
+
+- Added a collapsed destructive reset panel above the opening inventory list, with Excel backup link, explicit backup checkbox, typed `XOA TON DAU KY`, browser final confirmation, and CSRF-protected DELETE endpoint.
+- `OpeningInventoryResetService` owns the mutation in Pharma. All-Pharma eligibility fails if ANY receipt or issue exists (including drafts, any warehouse), ANY non-opening inventory transaction exists, opening entries reference a document, or balance/ledger identities or amounts disagree. The transaction locks warehouse/balance/ledger rows and rechecks before deleting opening ledger entries and balances; no document or medicine is deleted. User/lot count logged.
+- Scope is ALL Pharma warehouses, not just default warehouse. Import remains existing create-only implementation. No production changes and no automatic execution.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Run impacted inventory regression only if focused PASS; prior InventoryContractTest baseline failures should be recorded, not silently declared PASS.
+- CRITICAL: contract tests alone do not prove runtime safety. Before enabling destructive use, add/run DB integration tests covering zero documents, draft receipt/issue, posted/reversed ledger, inconsistent balance, multiple warehouses, rollback, authorization and re-import. Verify backup Excel. UI PASS requires user confirmation. Do NOT click reset against operational data until these gates are complete.
+- No PR/merge/deploy approval granted.
+
+---
+
 ## 2026-11-09 — Opening edit modal numeric display
 
 - Strip trailing decimal zeros for integer-valued opening quantity and manual unit cost when populating edit dialog. Preserve fractional values and original database precision; no backend write/validation changes.
