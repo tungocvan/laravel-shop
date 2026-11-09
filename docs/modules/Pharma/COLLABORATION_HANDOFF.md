@@ -1,3 +1,14 @@
+## 2026-11-09 — Opening inventory editable workspace (checkpoint 2)
+
+- User confirmed prior focused and module regression PASS, then requested debounce search and editable opening lots. This batch is untested locally; TEST PENDING / UI PENDING.
+- Existing feature branch `feat/pharma-opening-lot-search-excel-20261109` extended (main still at `320602d1d` at audit).
+- UI: debounced 350ms search without submit button, table with unit cost and edit action, responsive correction dialog using shared `x-pwa-date`. Existing add/import forms remain accessible below list.
+- `OpeningLotEditor` is Pharma-owned; locks warehouse and balance, rejects any non-pristine ledger (requires exactly one opening transaction, matching quantity, no other movement), checks target lot/expiry identity collisions, atomically updates opening/current quantity and opening transaction. Existing permissions gate `client.pharma.inventory.opening.manage` remains mandatory. Price correction is deliberately limited to pristine lots in this batch; no change to posted lots.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. After PASS, impacted: `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php tests/Feature/PharmaInventoryFastExcelImportContractTest.php Modules/Pharma/Tests/Unit/InventoryContractTest.php`.
+- UI PENDING: desktop/iPhone search debounce, edit dialog, date control, collision rejection, historical transaction rejection, supplier price auto-fill, add/import/export, pagination. No PR, merge or deploy without subsequent gates.
+
+---
+
 ## 2026-11-09 — Opening inventory searchable lots and Excel export (checkpoint)
 
 - Branch: `feat/pharma-opening-lot-search-excel-20261109` based on `main=320602d1d16fdd30c62aa23ca4e92bac939672da`. No main merge or production changes.
