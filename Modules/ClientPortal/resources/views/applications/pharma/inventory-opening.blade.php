@@ -19,49 +19,7 @@
             <ul class="mt-2 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
         </div>
     @endif
-    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h2 class="text-base font-bold text-slate-950">Danh sách lô tồn đầu kỳ</h2>
-                <p class="mt-1 text-xs text-slate-500">Số lượng gốc tại thời điểm mở sổ, không phải tồn hiện tại.</p>
-            </div>
-            <a href="{{ route('client.pharma.inventory.opening.export') }}" data-pwa-file-handoff class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 px-4 text-sm font-bold text-indigo-700">↓ Export Excel để import</a>
-        </div>
-        <form method="GET" action="{{ route('client.pharma.inventory.opening') }}" id="opening-search-form" class="mt-4 flex flex-wrap items-end gap-2">
-            <div class="min-w-[14rem] flex-1">
-                <x-pwa-search name="search" :value="$search" label="Tìm kiếm lô đầu kỳ" placeholder="Tên thuốc, mã thuốc, số lô..." />
-            </div>
-            
-            @if($search !== '')
-                <a href="{{ route('client.pharma.inventory.opening') }}" class="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-rose-700">Xóa lọc</a>
-            @endif
-        </form>
-        <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-            <table class="min-w-[820px] w-full text-left text-sm">
-                <thead class="bg-slate-50 text-xs font-bold text-slate-700"><tr>
-                    <th class="px-3 py-3">Mã thuốc / Tên thuốc</th>
-                    <th class="px-3 py-3">Số lô</th>
-                    <th class="px-3 py-3">Hạn dùng</th>
-                    <th class="px-3 py-3 text-right">Tồn đầu kỳ</th><th class="px-3 py-3 text-right">Đơn giá (đ)</th><th class="px-3 py-3 text-right">Thao tác</th>
-                </tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($openingLots as $lot)
-                        <tr>
-                            <td class="px-3 py-3"><span class="font-bold">{{ $lot->medicine?->medicine_code }}</span><span class="mt-1 block text-xs text-slate-600">{{ $lot->medicine?->name }}</span></td>
-                            <td class="px-3 py-3">{{ $lot->batch_number }}</td>
-                            <td class="px-3 py-3">{{ $lot->expiry_date?->format('Y-m-d') }}</td>
-                            <td class="px-3 py-3 text-right font-bold">{{ number_format((float) $lot->opening_quantity, 2, ',', '.') }}</td><td class="px-3 py-3 text-right">{{ $lot->manual_cost_price === null ? "—" : number_format((float) $lot->manual_cost_price, 2, ',', '.') }}</td><td class="px-3 py-3 text-right"><button type="button" data-opening-edit data-action="{{ route('client.pharma.inventory.opening.update', $lot->id) }}" data-lot="{{ $lot->batch_number }}" data-expiry="{{ $lot->expiry_date?->format('Y-m-d') }}" data-quantity="{{ $lot->opening_quantity }}" data-price="{{ $lot->manual_cost_price }}" class="min-h-10 rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-700">Sửa</button></td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="6" class="px-3 py-8 text-center text-slate-500">Chưa có lô tồn đầu kỳ phù hợp.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-        <div class="mt-4">{{ $openingLots->links() }}</div>
-        <p class="mt-3 text-xs text-amber-800">File export giữ đúng định dạng import, nhưng các lô đã ghi sổ sẽ bị từ chối khi import lại để tránh ghi đè hoặc cộng trùng. Chỉ import các lô mới chưa phát sinh.</p>
-    </section>
-    <details id="opening-actions" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <details open id="opening-actions" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <summary class="cursor-pointer select-none text-sm font-extrabold text-indigo-700">＋ Thêm lô thủ công / Import Excel <span class="ml-2 font-normal text-slate-500">Mở công cụ khởi tạo</span></summary>
         <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -119,6 +77,49 @@
         </section>
         </div>
     </details>
+    <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-base font-bold text-slate-950">Danh sách lô tồn đầu kỳ</h2>
+                <p class="mt-1 text-xs text-slate-500">Số lượng gốc tại thời điểm mở sổ, không phải tồn hiện tại.</p>
+            </div>
+            <a href="{{ route('client.pharma.inventory.opening.export') }}" data-pwa-file-handoff class="inline-flex min-h-11 items-center rounded-xl border border-indigo-200 px-4 text-sm font-bold text-indigo-700">↓ Export Excel để import</a>
+        </div>
+        <form method="GET" action="{{ route('client.pharma.inventory.opening') }}" id="opening-search-form" class="mt-4 flex flex-wrap items-end gap-2">
+            <div class="min-w-[14rem] flex-1">
+                <x-pwa-search name="search" :value="$search" label="Tìm kiếm lô đầu kỳ" placeholder="Tên thuốc, mã thuốc, số lô..." />
+            </div>
+            
+            @if($search !== '')
+                <a href="{{ route('client.pharma.inventory.opening') }}" class="inline-flex min-h-11 items-center px-3 text-sm font-semibold text-rose-700">Xóa lọc</a>
+            @endif
+        </form>
+        <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+            <table class="min-w-[820px] w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs font-bold text-slate-700"><tr>
+                    <th class="px-3 py-3">Mã thuốc / Tên thuốc</th>
+                    <th class="px-3 py-3">Số lô</th>
+                    <th class="px-3 py-3">Hạn dùng</th>
+                    <th class="px-3 py-3 text-right">Tồn đầu kỳ</th><th class="px-3 py-3 text-right">Đơn giá (đ)</th><th class="px-3 py-3 text-right">Thao tác</th>
+                </tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($openingLots as $lot)
+                        <tr>
+                            <td class="px-3 py-3"><span class="font-bold">{{ $lot->medicine?->medicine_code }}</span><span class="mt-1 block text-xs text-slate-600">{{ $lot->medicine?->name }}</span></td>
+                            <td class="px-3 py-3">{{ $lot->batch_number }}</td>
+                            <td class="px-3 py-3">{{ $lot->expiry_date?->format('Y-m-d') }}</td>
+                            <td class="px-3 py-3 text-right font-bold">{{ number_format((float) $lot->opening_quantity, 2, ',', '.') }}</td><td class="px-3 py-3 text-right">@if($lot->manual_cost_price !== null){{ number_format((float) $lot->manual_cost_price, 2, ',', '.') }}@elseif(isset($supplierCosts[$lot->medicine_id]) && (float)$supplierCosts[$lot->medicine_id] > 0)<span class="text-amber-700" title="Giá tham khảo nhà cung cấp, chưa lưu cho lô">{{ number_format((float)$supplierCosts[$lot->medicine_id], 2, ',', '.') }} *</span>@else<span title="Chưa có giá vốn được lưu">—</span>@endif</td><td class="px-3 py-3 text-right"><button type="button" data-opening-edit data-action="{{ route('client.pharma.inventory.opening.update', $lot->id) }}" data-lot="{{ $lot->batch_number }}" data-expiry="{{ $lot->expiry_date?->format('Y-m-d') }}" data-quantity="{{ $lot->opening_quantity }}" data-price="{{ $lot->manual_cost_price }}" class="min-h-10 rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-700">Sửa</button></td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="px-3 py-8 text-center text-slate-500">Chưa có lô tồn đầu kỳ phù hợp.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-2 text-xs text-amber-700">* Giá tham khảo NCC, chưa phải giá vốn đã lưu của lô. Nhấn Sửa để nhập giá vốn chính thức khi lô đủ điều kiện.</p>
+        <div class="mt-4">{{ $openingLots->links() }}</div>
+        <p class="mt-3 text-xs text-amber-800">File export giữ đúng định dạng import, nhưng các lô đã ghi sổ sẽ bị từ chối khi import lại để tránh ghi đè hoặc cộng trùng. Chỉ import các lô mới chưa phát sinh.</p>
+    </section>
     <div id="opening-edit-dialog" class="fixed inset-0 z-[200] hidden items-center justify-center bg-slate-950/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="opening-edit-title">
         <div class="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl">
             <div class="flex items-center justify-between gap-3">
