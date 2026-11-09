@@ -162,7 +162,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-opening-edit]').forEach(button => button.addEventListener('click', () => {
         editForm.action = button.dataset.action;
         for (const [field, value] of Object.entries({batch_number:button.dataset.lot, expiry_date:button.dataset.expiry, opening_quantity:button.dataset.quantity, manual_cost_price:button.dataset.price})) {
-            editForm.elements.namedItem(field).value = value || '';
+            // Format integer-looking values for display only; retain full precision
+            // for fractional stock/cost so opening ledger values are not silently rounded.
+            const numeric = field === 'opening_quantity' || field === 'manual_cost_price';
+            const parsed = numeric && value !== '' ? Number(value) : NaN;
+            editForm.elements.namedItem(field).value = numeric && Number.isFinite(parsed) && Number.isInteger(parsed)
+                ? String(parsed)
+                : (value || '');
         }
         dialog.classList.remove('hidden'); dialog.classList.add('flex');
         editForm.elements.namedItem('batch_number').focus();
