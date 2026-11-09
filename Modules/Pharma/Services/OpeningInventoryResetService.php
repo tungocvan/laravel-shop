@@ -9,6 +9,7 @@ use Modules\Pharma\Models\InventoryBalance;
 use Modules\Pharma\Models\InventoryIssue;
 use Modules\Pharma\Models\InventoryReceipt;
 use Modules\Pharma\Models\InventoryTransaction;
+use Modules\Pharma\Models\InventoryWarehouse;
 
 final class OpeningInventoryResetService
 {
@@ -79,6 +80,17 @@ final class OpeningInventoryResetService
         if ($balances->count() !== $openings->count()) {
             $reasons[] = 'Số lượng bản ghi tồn kho và bút toán mở sổ không khớp.';
         }
+        foreach ($openings as $opening) {
+            if (! $balances->contains(fn ($balance) =>
+                (int) $balance->warehouse_id === (int) $opening->warehouse_id
+                && (int) $balance->medicine_id === (int) $opening->medicine_id
+                && $balance->batch_number === $opening->batch_number
+                && $balance->expiry_date?->toDateString() === $opening->expiry_date?->toDateString()
+            )) {
+                $reasons[] = 'Có bút toán mở sổ không có lô tồn tương ứng.';
+                break;
+            }
+        }
         foreach ($balances as $balance) {
             $matching = $openings->filter(fn ($tx) =>
                 (int) $tx->warehouse_id === (int) $balance->warehouse_id
@@ -130,6 +142,10 @@ final class OpeningInventoryResetService
 
             InventoryTransaction::query()->delete();
             InventoryBalance::query()->delete();
+            // A fresh Excel import starts a new opening period. The previous
+            // cutoff must not survive a successful complete ledger reset.
+            InventoryWarehouse::query()->whereNotNull('opening_cutoff_at')
+                ->update(['opening_cutoff_at' => null]);
             return $check['lots'];
         }, 3);
     }
