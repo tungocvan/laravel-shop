@@ -894,7 +894,7 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
         $award = $workflow->contextAward($scope); abort_if($award === null, 404);
         $setup = $workflow->distributionSetup($award);
-        $draftProvinces = array_values(array_filter(array_map('strval', (array) $request->query('provinces', $setup['provinces']))));
+        $draftProvinces = array_values(array_filter(array_map('strval', (array) $request->query('province_names', $request->query('provinces', $setup['provinces'])))));
         $draftFacilityIds = array_values(array_unique(array_map('intval', (array) $request->query('facilities', $setup['facility_ids']))));
 
         return view('ClientPortal::applications.pharma.bid-award-allocation', [
