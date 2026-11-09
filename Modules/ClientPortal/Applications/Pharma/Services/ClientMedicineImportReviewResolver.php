@@ -42,6 +42,9 @@ final class ClientMedicineImportReviewResolver
                 if (mb_strtolower(trim((string) ($data['name'] ?? '')), 'UTF-8') !== mb_strtolower(trim((string) $medicine->name), 'UTF-8')) {
                     throw ValidationException::withMessages(['resolution' => 'Tên thuốc không trùng khớp. Vui lòng rà soát Medicine Master.']);
                 }
+                if ($variant->variant_identity_key !== $row->variant_identity_key) {
+                    throw ValidationException::withMessages(['resolution' => 'Quy cách/hàm lượng SKU không khớp. Không thể liên kết sai biến thể.']);
+                }
                 $row->forceFill([
                     'classification' => MedicineImportRow::CLASS_DUPLICATE,
                     'resolution_reason' => 'client_review_linked_existing',
