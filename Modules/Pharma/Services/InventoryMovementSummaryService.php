@@ -11,6 +11,8 @@ use Modules\Pharma\Models\InventoryBalance;
 
 final class InventoryMovementSummaryService
 {
+    public function __construct(private readonly InventoryLotCostResolver $costResolver) {}
+
     public function summarize(InventoryWarehouse $warehouse, CarbonInterface $from, CarbonInterface $to, ?int $medicineId=null, array $balanceIds=[], ?int $perPage=null): array
     {
         $before=DB::table('pharma_inventory_transactions')
@@ -88,22 +90,16 @@ final class InventoryMovementSummaryService
 
         $balances=InventoryBalance::query()->whereIn('id',$balanceIds)->get(['id','medicine_id','manual_cost_price']);
         $medicineIds=$balances->pluck('medicine_id')->unique()->values()->all();
-        $today=now()->toDateString();
-        $supplierCosts=DB::table('pharma_supplier_trackings')
+        $supplierCosts=$this->costResolver->activeSupplierCostQuery()
             ->whereIn('medicine_id',$medicineIds)
-            ->where('status','active')
-            ->where(fn($query)=>$query->whereNull('start_date')->orWhereDate('start_date','<=',$today))
-            ->where(fn($query)=>$query->whereNull('end_date')->orWhereDate('end_date','>=',$today))
-            ->whereNotNull('cost_price')
-            ->groupBy('medicine_id')
-            ->selectRaw('medicine_id, AVG(cost_price) as average_cost_price')
             ->pluck('average_cost_price','medicine_id');
 
         return $balances->mapWithKeys(function(InventoryBalance $balance)use($supplierCosts){
             $supplier=$supplierCosts->get($balance->medicine_id);
-            $cost=$balance->manual_cost_price !== null
-                ? (float)$balance->manual_cost_price
-                : ($supplier !== null ? (float)$supplier : null);
+            $cost=$this->costResolver->effectiveCost(
+                $balance->manual_cost_price === null ? null : (float) $balance->manual_cost_price,
+                $supplier === null ? null : (float) $supplier,
+            );
             return [(int)$balance->id=>$cost];
         });
     }
