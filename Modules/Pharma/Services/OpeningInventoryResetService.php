@@ -39,6 +39,13 @@ final class OpeningInventoryResetService
             && ($tx->source_type !== null || $tx->source_id !== null))) {
             $reasons[] = 'Có bút toán mở sổ liên kết chứng từ.';
         }
+        if ($movements->contains(fn ($tx) =>
+            ($tx->type === 'receipt' || $tx->type === 'receipt_reversal')
+                ? $tx->source_type !== InventoryReceipt::class
+                : $tx->source_type !== InventoryIssue::class
+        )) {
+            $reasons[] = 'Giao dịch kho có loại chứng từ nguồn không hợp lệ.';
+        }
         if ($movements->contains(fn ($tx) => ! $tx->source_type || ! $tx->source_id)) {
             $reasons[] = 'Có giao dịch kho không xác định được chứng từ nguồn.';
         }
