@@ -15,7 +15,7 @@ use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingConfirmation;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 use Modules\Pharma\Services\KqlcntExcelAwardBootstrapService;
-use Modules\ClientPortal\Applications\Pharma\Services\ClientBidAwardWorkflow;
+use Modules\Pharma\Services\ClientBidAwardWorkflow;
 
 final class PharmaKqlcntAwardController extends Controller
 {
