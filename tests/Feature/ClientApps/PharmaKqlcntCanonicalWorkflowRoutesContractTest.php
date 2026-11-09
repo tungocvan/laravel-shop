@@ -22,6 +22,9 @@ class PharmaKqlcntCanonicalWorkflowRoutesContractTest extends TestCase
             $this->assertStringContainsString("name('".$name."')", $routes);
         }
 
+        $this->assertTrue(class_exists(\Modules\Pharma\Services\ClientBidAwardWorkflow::class));
+        $this->assertStringContainsString('use Modules\\Pharma\\Services\\ClientBidAwardWorkflow;', $controller);
+        $this->assertStringNotContainsString('use Modules\\ClientPortal\\Applications\\Pharma\\Services\\ClientBidAwardWorkflow;', $controller);
         $this->assertStringContainsString('private function linkedScope(', $controller);
         $this->assertStringContainsString('abort_if($scope === null, 409', $controller);
         $this->assertStringContainsString('->bidAwardAllocation(', $controller);
