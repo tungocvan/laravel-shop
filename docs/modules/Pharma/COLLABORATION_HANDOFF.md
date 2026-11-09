@@ -1,3 +1,15 @@
+## 2026-11-09 — Opening inventory searchable lots and Excel export (checkpoint)
+
+- Branch: `feat/pharma-opening-lot-search-excel-20261109` based on `main=320602d1d16fdd30c62aa23ca4e92bac939672da`. No main merge or production changes.
+- Opening inventory PWA uses existing shared `x-pwa-select-search` (with embedded search) for medicine selection; preserves hidden medicine_id change event for supplier cost calculation. Separate `x-pwa-search` filters opening-lot list by medicine name/code or batch.
+- Canonical warehouse-scoped `InventoryBalance` read-only opening-lot table uses `opening_quantity > 0`, 25/page, no new persistence. Export uses same four headers as existing FastExcel importer and ISO date, exports original opening quantity (not current balance), guarded by existing opening manage permission.
+- Import remains create-only and atomic, rejects any lot already posted or with existing opening stock; exported existing lots cannot be reimported unchanged. No overwrite/update behavior added. No preview workflow yet; scope intentionally limited to search, table and export.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Module regression: `php artisan test tests/Feature/ClientApps/PharmaInventoryCapabilityTest.php tests/Feature/PharmaInventoryFastExcelImportContractTest.php`. TEST PENDING; do not claim PASS.
+- Manual UI acceptance pending: desktop/tablet/iPhone picker search and cost update, table/filter/pagination, Excel headers/date, import of a NEW lot, safe rejection of existing lot, installed-PWA file handoff and permission checks. UI PASS requires user confirmation.
+- Existing untracked local files are not touched. Before PR review inspect tracked working tree, route behavior and tests; do not merge without explicit approval.
+
+---
+
 ## PR #364 pre-merge acceptance — 2026-11-07
 
 - User confirmed both focused and impacted regression layers PASS after PR review copy update; user also confirmed updated Wishlist UI PASS. Earlier 40 tests / 373 assertions PASS.
