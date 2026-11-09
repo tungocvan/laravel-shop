@@ -333,6 +333,11 @@ class KqlcntAwardExcelImportService
                 'last_verified_at' => now(),
                 'is_active' => true,
             ]);
+            // Reuse the canonical catalog persistence algorithm, including
+            // its exact field subset for the content fingerprint.
+            $identity = app(ContractorAwardPersistenceService::class);
+            $data['identity_key'] = $identity->identityKey($notice, $contractor, $data);
+            $data['fingerprint'] = $identity->fingerprint($data);
             KqlcntAwardItem::query()->create($data);
             $created++;
         }
