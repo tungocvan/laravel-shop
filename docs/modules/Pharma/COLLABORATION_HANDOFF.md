@@ -1,3 +1,12 @@
+## 2026-11-09 — ClientPortal Excel Designer V4 JSON import in modal (CHECKPOINT)
+
+- User requested `Nhập JSON` beside existing `Xuất JSON` in Excel Designer modal at `/apps/pharma/products/excel-config`.
+- Audited existing controller `PharmaMedicineExcelProfileController::importJson`, route and separate page form; reused existing server endpoint without adding persistence or changing Medicine Master. Livewire Blade now offers a ClientPortal-only `Nhập JSON` button, local JSON schema/file-size preview (name, version, column count, title, company) and explicit confirmation form. Backend still validates permissions, allowed columns, profile schema, logo and creates a new non-default profile. Admin variant remains unchanged.
+- New focused contract `tests/Feature/ClientApps/PharmaMedicineExcelDesignerJsonImportContractTest.php`. No local tests run by assistant; TEST PENDING and UI PASS PENDING. Focused: `php artisan test tests/Feature/ClientApps/PharmaMedicineExcelDesignerJsonImportContractTest.php Modules/Pharma/Tests/Unit/MedicineExcelProfileContractTest.php`; impacted ClientPortal regression after PASS.
+- UI: valid JSON export → import → new profile selected; invalid schema, malformed JSON, oversized file, restricted supplier columns, cancel, desktop/iPhone, and unchanged existing profiles. No Production operations or merge.
+
+---
+
 ## 2026-11-09 — ClientPortal import history clear (CHECKPOINT, TEST PENDING)
 
 - User confirmed UI PASS for staging review and requested a clear button in recent import history.
