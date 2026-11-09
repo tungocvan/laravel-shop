@@ -127,7 +127,7 @@
                 @csrf
                 @method('PUT')
                 <label class="text-sm font-semibold text-slate-700">Số lô<input name="batch_number" required maxlength="100" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
-                <label class="text-sm font-semibold text-slate-700">Hạn dùng<input type="date" name="expiry_date" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
+                <div><x-pwa-date name="expiry_date" label="Hạn dùng" required /></div>
                 <label class="text-sm font-semibold text-slate-700">Tồn đầu kỳ<input type="number" name="opening_quantity" min="0.001" step="0.001" required class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
                 <label class="text-sm font-semibold text-slate-700">Đơn giá vốn (đ)<input type="number" name="manual_cost_price" min="0.01" step="0.01" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3"></label>
                 <div class="flex justify-end gap-2 sm:col-span-2">
