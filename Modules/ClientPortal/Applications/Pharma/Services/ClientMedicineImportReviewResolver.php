@@ -64,6 +64,12 @@ final class ClientMedicineImportReviewResolver
                     || (filled($data['registration_number'] ?? null) && Medicine::query()->where('registration_number', $data['registration_number'])->exists())) {
                     throw ValidationException::withMessages(['resolution' => 'Phát hiện thuốc/SKU/GPLH đã tồn tại. Hãy liên kết thay vì tạo mới.']);
                 }
+                if ($locked->rows()->where('id', '!=', $row->id)
+                    ->where('variant_identity_key', $row->variant_identity_key)
+                    ->whereIn('classification', [MedicineImportRow::CLASS_NEW, MedicineImportRow::CLASS_UPDATE])
+                    ->exists()) {
+                    throw ValidationException::withMessages(['resolution' => 'SKU đã có dòng chờ tạo/cập nhật trong cùng batch.']);
+                }
                 $data['medicine_code_reference'] = null;
                 $data['sku_reference'] = null;
                 $row->forceFill([
