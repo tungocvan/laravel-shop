@@ -1,3 +1,13 @@
+## 2026-11-09 — Opening workspace UI follow-up (checkpoint 3)
+
+- Moved the existing Add opening lot / Import Excel collapsible tools **above** the opening-lot table, expanded by default.
+- Unit cost table cell now shows persisted `manual_cost_price` when present; otherwise displays a clearly marked supplier tracking reference average (*) where available. This reference is NOT persisted, does not change inventory valuation and is never silently treated as authoritative. A dash indicates neither price exists.
+- Existing edit dialog already accepts `manual_cost_price`; the existing `OpeningLotEditor` only permits editing pristine opening lots. Editing cost on a posted lot remains intentionally blocked. No migrations, mass backfill or production writes.
+- Previous regression 2 FAIL in `InventoryContractTest` are baseline mismatches verified identical in `main` and feature; not fixed in this scope. UI and new tests pending.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`; impacted tests only after PASS. Verify layout, supplier reference label, and edit cost on a disposable pristine lot only; do not use operational stock for testing.
+
+---
+
 ## 2026-11-09 — Opening inventory editable workspace (checkpoint 2)
 
 - User confirmed prior focused and module regression PASS, then requested debounce search and editable opening lots. This batch is untested locally; TEST PENDING / UI PENDING.
