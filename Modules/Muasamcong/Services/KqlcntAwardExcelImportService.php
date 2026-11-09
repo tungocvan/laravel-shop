@@ -399,6 +399,11 @@ class KqlcntAwardExcelImportService
             return (string) (int) $value;
         }
         if (in_array($field, ['decision_date', 'published_at'], true)) {
+            // Excel may provide a date without a time. Preserve explicit
+            // times; only default a missing published_at time to midnight.
+            if ($field === 'published_at' && preg_match('/^\\d{2}\\/\\d{2}\\/\\d{4}$/D', $value)) {
+                $value .= ' 00:00';
+            }
             $format = $field === 'decision_date' ? 'd/m/Y' : 'd/m/Y H:i';
             $date = \DateTimeImmutable::createFromFormat('!'.$format, $value);
             if (! $date || $date->format($format) !== $value) {
