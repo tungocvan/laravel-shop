@@ -39,10 +39,11 @@
         </dl>
     </section>
     @if($medicines->isNotEmpty() && $medicines->every(fn ($line) => $line->source === 'excel') && ($canResetExcel || $canDeleteExcel))
-    <section class="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5" aria-label="Quản lý hồ sơ Excel">
-        <h2 class="text-base font-bold text-amber-950">Quản lý hồ sơ import Excel</h2>
-        <p class="mt-2 text-sm text-amber-900">Chỉ thực hiện khi TBMT chưa có phiếu xuất kho, hợp đồng hoặc chứng từ liên quan. Máy chủ sẽ kiểm tra lại trước khi thay đổi dữ liệu.</p>
-        <div class="mt-4 grid gap-4 lg:grid-cols-2">
+    <details class="group rounded-2xl border border-amber-200 bg-amber-50" aria-label="Quản lý hồ sơ Excel">
+        <summary class="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 p-4 text-base font-bold text-amber-950 sm:p-5">Quản lý hồ sơ import Excel <span class="text-xs font-semibold text-amber-800">Mở / thu gọn ▾</span></summary>
+        <div class="border-t border-amber-200 p-4 sm:p-5">
+        <p class="text-sm text-amber-900">Chỉ thực hiện khi TBMT chưa có phiếu xuất kho, hợp đồng hoặc chứng từ liên quan. Máy chủ sẽ kiểm tra lại trước khi thay đổi dữ liệu.</p>
+        <div class="mt-4 grid gap-4 {{ $canResetExcel && $canDeleteExcel ? 'lg:grid-cols-2' : 'lg:grid-cols-1' }}">
             @if($canResetExcel)
             <form method="POST" action="{{ route('client.pharma.kqlcnt-awards.reset-excel-setup', $item->id) }}" class="space-y-3 rounded-xl border border-amber-200 bg-white p-4">
                 @csrf
@@ -56,7 +57,7 @@
                 @csrf
                 @method('DELETE')
                 <p class="text-sm font-semibold text-red-900">Xóa vĩnh viễn hồ sơ Excel</p>
-                <p class="text-xs text-red-700">Chỉ xóa được sau khi reset hoàn tất. Không thể khôi phục bằng giao diện.</p>
+                <p class="text-xs text-red-700">Nếu đã thiết lập, hệ thống sẽ tự reset an toàn rồi xóa trong cùng giao dịch. Không thể khôi phục bằng giao diện.</p>
                 <label class="block text-sm text-slate-700">Nhập chính xác mã TBMT để xác nhận
                     <input type="text" name="confirm_notice" required autocomplete="off" class="mt-1 min-h-11 w-full rounded-lg border border-slate-300 px-3" placeholder="{{ $item->notify_no }}">
                 </label>
@@ -65,7 +66,8 @@
             </form>
             @endif
         </div>
-    </section>
+        </div>
+    </details>
     @endif
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div class="border-b border-slate-200 px-4 py-4 sm:px-5">
