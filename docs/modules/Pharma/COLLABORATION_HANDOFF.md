@@ -1,3 +1,13 @@
+## 2026-11-09 — Inventory valuation parity (CHECKPOINT, TEST PENDING)
+
+- User screenshot: stock dashboard 5,529,369,100 VND versus movements closing 4,944,895,500 VND, a 584,473,600 VND difference. No database reconciliation has been performed; these values may also reflect report date range.
+- Root cause in code: `UserInventoryWorkspace` previously used positive manual cost then supplier average of positive cost_price with import_price fallback, whereas `InventoryMovementSummaryService` used non-null manual cost (including zero) then supplier AVG(cost_price) only. Added Pharma-owned `InventoryLotCostResolver` to share supplier query and effective-cost policy across both services.
+- Added `tests/Feature/ClientApps/PharmaInventoryValuationParityTest.php` with resolver unit cases and shared-policy contract. No tests executed remotely; require local focused tests and actual read-only per-lot reconciliation before asserting monetary totals match. Historical period report values remain period-scoped; dashboard remains current positive stock.
+- Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaInventoryValuationParityTest.php tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Then Pharma/ClientPortal impacted regression only after PASS. UI PASS required for modified valuation displays.
+- PR #370 remains draft; do not merge or deploy production.
+
+---
+
 ## 2026-11-09 — PR #370 safety follow-up (CHECKPOINT, TEST PENDING)
 
 - Added isolated in-memory SQLite integration test `tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php` covering pristine reset/cutoff/reimport, fully reversed orphan ledger, surviving receipt document, unmatched reversal, cross-document cancellation, wrong source type and balance mismatch. This is a real service/database test, not just a string contract; results must be supplied by local test runner.
