@@ -1,3 +1,10 @@
+## 2026-11-09 — Opening UI presentation follow-up
+
+- Opening creation/import `<details>` now starts collapsed, still positioned above opening lot list.
+- Opening quantity, persisted unit cost, and supplier reference unit cost in list use zero-decimal display formatting only. Underlying decimal precision, validation, edits, ledger and Excel are unchanged. UI/test confirmation pending.
+
+---
+
 ## 2026-11-09 — Opening workspace UI follow-up (checkpoint 3)
 
 - Moved the existing Add opening lot / Import Excel collapsible tools **above** the opening-lot table, expanded by default.
