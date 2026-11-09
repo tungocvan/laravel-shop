@@ -33,6 +33,19 @@ final class PharmaKqlcntExcelRemovalContractTest extends TestCase
         $this->assertStringContainsString('hash_equals(', $controller);
     }
 
+    public function test_delete_auto_resets_in_same_transaction_and_ui_is_collapsed_by_default(): void
+    {
+        $service = file_get_contents(base_path('Modules/Pharma/Services/KqlcntExcelAwardRemovalService.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaKqlcntAwardController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-award-detail.blade.php'));
+        $this->assertStringContainsString('if ($this->setupExists($ids, $notice))', $service);
+        $this->assertStringContainsString('$this->clearSetup($ids, $notice);', $service);
+        $this->assertStringContainsString('->hasSetup($awardItem)', $controller);
+        $this->assertStringContainsString('<details class="group rounded-2xl', $view);
+        $this->assertStringNotContainsString('<details open', $view);
+        $this->assertStringContainsString('@if($canResetExcel)', $view);
+    }
+
     public function test_delete_ui_requires_excel_provenance_and_explicit_confirmation(): void
     {
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/kqlcnt-award-detail.blade.php'));
