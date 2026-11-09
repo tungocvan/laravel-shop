@@ -199,6 +199,22 @@ final class PharmaInventoryReportsController extends Controller
         return (new FastExcel($rows))->download('client-pharma-ton-dau-ky-'.now()->format('Ymd-His').'.xlsx');
     }
 
+    public function resetOpening(Request $request, ApplicationRegistry $registry, \Modules\Pharma\Services\OpeningInventoryResetService $reset): RedirectResponse
+    {
+        $this->authorizeInventory($request, $registry, true);
+        $data = $request->validate([
+            'confirmation' => 'required|string|in:XOA TON DAU KY',
+            'backup_confirmed' => 'required|accepted',
+        ]);
+        $count = $reset->reset();
+        \Illuminate\Support\Facades\Log::warning('Pharma opening inventory reset completed', [
+            'actor_id' => $request->user('web')?->id, 'lots_deleted' => $count,
+            'timestamp' => now()->toIso8601String(),
+        ]);
+        return redirect()->route('client.pharma.inventory.opening')
+            ->with('success', 'Đã xóa '.$count.' lô tồn đầu kỳ. Có thể Import Excel trở lại.');
+    }
+
     public function updateOpening(Request $request, ApplicationRegistry $registry, InventoryService $inventory, \Modules\Pharma\Services\OpeningLotEditor $editor, int $balance): RedirectResponse
     {
         $this->authorizeInventory($request, $registry, true);
