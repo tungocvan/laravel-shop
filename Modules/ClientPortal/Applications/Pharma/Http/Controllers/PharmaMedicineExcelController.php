@@ -8,7 +8,10 @@ use Illuminate\Http\RedirectResponse;
 use Modules\Pharma\Services\MedicineCatalogUploadService;
 use Modules\Pharma\Models\MedicineImportBatch;
 use Modules\ClientPortal\Applications\Pharma\Services\ClientMedicineImportCreator;
+use Modules\ClientPortal\Applications\Pharma\Services\ClientMedicineImportReviewResolver;
+use Modules\Pharma\Models\Medicine;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\Pharma\Services\MedicineCatalog;
@@ -33,6 +36,32 @@ final class PharmaMedicineExcelController extends Controller
         return view('ClientPortal::applications.pharma.import', compact('batches'));
     }
 
+    public function clearImportHistory(Request $request, ApplicationRegistry $registry): RedirectResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+
+        $request->validate(['confirmation' => ['required', 'in:XOA LICH SU IMPORT']]);
+
+        $count = DB::transaction(function () use ($user): int {
+            $batches = MedicineImportBatch::query()
+                ->where('source', 'clientportal_pharma')
+                ->where('created_by', (int) $user->id)
+                ->whereIn('status', [MedicineImportBatch::STATUS_READY, MedicineImportBatch::STATUS_FAILED, MedicineImportBatch::STATUS_STAGED])
+                ->lockForUpdate()->get();
+
+            foreach ($batches as $batch) {
+                $batch->rows()->delete();
+                $batch->delete();
+            }
+
+            return $batches->count();
+        });
+
+        return redirect()->route('client.pharma.products.import.page')
+            ->with('status', "Đã xóa {$count} batch staging khỏi lịch sử import của bạn. Medicine Master và SKU không bị thay đổi.");
+    }
+
     public function importBatch(Request $request, ApplicationRegistry $registry, MedicineImportBatch $batch): \Illuminate\View\View
     {
         $user = $request->user('web');
@@ -41,7 +70,57 @@ final class PharmaMedicineExcelController extends Controller
 
         $rows = $batch->rows()->orderBy('source_row')->paginate(30);
 
-        return view('ClientPortal::applications.pharma.import-batch', compact('batch', 'rows'));
+        $candidates = [];
+        foreach ($rows as $row) {
+            if (! in_array($row->classification, ['needs_review', 'conflict'], true)) {
+                continue;
+            }
+            $data = $row->normalized_payload ?? [];
+            $registration = trim((string) ($data['registration_number'] ?? ''));
+            $name = trim((string) ($data['name'] ?? ''));
+            $candidates[$row->id] = Medicine::query()
+                ->with(['variants' => fn ($query) => $query->orderBy('id')->limit(10)])
+                ->when($registration !== '' || $name !== '', fn ($query) => $query->where(function ($q) use ($registration, $name) {
+                    if ($registration !== '') {
+                        $q->where('registration_number', $registration);
+                    }
+                    if ($name !== '') {
+                        $q->orWhere('name', 'like', '%'.addcslashes($name, '%_\\\\').'%');
+                    }
+                }))
+                ->when($registration === '' && $name === '', fn ($query) => $query->whereRaw('1 = 0'))
+                ->limit(10)->get();
+        }
+
+        return view('ClientPortal::applications.pharma.import-batch', compact('batch', 'rows', 'candidates'));
+    }
+
+    public function resolveReview(
+        Request $request,
+        ApplicationRegistry $registry,
+        MedicineImportBatch $batch,
+        \Modules\Pharma\Models\MedicineImportRow $row,
+        ClientMedicineImportReviewResolver $resolver,
+    ): RedirectResponse {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.products.import'), 403);
+        abort_unless($batch->source === 'clientportal_pharma' && (int) $batch->created_by === (int) $user->id, 404);
+        abort_unless((int) $row->batch_id === (int) $batch->id, 404);
+        abort_unless($registry->userCan($user, 'client.pharma.products.create'), 403);
+        abort_unless($registry->userCan($user, 'client.pharma.products.create-variant'), 403);
+
+        $data = $request->validate([
+            'action' => ['required', 'in:link,create'],
+            'medicine_id' => ['required_if:action,link', 'nullable', 'integer'],
+            'variant_id' => ['required_if:action,link', 'nullable', 'integer'],
+            'confirm' => ['accepted'],
+        ]);
+        $resolver->resolve($batch, (int) $row->id, $data['action'], $data['medicine_id'] ?? null, $data['variant_id'] ?? null);
+
+        return redirect()->route('client.pharma.products.import.batch', $batch->id)
+            ->with('status', $data['action'] === 'create'
+                ? 'Đã xác nhận dòng đủ điều kiện tạo mới. Bấm phê duyệt tạo thuốc mới để ghi Medicine Master.'
+                : 'Đã liên kết dòng staging với thuốc/SKU hiện có; Medicine Master không bị thay đổi.');
     }
 
     public function approveNew(

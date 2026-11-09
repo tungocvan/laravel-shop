@@ -19,7 +19,7 @@
         <p class="mt-2 break-words text-sm text-slate-500">{{ $batch->source_file }} · {{ $batch->created_at?->format('d/m/Y H:i') }} · {{ $batch->status }}</p>
     </header>
     <div role="status" class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-        <strong>Chưa ghi vào Medicine Master.</strong> Đây là kết quả phân loại staging, không phải xác nhận cập nhật. Chỉ có thể phê duyệt tạo thuốc mới; cập nhật Medicine Master hiện có chưa được bật.
+        <strong>Chưa ghi vào Medicine Master.</strong> Đây là kết quả phân loại staging, không phải xác nhận cập nhật. Có thể rà soát và liên kết thuốc/SKU hiện có hoặc xác nhận tạo thuốc mới khi đủ điều kiện. Không tự động cập nhật Medicine Master hiện có.
     </div>
     @if(session('status'))
         <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{{ session('status') }}</div>
@@ -64,7 +64,7 @@
             <table class="w-full min-w-[900px] text-left text-xs">
                 <thead class="bg-slate-50 font-extrabold uppercase tracking-wide text-slate-600">
                     <tr>
-                        <th class="px-4 py-3">Dòng</th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Mã thuốc / SKU tham khảo</th><th class="px-4 py-3">GPLH</th><th class="px-4 py-3">Phân loại</th><th class="px-4 py-3">Lý do</th><th class="px-4 py-3">Khớp Medicine / Variant</th>
+                        <th class="px-4 py-3">Dòng</th><th class="px-4 py-3">Tên thuốc</th><th class="px-4 py-3">Mã thuốc / SKU tham khảo</th><th class="px-4 py-3">GPLH</th><th class="px-4 py-3">Phân loại</th><th class="px-4 py-3">Lý do</th><th class="px-4 py-3">Khớp Medicine / Variant</th><th class="px-4 py-3">Xử lý rà soát</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -78,9 +78,46 @@
                             <td class="px-4 py-3"><span class="rounded-lg bg-indigo-50 px-2 py-1 font-bold text-indigo-700">{{ $row->classification }}</span></td>
                             <td class="break-words px-4 py-3 text-slate-600">{{ $row->resolution_reason ?: '—' }}</td>
                             <td class="px-4 py-3 text-slate-600">{{ $row->matched_medicine_id ?: '—' }} / {{ $row->matched_variant_id ?: '—' }}</td>
+                            <td class="px-4 py-3">
+                                @if(in_array($row->classification, ['needs_review', 'conflict'], true) && $batch->status === \Modules\Pharma\Models\MedicineImportBatch::STATUS_READY)
+                                    @can('client.pharma.products.create')
+                                        @can('client.pharma.products.create-variant')
+                                            <div class="space-y-3 min-w-[260px]">
+                                                @if(($candidates[$row->id] ?? collect())->isNotEmpty())
+                                                    <p class="font-semibold text-slate-700">Liên kết thuốc/SKU đã có (không cập nhật dữ liệu):</p>
+                                                    @foreach($candidates[$row->id] as $candidate)
+                                                        @foreach($candidate->variants as $variant)
+                                                            <form method="POST" action="{{ route('client.pharma.products.import.review.resolve', [$batch->id, $row->id]) }}" onsubmit="return confirm('Xác nhận liên kết dòng này với thuốc/SKU hiện có?');">
+                                                                @csrf
+                                                                <input type="hidden" name="action" value="link">
+                                                                <input type="hidden" name="medicine_id" value="{{ $candidate->id }}">
+                                                                <input type="hidden" name="variant_id" value="{{ $variant->id }}">
+                                                                <input type="hidden" name="confirm" value="1">
+                                                                <button type="submit" class="w-full rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-2 text-left font-semibold text-indigo-800 hover:bg-indigo-100">
+                                                                    {{ $candidate->medicine_code }} · {{ $candidate->name }} · {{ $variant->sku }}
+                                                                </button>
+                                                            </form>
+                                                        @endforeach
+                                                    @endforeach
+                                                @else
+                                                    <p class="text-slate-500">Chưa tìm thấy thuốc tương ứng theo tên hoặc GPLH.</p>
+                                                @endif
+                                                @if($row->resolution_reason === 'roundtrip_reference_not_found')
+                                                    <form method="POST" action="{{ route('client.pharma.products.import.review.resolve', [$batch->id, $row->id]) }}" onsubmit="return confirm('Xác nhận đã đối chiếu Medicine Master và muốn chuyển dòng này sang MỚI? Hệ thống sẽ kiểm tra trùng lặp lần nữa.');">
+                                                        @csrf
+                                                        <input type="hidden" name="action" value="create">
+                                                        <input type="hidden" name="confirm" value="1">
+                                                        <button type="submit" class="w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 font-bold text-amber-900 hover:bg-amber-100">Đã kiểm tra — xác nhận thuốc mới</button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        @endcan
+                                    @endcan
+                                @endif
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Batch không có dòng dữ liệu.</td></tr>
+                        <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Batch không có dòng dữ liệu.</td></tr>
                     @endforelse
                 </tbody>
             </table>
