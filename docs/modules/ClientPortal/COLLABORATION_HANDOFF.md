@@ -2081,3 +2081,10 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - UI smoke: PENDING operator confirmation. Verify Excel-only visibility, reset, delete confirmation, blocked source-mixed/document-linked cases, mobile/desktop, legacy bid-awards unaffected.
 - Known limitation: deletion is intentionally conservative; manual/historical provenance and partially linked groups are blocked. Before enabling for any broader order workflow, audit non-FK business references.
 - Git tracked cleanliness, PR and merge: PENDING. No production mutation/deploy authorized.
+
+## D7.2E — Excel management UX (2026-11-09)
+
+- Branch: `feat/pharma-kqlcnt-excel-management-ux-20261109` based on D7.2D feature branch; no merge/deploy.
+- Canonical Excel detail management uses native `<details>` collapsed by default, with no JS dependency. Reset action appears only when setup records exist; delete remains available to authorized users.
+- Delete revalidates Excel-only provenance and downstream guards in the existing DB transaction, then clears setup if needed before deleting Pharma and canonical rows. All steps rollback together on exception. Standalone reset preserved.
+- Focused test: `php artisan test tests/Feature/ClientApps/PharmaKqlcntExcelRemovalContractTest.php` — NOT YET RUN. Run relevant KQLCNT/Pharma regression only after focused PASS. UI PASS requires operator verification for both configured/unconfigured Excel states and blocked cases.
