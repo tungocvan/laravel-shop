@@ -1,3 +1,12 @@
+## 2026-11-09 — ClientPortal import history clear (CHECKPOINT, TEST PENDING)
+
+- User confirmed UI PASS for staging review and requested a clear button in recent import history.
+- Added POST `products.import.clear-history`, guarded by web auth and import capability, exact typed confirmation `XOA LICH SU IMPORT`, and owner/source/status-scoped DB transaction. Deletes only own non-committed ClientPortal staging batches and their rows; committed batches are retained for audit. Does not modify Medicine Master or variants.
+- Added responsive confirmation form, flash status and `PharmaMedicineImportHistoryClearContractTest.php`. Destructive action is user-triggered only; no automatic deletion and no production operation performed.
+- Focused: `php artisan test tests/Feature/ClientApps/PharmaMedicineImportHistoryClearContractTest.php tests/Feature/ClientApps/PharmaMedicineStagingReviewContractTest.php`. After PASS, impacted Pharma import regression. UI PASS for new clear action remains required. PR #371 stays Draft.
+
+---
+
 ## 2026-11-09 — ClientPortal Medicine staging review actions (CHECKPOINT, TEST PENDING)
 
 - Branch `feat/pharma-import-staging-review-resolution-20261109` from main 4179dd50a. Adds per-row staging review actions on ClientPortal Pharma medicine import batches; no database migrations and no Production operations.
