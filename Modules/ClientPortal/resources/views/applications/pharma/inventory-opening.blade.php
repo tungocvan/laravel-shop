@@ -61,7 +61,9 @@
         <div class="mt-4">{{ $openingLots->links() }}</div>
         <p class="mt-3 text-xs text-amber-800">File export giữ đúng định dạng import, nhưng các lô đã ghi sổ sẽ bị từ chối khi import lại để tránh ghi đè hoặc cộng trùng. Chỉ import các lô mới chưa phát sinh.</p>
     </section>
-    <div id="opening-actions" class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
+    <details id="opening-actions" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <summary class="cursor-pointer select-none text-sm font-extrabold text-indigo-700">＋ Thêm lô thủ công / Import Excel <span class="ml-2 font-normal text-slate-500">Mở công cụ khởi tạo</span></summary>
+        <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 class="text-base font-bold text-slate-950">Thêm lô tồn đầu kỳ</h2>
             <p class="mt-1 text-xs text-slate-500">Thêm một lô tồn đầu kỳ.</p>
@@ -136,7 +138,8 @@
                 </div>
             </form>
         </div>
-    </div>
+        </div>
+    </details>
     <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Lưu ý: Chỉ khởi tạo lô chưa có số dư hoặc giao dịch kho. Không ghi đè lô đã phát sinh tồn; hãy kiểm tra dữ liệu trước khi lưu.</p>
 </div>
 <script>
