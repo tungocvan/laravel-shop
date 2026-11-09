@@ -2070,3 +2070,14 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - User approved keeping allocation and commercial-policy screens under `/apps/pharma/kqlcnt-awards/{awardItem}/...` while preserving existing Bid Awards workflow and legacy routes. Canonical GET/POST setup, hospital allocation, hospital policy and commercial policy now delegate to `PharmaApplicationController`/`ClientBidAwardWorkflow`, guarded by verified `KqlcntLegacyWorkflowBridge::scopeKey` and existing permission checks; shared Blade routes switch only when KQLCNT context exists.
 - Unlinked KQLCNT still renders read-only diagnostic preview. No database migrations or production changes. Downstream manager-assignment remains on legacy route for now (not migrated by this batch), to be audited before any further canonicalization.
 - Added `PharmaKqlcntCanonicalWorkflowRoutesContractTest`; TEST PENDING (focused, module, impacted), UI PENDING (including POST redirects and legacy compatibility). Stop at git pull/test checkpoint. Do not merge until all gates and explicit approval.
+
+## D7.2D — Excel-only KQLCNT reset / permanent deletion (2026-11-09)
+
+- Branch: `feat/pharma-kqlcnt-reset-delete-excel-20261109` (based on canonical workflow phase-1 branch; do not merge to main independently).
+- Scope: new protected POST reset and DELETE Excel routes on canonical KQLCNT detail; reuse existing Pharma ownership; legacy `/apps/pharma/bid-awards` remains unchanged.
+- Service: `Modules/Pharma/Services/KqlcntExcelAwardRemovalService.php`. Transactional and locking guards require an Excel-only, single-contractor TBMT and unique exact canonical/Pharma provenance. Reject downstream inventory issue items/commissions/deferred supplies, contracts, price-list bid evidence and foreign source records. Reset removes allocation, product/commercial policy, management and distribution scope; permanent deletion requires empty setup and explicit TBMT confirmation.
+- Audit reference from operator: TBMT `IB2500361133`, Pharma IDs 27/28; issue item/commission/deferred counts 0, allocations 2, product policies 2, price evidence 0. These counts are not proof of absence of all downstream dependencies; service rechecks at mutation time.
+- Focused tests: `php artisan test tests/Feature/ClientApps/PharmaKqlcntExcelRemovalContractTest.php` — PENDING local execution. Follow with existing canonical KQLCNT focused tests and ClientApps/Pharma impacted regression only after focused PASS.
+- UI smoke: PENDING operator confirmation. Verify Excel-only visibility, reset, delete confirmation, blocked source-mixed/document-linked cases, mobile/desktop, legacy bid-awards unaffected.
+- Known limitation: deletion is intentionally conservative; manual/historical provenance and partially linked groups are blocked. Before enabling for any broader order workflow, audit non-FK business references.
+- Git tracked cleanliness, PR and merge: PENDING. No production mutation/deploy authorized.
