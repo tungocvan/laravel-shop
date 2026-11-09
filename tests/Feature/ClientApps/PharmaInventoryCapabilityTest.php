@@ -21,7 +21,11 @@ final class PharmaInventoryCapabilityTest extends TestCase
         $this->assertStringContainsString('UserInventoryWorkspace $workspace', $controller);
         $this->assertStringContainsString("abort_unless(\$registry->userCan(\$user, 'client.pharma.inventory.view'), 403)", $controller);
         $this->assertStringContainsString('InventoryBalance::query()', $workspace);
-        $this->assertStringContainsString('SupplierTracking::query()', $workspace);
+        $resolver = file_get_contents($root.'/Modules/Pharma/Services/InventoryLotCostResolver.php');
+        $this->assertStringContainsString('InventoryLotCostResolver $costResolver', $workspace);
+        $this->assertStringContainsString('costResolver->activeSupplierCostQuery()', $workspace);
+        $this->assertStringContainsString("DB::table('pharma_supplier_trackings')", $resolver);
+        $this->assertStringNotContainsString('SupplierTracking::query()', $workspace);
         $this->assertStringNotContainsString('InventoryBalance::query()', $controller);
         $this->assertStringNotContainsString('SupplierTracking::query()', $controller);
     }
