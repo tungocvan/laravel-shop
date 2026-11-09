@@ -1,3 +1,12 @@
+## 2026-11-09 — PR #370 safety follow-up (CHECKPOINT, TEST PENDING)
+
+- Added isolated in-memory SQLite integration test `tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php` covering pristine reset/cutoff/reimport, fully reversed orphan ledger, surviving receipt document, unmatched reversal, cross-document cancellation, wrong source type and balance mismatch. This is a real service/database test, not just a string contract; results must be supplied by local test runner.
+- Fixed `OpeningInventoryResetService`: reject orphan opening transactions with no balance and clear `pharma_inventory_warehouses.opening_cutoff_at` in the same transaction after successful reset. Existing per-document reversal guards remain.
+- IMPORTANT: do not click destructive reset against operational data until focused/integration tests pass, affected FK/dependency tables are audited and a recoverable database backup exists. Excel export alone does not preserve historical transaction records. UI PASS for prior revision does not validate new behavior.
+- Run focused tests first: `php artisan test tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaOpeningResetIntegrationTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Regression only after PASS. PR #370 remains draft; no merge or production deployment.
+
+---
+
 ## 2026-11-09 — Reset fully reversed legacy stock ledger (TEST PENDING)
 
 - User observed 56 opening rows and 34 non-opening rows (16 issue + 16 issue_reversal, 1 receipt + 1 receipt_reversal). User's read-only per-lot net delta query returned []. This is evidence of net-zero movements, NOT proof of zero remaining documents or fully matched source identities.
