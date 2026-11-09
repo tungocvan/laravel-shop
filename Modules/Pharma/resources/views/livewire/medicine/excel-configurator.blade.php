@@ -240,10 +240,82 @@
             </div>
         </div>
         @endif
-        <footer class="flex shrink-0 items-center justify-between gap-3 border-t bg-white px-5 py-3 lg:px-7">
-            <p class="min-w-0 truncate text-xs text-slate-500"><b>{{ $profileName }}</b> · {{ $selectedOrder->count() }} cột được chọn</p>
-            <div class="flex shrink-0 gap-2"><button type="button" wire:click="exportProfileJson" class="h-10 rounded-xl border px-3 text-xs font-bold" title="Xuất cấu hình đã lưu, gồm Header, Footer và logo">Xuất JSON</button><button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button><button type="button" @if($activeSection === 'columns') x-on:click="$dispatch('medicine-designer-save')" @else wire:click="save" @endif class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button></div>
-        </footer>
+        <div x-data="{
+            previewOpen: false,
+            preview: null,
+            error: '',
+            busy: false,
+            async inspect(event) {
+                this.preview = null;
+                this.error = '';
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (!file.name.toLowerCase().endsWith('.json') || file.size > 524288) {
+                    this.error = 'Chỉ nhận file .json tối đa 512 KB.';
+                    this.previewOpen = true;
+                    return;
+                }
+                try {
+                    const data = JSON.parse(await file.text());
+                    if (data.schema_version !== 1 || typeof data.name !== 'string' || !Array.isArray(data.columns) || data.columns.length === 0 || !data.settings || typeof data.settings !== 'object') {
+                        throw new Error('Cấu trúc JSON không hợp lệ hoặc sai schema_version (yêu cầu phiên bản 1).');
+                    }
+                    this.preview = { name: data.name, version: data.schema_version, columns: data.columns.length, title: data.settings.title || '', company: data.settings.company_name || '' };
+                } catch (e) {
+                    this.error = e.message || 'Không thể đọc JSON.';
+                }
+                this.previewOpen = true;
+            },
+            submitImport(event) {
+                if (!this.preview || this.busy) { event.preventDefault(); return; }
+                this.busy = true;
+            },
+            cancelImport() {
+                this.previewOpen = false;
+                this.preview = null;
+                this.error = '';
+                this.busy = false;
+                this.$refs.jsonFile.value = '';
+            }
+        }">
+            <footer class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-t bg-white px-5 py-3 lg:px-7">
+                <p class="min-w-0 truncate text-xs text-slate-500"><b>{{ $profileName }}</b> · {{ $selectedOrder->count() }} cột được chọn</p>
+                <div class="flex flex-wrap items-center gap-2">
+                    @if($ownerGuard === 'web')
+                        <button type="button" x-on:click="$refs.jsonFile.click()" class="h-10 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-700">Nhập JSON</button>
+                    @endif
+                    <button type="button" wire:click="exportProfileJson" class="h-10 rounded-xl border px-3 text-xs font-bold" title="Xuất cấu hình đã lưu, gồm Header, Footer và logo">Xuất JSON</button>
+                    <button type="button" wire:click="closeConfig" class="h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button>
+                    <button type="button" @if($activeSection === 'columns') x-on:click="$dispatch('medicine-designer-save')" @else wire:click="save" @endif class="h-10 rounded-xl bg-indigo-600 px-5 text-sm font-bold text-white">Lưu cấu hình</button>
+                </div>
+            </footer>
+            @if($ownerGuard === 'web')
+                <form method="POST" action="{{ route('client.pharma.products.excel-config.import-json') }}" enctype="multipart/form-data" x-on:submit="submitImport($event)" wire:ignore>
+                    @csrf
+                    <input x-ref="jsonFile" type="file" name="file" accept=".json,application/json" required class="sr-only" x-on:change="inspect($event)">
+                    <div x-show="previewOpen" x-cloak class="absolute inset-0 z-[120] flex items-center justify-center bg-slate-950/60 p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="medicine-json-import-title">
+                        <div class="w-full max-w-md space-y-4 rounded-2xl bg-white p-5 shadow-2xl sm:p-6">
+                            <h3 id="medicine-json-import-title" class="text-lg font-extrabold text-slate-900">Xem trước cấu hình JSON</h3>
+                            <template x-if="preview">
+                                <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 break-words text-sm">
+                                    <dt class="font-semibold">Tên profile</dt><dd x-text="preview.name"></dd>
+                                    <dt class="font-semibold">Phiên bản</dt><dd x-text="preview.version"></dd>
+                                    <dt class="font-semibold">Số cột</dt><dd x-text="preview.columns"></dd>
+                                    <dt class="font-semibold">Tiêu đề</dt><dd x-text="preview.title"></dd>
+                                    <dt class="font-semibold">Doanh nghiệp</dt><dd x-text="preview.company"></dd>
+                                </dl>
+                            </template>
+                            <p x-show="error" x-text="error" role="alert" class="rounded-lg bg-rose-50 p-3 text-sm text-rose-700"></p>
+                            <p class="text-xs text-slate-600">Nhập sẽ tạo profile mới, không ghi đè cấu hình hiện tại. Máy chủ sẽ kiểm tra đầy đủ dữ liệu và quyền truy cập trước khi lưu.</p>
+                            <div class="flex flex-wrap justify-end gap-2">
+                                <button type="button" x-on:click="cancelImport()" class="min-h-10 rounded-xl border px-4 text-sm font-bold">Hủy</button>
+                                <button type="submit" x-bind:disabled="!preview || busy" class="min-h-10 rounded-xl bg-indigo-600 px-4 text-sm font-bold text-white disabled:opacity-50">Xác nhận nhập JSON</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            @endif
+        </div>
     </div>
 </div>
 @endif
