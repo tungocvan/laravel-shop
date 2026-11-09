@@ -18,6 +18,9 @@
         <h1 class="mt-1 text-2xl font-black text-slate-950 sm:text-3xl">Import danh mục thuốc</h1>
         <p class="mt-2 text-sm leading-6 text-slate-600">Tải Excel vào staging để chuẩn hóa, đối chiếu và phân loại. Chưa có dữ liệu nào được ghi vào Medicine Master khi tải lên.</p>
     </header>
+    @if(session('status'))
+        <div role="status" class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{{ session('status') }}</div>
+    @endif
     @if($errors->any())
         <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             <strong>Không thể tải tệp:</strong> {{ $errors->first() }}
@@ -47,7 +50,17 @@
     </section>
     <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="font-extrabold text-slate-900">2. Lịch sử import gần đây</h2>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="font-extrabold text-slate-900">2. Lịch sử import gần đây</h2>
+                @if($batches->total() > 0)
+                    <form method="POST" action="{{ route('client.pharma.products.import.clear-history') }}" class="flex flex-wrap items-center gap-2" onsubmit="return confirm('Xóa toàn bộ batch staging chưa commit của tài khoản này? Thao tác không thể hoàn tác. Medicine Master không bị ảnh hưởng.');">
+                        @csrf
+                        <label for="import-history-confirmation" class="sr-only">Nhập XOA LICH SU IMPORT để xác nhận</label>
+                        <input id="import-history-confirmation" name="confirmation" type="text" required autocomplete="off" placeholder="XOA LICH SU IMPORT" aria-label="Nhập XOA LICH SU IMPORT để xác nhận" class="min-h-10 w-44 rounded-lg border border-slate-300 px-3 text-xs" />
+                        <button type="submit" class="min-h-10 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-800 hover:bg-red-100">Xóa lịch sử import</button>
+                    </form>
+                @endif
+            </div>
             <p class="mt-1 text-xs text-slate-500">Chỉ hiển thị các batch do tài khoản của anh/chị tải lên tại Client Portal. Chọn một batch để xem phân loại từng dòng.</p>
         </div>
         <div class="divide-y divide-slate-100">
