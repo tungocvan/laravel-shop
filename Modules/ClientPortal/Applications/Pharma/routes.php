@@ -195,6 +195,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->middleware('client.feature:pharma,products')->name('products.export.roundtrip');
         Route::get('/products/import', [PharmaMedicineExcelController::class, 'importPage'])
             ->middleware('client.feature:pharma,products')->name('products.import.page');
+        Route::post('/products/import/clear-history', [PharmaMedicineExcelController::class, 'clearImportHistory'])
+            ->middleware('client.feature:pharma,products')->name('products.import.clear-history');
         Route::get('/products/import/batches/{batch}', [PharmaMedicineExcelController::class, 'importBatch'])
             ->whereNumber('batch')->middleware('client.feature:pharma,products')->name('products.import.batch');
         Route::post('/products/import/batches/{batch}/rows/{row}/resolve', [PharmaMedicineExcelController::class, 'resolveReview'])
