@@ -1,3 +1,10 @@
+## 2026-11-09 — Opening edit modal numeric display
+
+- Strip trailing decimal zeros for integer-valued opening quantity and manual unit cost when populating edit dialog. Preserve fractional values and original database precision; no backend write/validation changes.
+- Focused test and UI verification pending. Prior InventoryContractTest baseline failures remain outside scope.
+
+---
+
 ## 2026-11-09 — Opening UI presentation follow-up
 
 - Opening creation/import `<details>` now starts collapsed, still positioned above opening lot list.
