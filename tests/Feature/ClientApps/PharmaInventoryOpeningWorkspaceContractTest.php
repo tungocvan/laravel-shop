@@ -18,6 +18,29 @@ final class PharmaInventoryOpeningWorkspaceContractTest extends TestCase
         $this->assertStringContainsString('data-pwa-file-handoff', $view);
     }
 
+    public function test_opening_lot_correction_requires_authorization_and_pristine_ledger(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaInventoryReportsController.php'));
+        $editor = file_get_contents(base_path('Modules/Pharma/Services/OpeningLotEditor.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/inventory-opening.blade.php'));
+
+        $this->assertStringContainsString("->name('inventory.opening.update')", $routes);
+        $this->assertStringContainsString('public function updateOpening(', $controller);
+        $this->assertStringContainsString('$this->authorizeInventory($request, $registry, true);', $controller);
+        $this->assertStringContainsString('DB::transaction(', $editor);
+        $this->assertStringContainsString('lockForUpdate()', $editor);
+        $this->assertStringContainsString("\$transactions->count() !== 1", $editor);
+        $this->assertStringContainsString("->first()->type !== 'opening'", $editor);
+        $this->assertStringContainsString("'quantity_on_hand' => \$quantity", $editor);
+        $this->assertStringContainsString("'balance_after' => \$quantity", $editor);
+        $this->assertStringContainsString('data-opening-edit', $view);
+        $this->assertStringContainsString('setTimeout(() =>', $view);
+        $this->assertStringContainsString('}, 350)', $view);
+        $this->assertStringNotContainsString('>Tìm kiếm</button>', $view);
+        $this->assertStringContainsString('<x-pwa-date name="expiry_date" label="Hạn dùng" required />', $view);
+    }
+
     public function test_export_preserves_import_columns_and_write_permission(): void
     {
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
