@@ -15,5 +15,9 @@ class PharmaBidAwardProvinceRefreshContractTest extends TestCase
         $this->assertStringContainsString("formmethod=\"GET\"", $blade);
         $this->assertStringContainsString("query('province_names', \$request->query('provinces', \$setup['provinces']))", $controller);
         $this->assertStringContainsString('facilitiesForProvinces($draftProvinces)', $controller);
+        $this->assertStringContainsString("query('facility_ids',", $controller);
+        $this->assertStringContainsString("old('facility_ids',", $controller);
+        $this->assertStringContainsString("old('province_names',", $controller);
+        $this->assertStringContainsString("@if(\$errors->any()) open @endif", $blade);
     }
 }
