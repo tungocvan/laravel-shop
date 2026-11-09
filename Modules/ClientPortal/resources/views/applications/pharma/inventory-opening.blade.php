@@ -19,7 +19,7 @@
             <ul class="mt-2 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
         </div>
     @endif
-    <details open id="opening-actions" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <details id="opening-actions" class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <summary class="cursor-pointer select-none text-sm font-extrabold text-indigo-700">＋ Thêm lô thủ công / Import Excel <span class="ml-2 font-normal text-slate-500">Mở công cụ khởi tạo</span></summary>
         <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:items-start">
         <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -108,7 +108,7 @@
                             <td class="px-3 py-3"><span class="font-bold">{{ $lot->medicine?->medicine_code }}</span><span class="mt-1 block text-xs text-slate-600">{{ $lot->medicine?->name }}</span></td>
                             <td class="px-3 py-3">{{ $lot->batch_number }}</td>
                             <td class="px-3 py-3">{{ $lot->expiry_date?->format('Y-m-d') }}</td>
-                            <td class="px-3 py-3 text-right font-bold">{{ number_format((float) $lot->opening_quantity, 2, ',', '.') }}</td><td class="px-3 py-3 text-right">@if($lot->manual_cost_price !== null){{ number_format((float) $lot->manual_cost_price, 2, ',', '.') }}@elseif(isset($supplierCosts[$lot->medicine_id]) && (float)$supplierCosts[$lot->medicine_id] > 0)<span class="text-amber-700" title="Giá tham khảo nhà cung cấp, chưa lưu cho lô">{{ number_format((float)$supplierCosts[$lot->medicine_id], 2, ',', '.') }} *</span>@else<span title="Chưa có giá vốn được lưu">—</span>@endif</td><td class="px-3 py-3 text-right"><button type="button" data-opening-edit data-action="{{ route('client.pharma.inventory.opening.update', $lot->id) }}" data-lot="{{ $lot->batch_number }}" data-expiry="{{ $lot->expiry_date?->format('Y-m-d') }}" data-quantity="{{ $lot->opening_quantity }}" data-price="{{ $lot->manual_cost_price }}" class="min-h-10 rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-700">Sửa</button></td>
+                            <td class="px-3 py-3 text-right font-bold">{{ number_format((float) $lot->opening_quantity, 0, ',', '.') }}</td><td class="px-3 py-3 text-right">@if($lot->manual_cost_price !== null){{ number_format((float) $lot->manual_cost_price, 0, ',', '.') }}@elseif(isset($supplierCosts[$lot->medicine_id]) && (float)$supplierCosts[$lot->medicine_id] > 0)<span class="text-amber-700" title="Giá tham khảo nhà cung cấp, chưa lưu cho lô">{{ number_format((float)$supplierCosts[$lot->medicine_id], 0, ',', '.') }} *</span>@else<span title="Chưa có giá vốn được lưu">—</span>@endif</td><td class="px-3 py-3 text-right"><button type="button" data-opening-edit data-action="{{ route('client.pharma.inventory.opening.update', $lot->id) }}" data-lot="{{ $lot->batch_number }}" data-expiry="{{ $lot->expiry_date?->format('Y-m-d') }}" data-quantity="{{ $lot->opening_quantity }}" data-price="{{ $lot->manual_cost_price }}" class="min-h-10 rounded-xl border border-indigo-200 px-3 text-xs font-bold text-indigo-700">Sửa</button></td>
                         </tr>
                     @empty
                         <tr><td colspan="6" class="px-3 py-8 text-center text-slate-500">Chưa có lô tồn đầu kỳ phù hợp.</td></tr>
