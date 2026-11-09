@@ -1,3 +1,12 @@
+## 2026-11-09 — Reset fully reversed legacy stock ledger (TEST PENDING)
+
+- User observed 56 opening rows and 34 non-opening rows (16 issue + 16 issue_reversal, 1 receipt + 1 receipt_reversal). User's read-only per-lot net delta query returned []. This is evidence of net-zero movements, NOT proof of zero remaining documents or fully matched source identities.
+- Updated `OpeningInventoryResetService` to allow reset only when all Pharma receipt and issue tables are empty, all non-opening types are recognized, canonical source types and IDs are present, each source/warehouse/medicine/batch/expiry group has both original and reversal with opposite signed quantities and zero net, and each opening balance equals its unique opening ledger entry. Locks relevant rows in transaction and rechecks before deleting stock balances and fully reversed history; logs affected transaction IDs and counts. Requires existing Excel backup checkbox and typed confirmation.
+- CRITICAL: deletion is destructive and history removal requires operator-approved backup. No live reset performed. No test execution available in GitHub connector. Add real DB integration tests (including residual document rows, unmatched reversal, incorrect source, mixed warehouse, malformed ledger, FK dependencies and re-import) before clicking reset; inspect possible other referencing tables. UI PASS pending.
+- Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaOpeningResetContractTest.php tests/Feature/ClientApps/PharmaInventoryOpeningWorkspaceContractTest.php`. Do not run regression until focused PASS. Do not merge/deploy.
+
+---
+
 ## 2026-11-09 — Guarded all-Pharma opening reset (checkpoint, TEST PENDING)
 
 - Added a collapsed destructive reset panel above the opening inventory list, with Excel backup link, explicit backup checkbox, typed `XOA TON DAU KY`, browser final confirmation, and CSRF-protected DELETE endpoint.
