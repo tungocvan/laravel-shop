@@ -1,3 +1,15 @@
+## 2026-11-09 — ClientPortal Medicine staging review actions (CHECKPOINT, TEST PENDING)
+
+- Branch `feat/pharma-import-staging-review-resolution-20261109` from main 4179dd50a. Adds per-row staging review actions on ClientPortal Pharma medicine import batches; no database migrations and no Production operations.
+- `ClientMedicineImportReviewResolver` owns atomic row resolution. `link` requires matching Medicine, Variant ownership, GPLH, medicine name, and exact variant identity; marks row duplicate/linked without mutating Medicine Master. `create` is limited to `roundtrip_reference_not_found`, rejects existing medicine/variant/registration and other pending same-variant rows, clears stale references in normalized staging payload, marks row NEW/selected for the existing separate createNew approval workflow. Batch counters refreshed.
+- Controller checks web user, import/create/create-variant capabilities, batch source/owner and row-to-batch scope. UI lists bounded registration/name candidate matches and explicit confirmation actions. Unresolved ambiguous conflicts remain blocked.
+- New focused contract: `tests/Feature/ClientApps/PharmaMedicineStagingReviewContractTest.php`. Test and UI results are not yet available; run focused then impacted regression and obtain user UI PASS before PR merge.
+- Suggested tests: `php artisan test tests/Feature/ClientApps/PharmaMedicineStagingReviewContractTest.php tests/Feature/ClientApps/PharmaProductsCapabilityTest.php Modules/Pharma/Tests/Unit/MedicineCatalogImportStagerTest.php Modules/Pharma/Tests/Unit/MedicineCatalogImportUiContractTest.php`.
+- UI scenario: import Excel with stale MED/SKU for absent Glipizid 5, review row, confirm new, then explicitly approve new; also test linking existing matching SKU, mismatched GPLH/name/SKU, unauthorized user, other user's batch, repeat submissions, responsive mobile/desktop.
+- No merge/deploy authorized by this checkpoint.
+
+---
+
 ## 2026-11-09 — Capability regression contract follow-up (TEST PENDING)
 
 - User regression: 1 failed, 9 passed (199 assertions), failure in `PharmaInventoryCapabilityTest` expecting `SupplierTracking::query()` inside `UserInventoryWorkspace`. This is an obsolete implementation-detail assertion after moving supplier cost lookup to Pharma-owned `InventoryLotCostResolver`.
