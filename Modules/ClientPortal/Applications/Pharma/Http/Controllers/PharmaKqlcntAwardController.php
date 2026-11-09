@@ -16,6 +16,7 @@ use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Services\KqlcntAwardReadService;
 use Modules\Pharma\Services\KqlcntExcelAwardBootstrapService;
 use Modules\Pharma\Services\ClientBidAwardWorkflow;
+use Modules\Pharma\Services\KqlcntExcelAwardRemovalService;
 
 final class PharmaKqlcntAwardController extends Controller
 {
@@ -47,6 +48,32 @@ final class PharmaKqlcntAwardController extends Controller
         ]);
     }
 
+    public function resetExcelSetup(int $awardItem, Request $request, ApplicationRegistry $registry, KqlcntExcelAwardRemovalService $removal): RedirectResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.bid-awards.allocate')
+            && $registry->userCan($user, 'client.pharma.bid-awards.commercial-policy'), 403);
+        $request->validate(['acknowledge' => ['required', 'accepted']]);
+        $removal->reset($awardItem, (int) $user->id);
+
+        return redirect()->route('client.pharma.kqlcnt-awards.show', ['awardItem' => $awardItem])
+            ->with('success', 'Đã reset phân bổ và chính sách về trạng thái chưa thiết lập.');
+    }
+
+    public function deleteExcel(int $awardItem, Request $request, ApplicationRegistry $registry, KqlcntExcelAwardRemovalService $removal): RedirectResponse
+    {
+        $user = $request->user('web');
+        abort_unless($user && $registry->userCan($user, 'client.pharma.kqlcnt-awards.import')
+            && $registry->userCan($user, 'client.pharma.bid-awards.allocate'), 403);
+        $request->validate(['acknowledge' => ['required', 'accepted'], 'confirm_notice' => ['required', 'string']]);
+        $notice = app(KqlcntAwardReadService::class)->find($awardItem)->notify_no;
+        abort_unless(hash_equals((string) $notice, (string) $request->input('confirm_notice')), 422, 'Mã TBMT xác nhận không khớp.');
+        $removal->delete($awardItem, (int) $user->id);
+
+        return redirect()->route('client.pharma.kqlcnt-awards.index')
+            ->with('success', 'Đã xóa vĩnh viễn hồ sơ import Excel.');
+    }
+
     public function show(int $awardItem, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards): View
     {
         $item = $awards->find($awardItem);
@@ -60,6 +87,8 @@ final class PharmaKqlcntAwardController extends Controller
             'presentation' => $this->featurePresentation($settings, $application),
             'item' => $item,
             'medicines' => $medicines,
+            'canResetExcel' => request()->user('web') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.allocate') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.commercial-policy'),
+            'canDeleteExcel' => request()->user('web') && $registry->userCan(request()->user('web'), 'client.pharma.kqlcnt-awards.import') && $registry->userCan(request()->user('web'), 'client.pharma.bid-awards.allocate'),
         ]);
     }
     /**
