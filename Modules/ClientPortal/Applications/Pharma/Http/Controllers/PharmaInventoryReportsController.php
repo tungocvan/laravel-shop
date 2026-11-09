@@ -199,6 +199,20 @@ final class PharmaInventoryReportsController extends Controller
         return (new FastExcel($rows))->download('client-pharma-ton-dau-ky-'.now()->format('Ymd-His').'.xlsx');
     }
 
+    public function updateOpening(Request $request, ApplicationRegistry $registry, InventoryService $inventory, \Modules\Pharma\Services\OpeningLotEditor $editor, int $balance): RedirectResponse
+    {
+        $this->authorizeInventory($request, $registry, true);
+        $data = $request->validate([
+            'batch_number' => 'required|string|max:100',
+            'expiry_date' => 'required|date',
+            'opening_quantity' => 'required|numeric|gt:0|decimal:0,3',
+            'manual_cost_price' => 'nullable|numeric|gt:0',
+        ]);
+        $warehouse = $inventory->defaultWarehouse();
+        $editor->update((int) $warehouse->id, $balance, $data, (int) $request->user('web')->id);
+        return redirect()->route('client.pharma.inventory.opening')->with('success', 'Đã cập nhật lô tồn đầu kỳ và sổ kho.');
+    }
+
     public function storeOpeningManual(Request $request, ApplicationRegistry $registry, InventoryService $inventory): RedirectResponse
     {
         $this->authorizeInventory($request, $registry, true);
