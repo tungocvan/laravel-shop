@@ -1,3 +1,10 @@
+## 2026-11-09 — Pharma Excel Designer JSON import modal checkpoint
+
+- Added ClientPortal-only JSON upload/preview/confirm alongside existing Livewire Excel Designer JSON export. Reuses ClientPortal profile controller and existing owner-guarded Pharma profile service; Admin Designer remains unchanged.
+- No DB migrations, Medicine Master changes, or production actions. Focused contract `tests/Feature/ClientApps/PharmaMedicineExcelDesignerJsonImportContractTest.php` added; local tests and UI regression pending user checkpoint. See Pharma handoff for test instructions.
+
+---
+
 ## 2026-11-08 — KQLCNT inline clear filter UX checkpoint
 
 - Narrowed TBMT combobox to 11rem on wide desktop, preserved flexible widths for investor and medicine, and fixed status width to 11rem.
