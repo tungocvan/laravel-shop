@@ -19,6 +19,7 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
             Route::patch('/contracts/{contract}/restore-draft', [LoanWorkspaceController::class, 'restoreDraft'])->whereNumber('contract')->name('contracts.restore-draft');
             Route::post('/contracts/{contract}/disbursements', [LoanWorkspaceController::class, 'disburse'])->whereNumber('contract')->name('disbursements.store');
             Route::post('/contracts/{contract}/schedules', [LoanWorkspaceController::class, 'schedule'])->whereNumber('contract')->name('schedules.store');
+            Route::post('/contracts/{contract}/schedules/{schedule}/payments', [LoanWorkspaceController::class, 'payInstallment'])->whereNumber('contract')->whereNumber('schedule')->name('installments.pay');
             Route::post('/contracts/{contract}/payments', [LoanWorkspaceController::class, 'pay'])->whereNumber('contract')->name('payments.store');
             Route::post('/contracts/{contract}/insurance', [LoanInsuranceController::class, 'storePolicy'])->whereNumber('contract')->name('insurance.store');
             Route::post('/insurance/{policy}/premiums', [LoanInsuranceController::class, 'storePremium'])->whereNumber('policy')->name('premiums.store');
