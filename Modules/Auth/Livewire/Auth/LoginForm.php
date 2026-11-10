@@ -41,6 +41,7 @@ class LoginForm extends Component
         LoginPresentationService $presentation,
         string $guard = 'web',
         string $variant = 'default',
+        ?string $pwaLogoUrl = null,
     ): void {
         $this->guard = in_array($guard, ['web', 'admin'], true) ? $guard : 'web';
         $this->variant = in_array($variant, ['default', 'pwa'], true) ? $variant : 'default';
@@ -61,7 +62,7 @@ class LoginForm extends Component
             'description' => $this->login_description,
         ]);
 
-        $this->logo = $this->presentation['logo_url'];
+        $this->logo = $this->variant === 'pwa' ? ($pwaLogoUrl ?? '') : $this->presentation['logo_url'];
         $this->login_name_line_1 = $this->presentation['title_line_1'];
         $this->login_name_line_2 = $this->presentation['title_line_2'];
         $this->login_description = $this->presentation['description'];
