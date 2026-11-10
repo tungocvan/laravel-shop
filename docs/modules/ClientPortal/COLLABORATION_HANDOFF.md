@@ -1,3 +1,11 @@
+## 2026-11-10 — PR #376 pre-merge acceptance
+
+- User confirmed **focused TEST PASS, regression TEST PASS, and UI PASS** after the latest Pharma Hub overview/capability heading changes. Confirmation is from user's local test and manual UI, not an independent GitHub CI run.
+- PR: https://github.com/tungocvan/laravel-shop/pull/376. Diff reviewed: 7 files; settings validation, persisted presentation, Pharma Hub Blade, admin controls, tests and handoff. GitHub reported mergeable on review; recheck after this documentation commit.
+- Scope excludes permission, route, feature list, database schema and production deployment. No local untracked files are touched.
+
+---
+
 ## 2026-11-10 — Vietnamese managed Pharma capability headings
 
 - User confirmed prior focused/regression TEST PASS and UI PASS for Pharma overview panel; requested removal of remaining hardcoded `Capability của bạn` and `Chọn workspace` labels.
