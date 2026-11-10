@@ -31,3 +31,11 @@ Branch: `feat/loan-management-pwa-20261110`
 - PWA overview has collapsible action forms and subtle slate-200 borders on text/number/select fields; desktop/iPhone UI NOT YET VERIFIED.
 - Added LoanManagementTransactionsContractTest (static contract; business DB tests still required).
 - No new migration; no production action. Do not merge without user UI PASS and regression.
+
+## Batch 4 — insurance + demo seed checkpoint (pending tests)
+- Domain `LoanInsuranceService`: policy creation, premium schedule, partial/full premium payments, status by due date, expiry warning within 30 days. Never assumes insurance is mandatory: `requirement` is explicit contractual/voluntary/unverified.
+- PWA controller routes enforce `client.loans.insurance.manage`; read UI guarded by `client.loans.insurance.view`. Uses ClientPortal existing application and presentation.
+- Insurance panels and forms use thin `border-slate-200` input borders. Real desktop/iPhone UI PASS still pending.
+- Opt-in `LoanManagementDemoSeeder` runs only in local/testing; deterministic contract number, no overwrites on rerun. **Do not run until after tests and user confirms demo data may be inserted into local DB.**
+- Focused `LoanManagementInsuranceContractTest` added; no tests executed by assistant. Tests are static contracts, NOT integration/financial DB test coverage. Business DB integration tests remain a mandatory gate before merge.
+- No schema changes or production actions; no PR or merge.
