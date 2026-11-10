@@ -148,7 +148,7 @@ final class LoanContractService
             ->join('loan_lenders as l', 'l.id', '=', 'c.lender_id')
             ->leftJoinSub($disbursementTotals, 'd', 'd.loan_contract_id', '=', 'c.id')
             ->leftJoinSub($repaymentTotals, 'p', 'p.loan_contract_id', '=', 'c.id')
-            ->selectRaw("l.type as lender_type, COUNT(*) as contract_count, SUM(GREATEST(COALESCE(d.disbursed, 0) - COALESCE(p.repaid, 0), 0)) as outstanding")
+            ->selectRaw("l.type as lender_type, COUNT(*) as contract_count, SUM(CASE WHEN COALESCE(d.disbursed, 0) > COALESCE(p.repaid, 0) THEN COALESCE(d.disbursed, 0) - COALESCE(p.repaid, 0) ELSE 0 END) as outstanding")
             ->groupBy('l.type')
             ->get()
             ->keyBy('lender_type');
