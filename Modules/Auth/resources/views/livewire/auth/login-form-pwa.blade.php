@@ -1,8 +1,10 @@
 <div class="w-full">
     <div class="mb-7 text-center">
-        <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-slate-200">
-            <img src="{{ $logo ?: asset('storage/logo.png') }}" class="h-full w-full object-contain p-2" alt="INAFO">
-        </div>
+        @if(filled($logo))
+            <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-3xl bg-white shadow-xl ring-1 ring-slate-200">
+                <img src="{{ $logo }}" class="h-full w-full object-contain p-2" alt="Logo Client Portal">
+            </div>
+        @endif
         <p class="text-xs font-bold uppercase tracking-[0.28em] text-slate-400">INAFO Client Portal</p>
         <h1 class="mt-2 text-3xl font-black tracking-tight text-slate-950">Chào mừng trở lại</h1>
         <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">Đăng nhập để mở các ứng dụng, dữ liệu và công cụ đã được cấp cho tài khoản của bạn.</p>

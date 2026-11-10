@@ -13,6 +13,7 @@ return [
     ],
 
     'login' => [
+        'logo_path' => null,
         'badge' => 'INAFO · Progressive Web App',
         'heading' => 'Một nơi để mở tất cả ứng dụng công việc của bạn.',
         'description' => 'Tra cứu, đồng bộ dữ liệu, quản lý danh sách quan tâm, lập bảng giá và sử dụng các ứng dụng được cấp quyền ngay trên điện thoại.',

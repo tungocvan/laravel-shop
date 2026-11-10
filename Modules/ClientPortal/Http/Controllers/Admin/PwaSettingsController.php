@@ -5,6 +5,8 @@ namespace Modules\ClientPortal\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\File;
 use Illuminate\View\View;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
@@ -112,6 +114,26 @@ class PwaSettingsController extends Controller
         ])->values()->all();
         $settings->updatePwaLogin($validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật nội dung giao diện đăng nhập PWA.');
+    }
+
+    public function updateLoginLogo(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $validated = $request->validate([
+            'logo' => ['nullable', File::image()->types(['png', 'jpg', 'jpeg', 'webp'])->max('2mb')],
+            'remove_logo' => ['nullable', 'boolean'],
+        ]);
+        $remove = (bool) ($validated['remove_logo'] ?? false);
+        if (! $remove && ! $request->hasFile('logo')) {
+            return back()->withErrors(['logo' => 'Vui lòng chọn ảnh hoặc chọn xóa logo.']);
+        }
+
+        $oldPath = $settings->pwaLogin()['logo_path'] ?? null;
+        $newPath = $remove ? null : $request->file('logo')->store('clientportal/login-logos', 'public');
+        $settings->updatePwaLogin(['logo_path' => $newPath], $request->user('admin')?->getAuthIdentifier());
+        if (is_string($oldPath) && str_starts_with($oldPath, 'clientportal/login-logos/') && $oldPath !== $newPath) {
+            Storage::disk('public')->delete($oldPath);
+        }
+        return back()->with('success', $remove ? 'Đã xóa logo Login PWA.' : 'Đã cập nhật logo Login PWA.');
     }
 
     public function updateLauncher(Request $request, ClientPortalSettingsService $settings): RedirectResponse

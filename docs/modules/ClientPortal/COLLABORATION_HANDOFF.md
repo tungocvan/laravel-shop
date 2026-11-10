@@ -1,3 +1,12 @@
+## 2026-11-10 — Optional ClientPortal Login PWA logo checkpoint
+
+- Branch `feat/clientportal-pwa-login-logo-20261110` from `main`. Admin `/admin/client-apps/pwa` now has a separate guarded upload/remove form for the Login PWA logo. PNG/JPG/WebP only, max 2 MB, stored on public disk under `clientportal/login-logos/`; `pwa.login.logo_path` is persisted through existing ClientPortalSettingsService. No migration.
+- `/my-apps/login` passes the resolved optional logo URL into the Auth Livewire PWA variant. Auth remains canonical owner of login/session and has no ClientPortal service dependency. The PWA variant no longer falls back to the system logo or PWA icon; without a valid stored logo it renders no image/container. Non-PWA login is unchanged.
+- Checkpoint tests **NOT RUN**: focused `tests/Feature/ClientApps/ClientPortalPwaLoginLogoContractTest.php`; regression `tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php` and `tests/Feature/ClientApps/ClientPwaFoundationTest.php`. UI **NOT VERIFIED**: upload, refresh, delete, invalid file, mobile/desktop, Auth login/Google. Verify `public/storage` public-disk URL delivery on target environment; no production operations authorized.
+- No PR/merge/deploy until focused + impacted regression PASS and user confirms UI PASS.
+
+---
+
 ## 2026-11-09 — Pharma Excel Designer JSON import modal checkpoint
 
 - Added ClientPortal-only JSON upload/preview/confirm alongside existing Livewire Excel Designer JSON export. Reuses ClientPortal profile controller and existing owner-guarded Pharma profile service; Admin Designer remains unchanged.
