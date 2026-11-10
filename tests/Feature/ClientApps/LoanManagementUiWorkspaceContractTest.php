@@ -21,6 +21,23 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_lender_dashboard_and_whole_vnd_installment_fields_preserve_server_validation(): void
+    {
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanContractService.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
+
+        $this->assertStringContainsString("lenderTypeSummary", $dashboard);
+        $this->assertStringContainsString("data-loan-lender-summary", $dashboard);
+        $this->assertStringContainsString("leftJoinSub(", $service);
+        $this->assertStringContainsString("data-max-amount", $history);
+        $this->assertStringContainsString('inputmode="numeric"', $history);
+        $this->assertStringContainsString("moneyInputs.forEach", $dashboard);
+        $this->assertStringContainsString("Number.isSafeInteger", $dashboard);
+        $this->assertStringContainsString("'decimal:0,2'", $controller);
+    }
+
     public function test_priority_contract_actions_appear_before_repayment_schedule(): void
     {
         $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
