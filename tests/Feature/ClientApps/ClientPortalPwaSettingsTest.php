@@ -201,7 +201,8 @@ class ClientPortalPwaSettingsTest extends TestCase
         $this->assertStringContainsString("@if(\$hubPresentation['overview_visible'] ?? true)", $view);
         $this->assertStringNotContainsString('<h2 class="mt-1 text-lg font-black text-slate-950">Workspace được cấp quyền</h2>', $view);
         $this->assertSame('Workspace được cấp quyền', app(ClientPortalSettingsService::class)->applicationHubPresentation(app(ApplicationRegistry::class)->find('pharma'))['overview_title']);
-        $this->assertStringContainsString('Chọn workspace', $view);
+        $this->assertStringContainsString("{{ \$hubPresentation['capabilities_title'] }}", $view);
+        $this->assertStringContainsString("{{ \$hubPresentation['capabilities_eyebrow'] }}", $view);
         $this->assertStringContainsString('Mở chức năng', $view);
         $this->assertStringContainsString("active:scale-[0.985]", $view);
         $this->assertStringContainsString("motion-reduce:transition-none", $view);
