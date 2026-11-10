@@ -59,3 +59,16 @@ Branch: `feat/loan-management-pwa-20261110`
 - Fixed seeder path from `database/seeders` to `Database/Seeders` (case-sensitive PSR-4). No seeder execution, no business data mutation.
 - BCMath is a **required PHP CLI extension** for exact financial arithmetic; do not replace with floating-point operations. Operator must inspect CLI `extension_loaded('bcmath')`, and enable/install extension in the appropriate local PHP runtime before rerunning tests. Do not mutate production PHP/container services without separate approval.
 - User reported 11 static contract tests PASS (77 assertions); integration tests remain FAIL until rerun after BCMath is available.
+
+## Batch 6 user checkpoint — PASS
+- User installed PHP 8.4 BCMath locally; `BCMATH=YES`.
+- User confirmed SQLite business integration: 5 tests PASS (25 assertions); after PSR-4 path contract correction, user confirmed focused and LoanManagement regression PASS (two tiers). No independent CI execution claimed.
+- Local `APP_ENV=local` and configured DB `db_laravel_shop` observed, but database safety/permission to insert sample records has NOT been confirmed. Do not run seeder without explicit approval for that DB.
+
+## Batch 7 — full demo seeder (awaiting user Git Pull / Test)
+- User approved eight illustrative scenarios: 3 individual lenders, 2 company lenders, 3 credit-institution lenders; four contracts with insurance and four without.
+- Seeder remains opt-in, local/testing only; stable per-contract `DEMO-LOAN-20261110-01..08` identifiers, skips existing contracts, never truncates/deletes/overwrites. One DB transaction per run. No new migration, route, permission, PWA UI or production changes.
+- Scenario coverage: draft/no disbursement; active/partial and fully disbursed; multiple repayment installments; overdue schedules; fully repaid/closed example; insurance types loan/life/collateral, requirement contractual/voluntary/unverified, premium unpaid/partial/paid, expiring insurance.
+- Fixed calendar dates are for reproducibility; actual overdue/expiring badges depend on current date. Status closed is illustrative and NOT proof of accounting reconciliation or automatic closure logic.
+- Extended isolated SQLite integration tests for 8-contract matrix, counts, financial bounds, insurance variants, idempotency and protection of unrelated records. Existing insurance contract regression remains in scope.
+- **Tests not executed by assistant.** Focused test first; module regression only after PASS; UI PASS still pending. No seeding, PR, merge or deploy authorized.
