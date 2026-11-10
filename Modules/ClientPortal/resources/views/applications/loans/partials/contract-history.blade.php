@@ -35,6 +35,42 @@
             <h3 class="text-sm font-semibold">Lịch trả nợ · {{ count($schedules) }} kỳ</h3>
             <span class="text-xs text-slate-500">Thanh toán trực tiếp tại kỳ cần trả</span>
         </div>
+
+        @can('client.loans.contracts.edit')
+            @php
+                $reminder = $loanReminderSettings[$contract->id] ?? null;
+                $selectedOffsets = $reminder ? (json_decode($reminder->days_before, true) ?: []) : [7, 5, 2, 0];
+            @endphp
+            <details class="mt-3 rounded-xl border border-slate-200 p-3">
+                <summary class="cursor-pointer text-sm font-semibold text-blue-700">Thiết lập nhắc hẹn qua Email {{ $reminder && $reminder->enabled ? '· Đang bật' : '· Chưa bật' }}</summary>
+                <form method="POST" action="{{ route('client.loans.reminders.update', $contract->id) }}" class="mt-3 grid gap-3">
+                    @csrf
+                    @method('PUT')
+                    <label class="text-sm">Trạng thái
+                        <select name="enabled" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3">
+                            <option value="0" @selected(!$reminder || !$reminder->enabled)>Tắt nhắc hẹn</option>
+                            <option value="1" @selected($reminder && $reminder->enabled)>Bật nhắc hẹn</option>
+                        </select>
+                    </label>
+                    <label class="text-sm">Email nhận nhắc hẹn
+                        <input type="email" name="recipient_email" value="{{ old('recipient_email', $reminder->recipient_email ?? auth()->user()?->email) }}" maxlength="255" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3">
+                    </label>
+                    <fieldset class="rounded-xl border border-slate-200 p-3">
+                        <legend class="px-1 text-sm font-medium">Thời điểm gửi trước ngày đến hạn</legend>
+                        <div class="mt-2 flex flex-wrap gap-4">
+                            @foreach([7 => '7 ngày', 5 => '5 ngày', 2 => '2 ngày', 0 => 'Đúng ngày đến hạn'] as $offset => $label)
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="days_before[]" value="{{ $offset }}" @checked(in_array($offset, $selectedOffsets, true))>
+                                    {{ $label }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </fieldset>
+                    <p class="text-xs text-slate-500">Chỉ nhắc các kỳ chưa thanh toán hết. Thiết lập không tự gửi email cho đến khi dịch vụ gửi được quản trị viên kích hoạt.</p>
+                    <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Lưu nhắc hẹn</button>
+                </form>
+            </details>
+        @endcan
         @forelse($schedules as $item)
             @php
                 $allocation = $installmentAllocations[$item->id] ?? null;
@@ -63,7 +99,7 @@
                             <summary class="cursor-pointer text-sm font-semibold text-blue-700">Thanh toán kỳ {{ $item->installment }}</summary>
                             <form method="POST" action="{{ route('client.loans.installments.pay', [$contract->id, $item->id]) }}" class="mt-3 grid gap-3 sm:grid-cols-2" data-loan-installment-form>
                                 @csrf
-                                <label class="text-sm">Ngày thực trả<x-pwa-date name="paid_at" required /></label>
+                                <label class="text-sm">Ngày thực trả<x-pwa-date name="paid_at" :value="old('paid_at', $item->due_at)" required /></label>
                                 <label class="text-sm">Tham chiếu<input name="reference" maxlength="255" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
                                 @foreach(['principal_paid' => ['Gốc', $remainingPrincipal], 'interest_paid' => ['Lãi', $remainingInterest], 'fees_paid' => ['Phí', $remainingFees]] as $field => [$label, $remaining])
                                     <label class="text-sm">{{ $label }} trả kỳ này (VND)<input name="{{ $field }}" type="number" min="0" max="{{ number_format($remaining, 2, '.', '') }}" step="0.01" value="{{ number_format($remaining, 2, '.', '') }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
