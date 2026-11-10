@@ -9,11 +9,12 @@ use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanInsuranceService;
+use Modules\LoanManagement\Services\LoanInstallmentPaymentService;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 
 final class LoanApplicationController extends Controller
 {
-    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance, LoanContractHistoryService $history): View
+    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance, LoanContractHistoryService $history, LoanInstallmentPaymentService $installments): View
     {
         $application = $registry->find('loans');
         abort_unless(is_array($application), 404);
@@ -50,13 +51,17 @@ final class LoanApplicationController extends Controller
                 && ($filters['search'] === '' || mb_stripos($contract->contract_number.' '.$contract->lender_name, $filters['search']) !== false);
         })->values();
 
+        $loanHistory = $history->forContracts($visibleContracts->pluck('id')->all());
+        $scheduleIds = collect($loanHistory['schedules'])->flatMap(static fn ($rows) => $rows->pluck('id'))->all();
+
         return view('ClientPortal::applications.loans.dashboard', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'overviewPresentation' => $presentation,
             'loanData' => $loanData,
             'visibleContracts' => $visibleContracts,
-            'loanHistory' => $history->forContracts($visibleContracts->pluck('id')->all()),
+            'loanHistory' => $loanHistory,
+            'installmentAllocations' => $installments->forSchedules($scheduleIds),
             'loanFilters' => $filters,
             'insuranceData' => $insurance->overview(),
             'insuredContractIds' => $insuredContractIds,
