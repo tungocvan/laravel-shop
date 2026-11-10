@@ -22,8 +22,21 @@ final class PharmaMedicineAwardPreferenceController extends Controller
         $data = $request->validate([
             'origin' => ['required', Rule::in(['canonical', 'public_tender'])],
             'record_id' => ['required', 'integer', 'min:1'],
-            'action' => ['required', Rule::in(['default', 'hide', 'restore'])],
+            'action' => ['required', Rule::in(['default', 'hide', 'restore', 'validity'])],
+            'tender_validity_text' => ['nullable', 'string', 'max:255'],
         ]);
+
+        if ($data['action'] === 'validity') {
+            $value = trim($data['tender_validity_text'] ?? '');
+            $preferences->updateTenderValidity(
+                $medicine,
+                $data['origin'],
+                (int) $data['record_id'],
+                $value !== '' ? $value : null,
+            );
+
+            return back()->with('success', 'Đã cập nhật hiệu lực thời gian thầu (nhập thủ công).');
+        }
 
         $preferences->update($medicine, $data['origin'], (int) $data['record_id'], $data['action']);
 
