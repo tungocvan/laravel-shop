@@ -38,6 +38,9 @@ final class LoanApplicationController extends Controller
             }
         }
         $insuredContractIds = \Illuminate\Support\Facades\DB::table('loan_insurance_policies')->pluck('loan_contract_id')->all();
+        $relatedContractIds = collect(['loan_disbursements', 'loan_repayment_schedules', 'loan_payments', 'loan_insurance_policies'])
+            ->flatMap(static fn (string $table) => \Illuminate\Support\Facades\DB::table($table)->distinct()->pluck('loan_contract_id'))
+            ->unique()->all();
         $visibleContracts = $loanData['contracts']->filter(static function ($contract) use ($filters, $insuredContractIds): bool {
             $hasInsurance = in_array($contract->id, $insuredContractIds);
             return ($filters['type'] === 'all' || $contract->lender_type === $filters['type'])
@@ -55,6 +58,7 @@ final class LoanApplicationController extends Controller
             'loanFilters' => $filters,
             'insuranceData' => $insurance->overview(),
             'insuredContractIds' => $insuredContractIds,
+            'relatedContractIds' => $relatedContractIds,
         ]);
     }
 }
