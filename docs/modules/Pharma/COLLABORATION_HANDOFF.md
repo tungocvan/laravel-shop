@@ -1,3 +1,15 @@
+## 2026-11-10 — Award default / hide / restore for configured Medicine Excel (CHECKPOINT)
+
+- Approved scope: per-medicine award selection in ClientPortal product detail and configured Excel Designer Medicine Master exports only; no impact on inventory, price list, commissions, source sync or import template.
+- Added migration `2026_11_10_000000_create_pharma_medicine_award_preferences_table.php` (per-medicine origin + record ID, default and hidden flags; source tables unchanged). **Do not run migration on production without explicit permission and production workflow.**
+- `MedicineAwardPreferenceService`: validates canonical `DrugBidAward` or active `MedicineSource(public_tender/award_price)` ownership, locks medicine row in transaction to serialize default changes, supports `default`, `hide`, `restore`; never deletes source data.
+- ClientPortal `products.award-preferences.update` POST requires `client.pharma.products.edit`; product detail shows default/hide controls and a collapsible restore list for authorized users. Default is sorted first.
+- `MedicineExcelRelatedDataService::preview()` resolves selected canonical/public award for all award columns; fallback when no valid default is latest non-hidden canonical award, not cheapest/highest; public source has no allocation or contract period, leave empty. Both `MedicineConfiguredExcelExporter` (ClientPortal) and `MedicineExcelController` (Admin) already use this shared service. The Excel import template is unchanged.
+- Added `PharmaMedicineAwardPreferenceContractTest`, updated `PharmaPublicAwardCatalogContractTest`. Tests not executed by assistant; focused + impacted tests and UI pending. Local DB migration must be reviewed/run only in the approved development environment after test checkpoint. Check default 6900 public source Excel, hidden canonical fallback, restore, permissions, desktop/mobile and Excel values.
+- No PR, merge or production deploy authorized. Preserve untracked files and do not use worktrees.
+
+---
+
 ## 2026-11-10 — Product detail HTTP 500 for array-valued public award fields
 
 - User screenshot: `GET /apps/pharma/products/139` HTTP 500, `htmlspecialchars(): Argument #1 ($string) must be of type string, array given`, `product-show.blade.php:124`.
