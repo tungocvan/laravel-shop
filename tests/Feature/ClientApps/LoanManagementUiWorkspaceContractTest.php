@@ -159,9 +159,14 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
     public function test_workspace_preserves_transaction_and_insurance_actions(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        foreach (['lenders.store','contracts.store','contracts.update','disbursements.store','schedules.store','payments.store','insurance.store','premiums.store','premiums.pay'] as $name) {
+        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        foreach (['lenders.store', 'contracts.store', 'schedules.store', 'payments.store', 'insurance.store', 'premiums.store', 'premiums.pay'] as $name) {
             $this->assertStringContainsString('client.loans.'.$name, $blade);
         }
+        foreach (['contracts.update', 'disbursements.store'] as $name) {
+            $this->assertStringContainsString('client.loans.'.$name, $history);
+        }
+        $this->assertStringContainsString("partials.contract-history", $blade);
         $this->assertStringContainsString("client.loans.contracts.create", $blade);
         $this->assertStringContainsString("client.loans.insurance.view", $blade);
         $this->assertStringContainsString('<x-pwa-date', $blade);
