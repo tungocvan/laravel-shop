@@ -21,6 +21,20 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_priority_contract_actions_appear_before_repayment_schedule(): void
+    {
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+
+        $this->assertStringContainsString('data-loan-priority-actions', $history);
+        $this->assertStringContainsString('client.loans.disbursements.store', $history);
+        $this->assertStringContainsString('client.loans.contracts.update', $history);
+        $this->assertStringContainsString('Sửa hợp đồng nháp', $history);
+        $this->assertTrue(strpos($history, 'data-loan-priority-actions') < strpos($history, 'id="loan-installments-'));
+        $this->assertStringNotContainsString('client.loans.disbursements.store', $dashboard);
+        $this->assertStringNotContainsString('client.loans.contracts.update', $dashboard);
+    }
+
     public function test_reminder_ui_warns_when_global_dispatch_is_missing_or_disabled(): void
     {
         $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
