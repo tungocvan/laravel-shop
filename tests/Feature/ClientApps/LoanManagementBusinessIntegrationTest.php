@@ -72,6 +72,16 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     }
 
 
+    public function test_recipient_migration_can_resume_without_dropping_existing_data(): void
+    {
+        $migration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000004_add_loan_reminder_recipients.php');
+        $migration->up();
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasTable('loan_reminder_recipients'));
+        $indexes = collect(\Illuminate\Support\Facades\Schema::getIndexes('loan_reminder_deliveries'));
+        $this->assertTrue($indexes->contains(fn (array $index): bool => $index['name'] === 'loan_reminder_delivery_recipient_uq'));
+        $this->assertFalse($indexes->contains(fn (array $index): bool => $index['name'] === 'loan_reminder_delivery_once_uq'));
+    }
+
     public function test_multiple_recipients_are_deduplicated_and_stale_overdue_jobs_are_skipped(): void
     {
         Queue::fake();
