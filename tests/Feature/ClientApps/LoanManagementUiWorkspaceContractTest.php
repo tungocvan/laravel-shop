@@ -21,6 +21,23 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_installment_due_date_defaults_and_reminder_settings_are_visible(): void
+    {
+        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php'));
+        $scheduler = file_get_contents(base_path('routes/console.php'));
+        $config = file_get_contents(base_path('config/loan_reminders.php'));
+        $this->assertStringContainsString("old('paid_at', \\$item->due_at)", $partial);
+        foreach (['Thiết lập nhắc hẹn qua Email', 'days_before[]', '7 ngày', '5 ngày', '2 ngày', 'Đúng ngày đến hạn'] as $fragment) {
+            $this->assertStringContainsString($fragment, $partial);
+        }
+        $this->assertStringContainsString('reminders.update', $routes);
+        $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
+        $this->assertStringContainsString('loans:dispatch-reminders', $scheduler);
+        $this->assertStringContainsString("'dispatch_enabled' => env('LOAN_REMINDERS_DISPATCH_ENABLED', false)", $config);
+    }
+
     public function test_installment_payment_action_is_permission_scoped_and_secondary_forms_are_collapsed(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
