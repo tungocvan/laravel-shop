@@ -72,6 +72,22 @@
     </details>
     @endif
     @endcan
+
+    @can('client.loans.insurance.manage')
+    <details class="mt-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+      <summary class="cursor-pointer text-sm font-semibold text-slate-800">Thêm bảo hiểm cho hợp đồng</summary>
+      <form method="POST" action="{{ route('client.loans.insurance.store', $contract->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf
+        <label class="text-sm">Loại bảo hiểm<select name="type" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"><option value="loan">Khoản vay</option><option value="life">Nhân thọ</option><option value="collateral">Tài sản bảo đảm</option><option value="other">Khác</option></select></label>
+        <label class="text-sm">Tính bắt buộc<select name="requirement" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"><option value="unverified">Chưa xác minh</option><option value="contractual">Theo hợp đồng</option><option value="voluntary">Tự nguyện</option></select></label>
+        <label class="text-sm">Nhà bảo hiểm<input name="provider" maxlength="255" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <label class="text-sm">Số hợp đồng bảo hiểm<input name="policy_number" maxlength="255" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <label class="text-sm">Bắt đầu<x-pwa-date name="starts_at" required /></label>
+        <label class="text-sm">Hết hạn<x-pwa-date name="ends_at" /></label>
+        <label class="text-sm">Số tiền được bảo hiểm (VND)<input name="insured_amount" type="number" min="0.01" step="0.01" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Lưu bảo hiểm</button>
+      </form>
+    </details>
+    @endcan
     @can('client.loans.contracts.edit')
     @if(in_array($contract->status, ['draft', 'active'], true))
     <details class="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
@@ -110,5 +126,35 @@
   @endforelse
   @if($loanData['contractCount'] > 100)<p class="mt-3 text-sm">Hiển thị 100 hợp đồng mới nhất.</p>@endif
  </section>
+ @can('client.loans.insurance.view')
+ <section class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+  <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="text-lg font-semibold text-slate-900">Bảo hiểm khoản vay</h2><p class="text-xs text-slate-500">Theo dõi hiệu lực và phí bảo hiểm</p></div>
+  @forelse($insuranceData['policies'] as $policy)
+   <article class="mt-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+    <div class="flex flex-wrap justify-between gap-2"><div><strong>{{ $policy->provider }} · {{ $policy->policy_number }}</strong><p class="text-sm text-slate-600">{{ $policy->contract_number }} · {{ ['loan'=>'Khoản vay','life'=>'Nhân thọ','collateral'=>'Tài sản bảo đảm','other'=>'Khác'][$policy->type] ?? $policy->type }}</p></div><span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">{{ ['expired'=>'Đã hết hạn','expiring'=>'Sắp hết hạn','valid'=>'Còn hiệu lực theo ngày','unknown'=>'Chưa có ngày hết hạn'][$policy->expiry_status] ?? $policy->expiry_status }}</span></div>
+    <p class="mt-2 text-xs text-slate-600">Tính bắt buộc: {{ ['contractual'=>'Theo hợp đồng','voluntary'=>'Tự nguyện','unverified'=>'Chưa xác minh'][$policy->requirement] ?? $policy->requirement }} · Hết hạn: {{ $policy->ends_at ?? 'Chưa xác định' }}</p>
+    <div class="mt-3 space-y-2">
+     @foreach($policy->premiums as $premium)
+      <div class="rounded-xl border border-slate-100 bg-white p-3 text-sm">
+       <p class="font-medium">Đến hạn {{ $premium->due_at }} · {{ ['paid'=>'Đã thanh toán','overdue'=>'Quá hạn','pending'=>'Chưa thanh toán'][$premium->payment_status] ?? $premium->payment_status }}</p>
+       <p class="text-slate-600">Phải đóng: {{ number_format((float)$premium->amount_due, 0, ',', '.') }} VND · Đã đóng: {{ number_format((float)$premium->amount_paid, 0, ',', '.') }} VND</p>
+       @can('client.loans.insurance.manage')
+       @if($premium->payment_status !== 'paid')
+       <details class="mt-2"><summary class="cursor-pointer text-sm font-medium">Ghi nhận đóng phí</summary><form method="POST" action="{{ route('client.loans.premiums.pay', $premium->id) }}" class="mt-2 grid gap-2 sm:grid-cols-2">@csrf<label class="text-sm">Ngày đóng<x-pwa-date name="paid_at" required /></label><label class="text-sm">Số tiền (VND)<input name="amount" type="number" step="0.01" min="0.01" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label><button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Lưu thanh toán phí</button></form></details>
+       @endif
+       @endcan
+      </div>
+     @endforeach
+    </div>
+    @can('client.loans.insurance.manage')
+    <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold">Thêm kỳ đóng phí</summary><form method="POST" action="{{ route('client.loans.premiums.store', $policy->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf<label class="text-sm">Ngày đến hạn<x-pwa-date name="due_at" required /></label><label class="text-sm">Phí phải đóng (VND)<input name="amount_due" type="number" min="0.01" step="0.01" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label><button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Lưu kỳ phí</button></form></details>
+    @endcan
+   </article>
+  @empty
+   <p class="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Chưa có bảo hiểm cho các khoản vay.</p>
+  @endforelse
+ </section>
+ @endcan
+
 </div>
 @endsection
