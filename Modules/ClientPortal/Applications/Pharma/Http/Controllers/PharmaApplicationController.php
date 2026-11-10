@@ -695,6 +695,7 @@ final class PharmaApplicationController extends Controller
             'medicine' => $overview['medicine'],
             'profile' => $overview['profile'],
             'awards' => $overview['awards'],
+            'publicAwardSources' => $overview['public_award_sources'],
             'suppliers' => $overview['suppliers'],
             'supplierPricingVisible' => $overview['supplier_pricing_visible'],
         ]);
@@ -767,8 +768,8 @@ final class PharmaApplicationController extends Controller
                 ->when(filled($validated['group'] ?? null), fn ($query) => $query->where('circular_group', $validated['group']))
                 ->when(($validated['special_control'] ?? null) === 'yes', fn ($query) => $query->where('is_special_control', true))
                 ->when(($validated['special_control'] ?? null) === 'no', fn ($query) => $query->where('is_special_control', false))
-                ->when(($validated['filter'] ?? null) === 'awarded' || ($validated['bid_award'] ?? null) === 'with', fn ($query) => $query->whereHas('drugBidAwards'))
-                ->when(($validated['bid_award'] ?? null) === 'without', fn ($query) => $query->whereDoesntHave('drugBidAwards'))
+                ->when(($validated['filter'] ?? null) === 'awarded' || ($validated['bid_award'] ?? null) === 'with', fn ($query) => $query->where(fn ($q) => $q->whereHas('drugBidAwards')->orWhereHas('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true))))
+                ->when(($validated['bid_award'] ?? null) === 'without', fn ($query) => $query->whereDoesntHave('drugBidAwards')->whereDoesntHave('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true)))
                 ->when(($validated['filter'] ?? null) === 'profile' || ($validated['hssp'] ?? null) === 'with', fn ($query) => $query->whereHas('currentProfile'))
                 ->when(($validated['hssp'] ?? null) === 'without', fn ($query) => $query->whereDoesntHave('currentProfile'))
                 ->when((($validated['filter'] ?? null) === 'supplier-priced' || ($validated['supplier_price'] ?? null) === 'with') && $canViewSupplierPricing, fn ($query) => $query->whereHas('supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
