@@ -168,7 +168,7 @@ final class MedicineConfiguredExcelExporter
             foreach ($columns as $i => $key) {
                 $cell = Coordinate::stringFromColumnIndex($i + 1).$dataRow;
                 $value = $values[$key] ?? '';
-                if (in_array($key, ['stt', 'declared_price', 'selling_price', 'cost_price', 'winning_price', 'allocated_quantity'], true) && is_numeric($value)) {
+                if (in_array($key, ['stt', 'declared_price', 'selling_price', 'cost_price', 'winning_price', 'winning_quantity', 'allocated_quantity'], true) && is_numeric($value)) {
                     $sheet->setCellValue($cell, (float) $value);
                     if ($key !== 'stt') $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
                 } else {
