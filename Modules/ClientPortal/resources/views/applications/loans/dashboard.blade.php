@@ -351,8 +351,8 @@
         const moneyInputs = fields.map(key => form.elements.namedItem(key)).filter(Boolean);
         const formatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
         const parseVnd = value => {
-            const digits = String(value).replace(/\\./g, '').replace(/\\s/g, '');
-            return /^\\d+$/.test(digits) ? Number(digits) : NaN;
+            const digits = String(value).replace(/\./g, '').replace(/\s/g, '');
+            return /^\d+$/.test(digits) ? Number(digits) : NaN;
         };
         moneyInputs.forEach(input => {
             input.addEventListener('focus', () => { input.value = input.value.replace(/\\./g, ''); });
