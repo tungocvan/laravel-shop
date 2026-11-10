@@ -7,12 +7,13 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\LoanManagement\Services\LoanContractService;
+use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanInsuranceService;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 
 final class LoanApplicationController extends Controller
 {
-    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance): View
+    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance, LoanContractHistoryService $history): View
     {
         $application = $registry->find('loans');
         abort_unless(is_array($application), 404);
@@ -55,6 +56,7 @@ final class LoanApplicationController extends Controller
             'overviewPresentation' => $presentation,
             'loanData' => $loanData,
             'visibleContracts' => $visibleContracts,
+            'loanHistory' => $history->forContracts($visibleContracts->pluck('id')->all()),
             'loanFilters' => $filters,
             'insuranceData' => $insurance->overview(),
             'insuredContractIds' => $insuredContractIds,
