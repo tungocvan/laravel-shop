@@ -325,6 +325,39 @@
         previewSchedule();
     }
 
+    // Native DOM controls: independent of Alpine/Livewire hydration, scoped per contract.
+    document.querySelectorAll('[data-loan-reminder-emails]').forEach(editor => {
+        const list = editor.querySelector('[data-loan-email-list]');
+        const add = editor.querySelector('[data-loan-add-email]');
+        const sync = () => {
+            const rows = list.querySelectorAll('[data-loan-email-row]');
+            add.disabled = rows.length >= 10;
+            rows.forEach(row => {
+                const remove = row.querySelector('[data-loan-remove-email]');
+                remove.disabled = rows.length <= 1;
+                remove.classList.toggle('opacity-40', rows.length <= 1);
+            });
+        };
+        add.addEventListener('click', () => {
+            if (list.querySelectorAll('[data-loan-email-row]').length >= 10) return;
+            const template = list.querySelector('[data-loan-email-row]');
+            if (!template) return;
+            const row = template.cloneNode(true);
+            const input = row.querySelector('input[name="recipient_emails[]"]');
+            input.value = '';
+            list.appendChild(row);
+            sync();
+            input.focus();
+        });
+        list.addEventListener('click', event => {
+            const remove = event.target.closest('[data-loan-remove-email]');
+            if (!remove || list.querySelectorAll('[data-loan-email-row]').length <= 1) return;
+            remove.closest('[data-loan-email-row]').remove();
+            sync();
+        });
+        sync();
+    });
+
     document.querySelectorAll('[data-loan-installment-form]').forEach(form => {
         form.addEventListener('submit', event => {
             const fields = ['principal_paid', 'interest_paid', 'fees_paid'];
