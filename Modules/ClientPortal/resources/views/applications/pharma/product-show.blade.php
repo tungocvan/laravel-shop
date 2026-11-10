@@ -77,40 +77,62 @@
         @endif
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div class="mb-5"><p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">03 · Thầu</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trúng thầu gần đây</h2></div>
+    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" aria-label="Thông tin trúng thầu gần đây">
+        <div class="mb-5">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">03 · Thầu</p>
+            <h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trúng thầu gần đây</h2>
+            <p class="mt-2 text-sm text-slate-500">Bao gồm dữ liệu trúng thầu chính thức và nguồn công khai đã đồng bộ. Nguồn công khai chỉ để tham khảo, không thay đổi giá bán, giá nhập hoặc tồn kho.</p>
+        </div>
         @forelse($awards as $award)
-            <article class="grid gap-4 border-t border-slate-100 py-4 first:border-t-0 first:pt-0 sm:grid-cols-2 lg:grid-cols-4">
-                <div><p class="text-xs font-bold text-slate-400">TBMT</p><p class="mt-1 text-sm font-bold text-slate-800">{{ $award['bidding_notice_code'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Chủ đầu tư</p><p class="mt-1 text-sm text-slate-700">{{ $award['investor_name'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Quyết định</p><p class="mt-1 text-sm text-slate-700">{{ $award['decision_number'] ?: '—' }}@if($award['decision_date']) · {{ $award['decision_date']->format('d/m/Y') }}@endif</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Đơn giá trúng thầu</p><p class="mt-1 text-sm font-black tabular-nums text-slate-950">{{ $award['unit_price'] !== null ? number_format((float) $award['unit_price'], 0, ',', '.') : '—' }}</p></div>
-                <div class="sm:col-span-2"><p class="text-xs font-bold text-slate-400">Đơn vị trúng thầu</p><p class="mt-1 text-sm text-slate-700">{{ $award['winning_company_name'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Số lượng</p><p class="mt-1 text-sm text-slate-700">{{ $award['quantity'] !== null ? number_format((float) $award['quantity'], 0, ',', '.') : '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Lô</p><p class="mt-1 text-sm text-slate-700">{{ $award['lot_no'] ?: '—' }}</p></div>
+            @php $isPublic = ($award['origin'] ?? 'canonical') === 'public_tender'; @endphp
+            <article class="border-t border-slate-100 py-4 first:border-t-0 first:pt-0">
+                <div class="mb-3 flex flex-wrap items-center gap-2">
+                    <span class="rounded-full px-3 py-1 text-xs font-bold {{ $isPublic ? 'bg-cyan-50 text-cyan-800' : 'bg-slate-100 text-slate-700' }}">{{ $isPublic ? 'Nguồn công khai · Chưa xác minh nghiệp vụ' : 'Trúng thầu chính thức' }}</span>
+                    @if($isPublic && $award['synced_at'])
+                        <span class="text-xs text-slate-500">Đồng bộ {{ $award['synced_at']->format('d/m/Y H:i') }}</span>
+                    @endif
+                </div>
+                <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach([
+                        ['TBMT', $award['bidding_notice_code']],
+                        ['Chủ đầu tư / bên mời thầu', $award['investor_name']],
+                        ['Số quyết định', $award['decision_number']],
+                        ['Ngày quyết định', $award['decision_date']],
+                        ['Đơn giá trúng thầu', is_numeric($award['unit_price']) ? number_format((float) $award['unit_price'], 0, ',', '.') . ' đ' : null],
+                        ['Đơn vị trúng thầu', $award['winning_company_name']],
+                        ['Số lượng', is_numeric($award['quantity']) ? number_format((float) $award['quantity'], 0, ',', '.') : null],
+                        ['Lô', $award['lot_no']],
+                    ] as [$label, $value])
+                        <div class="min-w-0">
+                            <dt class="text-xs font-bold text-slate-500">{{ $label }}</dt>
+                            <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ filled($value) ? $value : '—' }}</dd>
+                        </div>
+                    @endforeach
+                    @if($isPublic)
+                        @foreach([
+                            ['Ngày đăng KQLCNT', $award['published_at']],
+                            ['Mã nhà thầu trúng', $award['winning_code']],
+                            ['Đơn vị tính', $award['unit']],
+                            ['Quy cách đóng gói', $award['packaging']],
+                            ['Cơ sở sản xuất', $award['manufacturer']],
+                            ['Nước sản xuất', $award['manufacturing_country']],
+                            ['GĐKLH / GPNK', $award['registration_number']],
+                            ['Mã bản ghi nguồn', $award['source_record_key']],
+                        ] as [$label, $value])
+                            <div class="min-w-0">
+                                <dt class="text-xs font-bold text-slate-500">{{ $label }}</dt>
+                                <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ filled($value) ? $value : '—' }}</dd>
+                            </div>
+                        @endforeach
+                        <div class="min-w-0">
+                            <dt class="text-xs font-bold text-slate-500">Trạng thái số đăng ký</dt>
+                            <dd class="mt-1 text-sm font-semibold text-slate-800">{{ $award['registration_verified'] ? 'Đã xác minh định dạng' : 'Cần kiểm tra' }}</dd>
+                        </div>
+                    @endif
+                </dl>
             </article>
         @empty
             <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có thông tin trúng thầu được liên kết với sản phẩm này.</p>
-        @endforelse
-    </section>
-
-    <section class="rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-6" aria-label="Giá trúng thầu từ nguồn công khai">
-        <div class="mb-4">
-            <p class="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">Nguồn tham khảo · Public tender</p>
-            <h2 class="mt-1 text-lg font-black text-slate-950">Giá trúng thầu từ nguồn công khai</h2>
-            <p class="mt-1 text-sm text-slate-500">Dữ liệu đã đồng bộ theo nguồn, chưa phải giá bán hoặc giá nhập của công ty.</p>
-        </div>
-        @forelse($publicAwardSources as $source)
-            <article class="grid gap-3 border-t border-slate-100 py-4 first:border-t-0 sm:grid-cols-2 lg:grid-cols-4">
-                <div><p class="text-xs font-bold text-slate-500">Mã bản ghi nguồn</p><p class="mt-1 break-all text-sm font-semibold text-slate-900">{{ $source['source_record_key'] }}</p></div>
-                <div><p class="text-xs font-bold text-slate-500">TBMT</p><p class="mt-1 text-sm text-slate-800">{{ $source['source_reference'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-500">Đơn giá từ nguồn</p><p class="mt-1 text-sm font-black tabular-nums text-slate-900">{{ is_numeric($source['unit_price']) ? number_format((float) $source['unit_price'], 0, ',', '.') . ' đ' : 'Chưa xác định' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-500">Đồng bộ lúc</p><p class="mt-1 text-sm text-slate-800">{{ $source['synced_at']?->format('d/m/Y H:i') ?: '—' }}</p></div>
-                <div class="sm:col-span-2"><p class="text-xs font-bold text-slate-500">Đơn vị trúng thầu</p><p class="mt-1 text-sm text-slate-800">{{ $source['winning_company_name'] ?: '—' }}</p></div>
-                <div class="sm:col-span-2"><p class="text-xs font-bold text-slate-500">Trạng thái định danh</p><p class="mt-1 text-sm text-slate-800">{{ $source['registration_verified'] ? 'Đã xác minh số đăng ký' : 'Cần kiểm tra số đăng ký' }}</p></div>
-            </article>
-        @empty
-            <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có nguồn giá trúng thầu công khai được liên kết.</p>
         @endforelse
     </section>
 
