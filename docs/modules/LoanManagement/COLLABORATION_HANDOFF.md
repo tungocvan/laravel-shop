@@ -53,3 +53,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Tests NOT run by assistant. If local PHP lacks `pdo_sqlite`, stop and report; do NOT switch tests to MySQL application database.
 - Demo seeder remains opt-in and must only run after focused/regression PASS, explicit user consent and verified `APP_ENV=local`; never on production. Demo is illustrative, not accounting evidence.
 - Existing Batch 5 UI remains pending real desktop/iPhone acceptance. No PR/merge/deploy.
+
+## Batch 6 debug — 2026-11-10
+- User ran 5 SQLite integration tests: all FAIL, 4 because PHP CLI BCMath functions `bccomp/bcadd` are unavailable; one because seeder PSR-4 directory case did not match `Modules\\LoanManagement\\Database\\Seeders`.
+- Fixed seeder path from `database/seeders` to `Database/Seeders` (case-sensitive PSR-4). No seeder execution, no business data mutation.
+- BCMath is a **required PHP CLI extension** for exact financial arithmetic; do not replace with floating-point operations. Operator must inspect CLI `extension_loaded('bcmath')`, and enable/install extension in the appropriate local PHP runtime before rerunning tests. Do not mutate production PHP/container services without separate approval.
+- User reported 11 static contract tests PASS (77 assertions); integration tests remain FAIL until rerun after BCMath is available.
