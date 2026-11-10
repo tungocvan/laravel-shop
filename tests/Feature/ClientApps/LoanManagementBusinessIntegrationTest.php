@@ -10,6 +10,9 @@ use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanTransactionService;
 use Modules\LoanManagement\Services\LoanInstallmentPaymentService;
+use Modules\LoanManagement\Services\LoanReminderService;
+use Illuminate\Support\Facades\Queue;
+use Modules\LoanManagement\Jobs\SendLoanReminder;
 use Modules\LoanManagement\Services\LoanScheduleGenerator;
 use Tests\TestCase;
 
@@ -38,6 +41,8 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $migration->up();
         $allocationsMigration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000002_create_loan_payment_allocations_table.php');
         $allocationsMigration->up();
+        $remindersMigration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000003_create_loan_reminders_tables.php');
+        $remindersMigration->up();
     }
 
     protected function tearDown(): void
@@ -61,6 +66,36 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'matures_at' => '2027-01-01', 'status' => 'draft',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+
+    public function test_opt_in_reminders_respect_offsets_partial_payment_and_deduplication(): void
+    {
+        Queue::fake();
+        $id = $this->contract('REMINDER-01');
+        $tx = app(LoanTransactionService::class);
+        $tx->disburse($id, ['amount' => '500.00', 'disbursed_at' => '2026-02-01']);
+        $tx->schedule($id, [
+            'installment' => 1, 'due_at' => '2026-06-10',
+            'principal_due' => '200.00', 'interest_due' => '20.00', 'fees_due' => '0.00',
+        ]);
+        $service = app(LoanReminderService::class);
+        $service->save($id, ['enabled' => true, 'recipient_email' => 'demo@example.test', 'days_before' => [7, 5, 2, 0]]);
+        $this->assertSame(1, $service->reserveDueReminders(\Carbon\CarbonImmutable::parse('2026-06-03')));
+        $this->assertSame(0, $service->reserveDueReminders(\Carbon\CarbonImmutable::parse('2026-06-03')));
+        Queue::assertPushed(SendLoanReminder::class, 1);
+        $scheduleId = (int) DB::table('loan_repayment_schedules')->where('loan_contract_id', $id)->value('id');
+        app(LoanInstallmentPaymentService::class)->record($id, $scheduleId, [
+            'paid_at' => '2026-06-04', 'principal_paid' => '100.00', 'interest_paid' => '20.00', 'fees_paid' => '0.00',
+        ]);
+        $this->assertSame(1, $service->reserveDueReminders(\Carbon\CarbonImmutable::parse('2026-06-05')));
+        app(LoanInstallmentPaymentService::class)->record($id, $scheduleId, [
+            'paid_at' => '2026-06-06', 'principal_paid' => '100.00', 'interest_paid' => '0.00', 'fees_paid' => '0.00',
+        ]);
+        $this->assertSame(0, $service->reserveDueReminders(\Carbon\CarbonImmutable::parse('2026-06-08')));
+        $this->assertSame(0, $service->reserveDueReminders(\Carbon\CarbonImmutable::parse('2026-06-10')));
+        $this->assertSame(2, DB::table('loan_reminder_deliveries')->count());
+        Queue::assertPushed(SendLoanReminder::class, 2);
     }
 
     public function test_installment_payment_allocates_partial_and_rejects_overpayment_atomically(): void
