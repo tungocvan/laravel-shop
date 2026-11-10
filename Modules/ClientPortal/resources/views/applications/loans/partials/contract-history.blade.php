@@ -77,7 +77,10 @@
                             @endforeach
                         </div>
                     </fieldset>
-                    <p class="text-xs text-slate-500">Chỉ nhắc các kỳ chưa thanh toán hết. Thiết lập không tự gửi email cho đến khi dịch vụ gửi được quản trị viên kích hoạt.</p>
+                    @if(!config('loan_reminders.dispatch_enabled', false))
+                        <p role="alert" class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">Dịch vụ gửi Email chưa kích hoạt. Quản trị viên cần khai báo LOAN_REMINDERS_DISPATCH_ENABLED=true trong cấu hình môi trường và xác minh Queue/Scheduler. Bật nhắc hẹn tại đây không tự sửa .env hoặc gửi Email.</p>
+                    @endif
+                    <p class="text-xs text-slate-500">Chỉ nhắc các kỳ chưa thanh toán hết. Khi chọn Tắt nhắc hẹn, các yêu cầu chưa gửi sẽ bị bỏ qua khi Worker kiểm tra lại.</p>
                     <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Lưu nhắc hẹn</button>
                 </form>
             </details>
