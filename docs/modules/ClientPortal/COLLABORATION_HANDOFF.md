@@ -1,3 +1,11 @@
+## 2026-11-10 — Focused regression contract alignment
+
+- User reported regression: `ClientPortalPwaSettingsTest::test_pharma_hub_is_capability_first_and_keeps_managed_copy_out_of_blade` failed at line 198 because it expected `Workspace được cấp quyền` literally inside the Pharma Hub Blade after moving that text to managed settings.
+- Updated test to assert managed `overview_*` Blade bindings and visibility, absence of the old hardcoded heading, and preservation of the original default through `ClientPortalSettingsService`.
+- No runtime/UI change in this follow-up. Focused and impacted tests **PENDING rerun**; stop on any failure. No PR/merge/deploy.
+
+---
+
 ## 2026-11-10 — Pharma Hub Overview configurable copy and visibility
 
 - Branch: `feat/clientportal-pharma-hub-overview-config-20261110` from latest `main`.
