@@ -68,7 +68,7 @@
  @endcan
 
  </section>
- <section class="loan-panel p-5 sm:p-6"><h2 class="text-lg font-semibold">Danh sách hợp đồng</h2>
+ <section id="loan-contracts" class="loan-panel scroll-mt-24 p-5 sm:p-6"><h2 class="text-lg font-semibold">Danh sách hợp đồng</h2>
   @forelse($loanData['contracts'] as $contract)
    <article class="mt-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4 sm:p-5">
     <div class="flex flex-wrap justify-between gap-2"><strong>{{ $contract->contract_number }} — {{ $contract->lender_name }}</strong><span>{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span></div>
