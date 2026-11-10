@@ -135,7 +135,7 @@
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div>
                             <p class="text-xs font-bold text-slate-500">Hiệu lực thời gian thầu</p>
-                            <p class="mt-1 break-words text-sm font-semibold text-slate-800">{{ $award['tender_validity_text'] ?: 'Chưa có thông tin' }}</p>
+                            <p class="mt-1 break-words text-sm font-semibold text-slate-800">{{ $award['tender_validity_text'] ?: ($award['contract_period_text'] ?: 'Chưa có thông tin') }}</p>
                             @if($award['tender_validity_text'])
                                 <p class="mt-1 text-xs text-amber-700">Nhập thủ công · Không phải dữ liệu xác nhận từ API</p>
                             @endif
