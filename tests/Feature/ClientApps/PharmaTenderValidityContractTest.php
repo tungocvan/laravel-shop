@@ -32,7 +32,7 @@ class PharmaTenderValidityContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/product-show.blade.php'));
         $excel = file_get_contents(base_path('Modules/Pharma/Services/MedicineExcelRelatedDataService.php'));
 
-        $this->assertStringContainsString("'tender_validity_text' ==", $catalog);
+        $this->assertStringContainsString("'tender_validity_text'] =", $catalog);
         $this->assertStringContainsString('Hiệu lực thời gian thầu', $view);
         $this->assertStringContainsString('data-validity-editor', $view);
         $this->assertStringContainsString('Nhập thủ công', $view);
