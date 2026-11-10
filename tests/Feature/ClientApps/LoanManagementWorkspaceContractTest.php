@@ -15,6 +15,8 @@ final class LoanManagementWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("Route::post('/lenders'", $routes);
         $this->assertStringContainsString("Route::post('/contracts'", $routes);
         $this->assertStringContainsString("Route::put('/contracts/{contract}'", $routes);
+        $this->assertStringContainsString("Route::delete('/contracts/{contract}'", $routes);
+        $this->assertStringContainsString("Route::patch('/contracts/{contract}/restore-draft'", $routes);
         $this->assertStringContainsString("can('client.loans.contracts.create')", $controller);
         $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
         $this->assertStringContainsString("Rule::unique('loan_contracts', 'contract_number')", $controller);
