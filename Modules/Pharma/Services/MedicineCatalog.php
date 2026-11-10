@@ -189,6 +189,7 @@ class MedicineCatalog
         $recentAwards = $recentAwards->map(function (array $award) use ($preferences): array {
             $preference = $preferences[$award['origin'].':'.$award['record_id']] ?? null;
             $award['is_hidden'] = (bool) ($preference?->is_hidden ?? false);
+            $award['tender_validity_text'] = $preference?->tender_validity_text ?? null;
             $award['is_default'] = (bool) ($preference?->is_default ?? false) && ! $award['is_hidden'];
 
             return $award;
