@@ -15,12 +15,13 @@
         </div>
     </section>
 
+    @if($hubPresentation['overview_visible'] ?? true)
     <section class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5" aria-label="Tổng quan capability Pharma">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div class="min-w-0">
-                <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Tổng quan</p>
-                <h2 class="mt-1 text-lg font-black text-slate-950">Workspace được cấp quyền</h2>
-                <p class="mt-1 text-sm leading-6 text-slate-500">Chọn một chức năng bên dưới để bắt đầu công việc. Danh sách tự động theo quyền Web của tài khoản.</p>
+                <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ $hubPresentation['overview_eyebrow'] }}</p>
+                <h2 class="mt-1 text-lg font-black text-slate-950">{{ $hubPresentation['overview_title'] }}</h2>
+                <p class="mt-1 text-sm leading-6 text-slate-500">{{ $hubPresentation['overview_description'] }}</p>
             </div>
             <div class="shrink-0 self-start rounded-2xl bg-slate-100 px-4 py-3 text-center sm:self-center">
                 <strong class="block text-2xl font-black leading-none text-slate-950">{{ $features->count() }}</strong>
@@ -28,6 +29,8 @@
             </div>
         </div>
     </section>
+
+    @endif
 
     <section aria-labelledby="pharma-capabilities-title">
         <div class="mb-3">
