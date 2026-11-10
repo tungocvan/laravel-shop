@@ -104,6 +104,18 @@ class PwaSettingsController extends Controller
     public function updateLogin(Request $request, ClientPortalSettingsService $settings): RedirectResponse
     {
         $validated = $request->validate([
+            'form_brand' => ['required', 'string', 'max:200'],
+            'form_heading' => ['required', 'string', 'max:200'],
+            'form_description' => ['required', 'string', 'max:1000'],
+            'email_label' => ['required', 'string', 'max:200'],
+            'password_label' => ['required', 'string', 'max:200'],
+            'remember_label' => ['required', 'string', 'max:200'],
+            'submit_label' => ['required', 'string', 'max:200'],
+            'loading_label' => ['required', 'string', 'max:200'],
+            'divider_label' => ['required', 'string', 'max:200'],
+            'google_label' => ['required', 'string', 'max:200'],
+            'register_label' => ['required', 'string', 'max:200'],
+            'security_notice' => ['required', 'string', 'max:1000'],
             'badge' => ['nullable', 'string', 'max:100'], 'heading' => ['required', 'string', 'max:200'], 'description' => ['required', 'string', 'max:1000'],
             'show_intro_panel' => ['required', 'boolean'], 'back_to_website_text' => ['required', 'string', 'max:60'], 'web_mode_label' => ['required', 'string', 'max:60'],
             'standalone_mode_label' => ['required', 'string', 'max:60'], 'feature_cards' => ['required', 'array', 'max:8'],
