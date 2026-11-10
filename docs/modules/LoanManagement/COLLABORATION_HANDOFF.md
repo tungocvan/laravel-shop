@@ -143,3 +143,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Focused SQLite in-memory tests cover multiple recipients, deduplication, existing opt-in offset scenarios, and overdue job skip with Mail fake. UI static contract updated. **No PHP tests executed by assistant; user must run focused tests before regression and report actual output.**
 - Production caution: Do not enable outbound Mail/Queue/Scheduler without separate approval. Exactly-once external email delivery and crashed-worker recovery remain operational limitations. Batch 12 UI PASS not explicitly confirmed; Batch 13 UI desktop/iPhone acceptance pending.
 - Checkpoint: git pull --ff-only, focused integration/UI tests, then module regression. Additive migration on verified local `db_laravel_shop` requires separate approval; do not migrate production, merge main or deploy.
+
+## Batch 13 MySQL migration 1553 follow-up — pending local retest
+- User reported two-layer PHP tests PASS, then local MySQL 8.0.46 `php artisan migrate` failed dropping `loan_reminder_delivery_once_uq`: index required by schedule FK. User supplied read-only `SHOW CREATE TABLE`: recipient table exists with 0 rows, delivery table has 0 rows and old unique index; new unique index absent.
+- Fixed migration 000004 to guard existing recipient table, preserve insertOrIgnore backfill, **add new composite unique index first** (retains schedule FK support), then drop old unique index; both index steps check `Schema::getIndexes` for interrupted-DDL resume.
+- Added focused SQLite regression verifying idempotent `up()`. MySQL-specific index/FK behavior must be verified on user's local MySQL; assistant did not execute tests or migration. Avoid migrate:fresh, manual FK drop, or destructive rollback.
+- Next checkpoint: fetch/pull, focused test, then MySQL local migration after user approval, inspect migration status/index metadata. If any failure, stop for diagnosis. UI PASS/merge/deploy remain pending.
