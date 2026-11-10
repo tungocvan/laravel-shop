@@ -45,6 +45,7 @@
       </form>
     </details>
     @endif
+    @endcan
 
     @can('client.loans.contracts.edit')
     @if($contract->status === 'draft')
