@@ -207,9 +207,9 @@
                                 <label class="text-sm">Ngày thực trả<x-pwa-date name="paid_at" :value="old('paid_at', $item->due_at)" required /></label>
                                 <label class="text-sm">Tham chiếu<input name="reference" maxlength="255" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
                                 @foreach(['principal_paid' => ['Gốc', $remainingPrincipal], 'interest_paid' => ['Lãi', $remainingInterest], 'fees_paid' => ['Phí', $remainingFees]] as $field => [$label, $remaining])
-                                    <label class="text-sm">{{ $label }} trả kỳ này (VND)<input name="{{ $field }}" type="number" min="0" max="{{ number_format($remaining, 2, '.', '') }}" step="0.01" value="{{ number_format($remaining, 2, '.', '') }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+                                    <label class="text-sm">{{ $label }} trả kỳ này (VND)<input name="{{ $field }}" type="text" inputmode="numeric" pattern="[0-9.]+" data-max-amount="{{ $remaining }}" value="{{ number_format(floor((float) $remaining), 0, ',', '.') }}" required autocomplete="off" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
                                 @endforeach
-                                <p class="text-xs text-slate-500 sm:col-span-2">Số tiền được điền sẵn là phần còn lại của kỳ. Có thể giảm để ghi nhận thanh toán một phần. Kiểm tra số tiền thực chuyển trước khi xác nhận.</p>
+                                <p class="text-xs text-slate-500 sm:col-span-2">Số tiền được điền sẵn theo VND nguyên (không vượt quá phần còn lại). Có thể giảm để ghi nhận thanh toán một phần. Kiểm tra số tiền thực chuyển trước khi xác nhận.</p>
                                 <button type="submit" class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white sm:col-span-2" data-loan-submit-payment>Xác nhận ghi nhận thanh toán</button>
                             </form>
                         </details>
