@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Modules\ClientPortal\Models\ClientPortalSetting;
 use Modules\System\Models\Setting;
 
@@ -165,6 +166,10 @@ class ClientPortalSettingsService
     {
         $defaults = config('clientportal.pwa.login', []);
         $settings = $this->group('pwa.login', $defaults);
+        $path = $settings['logo_path'] ?? null;
+        $settings['logo_url'] = is_string($path) && preg_match('~^clientportal/login-logos/[a-zA-Z0-9._-]+\\.(png|jpg|jpeg|webp)$~', $path) && Storage::disk('public')->exists($path)
+            ? Storage::disk('public')->url($path)
+            : null;
         $settings['show_intro_panel'] = $this->bool($settings['show_intro_panel'] ?? true, true);
         $settings['feature_cards'] = collect($settings['feature_cards'] ?? [])->filter(fn ($card): bool => is_array($card))->map(fn (array $card): array => [
             'enabled' => $this->bool($card['enabled'] ?? true, true),
