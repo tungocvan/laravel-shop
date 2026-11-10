@@ -9,6 +9,7 @@ use Modules\LoanManagement\Services\LoanInsuranceService;
 use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanTransactionService;
+use Modules\LoanManagement\Services\LoanScheduleGenerator;
 use Tests\TestCase;
 
 final class LoanManagementBusinessIntegrationTest extends TestCase
@@ -57,6 +58,64 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'matures_at' => '2027-01-01', 'status' => 'draft',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    public function test_guided_schedule_for_individual_company_and_credit_lenders_is_forecast_only(): void
+    {
+        foreach (['individual', 'company', 'credit_institution'] as $type) {
+            $lenderId = DB::table('loan_lenders')->insertGetId([
+                'name' => 'Wizard '.$type, 'type' => $type, 'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $id = app(LoanContractService::class)->createContractWithOptionalSchedule([
+                'lender_id' => $lenderId, 'contract_number' => 'WIZARD-'.$type,
+                'committed_amount' => '100000000.00', 'annual_rate_percent' => '8.00000',
+                'day_count_basis' => 365, 'signed_at' => '2027-01-01',
+                'matures_at' => '2028-01-01',
+            ], 'interest_monthly');
+            $rows = DB::table('loan_repayment_schedules')->where('loan_contract_id', $id)->orderBy('installment')->get();
+            $this->assertCount(12, $rows);
+            $this->assertSame('2028-01-01', $rows->last()->due_at);
+            $this->assertSame('100000000', (string) (int) $rows->last()->principal_due);
+            $this->assertSame('0', (string) (int) $rows->first()->principal_due);
+            $this->assertSame(0, DB::table('loan_disbursements')->where('loan_contract_id', $id)->count());
+            $this->assertSame(0, DB::table('loan_payments')->where('loan_contract_id', $id)->count());
+            $this->assertSame('draft', DB::table('loan_contracts')->where('id', $id)->value('status'));
+        }
+    }
+
+    public function test_maturity_schedule_and_invalid_modes_are_atomic(): void
+    {
+        $lenderId = DB::table('loan_lenders')->insertGetId([
+            'name' => 'Maturity lender', 'type' => 'company', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $data = [
+            'lender_id' => $lenderId, 'contract_number' => 'WIZARD-MATURITY',
+            'committed_amount' => '100000000.00', 'annual_rate_percent' => '8.00000',
+            'day_count_basis' => 365, 'signed_at' => '2027-01-01', 'matures_at' => '2028-01-01',
+        ];
+        $service = app(LoanContractService::class);
+        $id = $service->createContractWithOptionalSchedule($data, 'all_at_maturity');
+        $rows = DB::table('loan_repayment_schedules')->where('loan_contract_id', $id)->get();
+        $this->assertCount(1, $rows);
+        $this->assertSame('2028-01-01', $rows->first()->due_at);
+        $this->assertSame('100000000', (string) (int) $rows->first()->principal_due);
+        $this->assertSame('8021918', (string) (int) $rows->first()->interest_due);
+
+        $data['contract_number'] = 'WIZARD-INVALID';
+        try {
+            $service->createContractWithOptionalSchedule($data, 'invalid');
+            $this->fail('Invalid repayment mode must rollback the draft.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('repayment_mode', $exception->errors());
+        }
+        $this->assertFalse(DB::table('loan_contracts')->where('contract_number', 'WIZARD-INVALID')->exists());
+
+        try {
+            app(LoanScheduleGenerator::class)->create($id, 'all_at_maturity');
+            $this->fail('Duplicate schedule generation must fail.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('repayment_mode', $exception->errors());
+        }
     }
 
     public function test_individual_lender_cannot_create_new_insurance_but_history_remains_untouched(): void
