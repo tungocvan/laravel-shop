@@ -130,12 +130,10 @@ final class LoanContractService
         $repaid = DB::table('loan_payments')->selectRaw('loan_contract_id, SUM(principal_paid) as total')
             ->groupBy('loan_contract_id')->pluck('total', 'loan_contract_id');
 
-        $totalOutstanding = '0.00';
         foreach ($contracts as $contract) {
             $contract->disbursed_total = (string) ($disbursed[$contract->id] ?? '0.00');
             $contract->principal_repaid = (string) ($repaid[$contract->id] ?? '0.00');
             $contract->outstanding = bcsub($contract->disbursed_total, $contract->principal_repaid, 2);
-            $totalOutstanding = bcadd($totalOutstanding, $contract->outstanding, 2);
         }
 
         // Aggregate over ALL contracts, not only the 100 newest displayed above.
@@ -164,11 +162,16 @@ final class LoanContractService
             ];
         }
 
+        $portfolioOutstanding = '0.00';
+        foreach ($lenderTypeSummary as $summary) {
+            $portfolioOutstanding = bcadd($portfolioOutstanding, $summary['outstanding'], 2);
+        }
+
         return [
             'contracts' => $contracts,
             'lenders' => DB::table('loan_lenders')->orderBy('name')->get(),
             'contractCount' => DB::table('loan_contracts')->count(),
-            'outstanding' => $totalOutstanding,
+            'outstanding' => $portfolioOutstanding,
             'lenderTypeSummary' => $lenderTypeSummary,
         ];
     }
