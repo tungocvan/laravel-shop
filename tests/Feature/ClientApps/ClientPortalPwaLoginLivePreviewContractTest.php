@@ -29,6 +29,32 @@ class ClientPortalPwaLoginLivePreviewContractTest extends TestCase
         $this->assertStringContainsString('admin.client-apps.pwa.login.reset', $view);
     }
 
+    public function test_right_login_form_copy_uses_clientportal_settings_and_preserves_auth(): void
+    {
+        $settings = app(ClientPortalSettingsService::class);
+        $settings->updatePwaLogin([
+            'form_heading' => 'Đăng nhập không gian mới',
+            'submit_label' => 'Truy cập',
+        ]);
+
+        $this->assertSame('Đăng nhập không gian mới', $settings->pwaLogin()['form_heading']);
+        $this->assertSame('Truy cập', $settings->pwaLogin()['submit_label']);
+
+        $clientView = file_get_contents(base_path('Modules/ClientPortal/resources/views/pages/login.blade.php'));
+        $authView = file_get_contents(base_path('Modules/Auth/resources/views/livewire/auth/login-form-pwa.blade.php'));
+        $adminView = file_get_contents(base_path('Modules/ClientPortal/resources/views/admin/pwa-settings.blade.php'));
+        $authComponent = file_get_contents(base_path('Modules/Auth/Livewire/Auth/LoginForm.php'));
+
+        $this->assertStringContainsString("'pwaFormCopy' => collect(\$pwaLogin)", $clientView);
+        $this->assertStringContainsString("\$pwaFormCopy['form_heading']", $authView);
+        $this->assertStringContainsString("\$pwaFormCopy['submit_label']", $authView);
+        $this->assertStringContainsString('x-model="form_heading"', $adminView);
+        $this->assertStringContainsString('x-model="security_notice"', $adminView);
+        $this->assertStringContainsString('x-text="form_heading"', $adminView);
+        $this->assertStringContainsString('x-text="security_notice"', $adminView);
+        $this->assertStringContainsString('Auth::guard(\$this->guard)->attempt', $authComponent);
+    }
+
     public function test_reset_route_keeps_existing_guard_and_permissions(): void
     {
         $route = Route::getRoutes()->getByName('admin.client-apps.pwa.login.reset');
