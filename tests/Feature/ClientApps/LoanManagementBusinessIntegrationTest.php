@@ -47,6 +47,8 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $remindersMigration->up();
         $recipientsMigration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000004_add_loan_reminder_recipients.php');
         $recipientsMigration->up();
+        $adjustmentsMigration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000005_create_loan_schedule_adjustments_table.php');
+        $adjustmentsMigration->up();
     }
 
     protected function tearDown(): void
@@ -72,6 +74,52 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         ]);
     }
 
+
+    public function test_future_unpaid_installment_can_be_corrected_with_audit_and_ordering(): void
+    {
+        $contract = $this->contract('CORRECTION-01');
+        DB::table('loan_contracts')->where('id', $contract)->update(['matures_at' => '2028-12-31']);
+        $first = DB::table('loan_repayment_schedules')->insertGetId([
+            'loan_contract_id' => $contract, 'installment' => 1, 'due_at' => '2027-06-30',
+            'principal_due' => '500.00', 'interest_due' => '50.00', 'fees_due' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $second = DB::table('loan_repayment_schedules')->insertGetId([
+            'loan_contract_id' => $contract, 'installment' => 2, 'due_at' => '2027-11-30',
+            'principal_due' => '500.00', 'interest_due' => '50.00', 'fees_due' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $service = app(\Modules\LoanManagement\Services\LoanScheduleAdjustmentService::class);
+        $data = ['due_at' => '2027-12-15', 'principal_due' => '500.00', 'interest_due' => '55.00', 'fees_due' => '0.00'];
+        $service->update($contract, $second, $data, null);
+        $this->assertSame('2027-12-15', DB::table('loan_repayment_schedules')->where('id', $second)->value('due_at'));
+        $this->assertSame(1, DB::table('loan_schedule_adjustments')->where('loan_repayment_schedule_id', $second)->count());
+        $this->assertSame('2027-11-30', json_decode(DB::table('loan_schedule_adjustments')->first()->before_json, true)['due_at']);
+
+        try {
+            $service->update($contract, $second, ['due_at' => '2027-06-01'] + $data, null);
+            $this->fail('Out-of-order installment should be rejected');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('due_at', $exception->errors());
+        }
+        DB::table('loan_payment_allocations')->insert([
+            'loan_payment_id' => DB::table('loan_payments')->insertGetId([
+                'loan_contract_id' => $contract, 'paid_at' => '2026-11-01',
+                'principal_paid' => '0.00', 'interest_paid' => '1.00', 'fees_paid' => '0.00',
+                'created_at' => now(), 'updated_at' => now(),
+            ]),
+            'loan_repayment_schedule_id' => $second,
+            'principal_allocated' => '0.00', 'interest_allocated' => '1.00', 'fees_allocated' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        try {
+            $service->update($contract, $second, $data, null);
+            $this->fail('Allocated installment should be immutable');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('schedule', $exception->errors());
+        }
+        $this->assertSame(1, DB::table('loan_schedule_adjustments')->count());
+    }
 
     public function test_eight_percent_rate_is_preserved_exactly_on_create_and_draft_update(): void
     {
