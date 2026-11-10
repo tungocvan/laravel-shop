@@ -1,3 +1,4 @@
+- Follow-up fix: canonical award cards now expose existing `contract_period_text` and display it when no manual `tender_validity_text` exists (e.g. Cefoperazone 0,5g, 24 tháng in Excel). Public tender cards still have no inferred period. Focused/UI verification pending.
 ## 2026-11-10 — Manual tender validity on medicine award cards (CHECKPOINT)
 
 - User approved adding editable **Hiệu lực thời gian thầu** per canonical/public award record, after confirming Mua sắm công source #329 for medicine #177 has `hanDung` (shelf life) but no verified tender validity. Never map `hanDung` to contract/tender validity.
