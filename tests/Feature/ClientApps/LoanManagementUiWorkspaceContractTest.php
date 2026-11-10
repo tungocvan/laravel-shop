@@ -57,7 +57,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
         $this->assertStringContainsString('contract-history', $blade);
         $this->assertStringContainsString("lender_type !== 'individual'", $blade);
-        foreach (['Thông tin hồ sơ vay', 'Lịch sử giải ngân', 'Lịch trả nợ dự kiến', 'Lịch sử thanh toán thực tế', 'principal_repaid', 'annual_rate_percent'] as $fragment) {
+        foreach (['Thông tin hồ sơ vay', 'Lịch sử giải ngân', 'Lịch trả nợ ·', 'Lịch sử thanh toán thực tế', 'principal_repaid', 'annual_rate_percent'] as $fragment) {
             $this->assertStringContainsString($fragment, $partial);
         }
         $this->assertStringContainsString('LoanContractHistoryService', $controller);
