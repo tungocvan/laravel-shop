@@ -25,6 +25,16 @@ final class SendLoanReminder implements ShouldQueue
         // Explicit infrastructure gate: opt-in settings alone never activate outbound email.
         if (!config('loan_reminders.dispatch_enabled', false)) return;
 
+        // Serialize the final eligibility check and SMTP handoff with reminder settings
+        // updates. LoanReminderService::save() locks this same contract row first.
+        // A completed "disable" therefore cannot be followed by a new send.
+        DB::transaction(function (): void {
+            $contractId = DB::table('loan_reminder_deliveries as d')
+                ->join('loan_repayment_schedules as s', 's.id', '=', 'd.loan_repayment_schedule_id')
+                ->where('d.id', $this->deliveryId)->value('s.loan_contract_id');
+            if (!$contractId) return;
+            DB::table('loan_contracts')->where('id', $contractId)->lockForUpdate()->first();
+
         $delivery = DB::table('loan_reminder_deliveries as d')
             ->join('loan_repayment_schedules as s', 's.id', '=', 'd.loan_repayment_schedule_id')
             ->join('loan_contracts as c', 'c.id', '=', 's.loan_contract_id')
@@ -80,6 +90,7 @@ final class SendLoanReminder implements ShouldQueue
                 ->update(['status' => 'failed', 'last_error' => mb_substr($e->getMessage(), 0, 2000), 'updated_at' => now()]);
             throw $e;
         }
+        }, 3);
     }
     private function skip(): void
     {
