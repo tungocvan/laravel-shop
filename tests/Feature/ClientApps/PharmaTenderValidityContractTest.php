@@ -34,6 +34,8 @@ class PharmaTenderValidityContractTest extends TestCase
 
         $this->assertStringContainsString("'tender_validity_text'] =", $catalog);
         $this->assertStringContainsString('Hiệu lực thời gian thầu', $view);
+        $this->assertStringContainsString("'contract_period_text' => \$award->contract_period_text", $catalog);
+        $this->assertStringContainsString("\$award['contract_period_text'] ?: 'Chưa có thông tin'", $view);
         $this->assertStringContainsString('data-validity-editor', $view);
         $this->assertStringContainsString('Nhập thủ công', $view);
         $this->assertStringContainsString("['contract_period_text'] = trim(\$validity)", $excel);
