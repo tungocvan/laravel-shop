@@ -21,6 +21,19 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_installment_payment_action_is_permission_scoped_and_secondary_forms_are_collapsed(): void
+    {
+        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
+        foreach (['client.loans.installments.pay', 'data-loan-installment-form', 'Thanh toán kỳ', 'Thanh toán một phần', 'Còn phải trả theo kỳ'] as $fragment) {
+            $this->assertStringContainsString($fragment, $partial.$blade);
+        }
+        $this->assertStringContainsString('Thao tác khác', $blade);
+        $this->assertStringContainsString("whereNumber('schedule')", $routes);
+        $this->assertStringContainsString("@can('client.loans.payments.create')", $partial);
+    }
+
     public function test_guided_loan_creation_supports_three_lender_types_and_forecast_only(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
