@@ -10,11 +10,12 @@ use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanInsuranceService;
 use Modules\LoanManagement\Services\LoanInstallmentPaymentService;
+use Modules\LoanManagement\Services\LoanReminderService;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 
 final class LoanApplicationController extends Controller
 {
-    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance, LoanContractHistoryService $history, LoanInstallmentPaymentService $installments): View
+    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance, LoanContractHistoryService $history, LoanInstallmentPaymentService $installments, LoanReminderService $reminders): View
     {
         $application = $registry->find('loans');
         abort_unless(is_array($application), 404);
@@ -62,6 +63,7 @@ final class LoanApplicationController extends Controller
             'visibleContracts' => $visibleContracts,
             'loanHistory' => $loanHistory,
             'installmentAllocations' => $installments->forSchedules($scheduleIds),
+            'loanReminderSettings' => $reminders->settingsForContracts($visibleContracts->pluck('id')->all()),
             'loanFilters' => $filters,
             'insuranceData' => $insurance->overview(),
             'insuredContractIds' => $insuredContractIds,
