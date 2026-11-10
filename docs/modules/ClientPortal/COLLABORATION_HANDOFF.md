@@ -1,3 +1,36 @@
+## 2026-11-10 — PR #376 pre-merge acceptance
+
+- User confirmed **focused TEST PASS, regression TEST PASS, and UI PASS** after the latest Pharma Hub overview/capability heading changes. Confirmation is from user's local test and manual UI, not an independent GitHub CI run.
+- PR: https://github.com/tungocvan/laravel-shop/pull/376. Diff reviewed: 7 files; settings validation, persisted presentation, Pharma Hub Blade, admin controls, tests and handoff. GitHub reported mergeable on review; recheck after this documentation commit.
+- Scope excludes permission, route, feature list, database schema and production deployment. No local untracked files are touched.
+
+---
+
+## 2026-11-10 — Vietnamese managed Pharma capability headings
+
+- User confirmed prior focused/regression TEST PASS and UI PASS for Pharma overview panel; requested removal of remaining hardcoded `Capability của bạn` and `Chọn workspace` labels.
+- Added `capabilities_eyebrow` and `capabilities_title` to existing Pharma Hub presentation settings and Admin form; defaults are `Chức năng được cấp quyền` / `Chọn chức năng`. Preserved feature list, permission filtering and routing. No schema migration.
+- Updated two contract tests. **Tests for this latest batch not yet run; UI not yet verified.** Stop at Git Pull/Test checkpoint; no PR/merge/deploy.
+
+---
+## 2026-11-10 — Focused regression contract alignment
+
+- User reported regression: `ClientPortalPwaSettingsTest::test_pharma_hub_is_capability_first_and_keeps_managed_copy_out_of_blade` failed at line 198 because it expected `Workspace được cấp quyền` literally inside the Pharma Hub Blade after moving that text to managed settings.
+- Updated test to assert managed `overview_*` Blade bindings and visibility, absence of the old hardcoded heading, and preservation of the original default through `ClientPortalSettingsService`.
+- No runtime/UI change in this follow-up. Focused and impacted tests **PENDING rerun**; stop on any failure. No PR/merge/deploy.
+
+---
+
+## 2026-11-10 — Pharma Hub Overview configurable copy and visibility
+
+- Branch: `feat/clientportal-pharma-hub-overview-config-20261110` from latest `main`.
+- Scope: `/admin/client-apps/pwa/applications/pharma` > Hub/Dashboard now manages the **Tổng quan / Workspace được cấp quyền** panel independently from Hero and supporting content. Admin may change eyebrow/title/description or hide/show the whole overview panel.
+- Persistence reuses `ClientPortalSettingsService::applicationHubPresentation()` and existing `application.pharma.hub` settings group; no migration. Existing Pharma overview strings are preserved as defaults. Other applications receive hidden compatibility fields in the shared Admin form and are otherwise unchanged.
+- Pharma Hub Blade reads managed copy and visibility; feature count, permitted capability list, Web permissions, routes and business logic are not changed.
+- Focused test: `tests/Feature/ClientApps/ClientPortalPharmaHubOverviewContractTest.php` **PENDING**. Regression: `tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php` and `tests/Feature/ClientApps/ClientPwaFoundationTest.php` **PENDING**. UI desktop/tablet/iPhone show/hide, edit/save/reload **PENDING**. No PR, merge, or production deploy.
+
+---
+
 ## 2026-11-10 — Optional ClientPortal Login PWA logo checkpoint
 
 - Branch `feat/clientportal-pwa-login-logo-20261110` from `main`. Admin `/admin/client-apps/pwa` now has a separate guarded upload/remove form for the Login PWA logo. PNG/JPG/WebP only, max 2 MB, stored on public disk under `clientportal/login-logos/`; `pwa.login.logo_path` is persisted through existing ClientPortalSettingsService. No migration.

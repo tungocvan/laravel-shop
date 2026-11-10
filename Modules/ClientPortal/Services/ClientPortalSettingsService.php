@@ -206,6 +206,12 @@ class ClientPortalSettingsService
             'supporting_visible' => $supporting['visible'] ?? true,
             'supporting_title' => $supporting['title'] ?? '',
             'supporting_body' => $supporting['body'] ?? '',
+            'overview_visible' => true,
+            'overview_eyebrow' => 'Tổng quan',
+            'overview_title' => 'Workspace được cấp quyền',
+            'capabilities_eyebrow' => 'Chức năng được cấp quyền',
+            'capabilities_title' => 'Chọn chức năng',
+            'overview_description' => 'Chọn một chức năng bên dưới để bắt đầu công việc. Danh sách tự động theo quyền Web của tài khoản.',
         ];
 
         $legacyGroup = 'application.'.$application['key'].'.feature.overview.presentation';
@@ -222,6 +228,7 @@ class ClientPortalSettingsService
 
         $settings = $this->group('application.'.$application['key'].'.hub', $defaults);
         $settings['supporting_visible'] = $this->bool($settings['supporting_visible'] ?? true, true);
+        $settings['overview_visible'] = $this->bool($settings['overview_visible'] ?? true, true);
 
         return $settings;
     }
