@@ -28,7 +28,7 @@ final class LoanManagementWorkspaceContractTest extends TestCase
 
         $this->assertStringContainsString('LoanContractService $loans', $controller);
         $this->assertStringContainsString('featurePresentation(', $controller);
-        $this->assertStringContainsString("overviewPresentation']['page_title'", $blade);
+        $this->assertStringContainsString("overviewPresentation['page_title'", $blade);
         $this->assertStringContainsString('<x-pwa-date', $blade);
         $this->assertStringContainsString("bcsub(", $service);
         $this->assertStringContainsString("lockForUpdate()", $service);
