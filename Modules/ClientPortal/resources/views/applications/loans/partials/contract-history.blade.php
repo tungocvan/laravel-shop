@@ -82,6 +82,61 @@
                 </form>
             </details>
         @endcan
+        @can('client.loans.contracts.edit')
+            @php
+                $reminderDeliveries = $loanReminderTimeline['deliveries'][$contract->id] ?? collect();
+                $reminderUpcoming = $loanReminderTimeline['upcoming'][$contract->id] ?? [];
+                $reminderEnabled = (bool) ($reminder->enabled ?? false);
+                $reminderDispatchEnabled = (bool) config('loan_reminders.dispatch_enabled', false);
+            @endphp
+            <details class="mt-3 rounded-xl border border-slate-200 p-3" data-loan-reminder-history>
+                <summary class="cursor-pointer text-sm font-semibold text-blue-700">
+                    Lịch sử nhắc hẹn Email ({{ count($reminderDeliveries) }})
+                </summary>
+                <div class="mt-3 space-y-3 text-sm">
+                    <p class="text-xs text-slate-600">
+                        Cấu hình: {{ $reminderEnabled ? 'Đã bật' : 'Đã tắt' }} ·
+                        Dịch vụ gửi: {{ $reminderDispatchEnabled ? 'Đã cho phép' : 'Chưa kích hoạt' }}.
+                        Lưu thiết lập không đồng nghĩa đã đưa vào Queue.
+                    </p>
+                    @if(count($reminderUpcoming))
+                        <div class="rounded-lg bg-slate-50 p-3">
+                            <p class="font-semibold">Các mốc nhắc sắp tới (tối đa 5)</p>
+                            @foreach($reminderUpcoming as $upcoming)
+                                <div class="mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 pt-2 text-xs">
+                                    <span>Kỳ {{ $upcoming['installment'] }} · Dự kiến {{ $upcoming['send_at'] }} · Trước {{ $upcoming['days_before'] }} ngày · {{ $upcoming['recipient_count'] }} Email</span>
+                                    <span class="font-medium text-slate-600">Theo lịch — chưa xác nhận vào Queue</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
+                    <p class="text-xs text-slate-500">Lịch sử ghi nhận tối đa 20 lần gần nhất. “Đã tạo yêu cầu” chỉ xác nhận có bản ghi; không xác nhận job còn trong Queue. “Đã gửi” là kết quả Mail transport, không bảo đảm người nhận đã đọc thư.</p>
+                    @forelse($reminderDeliveries as $delivery)
+                        @php
+                            $reminderState = match ($delivery->status) {
+                                'sent' => 'Đã gửi qua Mail',
+                                'failed' => 'Gửi thất bại',
+                                'skipped' => 'Đã bỏ qua',
+                                'reserved' => 'Đã tạo yêu cầu · chưa xác nhận gửi',
+                                default => 'Trạng thái: '.$delivery->status,
+                            };
+                        @endphp
+                        <div class="rounded-lg border border-slate-200 p-3">
+                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <p class="font-medium">Kỳ {{ $delivery->installment }} · Hạn {{ $delivery->due_at_snapshot }}</p>
+                                    <p class="mt-1 break-all text-xs text-slate-600">{{ $delivery->recipient_email }} · Trước {{ $delivery->days_before }} ngày</p>
+                                </div>
+                                <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{{ $reminderState }}</span>
+                            </div>
+                            <p class="mt-2 text-xs text-slate-500">Tạo: {{ $delivery->created_at }} @if($delivery->sent_at) · Gửi: {{ $delivery->sent_at }} @endif</p>
+                        </div>
+                    @empty
+                        <p class="rounded-lg border border-dashed border-slate-200 p-3 text-xs text-slate-500">Chưa có yêu cầu gửi nhắc hẹn nào được ghi nhận cho hợp đồng này.</p>
+                    @endforelse
+                </div>
+            </details>
+        @endcan
         @forelse($schedules as $item)
             @php
                 $allocation = $installmentAllocations[$item->id] ?? null;
