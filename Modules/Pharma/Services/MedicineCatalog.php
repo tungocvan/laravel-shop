@@ -31,7 +31,7 @@ class MedicineCatalog
             ->when($hssp === 'without', fn ($query) => $query->whereDoesntHave('medicine.currentProfile'))
             ->when($supplierPrice === 'with' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
             ->when($supplierPrice === 'without' && $allowSupplierPricing, fn ($query) => $query->whereDoesntHave('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
-            ->when($bidAward === 'with', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
+            ->when($bidAward === 'with', fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->whereHas('drugBidAwards')->orWhereHas('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true))))
             ->when($bidAward === 'without', fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->whereDoesntHave('drugBidAwards')->whereDoesntHave('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true))))
             ->when(filled($productType) && array_key_exists($productType, Medicine::productTypeOptions()), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('product_type', $productType)))
             ->when(in_array($specialControl, ['yes', 'no'], true), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('is_special_control', $specialControl === 'yes')))
