@@ -46,3 +46,10 @@ Branch: `feat/loan-management-pwa-20261110`
 - Preserved all lender/contract/disbursement/schedule/payment/insurance forms, actions, permissions and shared PWA date components; no database/schema changes.
 - New focused `LoanManagementUiWorkspaceContractTest`. Static source contract only; **no automated tests run by assistant**. User must verify rendered desktop/tablet/iPhone UI and confirm UI PASS before PR/merge.
 - Future improvement: move task forms to dedicated focused routes once app navigation/permission contract is reviewed; current anchor sections remain on the single hub.
+
+## Batch 6 — isolated business integration checkpoint (pending local test)
+- Added `tests/Feature/ClientApps/LoanManagementBusinessIntegrationTest.php`: creates seven tables from the actual module migration in a dedicated **in-memory SQLite connection**; tests commitment cap, actual-principal cap, duplicate/excess schedules, insurance partial/full premium payments and demo seeder rerun.
+- The test explicitly checks SQLite `:memory:` and restores the prior DB connection in teardown. No production/local MySQL business tables should be mutated by these tests.
+- Tests NOT run by assistant. If local PHP lacks `pdo_sqlite`, stop and report; do NOT switch tests to MySQL application database.
+- Demo seeder remains opt-in and must only run after focused/regression PASS, explicit user consent and verified `APP_ENV=local`; never on production. Demo is illustrative, not accounting evidence.
+- Existing Batch 5 UI remains pending real desktop/iPhone acceptance. No PR/merge/deploy.
