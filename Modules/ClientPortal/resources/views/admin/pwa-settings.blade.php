@@ -26,7 +26,19 @@
         heading: @js(old('heading', $login['heading'] ?? '')),
         description: @js(old('description', $login['description'] ?? '')),
         showIntro: @js((bool) old('show_intro_panel', $login['show_intro_panel'] ?? true)),
-        cards: @js(old('feature_cards', $login['feature_cards'] ?? []))
+        cards: @js(old('feature_cards', $login['feature_cards'] ?? [])),
+        form_brand: @js(old('form_brand', $login['form_brand'] ?? '')),
+        form_heading: @js(old('form_heading', $login['form_heading'] ?? '')),
+        form_description: @js(old('form_description', $login['form_description'] ?? '')),
+        email_label: @js(old('email_label', $login['email_label'] ?? '')),
+        password_label: @js(old('password_label', $login['password_label'] ?? '')),
+        remember_label: @js(old('remember_label', $login['remember_label'] ?? '')),
+        submit_label: @js(old('submit_label', $login['submit_label'] ?? '')),
+        loading_label: @js(old('loading_label', $login['loading_label'] ?? '')),
+        divider_label: @js(old('divider_label', $login['divider_label'] ?? '')),
+        google_label: @js(old('google_label', $login['google_label'] ?? '')),
+        register_label: @js(old('register_label', $login['register_label'] ?? '')),
+        security_notice: @js(old('security_notice', $login['security_notice'] ?? ''))
     }">
         <div class="space-y-6">
             <form id="pwa-login-reset" method="POST" action="{{ route('admin.client-apps.pwa.login.reset') }}" class="hidden">@csrf</form>
@@ -65,6 +77,25 @@
                             <input type="checkbox" name="show_intro_panel" value="1" x-model="showIntro" @checked(old('show_intro_panel', $login['show_intro_panel'] ?? true)) class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                             <span><strong class="block text-sm text-gray-900">Hiển thị panel giới thiệu trên desktop</strong><span class="text-xs text-gray-500">Tắt nếu chỉ muốn hiển thị form đăng nhập.</span></span>
                         </label>
+                    </div>
+
+                    <div class="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
+                        <h3 class="font-bold text-slate-900">Khung đăng nhập bên phải</h3>
+                        <p class="mt-1 text-xs text-slate-500">Nội dung form Email/Mật khẩu, Google và đăng ký. Xem trước ngay bên phải; lưu để áp dụng tại /my-apps/login.</p>
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Thương hiệu trên form</span><input name="form_brand" x-model="form_brand" maxlength="200" value="{{ old('form_brand', $login['form_brand'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Tiêu đề form đăng nhập</span><input name="form_heading" x-model="form_heading" maxlength="200" value="{{ old('form_heading', $login['form_heading'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block sm:col-span-2"><span class="text-sm font-semibold text-gray-800">Mô tả form đăng nhập</span><textarea name="form_description" x-model="form_description" rows="2" maxlength="1000" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">{{ old('form_description', $login['form_description'] ?? '') }}</textarea></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn Email</span><input name="email_label" x-model="email_label" maxlength="200" value="{{ old('email_label', $login['email_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn mật khẩu</span><input name="password_label" x-model="password_label" maxlength="200" value="{{ old('password_label', $login['password_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn ghi nhớ đăng nhập</span><input name="remember_label" x-model="remember_label" maxlength="200" value="{{ old('remember_label', $login['remember_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nút đăng nhập</span><input name="submit_label" x-model="submit_label" maxlength="200" value="{{ old('submit_label', $login['submit_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Trạng thái đang đăng nhập</span><input name="loading_label" x-model="loading_label" maxlength="200" value="{{ old('loading_label', $login['loading_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn phân cách</span><input name="divider_label" x-model="divider_label" maxlength="200" value="{{ old('divider_label', $login['divider_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nút Google</span><input name="google_label" x-model="google_label" maxlength="200" value="{{ old('google_label', $login['google_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nút đăng ký</span><input name="register_label" x-model="register_label" maxlength="200" value="{{ old('register_label', $login['register_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block sm:col-span-2"><span class="text-sm font-semibold text-gray-800">Thông báo bảo mật</span><textarea name="security_notice" x-model="security_notice" rows="2" maxlength="1000" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">{{ old('security_notice', $login['security_notice'] ?? '') }}</textarea></label>
+                        </div>
                     </div>
 
                     <div class="grid gap-5 md:grid-cols-3">
@@ -218,6 +249,24 @@
                         </div>
                     </div>
                     <p x-show="!showIntro" class="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Panel giới thiệu đang tắt. Client sẽ chỉ thấy form đăng nhập.</p>
+                </div>
+                <div class="border-t border-white/10 bg-slate-900 p-4">
+                    <p class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Preview khung đăng nhập</p>
+                    <div class="rounded-2xl bg-white p-4 text-slate-900">
+                        <p x-text="form_brand" class="text-center text-xs font-bold uppercase tracking-widest text-slate-400"></p>
+                        <h3 x-text="form_heading" class="mt-2 text-center text-xl font-black"></h3>
+                        <p x-text="form_description" class="mt-2 text-center text-xs text-slate-500"></p>
+                        <div class="mt-4 space-y-3 text-xs">
+                            <div><strong x-text="email_label"></strong><div class="mt-1 rounded-lg bg-slate-100 p-3 text-slate-400">email@example.com</div></div>
+                            <div><strong x-text="password_label"></strong><div class="mt-1 rounded-lg bg-slate-100 p-3 text-slate-400">••••••••</div></div>
+                            <div class="flex gap-2"><input type="checkbox" disabled><span x-text="remember_label"></span></div>
+                            <div x-text="submit_label" class="rounded-lg bg-slate-950 p-3 text-center font-bold text-white"></div>
+                            <p x-text="divider_label" class="text-center text-slate-400"></p>
+                            <div x-text="google_label" class="rounded-lg border p-3 text-center font-semibold"></div>
+                            <div x-text="register_label" class="rounded-lg border p-3 text-center font-semibold"></div>
+                            <p x-text="security_notice" class="rounded-lg bg-slate-50 p-3 text-center text-slate-500"></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>
