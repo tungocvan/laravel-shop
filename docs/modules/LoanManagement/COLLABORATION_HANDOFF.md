@@ -86,3 +86,11 @@ Branch: `feat/loan-management-pwa-20261110`
 - Insurance policy premium details now collapsed by default to reduce vertical scrolling, preserving nested payment/create actions.
 - Contract cards remain native collapsible details; business forms and permissions preserved. No DB schema/data changes.
 - Focused UI contract test updated. **No tests run by assistant; local TEST/UI PASS pending.** If filter or Blade render fails, stop and debug before further UI refactor.
+
+## Batch 8 — UX refinement and draft lifecycle checkpoint (awaiting local test)
+- User approved UI auto-filter and strict lifecycle gate: draft deletion / active-or-cancelled to draft only when **no** disbursements, repayment schedules, payments or insurance policies exist. Closed contracts cannot return to draft. This is a business safety policy, not a blanket state reset.
+- Domain `LoanContractService::deleteDraft/restoreDraft` owns checks inside transactions with `lockForUpdate`; referential FKs remain restrict-on-delete. ClientPortal routes DELETE contract and PATCH restore-draft use existing `client.loans.contracts.edit` permission on web guard; no direct state mutation in Blade.
+- UI hides destructive actions for contracts with dependencies; server always rechecks to prevent stale UI/races. Confirmation required before delete/restore; draft edit form remains available.
+- Filter UX: compact search/type/status/insurance row on desktop; select changes auto-submit GET; search debounced 550ms; reset appears only when filters active; mobile responsive grid. Native GET remains as non-JS fallback via Enter. No new shared PWA assets, migrations, or data modifications.
+- Added isolated SQLite integration tests for draft delete and restore safety; updated focused static contract tests. **No tests executed by assistant**; user must run focused then LoanManagement regression. UI acceptance on desktop/tablet/iPhone remains pending.
+- Note: filtered set is still limited to the latest 100 contracts loaded by the existing domain dashboard; server-side pagination/global search is future scope. No PR, merge, production action.
