@@ -30,7 +30,7 @@ final class LoanManagementInsuranceContractTest extends TestCase
 
     public function test_demo_seeder_is_opt_in_and_idempotent(): void
     {
-        $source = file_get_contents(base_path('Modules/LoanManagement/database/seeders/LoanManagementDemoSeeder.php'));
+        $source = file_get_contents(base_path('Modules/LoanManagement/Database/Seeders/LoanManagementDemoSeeder.php'));
         $this->assertStringContainsString("environment(['local', 'testing'])", $source);
         $this->assertStringContainsString("where('contract_number', \$number)->exists()", $source);
         $this->assertStringContainsString('DB::transaction(', $source);
