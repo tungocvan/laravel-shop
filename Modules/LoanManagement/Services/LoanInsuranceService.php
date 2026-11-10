@@ -12,6 +12,12 @@ final class LoanInsuranceService
         return DB::transaction(function () use ($contractId, $data): int {
             $contract = DB::table('loan_contracts')->where('id', $contractId)->lockForUpdate()->first();
             abort_unless($contract, 404);
+            $lenderType = DB::table('loan_lenders')->where('id', $contract->lender_id)->value('type');
+            if ($lenderType === 'individual') {
+                throw ValidationException::withMessages([
+                    'contract' => 'Khoản vay từ cá nhân không hỗ trợ tạo bảo hiểm mới.',
+                ]);
+            }
             if ($contract->status === 'cancelled') {
                 throw ValidationException::withMessages(['contract' => 'Hợp đồng đã hủy.']);
             }
