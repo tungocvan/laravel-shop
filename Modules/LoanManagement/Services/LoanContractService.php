@@ -63,6 +63,50 @@ final class LoanContractService
         });
     }
 
+    /**
+     * Draft management is permitted only before any dependent financial or insurance record exists.
+     * All checks run under a contract row lock to serialize against transaction services.
+     */
+    private function assertNoRelatedRecords(int $contractId): void
+    {
+        foreach (['loan_disbursements', 'loan_repayment_schedules', 'loan_payments', 'loan_insurance_policies'] as $table) {
+            if (DB::table($table)->where('loan_contract_id', $contractId)->exists()) {
+                throw ValidationException::withMessages([
+                    'contract' => 'Hợp đồng đã có dữ liệu giải ngân, lịch trả nợ, thanh toán hoặc bảo hiểm; không thể xóa hay chuyển về nháp.',
+                ]);
+            }
+        }
+    }
+
+    public function deleteDraft(int $id): void
+    {
+        DB::transaction(function () use ($id): void {
+            $contract = DB::table('loan_contracts')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($contract, 404);
+            if ($contract->status !== 'draft') {
+                throw ValidationException::withMessages(['contract' => 'Chỉ được xóa hợp đồng nháp.']);
+            }
+            $this->assertNoRelatedRecords($id);
+            DB::table('loan_contracts')->where('id', $id)->delete();
+        });
+    }
+
+    public function restoreDraft(int $id): void
+    {
+        DB::transaction(function () use ($id): void {
+            $contract = DB::table('loan_contracts')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($contract, 404);
+            if (!in_array($contract->status, ['active', 'cancelled'], true)) {
+                throw ValidationException::withMessages(['contract' => 'Chỉ hợp đồng đang vay hoặc đã hủy mới có thể chuyển về nháp khi chưa phát sinh nghiệp vụ.']);
+            }
+            $this->assertNoRelatedRecords($id);
+            DB::table('loan_contracts')->where('id', $id)->update([
+                'status' => 'draft',
+                'updated_at' => now(),
+            ]);
+        });
+    }
+
     public function dashboard(): array
     {
         $contracts = DB::table('loan_contracts as c')
