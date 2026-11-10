@@ -80,3 +80,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Added focused static UI contract assertions. **Not run by assistant**. Run focused UI test then module contract/integration regression. Real desktop/tablet/iPhone UI PASS pending.
 - Known follow-up: server-side pagination for >100 contracts, summary alerts/KPI and separate focused task routes require subsequent controlled batches. Current UI filters only the latest 100 contracts loaded by existing dashboard service; do not misrepresent them as global filters.
 - No seeder, production changes, PR or merge performed.
+
+## Batch 8 filter hotfix / simplified UX (awaiting local verification)
+- User screenshot shows no contract cards after selecting `Đang vay`; root cause not conclusively established from screenshot. Removed fragile Alpine `x-show` / `x-cloak` dependency and implemented explicit GET server-side filtering of the loaded 100-contract dashboard collection. Search, lender type, status, insurance all validated and applied in controller; reset uses canonical dashboard route.
+- Insurance policy premium details now collapsed by default to reduce vertical scrolling, preserving nested payment/create actions.
+- Contract cards remain native collapsible details; business forms and permissions preserved. No DB schema/data changes.
+- Focused UI contract test updated. **No tests run by assistant; local TEST/UI PASS pending.** If filter or Blade render fails, stop and debug before further UI refactor.
