@@ -26,7 +26,8 @@ final class LoanContractHistoryService
         foreach ($definitions as $key => [$table, $date]) {
             $result[$key] = DB::table($table)
                 ->whereIn('loan_contract_id', $ids)
-                ->orderBy($date)
+                // Installments follow their business sequence; other records remain chronological.
+                ->orderBy($key === 'schedules' ? 'installment' : $date)
                 ->orderBy('id')
                 ->get()
                 ->groupBy('loan_contract_id')
