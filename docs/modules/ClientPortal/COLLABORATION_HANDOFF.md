@@ -1,3 +1,12 @@
+## 2026-11-10 — PWA Login editor + reactive preview checkpoint
+
+- Branch `feat/clientportal-pwa-login-live-preview-20261110` created from merged `main` at `c2805ea87`. Existing `/admin/client-apps/pwa` editor for badge, heading, description, intro visibility and up to 8 feature cards moved above general settings/Bottom Navigation, adjacent to the sticky preview.
+- Admin preview uses Alpine local `x-data` and `x-model`/`x-text`/`x-show` for immediate unsaved edits; existing PUT route, ClientPortalSettingsService persistence, PWA login runtime and Auth guard are unchanged. Uploaded logo remains separately managed.
+- New guarded POST `admin.client-apps.pwa.login.reset` restores configured `pwa.login` defaults without touching `logo_path`. No migration or production action.
+- Focused test **PENDING**: `tests/Feature/ClientApps/ClientPortalPwaLoginLivePreviewContractTest.php`. After focused PASS, regression: `tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php`, `tests/Feature/ClientApps/ClientPortalPwaLoginLogoContractTest.php`, `tests/Feature/ClientApps/ClientPwaFoundationTest.php`. UI **PENDING**: desktop/tablet/iPhone preview input/toggle/save/reset, reload and verify `/my-apps/login`, logo retention, Auth login/Google. Do not merge before test and UI gates.
+ 
+---
+
 ## 2026-11-10 — Optional ClientPortal Login PWA logo checkpoint
 
 - Branch `feat/clientportal-pwa-login-logo-20261110` from `main`. Admin `/admin/client-apps/pwa` now has a separate guarded upload/remove form for the Login PWA logo. PNG/JPG/WebP only, max 2 MB, stored on public disk under `clientportal/login-logos/`; `pwa.login.logo_path` is persisted through existing ClientPortalSettingsService. No migration.
