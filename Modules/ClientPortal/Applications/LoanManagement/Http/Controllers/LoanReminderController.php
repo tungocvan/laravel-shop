@@ -15,7 +15,8 @@ final class LoanReminderController extends Controller
         abort_unless($request->user()?->can('client.loans.contracts.edit'), 403);
         $data = $request->validate([
             'enabled' => ['required', 'boolean'],
-            'recipient_email' => ['required', 'email', 'max:255'],
+            'recipient_emails' => ['required', 'array', 'min:1', 'max:10'],
+            'recipient_emails.*' => ['required', 'email', 'max:255'],
             'days_before' => ['array'],
             'days_before.*' => ['integer', Rule::in(LoanReminderService::OFFSETS)],
         ]);
