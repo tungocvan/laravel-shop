@@ -118,7 +118,8 @@
 
     @include('ClientPortal::applications.loans.partials.contract-history', ['contract' => $contract, 'loanHistory' => $loanHistory])
 
-    <div class="mt-4 grid gap-3 lg:grid-cols-3">
+    <details class="mt-4 rounded-xl border border-slate-200 p-3"><summary class="cursor-pointer text-sm font-semibold text-slate-700">Thao tác khác · Giải ngân thêm / Thanh toán ngoài lịch / Lập lịch thủ công / Bảo hiểm</summary>
+    <div class="mt-3 grid gap-3 lg:grid-cols-3">
     @can('client.loans.payments.create')
     @if(in_array($contract->status, ['draft', 'active'], true))
     <details class="rounded-xl border border-slate-100 bg-white p-4">
@@ -179,6 +180,7 @@
     @endif
     @endcan
     </div>
+    </details>
     @can('client.loans.contracts.edit')
     @if($contract->status === 'draft' && !in_array($contract->id, $relatedContractIds))
       <form method="POST" action="{{ route('client.loans.contracts.destroy', $contract->id) }}" class="mt-3" data-loan-delete-confirm data-loan-contract="{{ $contract->contract_number }}">
@@ -322,5 +324,18 @@
         wizard.addEventListener('change', previewSchedule);
         previewSchedule();
     }
+
+    document.querySelectorAll('[data-loan-installment-form]').forEach(form => {
+        form.addEventListener('submit', event => {
+            const fields = ['principal_paid', 'interest_paid', 'fees_paid'];
+            const total = fields.reduce((sum, key) => sum + Number(form.elements.namedItem(key)?.value || 0), 0);
+            if (!(total > 0) || !window.confirm('Xác nhận đã chuyển thực tế ' + new Intl.NumberFormat('vi-VN').format(total) + ' VND cho kỳ này?')) {
+                event.preventDefault();
+                return;
+            }
+            const button = form.querySelector('[data-loan-submit-payment]');
+            if (button) button.disabled = true;
+        });
+    });
 </script>
 @endpush
