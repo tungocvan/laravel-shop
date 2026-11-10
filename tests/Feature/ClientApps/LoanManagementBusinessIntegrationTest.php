@@ -9,6 +9,7 @@ use Modules\LoanManagement\Services\LoanInsuranceService;
 use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanTransactionService;
+use Modules\LoanManagement\Services\LoanInstallmentPaymentService;
 use Modules\LoanManagement\Services\LoanScheduleGenerator;
 use Tests\TestCase;
 
@@ -35,6 +36,8 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
 
         $migration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000001_create_loan_management_tables.php');
         $migration->up();
+        $allocationsMigration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000002_create_loan_payment_allocations_table.php');
+        $allocationsMigration->up();
     }
 
     protected function tearDown(): void
@@ -58,6 +61,57 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'matures_at' => '2027-01-01', 'status' => 'draft',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    public function test_installment_payment_allocates_partial_and_rejects_overpayment_atomically(): void
+    {
+        $id = $this->contract('INSTALLMENT-01');
+        $tx = app(LoanTransactionService::class);
+        $tx->disburse($id, ['amount' => '500.00', 'disbursed_at' => '2026-02-01']);
+        $tx->schedule($id, [
+            'installment' => 1, 'due_at' => '2026-06-01',
+            'principal_due' => '200.00', 'interest_due' => '20.00', 'fees_due' => '5.00',
+        ]);
+        $scheduleId = (int) DB::table('loan_repayment_schedules')->where('loan_contract_id', $id)->value('id');
+        $service = app(LoanInstallmentPaymentService::class);
+        $service->record($id, $scheduleId, [
+            'paid_at' => '2026-03-01', 'principal_paid' => '100.00',
+            'interest_paid' => '10.00', 'fees_paid' => '0.00', 'reference' => 'PART-1',
+        ]);
+        $allocated = $service->forSchedules([$scheduleId]);
+        $this->assertSame('100', (string) (int) $allocated[$scheduleId]->principal);
+        $this->assertSame('10', (string) (int) $allocated[$scheduleId]->interest);
+
+        $before = DB::table('loan_payments')->count();
+        try {
+            $service->record($id, $scheduleId, [
+                'paid_at' => '2026-03-02', 'principal_paid' => '101.00',
+                'interest_paid' => '0.00', 'fees_paid' => '0.00',
+            ]);
+            $this->fail('Overpayment of a scheduled component must be rejected.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('principal_paid', $exception->errors());
+        }
+        $this->assertSame($before, DB::table('loan_payments')->count());
+
+        $service->record($id, $scheduleId, [
+            'paid_at' => '2026-03-02', 'principal_paid' => '100.00',
+            'interest_paid' => '10.00', 'fees_paid' => '5.00',
+        ]);
+        $this->assertSame(2, DB::table('loan_payment_allocations')->where('loan_repayment_schedule_id', $scheduleId)->count());
+        $this->assertSame('200', (string) (int) $service->forSchedules([$scheduleId])[$scheduleId]->principal);
+        $this->assertSame(2, DB::table('loan_payments')->where('loan_contract_id', $id)->count());
+    }
+
+    public function test_legacy_unallocated_payments_are_not_automatically_matched_to_installments(): void
+    {
+        $id = $this->contract('LEGACY-PAYMENT');
+        $tx = app(LoanTransactionService::class);
+        $tx->disburse($id, ['amount' => '500.00', 'disbursed_at' => '2026-02-01']);
+        $tx->schedule($id, ['installment' => 1, 'due_at' => '2026-06-01', 'principal_due' => '200.00', 'interest_due' => '10.00', 'fees_due' => '0.00']);
+        $tx->pay($id, ['paid_at' => '2026-03-01', 'principal_paid' => '100.00', 'interest_paid' => '10.00', 'fees_paid' => '0.00']);
+        $this->assertSame([], app(LoanInstallmentPaymentService::class)->forSchedules([(int) DB::table('loan_repayment_schedules')->where('loan_contract_id', $id)->value('id')]));
+        $this->assertSame(1, DB::table('loan_payments')->count());
     }
 
     public function test_guided_schedule_for_individual_company_and_credit_lenders_is_forecast_only(): void
