@@ -140,6 +140,7 @@ class MedicineCatalog
 
                 return [
                     'origin' => 'public_tender',
+                    'record_id' => (int) $source->id,
                     'source_record_key' => $source->source_record_key,
                     'registration_verified' => (bool) data_get($source->metadata, 'registration_verified', false),
                     'synced_at' => $source->synced_at,
@@ -163,6 +164,7 @@ class MedicineCatalog
 
         $recentAwards = $awards->map(fn ($award): array => [
             'origin' => 'canonical',
+            'record_id' => (int) $award->id,
             'bidding_notice_code' => $award->bidding_notice_code,
             'investor_name' => $award->investor_name,
             'decision_number' => $award->decision_number,
@@ -181,7 +183,18 @@ class MedicineCatalog
             'source_record_key' => null,
             'registration_verified' => null,
             'synced_at' => null,
-        ])->concat($publicAwardSources)->values();
+        ])->concat($publicAwardSources);
+
+        $preferences = app(MedicineAwardPreferenceService::class)->records((int) $medicine->id);
+        $recentAwards = $recentAwards->map(function (array $award) use ($preferences): array {
+            $preference = $preferences[$award['origin'].':'.$award['record_id']] ?? null;
+            $award['is_hidden'] = (bool) ($preference?->is_hidden ?? false);
+            $award['is_default'] = (bool) ($preference?->is_default ?? false) && ! $award['is_hidden'];
+
+            return $award;
+        })->sortByDesc('is_default')->values();
+        $hiddenAwards = $recentAwards->filter(fn (array $award): bool => $award['is_hidden'])->values();
+        $recentAwards = $recentAwards->reject(fn (array $award): bool => $award['is_hidden'])->values();
 
         $suppliers = $medicine->supplierTrackings
             ->sortByDesc(fn ($tracking) => $tracking->working_date?->format('Y-m-d') ?? sprintf('%010d', $tracking->id))
@@ -230,6 +243,8 @@ class MedicineCatalog
             ] : null,
             'public_award_sources' => $publicAwardSources,
             'awards' => $recentAwards,
+            'hidden_awards' => $hiddenAwards,
+            'medicine_id' => (int) $medicine->id,
             'suppliers' => $suppliers,
             'supplier_pricing_visible' => $includeSupplierPricing,
         ];
