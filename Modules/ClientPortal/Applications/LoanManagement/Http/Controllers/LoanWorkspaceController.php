@@ -44,6 +44,22 @@ final class LoanWorkspaceController extends Controller
     }
 
 
+    public function deleteContract(Request $request, int $contract, LoanContractService $service): RedirectResponse
+    {
+        abort_unless($request->user()?->can('client.loans.contracts.edit'), 403);
+        $service->deleteDraft($contract);
+
+        return redirect()->route('client.loans.dashboard')->with('success', 'Đã xóa hợp đồng nháp.');
+    }
+
+    public function restoreDraft(Request $request, int $contract, LoanContractService $service): RedirectResponse
+    {
+        abort_unless($request->user()?->can('client.loans.contracts.edit'), 403);
+        $service->restoreDraft($contract);
+
+        return redirect()->route('client.loans.dashboard')->with('success', 'Đã chuyển hợp đồng về nháp.');
+    }
+
     public function disburse(Request $request, int $contract, \Modules\LoanManagement\Services\LoanTransactionService $service): RedirectResponse
     {
         abort_unless($request->user()?->can('client.loans.payments.create'), 403);
