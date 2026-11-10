@@ -16,6 +16,7 @@ use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaDavPriceCont
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaTraditionalPriceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineEditorController;
+use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineAwardPreferenceController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineRelationsController;
 use Modules\ClientPortal\Applications\Pharma\Http\Controllers\PharmaMedicineExcelProfileController;
 
@@ -163,6 +164,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.create');
         Route::post('/products/{medicine}/variants', [PharmaMedicineEditorController::class, 'storeVariant'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.variants.store');
+        Route::post('/products/{medicine}/award-preferences', [PharmaMedicineAwardPreferenceController::class, 'update'])
+            ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.award-preferences.update');
         Route::get('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'hssp'])
             ->whereNumber('medicine')->middleware('client.feature:pharma,products')->name('products.hssp');
         Route::put('/products/{medicine}/hssp', [PharmaMedicineRelationsController::class, 'updateHssp'])
