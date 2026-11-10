@@ -29,9 +29,15 @@ final class LoanWorkspaceController extends Controller
     {
         abort_unless($request->user()?->can('client.loans.contracts.create'), 403);
         $data = $this->validatedContract($request);
-        $service->createContract($data);
+        $options = $request->validate([
+            'repayment_mode' => ['nullable', Rule::in(['manual', 'interest_monthly', 'all_at_maturity'])],
+        ]);
+        $mode = $options['repayment_mode'] ?? 'manual';
+        $service->createContractWithOptionalSchedule($data, $mode === 'manual' ? null : $mode);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã tạo hợp đồng nháp.');
+        return redirect()->route('client.loans.dashboard')->with('success', $mode === 'manual'
+            ? 'Đã tạo hợp đồng nháp. Hãy ghi nhận giải ngân khi thực nhận tiền.'
+            : 'Đã tạo hợp đồng nháp và lịch trả nợ dự kiến. Chưa ghi nhận giải ngân hay thanh toán.');
     }
 
     public function updateContract(Request $request, int $contract, LoanContractService $service): RedirectResponse
