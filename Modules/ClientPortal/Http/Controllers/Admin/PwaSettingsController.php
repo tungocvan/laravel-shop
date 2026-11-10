@@ -201,17 +201,22 @@ class PwaSettingsController extends Controller
             'items.*.key' => ['required', 'string'],
             'items.*.bottom_enabled' => ['required', 'boolean'],
             'items.*.bottom_sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
-            'items.*.bottom_icon' => ['required', 'string', 'max:60'],
+            'items.*.bottom_icon' => ['nullable', 'string', 'max:60'],
             'items.*.bottom_label' => ['nullable', 'string', 'max:30'],
         ]);
-        $allowed = collect($manifest['navigation'] ?? [])->pluck('key')->flip();
-        $items = collect($validated['items'])->filter(fn (array $item): bool => $allowed->has($item['key']))->map(fn (array $item): array => [
-            'key' => $item['key'],
-            'bottom_enabled' => (bool) $item['bottom_enabled'],
-            'bottom_sort_order' => (int) $item['bottom_sort_order'],
-            'bottom_icon' => trim((string) $item['bottom_icon']),
-            'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
-        ])->values()->all();
+        $navigation = collect($manifest['navigation'] ?? [])->keyBy('key');
+        $presentation = collect($settings->applicationNavigationPresentation($manifest)['items'])->keyBy('key');
+        $items = collect($validated['items'])->filter(fn (array $item): bool => $navigation->has($item['key']))->map(function (array $item) use ($navigation, $presentation): array {
+            $defaultIcon = $navigation->get($item['key'])['icon'] ?? 'squares-2x2';
+            $savedIcon = $presentation->get($item['key'])['bottom_icon'] ?? $defaultIcon;
+            return [
+                'key' => $item['key'],
+                'bottom_enabled' => (bool) $item['bottom_enabled'],
+                'bottom_sort_order' => (int) $item['bottom_sort_order'],
+                'bottom_icon' => trim((string) ($item['bottom_icon'] ?? '')) ?: (trim((string) $savedIcon) ?: $defaultIcon),
+                'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
+            ];
+        })->values()->all();
         $settings->updateApplicationNavigationPresentation($manifest['key'], ['items' => $items], $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật Bottom Navigation của ứng dụng '.$manifest['name'].'.');
     }
