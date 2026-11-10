@@ -1,3 +1,11 @@
+## 2026-11-10 — Regression follow-up for public tender award filters (CHECKPOINT)
+
+- User reported `PharmaProductsCapabilityTest` failure at line 177: old string contract required `whereDoesntHave('medicine.drugBidAwards')` after catalog queries were extended to include active `public_tender/award_price` sources. 14 tests passed, 1 failed (248 assertions) in the user's impacted run; this is **not** TEST PASS.
+- Audited query and found another gap: `bidAward=with` still checked canonical awards only. Fixed it to include public tender sources, aligned with `filter=awarded`, count and `bidAward=without`. Updated old contract to assert both canonical and public sources while preserving negative-filter semantics.
+- Focused rerun: `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php tests/Feature/ClientApps/PharmaPublicAwardCatalogContractTest.php`; then impacted regression only if PASS. No local tests run by assistant; TEST/UI PENDING. No DB migration or production operations.
+
+---
+
 ## 2026-11-10 — Public tender source visibility in ClientPortal catalog (CHECKPOINT)
 
 - Branch `fix/pharma-public-award-catalog-20261110` from main `1c47ac0e1`; user approved separating public tender observations from canonical `DrugBidAward`.
