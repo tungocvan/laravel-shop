@@ -11,9 +11,12 @@ use Tests\TestCase;
 
 final class LoanManagementBusinessIntegrationTest extends TestCase
 {
+    private string $previousConnection;
     protected function setUp(): void
     {
         parent::setUp();
+
+        $this->previousConnection = DB::getDefaultConnection();
 
         // Fail closed: these tests must never use the app's configured MySQL database.
         config()->set('database.connections.loan_management_test', [
@@ -33,6 +36,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
 
     protected function tearDown(): void
     {
+        DB::setDefaultConnection($this->previousConnection);
         DB::disconnect('loan_management_test');
         parent::tearDown();
     }
