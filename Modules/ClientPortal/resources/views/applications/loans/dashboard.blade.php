@@ -18,20 +18,20 @@
  <div class="grid gap-4 lg:grid-cols-2">
   <details class="rounded-xl border bg-white p-4"><summary class="cursor-pointer font-semibold">Thêm đối tác cho vay</summary>
    <form method="POST" action="{{ route('client.loans.lenders.store') }}" class="mt-4 grid gap-3">@csrf
-    <label>Tên đối tác<input required name="name" value="{{ old('name') }}" class="mt-1 w-full rounded-xl border p-3"></label>
-    <label>Loại<select name="type" class="mt-1 w-full rounded-xl border p-3"><option value="individual">Cá nhân</option><option value="company">Doanh nghiệp</option><option value="credit_institution">Ngân hàng / Tổ chức tín dụng</option></select></label>
-    <label>Mã số thuế<input name="tax_identifier" value="{{ old('tax_identifier') }}" class="mt-1 w-full rounded-xl border p-3"></label>
-    <label>Liên hệ<input name="contact" value="{{ old('contact') }}" class="mt-1 w-full rounded-xl border p-3"></label>
+    <label>Tên đối tác<input required name="name" value="{{ old('name') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+    <label>Loại<select name="type" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"><option value="individual">Cá nhân</option><option value="company">Doanh nghiệp</option><option value="credit_institution">Ngân hàng / Tổ chức tín dụng</option></select></label>
+    <label>Mã số thuế<input name="tax_identifier" value="{{ old('tax_identifier') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+    <label>Liên hệ<input name="contact" value="{{ old('contact') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
     <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Lưu đối tác</button>
    </form>
   </details>
   <details class="rounded-xl border bg-white p-4"><summary class="cursor-pointer font-semibold">Tạo hợp đồng nháp</summary>
    <form method="POST" action="{{ route('client.loans.contracts.store') }}" class="mt-4 grid gap-3">@csrf
-    <label>Bên cho vay<select required name="lender_id" class="mt-1 w-full rounded-xl border p-3"><option value="">Chọn đối tác</option>@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}">{{ $lender->name }}</option>@endforeach</select></label>
-    <label>Số hợp đồng<input required name="contract_number" value="{{ old('contract_number') }}" class="mt-1 w-full rounded-xl border p-3"></label>
-    <label>Số tiền cam kết (VND)<input required type="number" step="0.01" min="0.01" name="committed_amount" value="{{ old('committed_amount') }}" class="mt-1 w-full rounded-xl border p-3"></label>
-    <label>Lãi suất (%/năm)<input required type="number" step="0.00001" min="0" max="100" name="annual_rate_percent" value="{{ old('annual_rate_percent') }}" class="mt-1 w-full rounded-xl border p-3"></label>
-    <label>Cơ sở tính ngày<select name="day_count_basis" class="mt-1 w-full rounded-xl border p-3"><option value="365">365</option><option value="360">360</option><option value="366">366</option></select></label>
+    <label>Bên cho vay<select required name="lender_id" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"><option value="">Chọn đối tác</option>@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}">{{ $lender->name }}</option>@endforeach</select></label>
+    <label>Số hợp đồng<input required name="contract_number" value="{{ old('contract_number') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+    <label>Số tiền cam kết (VND)<input required type="number" step="0.01" min="0.01" name="committed_amount" value="{{ old('committed_amount') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+    <label>Lãi suất (%/năm)<input required type="number" step="0.00001" min="0" max="100" name="annual_rate_percent" value="{{ old('annual_rate_percent') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+    <label>Cơ sở tính ngày<select name="day_count_basis" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"><option value="365">365</option><option value="360">360</option><option value="366">366</option></select></label>
     <label>Ngày ký<x-pwa-date name="signed_at" :value="old('signed_at')" required /></label>
     <label>Ngày đáo hạn<x-pwa-date name="matures_at" :value="old('matures_at')" required /></label>
     <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Tạo hợp đồng</button>
@@ -44,15 +44,59 @@
    <article class="mt-3 rounded-xl border p-4">
     <div class="flex flex-wrap justify-between gap-2"><strong>{{ $contract->contract_number }} — {{ $contract->lender_name }}</strong><span>{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span></div>
     <div class="mt-2 grid gap-2 text-sm sm:grid-cols-3"><p>Cam kết: {{ number_format((float)$contract->committed_amount, 0, ',', '.') }}</p><p>Giải ngân: {{ number_format((float)$contract->disbursed_total, 0, ',', '.') }}</p><p>Dư nợ gốc: {{ number_format((float)$contract->outstanding, 0, ',', '.') }}</p></div>
+
+    <div class="mt-4 grid gap-3 lg:grid-cols-3">
+    @can('client.loans.payments.create')
+    @if(in_array($contract->status, ['draft', 'active'], true))
+    <details class="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+      <summary class="cursor-pointer text-sm font-semibold">Giải ngân</summary>
+      <form method="POST" action="{{ route('client.loans.disbursements.store', $contract->id) }}" class="mt-3 grid gap-3">@csrf
+        <label class="text-sm">Ngày giải ngân<x-pwa-date name="disbursed_at" required /></label>
+        <label class="text-sm">Số tiền (VND)<input name="amount" type="number" min="0.01" step="0.01" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <label class="text-sm">Tham chiếu<input name="reference" maxlength="255" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Ghi nhận giải ngân</button>
+      </form>
+    </details>
+    @endif
+    @if($contract->status === 'active')
+    <details class="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+      <summary class="cursor-pointer text-sm font-semibold">Thanh toán thực tế</summary>
+      <form method="POST" action="{{ route('client.loans.payments.store', $contract->id) }}" class="mt-3 grid gap-3">@csrf
+        <label class="text-sm">Ngày thanh toán<x-pwa-date name="paid_at" required /></label>
+        @foreach(['principal_paid'=>'Gốc', 'interest_paid'=>'Lãi', 'fees_paid'=>'Phí'] as $field => $label)
+          <label class="text-sm">{{ $label }} (VND)<input name="{{ $field }}" type="number" min="0" step="0.01" value="0" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        @endforeach
+        <label class="text-sm">Tham chiếu<input name="reference" maxlength="255" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Ghi nhận thanh toán</button>
+      </form>
+    </details>
+    @endif
+    @endcan
+    @can('client.loans.contracts.edit')
+    @if(in_array($contract->status, ['draft', 'active'], true))
+    <details class="rounded-xl border border-slate-100 bg-slate-50/50 p-3">
+      <summary class="cursor-pointer text-sm font-semibold">Lịch trả nợ dự kiến</summary>
+      <form method="POST" action="{{ route('client.loans.schedules.store', $contract->id) }}" class="mt-3 grid gap-3">@csrf
+        <label class="text-sm">Kỳ số<input name="installment" type="number" min="1" step="1" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        <label class="text-sm">Ngày đến hạn<x-pwa-date name="due_at" required /></label>
+        @foreach(['principal_due'=>'Gốc', 'interest_due'=>'Lãi', 'fees_due'=>'Phí'] as $field => $label)
+          <label class="text-sm">{{ $label }} dự kiến (VND)<input name="{{ $field }}" type="number" min="0" step="0.01" value="0" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+        @endforeach
+        <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Lưu lịch dự kiến</button>
+      </form>
+    </details>
+    @endif
+    @endcan
+    </div>
     @can('client.loans.contracts.edit')
     @if($contract->status === 'draft')
     <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold">Sửa hợp đồng nháp</summary>
      <form method="POST" action="{{ route('client.loans.contracts.update', $contract->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf @method('PUT')
-      <label>Đối tác<select name="lender_id" class="mt-1 w-full rounded-xl border p-3">@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}" @selected($lender->id == $contract->lender_id)>{{ $lender->name }}</option>@endforeach</select></label>
-      <label>Số hợp đồng<input name="contract_number" value="{{ $contract->contract_number }}" required class="mt-1 w-full rounded-xl border p-3"></label>
-      <label>Cam kết<input name="committed_amount" type="number" step="0.01" value="{{ $contract->committed_amount }}" required class="mt-1 w-full rounded-xl border p-3"></label>
-      <label>Lãi suất<input name="annual_rate_percent" type="number" step="0.00001" value="{{ $contract->annual_rate_percent }}" required class="mt-1 w-full rounded-xl border p-3"></label>
-      <label>Cơ sở ngày<select name="day_count_basis" class="mt-1 w-full rounded-xl border p-3">@foreach([360,365,366] as $basis)<option value="{{ $basis }}" @selected($contract->day_count_basis == $basis)>{{ $basis }}</option>@endforeach</select></label>
+      <label>Đối tác<select name="lender_id" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}" @selected($lender->id == $contract->lender_id)>{{ $lender->name }}</option>@endforeach</select></label>
+      <label>Số hợp đồng<input name="contract_number" value="{{ $contract->contract_number }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+      <label>Cam kết<input name="committed_amount" type="number" step="0.01" value="{{ $contract->committed_amount }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+      <label>Lãi suất<input name="annual_rate_percent" type="number" step="0.00001" value="{{ $contract->annual_rate_percent }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+      <label>Cơ sở ngày<select name="day_count_basis" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">@foreach([360,365,366] as $basis)<option value="{{ $basis }}" @selected($contract->day_count_basis == $basis)>{{ $basis }}</option>@endforeach</select></label>
       <label>Ngày ký<x-pwa-date name="signed_at" :value="$contract->signed_at" required /></label>
       <label>Đáo hạn<x-pwa-date name="matures_at" :value="$contract->matures_at" required /></label>
       <button class="min-h-11 rounded-xl bg-slate-900 p-3 text-white">Lưu thay đổi</button>
