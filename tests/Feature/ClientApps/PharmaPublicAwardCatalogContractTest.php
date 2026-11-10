@@ -36,5 +36,7 @@ class PharmaPublicAwardCatalogContractTest extends TestCase
         $this->assertStringContainsString('Thông tin trúng thầu gần đây', $view);
         $this->assertStringContainsString('Nguồn công khai · Chưa xác minh nghiệp vụ', $view);
         $this->assertStringContainsString('không thay đổi giá bán, giá nhập', $view);
+        $this->assertSame(2, substr_count($view, "is_array(\$value) ? (implode('; ', array_filter(\$value, 'is_scalar'))"));
+        $this->assertStringNotContainsString("filled(\$value) ? \$value : '—'", $view);
     }
 }
