@@ -64,6 +64,7 @@ final class LoanApplicationController extends Controller
             'loanHistory' => $loanHistory,
             'installmentAllocations' => $installments->forSchedules($scheduleIds),
             'loanReminderSettings' => $reminders->settingsForContracts($visibleContracts->pluck('id')->all()),
+            'loanReminderRecipients' => $reminders->recipientsForContracts($visibleContracts->pluck('id')->all()),
             'loanFilters' => $filters,
             'insuranceData' => $insurance->overview(),
             'insuredContractIds' => $insuredContractIds,
