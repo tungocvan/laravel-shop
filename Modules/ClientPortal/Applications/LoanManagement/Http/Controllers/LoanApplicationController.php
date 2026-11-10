@@ -19,7 +19,7 @@ final class LoanApplicationController extends Controller
 
         return view('ClientPortal::applications.loans.dashboard', [
             'application' => $application,
-            'applicationPresentation' => $settings->applicationPresentation('loans', $application),
+            'applicationPresentation' => $settings->applicationPresentation($application),
             'overviewPresentation' => $presentation,
         ]);
     }
