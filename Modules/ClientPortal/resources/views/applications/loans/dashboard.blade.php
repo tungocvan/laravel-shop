@@ -120,6 +120,7 @@
 
     <details class="mt-4 rounded-xl border border-slate-200 p-3"><summary class="cursor-pointer text-sm font-semibold text-slate-700">Thao tác khác · Thanh toán ngoài lịch / Lập lịch thủ công / Bảo hiểm</summary>
     <div class="mt-3 grid gap-3 lg:grid-cols-3">
+    @can('client.loans.payments.create')
     @if($contract->status === 'active')
     <details class="rounded-xl border border-slate-100 bg-white p-4">
       <summary class="cursor-pointer text-sm font-semibold">Thanh toán thực tế</summary>
