@@ -166,13 +166,13 @@
     @endcan
     </div>
     @can('client.loans.contracts.edit')
-    @if($contract->status === 'draft')
+    @if($contract->status === 'draft' && !in_array($contract->id, $relatedContractIds))
       <form method="POST" action="{{ route('client.loans.contracts.destroy', $contract->id) }}" class="mt-3" data-loan-delete-confirm data-loan-contract="{{ $contract->contract_number }}">
         @csrf @method('DELETE')
         <button type="submit" class="min-h-11 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Xóa hợp đồng nháp</button>
         <p class="mt-1 text-xs text-slate-500">Chỉ xóa được khi chưa có giải ngân, lịch trả nợ, thanh toán hoặc bảo hiểm.</p>
       </form>
-    @elseif(in_array($contract->status, ['active', 'cancelled'], true))
+    @elseif(in_array($contract->status, ['active', 'cancelled'], true) && !in_array($contract->id, $relatedContractIds))
       <form method="POST" action="{{ route('client.loans.contracts.restore-draft', $contract->id) }}" class="mt-3" data-loan-restore-confirm data-loan-contract="{{ $contract->contract_number }}">
         @csrf @method('PATCH')
         <button type="submit" class="min-h-11 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Chuyển về nháp</button>
