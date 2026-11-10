@@ -34,8 +34,8 @@
 
     <section aria-labelledby="pharma-capabilities-title">
         <div class="mb-3">
-            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Capability của bạn</p>
-            <h2 id="pharma-capabilities-title" class="mt-1 text-xl font-black text-slate-950">Chọn workspace</h2>
+            <p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">{{ $hubPresentation['capabilities_eyebrow'] }}</p>
+            <h2 id="pharma-capabilities-title" class="mt-1 text-xl font-black text-slate-950">{{ $hubPresentation['capabilities_title'] }}</h2>
         </div>
 
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
