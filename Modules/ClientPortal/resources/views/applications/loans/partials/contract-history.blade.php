@@ -199,7 +199,7 @@
                     <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{{ $statusLabel }}</span>
                 </div>
                 @can('client.loans.contracts.edit')
-                    @if(in_array($contract->status, ['draft', 'active'], true) && $item->due_at > now(config('app.timezone'))->toDateString() && $allocated < 0.005 && !DB::table('loan_payment_allocations')->where('loan_repayment_schedule_id', $item->id)->exists())
+                    @if(in_array($contract->status, ['draft', 'active'], true) && $item->due_at > now(config('app.timezone'))->toDateString() && $allocated < 0.005 && !isset($installmentAllocations[$item->id]))
                         <details class="mt-3 rounded-lg border border-slate-200 p-3" data-loan-edit-installment>
                             <summary class="cursor-pointer text-sm font-semibold text-blue-700">Sửa kỳ {{ $item->installment }} chưa đến hạn</summary>
                             <form method="POST" action="{{ route('client.loans.schedules.update', [$contract->id, $item->id]) }}" class="mt-3 grid gap-3 sm:grid-cols-2">
