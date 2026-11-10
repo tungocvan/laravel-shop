@@ -1,3 +1,81 @@
+- Follow-up fix: canonical award cards now expose existing `contract_period_text` and display it when no manual `tender_validity_text` exists (e.g. Cefoperazone 0,5g, 24 tháng in Excel). Public tender cards still have no inferred period. Focused/UI verification pending.
+## 2026-11-10 — Manual tender validity on medicine award cards (CHECKPOINT)
+
+- User approved adding editable **Hiệu lực thời gian thầu** per canonical/public award record, after confirming Mua sắm công source #329 for medicine #177 has `hanDung` (shelf life) but no verified tender validity. Never map `hanDung` to contract/tender validity.
+- Add nullable `tender_validity_text` to existing `pharma_medicine_award_preferences` via additive migration `2026_11_10_000001_add_tender_validity_to_pharma_medicine_award_preferences.php`. Original public metadata and canonical awards are unchanged. Development migration only after local approval/checkpoint; never production without `docs/PRODUCTION_DEBUG_PROMPT.md` and explicit permission.
+- Existing award preference POST route accepts `action=validity` with nullable max 255 text; same `client.pharma.products.edit` authorization. Service validates active award ownership within locked medicine transaction. Empty text clears manual value. Other default/hide/restore actions preserve the validity column.
+- ClientPortal product detail shows value and **Nhập thủ công** provenance, with inline small edit toggle, Save/Cancel and clear instructions; only editors can edit. Hidden/restore records retain their value.
+- Shared `MedicineExcelRelatedDataService` overrides existing `contract_period_text` for the selected default award only when manual validity is present. No new Excel column required; existing Excel Designer **Thời gian** field remains the output. Source data and pricing/stock unaffected.
+- Focused test `tests/Feature/ClientApps/PharmaTenderValidityContractTest.php`. **TEST PENDING, UI PENDING**; no PR, merge or production deploy. Run focused then impacted tests; verify public #329 validity edit, Excel output, canonical award, hide/restore, permissions, mobile.
+
+---
+
+## 2026-11-10 — Medicine Excel winning quantity mapping (CHECKPOINT)
+
+- User verified Excel default selection for Pregabakern 25mg public award 6,900 VND. Source snapshot has `soLuong=18000`, but configured Excel exposed only internal `allocated_quantity` and had no separate winning quantity column. User approved a distinct **Số lượng trúng thầu** field while retaining **Số lượng phân bổ**.
+- Added optional `winning_quantity` to Medicine Excel Designer column bank and related preview. Canonical source reads `DrugBidAward::quantity`; public tender source reads `MedicineSource.metadata.award.soLuong`. Allocation continues to use canonical internal allocation only. No fabricated public allocation.
+- `contract_period_text` stays empty for public sources without a verified contract term; neither decision date nor publication date is substituted. Existing column **Thời gian trúng thầu** remains configurable and unchanged.
+- Both ClientPortal configured workbook exporter and Pharma Admin Excel controller format `winning_quantity` as numeric. Existing saved Excel profiles are preserved; users must enable the new optional column in their Excel Designer configuration.
+- New focused test: `tests/Feature/ClientApps/PharmaMedicineExcelWinningQuantityContractTest.php`. Assistant did not execute tests or UI; TEST/UI PENDING. No migration for this change, no production operations, no PR/merge.
+
+---
+
+## 2026-11-10 — Award default / hide / restore for configured Medicine Excel (CHECKPOINT)
+
+- Approved scope: per-medicine award selection in ClientPortal product detail and configured Excel Designer Medicine Master exports only; no impact on inventory, price list, commissions, source sync or import template.
+- Added migration `2026_11_10_000000_create_pharma_medicine_award_preferences_table.php` (per-medicine origin + record ID, default and hidden flags; source tables unchanged). **Do not run migration on production without explicit permission and production workflow.**
+- `MedicineAwardPreferenceService`: validates canonical `DrugBidAward` or active `MedicineSource(public_tender/award_price)` ownership, locks medicine row in transaction to serialize default changes, supports `default`, `hide`, `restore`; never deletes source data.
+- ClientPortal `products.award-preferences.update` POST requires `client.pharma.products.edit`; product detail shows default/hide controls and a collapsible restore list for authorized users. Default is sorted first.
+- `MedicineExcelRelatedDataService::preview()` resolves selected canonical/public award for all award columns; fallback when no valid default is latest non-hidden canonical award, not cheapest/highest; public source has no allocation or contract period, leave empty. Both `MedicineConfiguredExcelExporter` (ClientPortal) and `MedicineExcelController` (Admin) already use this shared service. The Excel import template is unchanged.
+- Added `PharmaMedicineAwardPreferenceContractTest`, updated `PharmaPublicAwardCatalogContractTest`. Tests not executed by assistant; focused + impacted tests and UI pending. Local DB migration must be reviewed/run only in the approved development environment after test checkpoint. Check default 6900 public source Excel, hidden canonical fallback, restore, permissions, desktop/mobile and Excel values.
+- No PR, merge or production deploy authorized. Preserve untracked files and do not use worktrees.
+
+---
+
+## 2026-11-10 — Product detail HTTP 500 for array-valued public award fields
+
+- User screenshot: `GET /apps/pharma/products/139` HTTP 500, `htmlspecialchars(): Argument #1 ($string) must be of type string, array given`, `product-show.blade.php:124`.
+- Root cause: public tender payload fields (e.g. `winningCode`, `gdklh_GPNK`) can be arrays, but two loops in unified award section rendered `{{ filled($value) ? $value : '—' }}` directly. Both loops now render scalar values and join scalar array elements with `; `, matching the safe rendering convention already used by `award-price-detail.blade.php`.
+- Contract regression asserts both safe rendering loops; no database, canonical award, price or synchronization changes. TEST/UI pending user rerun, do not merge or deploy.
+
+---
+
+## 2026-11-10 — Unified awards contract regression follow-up
+
+- User ran focused tests: 11 PASS, 1 FAIL (233 assertions). Failure in `PharmaPublicAwardCatalogContractTest` line 18 expected obsolete `'awards' => $awards->map` after read model switched to `'awards' => $recentAwards`.
+- Updated contract to assert merged read-only projection and distinct `canonical`/`public_tender` origin markers; no production logic changes in this fix.
+- Rerun focused tests first; run impacted regression only after focused PASS. TEST/UI still pending; no merge/deploy.
+
+---
+
+## 2026-11-10 — Unified recent awards display (CHECKPOINT)
+
+- User screenshot confirmed source price 6,900 VND appeared in a separate public-tender panel but lacked details from the award source detail screen. User requested it in the existing `Thông tin trúng thầu gần đây` section.
+- `MedicineCatalog::overview()` now returns one read-only `awards` presentation collection combining canonical `drugBidAwards` and active `MedicineSource` public tender snapshots. Public fields use the **actual** upstream keys (`winningName`, `tenCdtBmt`, `soLuong`, `soQuyetDinh`, `ngayBanHanhQuyetDinh`, `ngayDangTaiKqlcnt`, `tenCoSoSanXuat`, `quyCachDongGoi`, `gdklh_GPNK`). Each record retains its origin label and source key. No persistence migration or canonical award creation.
+- Product detail displays both types in existing `Thông tin trúng thầu gần đây`, removing the separate public-source section. Canonical award values remain from the existing model. Public sources are visibly labeled as unverified business observations.
+- Pending: rerun focused `PharmaPublicAwardCatalogContractTest` and `PharmaProductsCapabilityTest`, then impacted module tests, then manual desktop/mobile UI confirmation. Do not claim TEST/UI PASS until confirmed. No merge/deploy.
+
+---
+
+## 2026-11-10 — Regression follow-up for public tender award filters (CHECKPOINT)
+
+- User reported `PharmaProductsCapabilityTest` failure at line 177: old string contract required `whereDoesntHave('medicine.drugBidAwards')` after catalog queries were extended to include active `public_tender/award_price` sources. 14 tests passed, 1 failed (248 assertions) in the user's impacted run; this is **not** TEST PASS.
+- Audited query and found another gap: `bidAward=with` still checked canonical awards only. Fixed it to include public tender sources, aligned with `filter=awarded`, count and `bidAward=without`. Updated old contract to assert both canonical and public sources while preserving negative-filter semantics.
+- Focused rerun: `php artisan test tests/Feature/ClientApps/PharmaProductsCapabilityTest.php tests/Feature/ClientApps/PharmaPublicAwardCatalogContractTest.php`; then impacted regression only if PASS. No local tests run by assistant; TEST/UI PENDING. No DB migration or production operations.
+
+---
+
+## 2026-11-10 — Public tender source visibility in ClientPortal catalog (CHECKPOINT)
+
+- Branch `fix/pharma-public-award-catalog-20261110` from main `1c47ac0e1`; user approved separating public tender observations from canonical `DrugBidAward`.
+- Root cause: `PublicAwardMedicineSync` writes `MedicineSource` (`public_tender/award_price`) but `MedicineCatalog::overview()` previously rendered only `drugBidAwards`; `browse()` and filter counts likewise only checked canonical awards. The preview label `#177` is **medicine_id**, not necessarily a source record ID; product URL `/products/139` is **variant_id**. Verify linkage on actual DB before claiming identity match.
+- `MedicineCatalog` now reads up to 10 active public tender sources for the resolved Medicine, maps source metadata without modifying canonical award/price, and includes public sources in awarded filters/counts. ClientPortal detail displays a separate public-source panel with provenance, timestamp, source price and registration verification. Existing master-only section is retained; master-only awarded filters include public sources.
+- No migration, no write to source/canonical award/master prices, no auto-create SKU. Potential source field variations remain visible as unknown rather than guessed. Existing canonical award section unchanged.
+- TEST PENDING: `php artisan test tests/Feature/ClientApps/PharmaPublicAwardCatalogContractTest.php`. After focused PASS, run impacted `php artisan test Modules/Pharma/Tests/Unit/MedicineCatalogContractTest.php tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. Run Pint check for changed PHP files. UI PASS PENDING: medicine with variant and matching source, master-only medicine, filters with/without, empty source, mobile and desktop.
+- No PR/merge/deploy authorized. Keep all local untracked files intact; user remains on separate PWA logo branch until switching explicitly.
+
+---
+
 ## 2026-11-09 — ClientPortal Excel Designer V4 JSON import in modal (CHECKPOINT)
 
 - User requested `Nhập JSON` beside existing `Xuất JSON` in Excel Designer modal at `/apps/pharma/products/excel-config`.

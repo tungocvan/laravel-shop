@@ -174,7 +174,10 @@ class PharmaProductsCapabilityTest extends TestCase
 
         $this->assertStringContainsString('Medicine::productTypeOptions()', $service);
         $this->assertStringContainsString("whereDoesntHave('medicine.currentProfile')", $service);
-        $this->assertStringContainsString("whereDoesntHave('medicine.drugBidAwards')", $service);
+        $this->assertStringContainsString("whereDoesntHave('drugBidAwards')->whereDoesntHave('sources'", $service);
+        $this->assertStringContainsString("whereHas('drugBidAwards')->orWhereHas('sources'", $service);
+        $this->assertStringContainsString("'source_system', 'public_tender'", $service);
+        $this->assertStringContainsString("'source_record_type', 'award_price'", $service);
         $this->assertStringContainsString("whereDoesntHave('medicine.supplierTrackings'", $service);
         $this->assertStringContainsString("supplierPrice: \$validated['supplier_price'] ?? null", $controller);
         $this->assertStringContainsString("bidAward: \$validated['bid_award'] ?? null", $controller);

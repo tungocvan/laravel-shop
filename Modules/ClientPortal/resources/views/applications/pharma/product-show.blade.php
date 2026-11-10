@@ -77,21 +77,138 @@
         @endif
     </section>
 
-    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <div class="mb-5"><p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">03 · Thầu</p><h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trúng thầu gần đây</h2></div>
+    <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6" aria-label="Thông tin trúng thầu gần đây">
+        <div class="mb-5">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">03 · Thầu</p>
+            <h2 class="mt-1 text-lg font-black text-slate-950">Thông tin trúng thầu gần đây</h2>
+            <p class="mt-2 text-sm text-slate-500">Bao gồm dữ liệu trúng thầu chính thức và nguồn công khai đã đồng bộ. Nguồn công khai chỉ để tham khảo, không thay đổi giá bán, giá nhập hoặc tồn kho.</p>
+        </div>
         @forelse($awards as $award)
-            <article class="grid gap-4 border-t border-slate-100 py-4 first:border-t-0 first:pt-0 sm:grid-cols-2 lg:grid-cols-4">
-                <div><p class="text-xs font-bold text-slate-400">TBMT</p><p class="mt-1 text-sm font-bold text-slate-800">{{ $award['bidding_notice_code'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Chủ đầu tư</p><p class="mt-1 text-sm text-slate-700">{{ $award['investor_name'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Quyết định</p><p class="mt-1 text-sm text-slate-700">{{ $award['decision_number'] ?: '—' }}@if($award['decision_date']) · {{ $award['decision_date']->format('d/m/Y') }}@endif</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Đơn giá trúng thầu</p><p class="mt-1 text-sm font-black tabular-nums text-slate-950">{{ $award['unit_price'] !== null ? number_format((float) $award['unit_price'], 0, ',', '.') : '—' }}</p></div>
-                <div class="sm:col-span-2"><p class="text-xs font-bold text-slate-400">Đơn vị trúng thầu</p><p class="mt-1 text-sm text-slate-700">{{ $award['winning_company_name'] ?: '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Số lượng</p><p class="mt-1 text-sm text-slate-700">{{ $award['quantity'] !== null ? number_format((float) $award['quantity'], 0, ',', '.') : '—' }}</p></div>
-                <div><p class="text-xs font-bold text-slate-400">Lô</p><p class="mt-1 text-sm text-slate-700">{{ $award['lot_no'] ?: '—' }}</p></div>
+            @php $isPublic = ($award['origin'] ?? 'canonical') === 'public_tender'; @endphp
+            <article class="border-t border-slate-100 py-4 first:border-t-0 first:pt-0">
+                <div class="mb-3 flex flex-wrap items-center gap-2">
+                    <span class="rounded-full px-3 py-1 text-xs font-bold {{ $isPublic ? 'bg-cyan-50 text-cyan-800' : 'bg-slate-100 text-slate-700' }}">{{ $isPublic ? 'Nguồn công khai · Chưa xác minh nghiệp vụ' : 'Trúng thầu chính thức' }}</span>
+                    @if($award['is_default'])<span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">★ Mặc định cho Excel</span>@endif
+                    @if($isPublic && $award['synced_at'])
+                        <span class="text-xs text-slate-500">Đồng bộ {{ $award['synced_at']->format('d/m/Y H:i') }}</span>
+                    @endif
+                </div>
+                <dl class="grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
+                    @foreach([
+                        ['TBMT', $award['bidding_notice_code']],
+                        ['Chủ đầu tư / bên mời thầu', $award['investor_name']],
+                        ['Số quyết định', $award['decision_number']],
+                        ['Ngày quyết định', $award['decision_date']],
+                        ['Đơn giá trúng thầu', is_numeric($award['unit_price']) ? number_format((float) $award['unit_price'], 0, ',', '.') . ' đ' : null],
+                        ['Đơn vị trúng thầu', $award['winning_company_name']],
+                        ['Số lượng', is_numeric($award['quantity']) ? number_format((float) $award['quantity'], 0, ',', '.') : null],
+                        ['Lô', $award['lot_no']],
+                    ] as [$label, $value])
+                        <div class="min-w-0">
+                            <dt class="text-xs font-bold text-slate-500">{{ $label }}</dt>
+                            <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ is_array($value) ? (implode('; ', array_filter($value, 'is_scalar')) ?: '—') : (is_scalar($value) && trim((string) $value) !== '' ? $value : '—') }}</dd>
+                        </div>
+                    @endforeach
+                    @if($isPublic)
+                        @foreach([
+                            ['Ngày đăng KQLCNT', $award['published_at']],
+                            ['Mã nhà thầu trúng', $award['winning_code']],
+                            ['Đơn vị tính', $award['unit']],
+                            ['Quy cách đóng gói', $award['packaging']],
+                            ['Cơ sở sản xuất', $award['manufacturer']],
+                            ['Nước sản xuất', $award['manufacturing_country']],
+                            ['GĐKLH / GPNK', $award['registration_number']],
+                            ['Mã bản ghi nguồn', $award['source_record_key']],
+                        ] as [$label, $value])
+                            <div class="min-w-0">
+                                <dt class="text-xs font-bold text-slate-500">{{ $label }}</dt>
+                                <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ is_array($value) ? (implode('; ', array_filter($value, 'is_scalar')) ?: '—') : (is_scalar($value) && trim((string) $value) !== '' ? $value : '—') }}</dd>
+                            </div>
+                        @endforeach
+                        <div class="min-w-0">
+                            <dt class="text-xs font-bold text-slate-500">Trạng thái số đăng ký</dt>
+                            <dd class="mt-1 text-sm font-semibold text-slate-800">{{ $award['registration_verified'] ? 'Đã xác minh định dạng' : 'Cần kiểm tra' }}</dd>
+                        </div>
+                    @endif
+                </dl>
+                <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500">Hiệu lực thời gian thầu</p>
+                            <p class="mt-1 break-words text-sm font-semibold text-slate-800">{{ $award['tender_validity_text'] ?: ($award['contract_period_text'] ?: 'Chưa có thông tin') }}</p>
+                            @if($award['tender_validity_text'])
+                                <p class="mt-1 text-xs text-amber-700">Nhập thủ công · Không phải dữ liệu xác nhận từ API</p>
+                            @endif
+                        </div>
+                        @if($canManageAwards)
+                            <button type="button" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700" aria-label="Sửa hiệu lực thời gian thầu" aria-expanded="false"
+                                onclick="const panel=this.closest('.rounded-xl').querySelector('[data-validity-editor]'); panel.hidden=!panel.hidden; this.setAttribute('aria-expanded', String(!panel.hidden));">
+                                ✎ Sửa
+                            </button>
+                        @endif
+                    </div>
+                    @if($canManageAwards)
+                        <form data-validity-editor hidden method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}" class="mt-3 space-y-2 border-t border-slate-200 pt-3">
+                            @csrf
+                            <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                            <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                            <input type="hidden" name="action" value="validity">
+                            <label class="block text-xs font-bold text-slate-600" for="award-validity-{{ $award['origin'] }}-{{ $award['record_id'] }}">Hiệu lực thời gian thầu (nhập thủ công)</label>
+                            <input id="award-validity-{{ $award['origin'] }}-{{ $award['record_id'] }}" name="tender_validity_text" type="text" maxlength="255"
+                                value="{{ $award['tender_validity_text'] ?? '' }}" placeholder="Ví dụ: 12 tháng hoặc 01/01/2026 - 31/12/2026"
+                                class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                            <p class="text-xs text-slate-500">Để trống và lưu để xóa giá trị thủ công. Không thay đổi dữ liệu trúng thầu gốc.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="submit" class="min-h-11 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white">Lưu</button>
+                                <button type="button" class="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700"
+                                    onclick="const panel=this.closest('[data-validity-editor]'); panel.hidden=true; const toggle=panel.parentElement.querySelector('[aria-expanded]'); if(toggle) toggle.setAttribute('aria-expanded','false');">Hủy</button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
+                @if($canManageAwards)
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        @unless($award['is_default'])
+                            <form method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}">
+                                @csrf
+                                <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                                <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                                <input type="hidden" name="action" value="default">
+                                <button type="submit" class="min-h-11 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-bold text-amber-900">★ Đặt mặc định</button>
+                            </form>
+                        @endunless
+                        <form method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}" onsubmit="return confirm('Gỡ bản ghi khỏi danh mục thuốc? Dữ liệu gốc vẫn được giữ và có thể khôi phục.');">
+                            @csrf
+                            <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                            <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                            <input type="hidden" name="action" value="hide">
+                            <button type="submit" class="min-h-11 rounded-xl border border-rose-200 px-4 text-sm font-bold text-rose-700">Gỡ bỏ</button>
+                        </form>
+                    </div>
+                @endif
             </article>
         @empty
             <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có thông tin trúng thầu được liên kết với sản phẩm này.</p>
         @endforelse
+        @if($canManageAwards && $hiddenAwards->isNotEmpty())
+            <details class="mt-4 rounded-2xl border border-slate-200 p-4">
+                <summary class="cursor-pointer text-sm font-bold text-slate-700">Bản ghi đã gỡ ({{ $hiddenAwards->count() }}) · Khôi phục</summary>
+                <div class="mt-3 space-y-3">
+                    @foreach($hiddenAwards as $award)
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                            <span class="text-sm text-slate-700">{{ $award['bidding_notice_code'] ?: 'Không có TBMT' }} · {{ is_numeric($award['unit_price']) ? number_format((float) $award['unit_price'], 0, ',', '.') . ' đ' : '—' }}</span>
+                            <form method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}">
+                                @csrf
+                                <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                                <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                                <input type="hidden" name="action" value="restore">
+                                <button type="submit" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold">Khôi phục</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            </details>
+        @endif
     </section>
 
     @if($supplierPricingVisible)

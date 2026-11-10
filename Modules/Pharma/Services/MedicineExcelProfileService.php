@@ -44,6 +44,7 @@ class MedicineExcelProfileService
         'decision_date' => 'Ngày quyết định',
         'contract_period_text' => 'Thời gian trúng thầu',
         'winning_price' => 'Giá trúng thầu',
+        'winning_quantity' => 'Số lượng trúng thầu',
         'allocated_quantity' => 'Số lượng phân bổ',
     ];
 

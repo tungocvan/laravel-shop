@@ -104,9 +104,9 @@ class MedicineExcelController extends Controller
             foreach ($columns as $col => $key) {
                 $cell = Coordinate::stringFromColumnIndex($col + 1).$dataRow;
                 $value = $values[$key] ?? null;
-                if (in_array($key, ['stt', 'declared_price', 'cost_price', 'winning_price', 'allocated_quantity'], true) && is_numeric($value)) {
+                if (in_array($key, ['stt', 'declared_price', 'cost_price', 'winning_price', 'winning_quantity', 'allocated_quantity'], true) && is_numeric($value)) {
                     $sheet->setCellValue($cell, (float) $value);
-                    if (in_array($key, ['declared_price', 'cost_price', 'winning_price', 'allocated_quantity'], true)) {
+                    if (in_array($key, ['declared_price', 'cost_price', 'winning_price', 'winning_quantity', 'allocated_quantity'], true)) {
                         $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
                     }
                 } else {
