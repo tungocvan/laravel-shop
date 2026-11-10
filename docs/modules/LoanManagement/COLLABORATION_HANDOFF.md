@@ -23,3 +23,11 @@ Branch: `feat/loan-management-pwa-20261110`
 - UI permission checks and actual rendered PWA acceptance.
 - Focused + relevant regression gates, tracked-tree verification, PR review.
 - No main merge, production migration, or deployment authorized.
+
+## Batch 3 — transaction checkpoint (PENDING local tests)
+- Domain LoanTransactionService: transactional disbursement capped by commitment, draft-to-active on first disbursement; manual repayment schedule capped by committed principal; actual payments capped by disbursed outstanding principal. Locks contract rows to serialize concurrent writes.
+- No automatic close or interest accrual: schedules are forecasts, payments are actuals. Interest amounts are explicitly entered, not automatically calculated.
+- ClientPortal web-guard endpoints enforce per-action permissions and validate request data.
+- PWA overview has collapsible action forms and subtle slate-200 borders on text/number/select fields; desktop/iPhone UI NOT YET VERIFIED.
+- Added LoanManagementTransactionsContractTest (static contract; business DB tests still required).
+- No new migration; no production action. Do not merge without user UI PASS and regression.
