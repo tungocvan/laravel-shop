@@ -17,6 +17,10 @@
 .loan-workspace details[open] > summary::before { content:"−"; }
 .loan-workspace label { display:block; color:#475569; font-size:13px; font-weight:500; }
 .loan-workspace form { max-width:100%; }
+.loan-workspace .loan-contract-card { border:1px solid #e2e8f0; background:#fff; border-radius:14px; }
+.loan-workspace .loan-contract-card:focus-within { border-color:#93c5fd; }
+.loan-workspace .loan-contract-card > details > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; cursor:pointer; }
+.loan-workspace [x-cloak] { display:none !important; }
 @media(max-width:640px){ .loan-workspace .loan-panel { border-radius:16px; } .loan-workspace .loan-nav-link { flex:1 1 auto; justify-content:center; } }
 </style>
 @endpush
@@ -68,10 +72,28 @@
  @endcan
 
  </section>
- <section id="loan-contracts" class="loan-panel scroll-mt-24 p-5 sm:p-6"><h2 class="text-lg font-semibold">Danh sách hợp đồng</h2>
+ <section id="loan-contracts" class="loan-panel scroll-mt-24 p-5 sm:p-6"
+ x-data="{ search: '', type: 'all', status: 'all', insurance: 'all', visible: 12 }">
+  <div class="flex flex-wrap items-center justify-between gap-2"><div><p class="loan-kicker">QUẢN LÝ</p><h2 class="text-lg font-semibold">Danh sách hợp đồng</h2></div><span class="text-xs text-slate-500">Tối đa 100 hợp đồng mới nhất</span></div>
+  <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="search" aria-label="Lọc hợp đồng vay">
+   <label>Tìm hợp đồng / bên cho vay<input type="search" x-model.debounce.200ms="search" @input="visible = 12" placeholder="Số hợp đồng, tên đối tác…" class="mt-1 w-full p-3"></label>
+   <label>Nhóm cho vay<select x-model="type" @change="visible = 12" class="mt-1 w-full p-3"><option value="all">Tất cả nhóm</option><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
+   <label>Trạng thái<select x-model="status" @change="visible = 12" class="mt-1 w-full p-3"><option value="all">Tất cả trạng thái</option><option value="draft">Nháp</option><option value="active">Đang vay</option><option value="closed">Đã tất toán</option><option value="cancelled">Đã hủy</option></select></label>
+   <label>Bảo hiểm<select x-model="insurance" @change="visible = 12" class="mt-1 w-full p-3"><option value="all">Tất cả</option><option value="yes">Có bảo hiểm</option><option value="no">Không bảo hiểm</option></select></label>
+  </div>
+  <p class="mt-3 text-xs text-slate-500">Chọn hợp đồng để mở thao tác giải ngân, thanh toán, lịch trả nợ và bảo hiểm.</p>
+  <div class="mt-4 space-y-3">
   @forelse($loanData['contracts'] as $contract)
-   <article class="mt-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4 sm:p-5">
-    <div class="flex flex-wrap justify-between gap-2"><strong>{{ $contract->contract_number }} — {{ $contract->lender_name }}</strong><span>{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span></div>
+   <article class="loan-contract-card p-4 sm:p-5"
+    x-show="(type === 'all' || type === @js($contract->lender_type)) && (status === 'all' || status === @js($contract->status)) && (insurance === 'all' || insurance === @js(in_array($contract->id, $insuredContractIds ?? []) ? 'yes' : 'no')) && (!search || @js(mb_strtolower($contract->contract_number.' '.$contract->lender_name)).includes(search.toLocaleLowerCase())) && {{ $loop->index }} < visible"
+    x-cloak>
+    <details>
+    <summary aria-label="Mở chi tiết hợp đồng {{ $contract->contract_number }}">
+    <div class="min-w-0"><strong class="block break-words text-sm text-slate-900">{{ $contract->contract_number }} — {{ $contract->lender_name }}</strong><span class="text-xs text-slate-500">{{ ['individual'=>'Cá nhân','company'=>'Công ty','credit_institution'=>'Tổ chức tín dụng'][$contract->lender_type] ?? $contract->lender_type }}</span></div>
+    <span class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span>
+    </summary>
+    <div class="mt-3 border-t border-slate-100 pt-3">
+
     <div class="mt-2 grid gap-2 text-sm sm:grid-cols-3"><p>Cam kết: {{ number_format((float)$contract->committed_amount, 0, ',', '.') }}</p><p>Giải ngân: {{ number_format((float)$contract->disbursed_total, 0, ',', '.') }}</p><p>Dư nợ gốc: {{ number_format((float)$contract->outstanding, 0, ',', '.') }}</p></div>
 
     <div class="mt-4 grid gap-3 lg:grid-cols-3">
@@ -149,10 +171,13 @@
     </details>
     @endif
     @endcan
+    </div></details>
    </article>
   @empty
    <p class="mt-3 rounded-xl bg-slate-50 p-4 text-sm">Chưa có hợp đồng vay.</p>
   @endforelse
+  </div>
+  <div class="mt-4 flex flex-wrap items-center gap-3"><button type="button" class="loan-nav-link" @click="visible += 12" x-show="visible < {{ $loanData['contracts']->count() }}" x-cloak>Xem thêm hợp đồng</button><button type="button" class="text-sm text-slate-600 underline" @click="search='';type='all';status='all';insurance='all';visible=12">Xóa bộ lọc</button></div>
   @if($loanData['contractCount'] > 100)<p class="mt-3 text-sm">Hiển thị 100 hợp đồng mới nhất.</p>@endif
  </section>
  @can('client.loans.insurance.view')
