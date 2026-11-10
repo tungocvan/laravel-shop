@@ -1,3 +1,13 @@
+## 2026-11-10 — Pharma Hub Overview configurable copy and visibility
+
+- Branch: `feat/clientportal-pharma-hub-overview-config-20261110` from latest `main`.
+- Scope: `/admin/client-apps/pwa/applications/pharma` > Hub/Dashboard now manages the **Tổng quan / Workspace được cấp quyền** panel independently from Hero and supporting content. Admin may change eyebrow/title/description or hide/show the whole overview panel.
+- Persistence reuses `ClientPortalSettingsService::applicationHubPresentation()` and existing `application.pharma.hub` settings group; no migration. Existing Pharma overview strings are preserved as defaults. Other applications receive hidden compatibility fields in the shared Admin form and are otherwise unchanged.
+- Pharma Hub Blade reads managed copy and visibility; feature count, permitted capability list, Web permissions, routes and business logic are not changed.
+- Focused test: `tests/Feature/ClientApps/ClientPortalPharmaHubOverviewContractTest.php` **PENDING**. Regression: `tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php` and `tests/Feature/ClientApps/ClientPwaFoundationTest.php` **PENDING**. UI desktop/tablet/iPhone show/hide, edit/save/reload **PENDING**. No PR, merge, or production deploy.
+
+---
+
 ## 2026-11-10 — Optional ClientPortal Login PWA logo checkpoint
 
 - Branch `feat/clientportal-pwa-login-logo-20261110` from `main`. Admin `/admin/client-apps/pwa` now has a separate guarded upload/remove form for the Login PWA logo. PNG/JPG/WebP only, max 2 MB, stored on public disk under `clientportal/login-logos/`; `pwa.login.logo_path` is persisted through existing ClientPortalSettingsService. No migration.
