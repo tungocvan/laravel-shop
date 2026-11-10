@@ -25,6 +25,7 @@ final class LoanApplicationController extends Controller
             'overviewPresentation' => $presentation,
             'loanData' => $loans->dashboard(),
             'insuranceData' => $insurance->overview(),
+            'insuredContractIds' => \Illuminate\Support\Facades\DB::table('loan_insurance_policies')->pluck('loan_contract_id')->all(),
         ]);
     }
 }
