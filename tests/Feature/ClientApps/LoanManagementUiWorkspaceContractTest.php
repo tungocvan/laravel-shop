@@ -21,6 +21,23 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_reminder_timeline_distinguishes_planned_from_actual_delivery_state(): void
+    {
+        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php'));
+        $history = file_get_contents(base_path('Modules/LoanManagement/Services/LoanReminderHistoryService.php'));
+        foreach (['Lịch sử nhắc hẹn Email', 'Theo lịch — chưa xác nhận vào Queue',
+            'Đã tạo yêu cầu · chưa xác nhận gửi', 'Đã gửi qua Mail', 'Gửi thất bại',
+            'Đã bỏ qua', "can('client.loans.contracts.edit')"] as $fragment) {
+            $this->assertStringContainsString($fragment, $partial);
+        }
+        $this->assertStringContainsString('LoanReminderHistoryService', $controller);
+        $this->assertStringContainsString('loanReminderTimeline', $controller);
+        $this->assertStringContainsString('loan_reminder_deliveries', $history);
+        $this->assertStringContainsString('loan_reminder_recipients', $history);
+        $this->assertStringNotContainsString('->insert(', $history);
+    }
+
     public function test_multiple_reminder_emails_and_stale_queue_suppression_are_scoped(): void
     {
         $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
