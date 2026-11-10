@@ -72,3 +72,11 @@ Branch: `feat/loan-management-pwa-20261110`
 - Fixed calendar dates are for reproducibility; actual overdue/expiring badges depend on current date. Status closed is illustrative and NOT proof of accounting reconciliation or automatic closure logic.
 - Extended isolated SQLite integration tests for 8-contract matrix, counts, financial bounds, insurance variants, idempotency and protection of unrelated records. Existing insurance contract regression remains in scope.
 - **Tests not executed by assistant.** Focused test first; module regression only after PASS; UI PASS still pending. No seeding, PR, merge or deploy authorized.
+
+## Batch 8 — compact contract workspace (awaiting local test and UI)
+- User approved professional UI refactor. First controlled UI batch replaces long always-expanded contract cards with accessible native collapsible `details`, plus Alpine client-side search and filters by lender type, status and insurance. Every loaded contract can be found regardless of its original position.
+- Controller supplies insurance contract IDs read-only for UI filtering; existing LoanManagement services remain the business source. No routes, migrations, permission changes or financial logic changes.
+- Existing transaction/insurance forms, web permissions and shared `x-pwa-date` remain inside the corresponding contract detail; scoped thin borders remain.
+- Added focused static UI contract assertions. **Not run by assistant**. Run focused UI test then module contract/integration regression. Real desktop/tablet/iPhone UI PASS pending.
+- Known follow-up: server-side pagination for >100 contracts, summary alerts/KPI and separate focused task routes require subsequent controlled batches. Current UI filters only the latest 100 contracts loaded by existing dashboard service; do not misrepresent them as global filters.
+- No seeder, production changes, PR or merge performed.
