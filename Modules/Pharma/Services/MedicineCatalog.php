@@ -141,6 +141,7 @@ class MedicineCatalog
                 return [
                     'origin' => 'public_tender',
                     'record_id' => (int) $source->id,
+                    'contract_period_text' => null,
                     'source_record_key' => $source->source_record_key,
                     'registration_verified' => (bool) data_get($source->metadata, 'registration_verified', false),
                     'synced_at' => $source->synced_at,
@@ -165,6 +166,7 @@ class MedicineCatalog
         $recentAwards = $awards->map(fn ($award): array => [
             'origin' => 'canonical',
             'record_id' => (int) $award->id,
+            'contract_period_text' => $award->contract_period_text,
             'bidding_notice_code' => $award->bidding_notice_code,
             'investor_name' => $award->investor_name,
             'decision_number' => $award->decision_number,
