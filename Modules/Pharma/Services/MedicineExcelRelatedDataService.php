@@ -104,6 +104,17 @@ class MedicineExcelRelatedDataService
             // Public source has no verified allocation or contract period.
         }
 
+        // An explicit manual validity belongs to the selected observation only.
+        // It overrides the displayed contract period, never the source payload.
+        $selectedOrigin = $award ? 'canonical' : ($source ? 'public_tender' : null);
+        $selectedId = $award?->id ?? $source?->id;
+        if ($selectedOrigin && $selectedId) {
+            $validity = $rows[$selectedOrigin.':'.$selectedId]->tender_validity_text ?? null;
+            if (is_string($validity) && trim($validity) !== '') {
+                $values['contract_period_text'] = trim($validity);
+            }
+        }
+
         return $values;
     }
 
