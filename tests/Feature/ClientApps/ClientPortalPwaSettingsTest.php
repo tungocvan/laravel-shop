@@ -3,7 +3,9 @@
 namespace Tests\Feature\ClientApps;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Modules\ClientPortal\Http\Controllers\Admin\PwaSettingsController;
 use Modules\ClientPortal\Models\ClientPortalSetting;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
