@@ -19,7 +19,12 @@
 .loan-workspace form { max-width:100%; }
 .loan-workspace .loan-contract-card { border:1px solid #e2e8f0; background:#fff; border-radius:14px; }
 .loan-workspace .loan-contract-card:focus-within { border-color:#93c5fd; }
-.loan-workspace .loan-contract-card > details > summary { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:44px; cursor:pointer; }
+.loan-workspace .loan-contract-card > details > summary { display:flex; align-items:center; gap:12px; min-height:44px; cursor:pointer; }
+.loan-workspace .loan-contract-card > details > summary::before { flex:0 0 auto; }
+.loan-workspace .loan-contract-card > details > summary .loan-status { margin-left:auto; }
+.loan-workspace .loan-filter-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-items:end; }
+@media(min-width:640px){ .loan-workspace .loan-filter-grid { grid-template-columns:minmax(180px,2fr) minmax(120px,1fr) minmax(120px,1fr) minmax(120px,1fr); } }
+.loan-workspace .loan-contract-card:hover { border-color:#cbd5e1; }
 .loan-workspace [x-cloak] { display:none !important; }
 @media(max-width:640px){ .loan-workspace .loan-panel { border-radius:16px; } .loan-workspace .loan-nav-link { flex:1 1 auto; justify-content:center; } }
 </style>
@@ -75,12 +80,18 @@
  <section id="loan-contracts" class="loan-panel scroll-mt-24 p-5 sm:p-6"
 >
   <div class="flex flex-wrap items-center justify-between gap-2"><div><p class="loan-kicker">QUẢN LÝ</p><h2 class="text-lg font-semibold">Danh sách hợp đồng</h2></div><span class="text-xs text-slate-500">Tối đa 100 hợp đồng mới nhất</span></div>
-  <form method="GET" action="{{ route('client.loans.dashboard') }}#loan-contracts" class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="search" aria-label="Lọc hợp đồng vay">
+  <form method="GET" action="{{ route('client.loans.dashboard') }}#loan-contracts" class="loan-filter-grid mt-4" data-loan-filters role="search" aria-label="Lọc hợp đồng vay">
    <label>Tìm hợp đồng / bên cho vay<input type="search" name="search" value="{{ $loanFilters['search'] }}" placeholder="Số hợp đồng, tên đối tác…" class="mt-1 w-full p-3"></label>
-   <label>Nhóm cho vay<select name="type" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['type'] === 'all')>Tất cả nhóm</option><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
+   <label>Nhóm cho vay<select name="type" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['type'] === 'all')>Tất cả nhóm</option><option value="individual" @selected($loanFilters['type'] === 'individual')>Cá nhân</option><option value="company" @selected($loanFilters['type'] === 'company')>Công ty</option><option value="credit_institution" @selected($loanFilters['type'] === 'credit_institution')>Tổ chức tín dụng</option></select></label>
    <label>Trạng thái<select name="status" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['status'] === 'all')>Tất cả trạng thái</option><option value="draft" @selected($loanFilters['status'] === 'draft')>Nháp</option><option value="active" @selected($loanFilters['status'] === 'active')>Đang vay</option><option value="closed" @selected($loanFilters['status'] === 'closed')>Đã tất toán</option><option value="cancelled" @selected($loanFilters['status'] === 'cancelled')>Đã hủy</option></select></label>
    <label>Bảo hiểm<select name="insurance" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['insurance'] === 'all')>Tất cả</option><option value="yes" @selected($loanFilters['insurance'] === 'yes')>Có bảo hiểm</option><option value="no" @selected($loanFilters['insurance'] === 'no')>Không bảo hiểm</option></select></label>
-   <div class="flex flex-wrap items-center gap-3 sm:col-span-2 xl:col-span-4"><button type="submit" class="loan-primary-button min-h-11 rounded-xl px-5 py-2 text-sm font-semibold text-white">Áp dụng bộ lọc</button><a href="{{ route('client.loans.dashboard') }}#loan-contracts" class="text-sm text-slate-600 underline">Xóa bộ lọc</a><span class="text-xs text-slate-500">{{ $visibleContracts->count() }} kết quả trong 100 hợp đồng mới nhất</span></div>
+   <div class="flex flex-wrap items-center gap-3 sm:col-span-4">
+     <span class="text-xs font-medium text-slate-600">{{ $visibleContracts->count() }} kết quả (trong tối đa 100 hợp đồng mới nhất)</span>
+     @if($loanFilters['search'] !== '' || $loanFilters['type'] !== 'all' || $loanFilters['status'] !== 'all' || $loanFilters['insurance'] !== 'all')
+       <a href="{{ route('client.loans.dashboard') }}#loan-contracts" class="text-sm font-semibold text-blue-700 underline">Xóa bộ lọc</a>
+     @endif
+     <button type="submit" class="sr-only">Tìm kiếm</button>
+   </div>
   </form>
   <p class="mt-3 text-xs text-slate-500">Chọn hợp đồng để mở thao tác giải ngân, thanh toán, lịch trả nợ và bảo hiểm.</p>
   <div class="mt-4 space-y-3">
@@ -88,8 +99,8 @@
    <article class="loan-contract-card p-4 sm:p-5">
     <details>
     <summary aria-label="Mở chi tiết hợp đồng {{ $contract->contract_number }}">
-    <div class="min-w-0"><strong class="block break-words text-sm text-slate-900">{{ $contract->contract_number }} — {{ $contract->lender_name }}</strong><span class="text-xs text-slate-500">{{ ['individual'=>'Cá nhân','company'=>'Công ty','credit_institution'=>'Tổ chức tín dụng'][$contract->lender_type] ?? $contract->lender_type }}</span></div>
-    <span class="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span>
+    <div class="min-w-0"><strong class="block break-words text-sm text-slate-900">{{ $contract->contract_number }} — {{ $contract->lender_name }}</strong><span class="text-xs text-slate-500">{{ ['individual'=>'Cá nhân','company'=>'Công ty','credit_institution'=>'Tổ chức tín dụng'][$contract->lender_type] ?? $contract->lender_type }} · Dư nợ {{ number_format((float)$contract->outstanding, 0, ',', '.') }} VND</span></div>
+    <span class="loan-status shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium">{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span>
     </summary>
     <div class="mt-3 border-t border-slate-100 pt-3">
 
@@ -156,6 +167,21 @@
     </div>
     @can('client.loans.contracts.edit')
     @if($contract->status === 'draft')
+      <form method="POST" action="{{ route('client.loans.contracts.destroy', $contract->id) }}" class="mt-3" data-loan-delete-confirm data-loan-contract="{{ $contract->contract_number }}">
+        @csrf @method('DELETE')
+        <button type="submit" class="min-h-11 rounded-xl border border-red-200 px-4 py-2 text-sm font-semibold text-red-700">Xóa hợp đồng nháp</button>
+        <p class="mt-1 text-xs text-slate-500">Chỉ xóa được khi chưa có giải ngân, lịch trả nợ, thanh toán hoặc bảo hiểm.</p>
+      </form>
+    @elseif(in_array($contract->status, ['active', 'cancelled'], true))
+      <form method="POST" action="{{ route('client.loans.contracts.restore-draft', $contract->id) }}" class="mt-3" data-loan-restore-confirm data-loan-contract="{{ $contract->contract_number }}">
+        @csrf @method('PATCH')
+        <button type="submit" class="min-h-11 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700">Chuyển về nháp</button>
+        <p class="mt-1 text-xs text-slate-500">Chỉ áp dụng nếu chưa có dữ liệu nghiệp vụ liên quan; hệ thống sẽ kiểm tra trước khi cập nhật.</p>
+      </form>
+    @endif
+    @endcan
+    @can('client.loans.contracts.edit')
+    @if($contract->status === 'draft')
     <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold">Sửa hợp đồng nháp</summary>
      <form method="POST" action="{{ route('client.loans.contracts.update', $contract->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf @method('PUT')
       <label>Đối tác<select name="lender_id" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}" @selected($lender->id == $contract->lender_id)>{{ $lender->name }}</option>@endforeach</select></label>
@@ -212,3 +238,33 @@
 
 </div>
 @endsection
+
+@push('application-scripts')
+<script>
+(() => {
+    const filters = document.querySelector('[data-loan-filters]');
+    if (filters) {
+        let searchTimer;
+        const submit = () => {
+            if (typeof filters.requestSubmit === 'function') filters.requestSubmit();
+            else filters.submit();
+        };
+        filters.querySelectorAll('select').forEach((field) => field.addEventListener('change', submit));
+        const search = filters.querySelector('input[name="search"]');
+        if (search) search.addEventListener('input', () => {
+            window.clearTimeout(searchTimer);
+            searchTimer = window.setTimeout(submit, 550);
+        });
+    }
+    document.querySelectorAll('[data-loan-delete-confirm], [data-loan-restore-confirm]').forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            const number = form.dataset.loanContract || '';
+            const message = form.hasAttribute('data-loan-delete-confirm')
+                ? 'Xóa vĩnh viễn hợp đồng nháp ' + number + '? Thao tác không thể hoàn tác.'
+                : 'Chuyển hợp đồng ' + number + ' về nháp? Chỉ hợp đồng chưa phát sinh nghiệp vụ mới được phép.';
+            if (!window.confirm(message)) event.preventDefault();
+        });
+    });
+})();
+</script>
+@endpush
