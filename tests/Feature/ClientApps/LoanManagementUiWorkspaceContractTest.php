@@ -21,6 +21,20 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_guided_loan_creation_supports_three_lender_types_and_forecast_only(): void
+    {
+        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
+        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanScheduleGenerator.php'));
+        foreach (['data-loan-wizard', 'data-loan-lender-type', 'data-loan-wizard-preview', 'interest_monthly', 'all_at_maturity', 'manual'] as $fragment) {
+            $this->assertStringContainsString($fragment, $blade);
+        }
+        $this->assertStringContainsString('createContractWithOptionalSchedule', $controller);
+        $this->assertStringContainsString('LoanInterestCalculator', $service);
+        $this->assertStringNotContainsString("DB::table('loan_payments')->insert", $service);
+        $this->assertStringNotContainsString("DB::table('loan_disbursements')->insert", $service);
+    }
+
     public function test_contract_profile_and_transaction_history_are_rendered_from_domain_service(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
