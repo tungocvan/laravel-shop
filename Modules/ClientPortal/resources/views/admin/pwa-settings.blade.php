@@ -111,6 +111,23 @@
             <form id="bottom-navigation-theme-store" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.themes.store') }}" class="hidden">@csrf</form>
             <form id="bottom-navigation-theme-apply" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.themes.apply') }}" class="hidden">@csrf</form>
 
+            <form method="POST" enctype="multipart/form-data" action="{{ route('admin.client-apps.pwa.login.logo.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                @csrf
+                <h2 class="text-lg font-bold text-gray-900">Logo Login PWA</h2>
+                <p class="mt-1 text-sm text-gray-500">Logo riêng cho trang đăng nhập Client. Không có logo sẽ ẩn hoàn toàn. PNG/JPG/WebP, tối đa 2 MB.</p>
+                @if($login['logo_url'] ?? null)
+                    <img src="{{ $login['logo_url'] }}" alt="Logo Login PWA" class="mt-4 h-20 w-20 rounded-xl border border-gray-200 object-contain p-2">
+                @endif
+                <label class="mt-4 block text-sm font-semibold text-gray-800" for="pwa-login-logo">Chọn ảnh logo</label>
+                <input id="pwa-login-logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full rounded-xl border border-gray-300 p-3 text-sm">
+                <div class="mt-4 flex flex-wrap gap-3">
+                    <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu logo</button>
+                    @if($login['logo_url'] ?? null)
+                        <button type="submit" name="remove_logo" value="1" onclick="return confirm('Xóa logo Login PWA?')" class="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Xóa logo</button>
+                    @endif
+                </div>
+            </form>
+
             <form method="POST" action="{{ route('admin.client-apps.pwa.login.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 @csrf
                 @method('PUT')
