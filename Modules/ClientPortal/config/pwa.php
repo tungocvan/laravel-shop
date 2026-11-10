@@ -14,6 +14,18 @@ return [
 
     'login' => [
         'logo_path' => null,
+        'form_brand' => 'INAFO Client Portal',
+        'form_heading' => 'Chào mừng trở lại',
+        'form_description' => 'Đăng nhập để mở các ứng dụng, dữ liệu và công cụ đã được cấp cho tài khoản của bạn.',
+        'email_label' => 'Email',
+        'password_label' => 'Mật khẩu',
+        'remember_label' => 'Giữ tôi đăng nhập trên thiết bị này',
+        'submit_label' => 'Đăng nhập vào ứng dụng',
+        'loading_label' => 'Đang đăng nhập...',
+        'divider_label' => 'HOẶC',
+        'google_label' => 'Tiếp tục với Google',
+        'register_label' => 'Đăng ký tài khoản',
+        'security_notice' => 'Phiên đăng nhập được bảo vệ bằng HTTPS. Chỉ các ứng dụng được quản trị viên cấp quyền mới xuất hiện sau khi đăng nhập.',
         'badge' => 'INAFO · Progressive Web App',
         'heading' => 'Một nơi để mở tất cả ứng dụng công việc của bạn.',
         'description' => 'Tra cứu, đồng bộ dữ liệu, quản lý danh sách quan tâm, lập bảng giá và sử dụng các ứng dụng được cấp quyền ngay trên điện thoại.',
