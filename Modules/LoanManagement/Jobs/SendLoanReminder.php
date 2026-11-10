@@ -31,12 +31,25 @@ final class SendLoanReminder implements ShouldQueue
             ->join('loan_reminder_settings as r', 'r.loan_contract_id', '=', 'c.id')
             ->where('d.id', $this->deliveryId)
             ->select('d.*', 's.installment', 's.due_at', 's.principal_due', 's.interest_due', 's.fees_due',
-                'c.contract_number', 'c.status as contract_status', 'r.enabled as reminder_enabled', 'r.recipient_email as current_email')
+                'c.id as contract_id', 'c.contract_number', 'c.status as contract_status',
+                'r.enabled as reminder_enabled', 'r.days_before as current_offsets')
             ->first();
-        if (!$delivery || $delivery->status === 'sent') return;
+        if (!$delivery || in_array($delivery->status, ['sent', 'skipped'], true)) return;
+
+        $today = now(config('app.timezone'))->toDateString();
+        $offsets = json_decode($delivery->current_offsets, true) ?: [];
+        $expectedSendDate = \Carbon\CarbonImmutable::parse($delivery->due_at_snapshot)
+            ->subDays((int) $delivery->days_before)->toDateString();
+        $recipientActive = DB::table('loan_reminder_recipients')
+            ->where('loan_contract_id', $delivery->contract_id)
+            ->where('email', $delivery->recipient_email)->exists();
         if (!$delivery->reminder_enabled || $delivery->contract_status !== 'active' ||
-            $delivery->recipient_email !== $delivery->current_email ||
-            $delivery->due_at_snapshot !== $delivery->due_at) return;
+            !$recipientActive || !in_array((int) $delivery->days_before, $offsets, true) ||
+            $delivery->due_at_snapshot !== $delivery->due_at ||
+            $today !== $expectedSendDate || $today > $delivery->due_at_snapshot) {
+            $this->skip();
+            return;
+        }
 
         $paid = DB::table('loan_payment_allocations')->where('loan_repayment_schedule_id', $delivery->loan_repayment_schedule_id)
             ->selectRaw('COALESCE(SUM(principal_allocated),0) as principal, COALESCE(SUM(interest_allocated),0) as interest, COALESCE(SUM(fees_allocated),0) as fees')->first();
@@ -45,7 +58,10 @@ final class SendLoanReminder implements ShouldQueue
                 bcsub((string) $delivery->interest_due, (string) $paid->interest, 2), 2),
             bcsub((string) $delivery->fees_due, (string) $paid->fees, 2), 2
         );
-        if (bccomp($total, '0', 2) <= 0) return;
+        if (bccomp($total, '0', 2) <= 0) {
+            $this->skip();
+            return;
+        }
 
         try {
             Mail::raw(
@@ -65,4 +81,11 @@ final class SendLoanReminder implements ShouldQueue
             throw $e;
         }
     }
+    private function skip(): void
+    {
+        DB::table('loan_reminder_deliveries')->where('id', $this->deliveryId)
+            ->whereNotIn('status', ['sent', 'skipped'])
+            ->update(['status' => 'skipped', 'updated_at' => now()]);
+    }
+
 }
