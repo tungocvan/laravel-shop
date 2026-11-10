@@ -149,3 +149,11 @@ Branch: `feat/loan-management-pwa-20261110`
 - Fixed migration 000004 to guard existing recipient table, preserve insertOrIgnore backfill, **add new composite unique index first** (retains schedule FK support), then drop old unique index; both index steps check `Schema::getIndexes` for interrupted-DDL resume.
 - Added focused SQLite regression verifying idempotent `up()`. MySQL-specific index/FK behavior must be verified on user's local MySQL; assistant did not execute tests or migration. Avoid migrate:fresh, manual FK drop, or destructive rollback.
 - Next checkpoint: fetch/pull, focused test, then MySQL local migration after user approval, inspect migration status/index metadata. If any failure, stop for diagnosis. UI PASS/merge/deploy remain pending.
+
+## Batch 14 — Reminder status timeline, checkpoint pending
+- User approved a read-only per-contract reminder status UI to distinguish saved settings, planned dates, actual reservation, transport submission, failure and skipped overdue jobs.
+- Read-only audit: feature branch ahead of main, not behind at time of audit; domain service creates delivery rows only at due offset, command requires `loan_reminders.dispatch_enabled`; `reserved` alone cannot prove a queue job remains; `sent` cannot prove inbox delivery.
+- New `LoanReminderHistoryService` (domain-owned) returns up to 20 recent deliveries per visible contract and 5 upcoming unpaid/unreserved reminder dates, filtered by contract IDs. No new schema, route, job or write operation.
+- ClientPortal controller loads history in bulk; Blade renders compact collapsed `Lịch sử nhắc hẹn Email` per contract behind existing `client.loans.contracts.edit` gate. Explicit copy distinguishes planned vs reserved and transport sent vs actual inbox delivery.
+- Tests: focused UI contract + SQLite in-memory read-only scoped service test. **Assistant has not executed PHP tests; local focused + module regression and UI desktop/iPhone confirmation pending.**
+- No Mail, queue worker, scheduler, migration, main merge or production deploy invoked. Earlier Batch 13 migration MySQL 1553 fix still requires independent local `migrate:status` verification if not already done.
