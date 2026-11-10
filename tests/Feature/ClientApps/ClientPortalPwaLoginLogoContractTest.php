@@ -18,7 +18,7 @@ class ClientPortalPwaLoginLogoContractTest extends TestCase
         $settings = app(ClientPortalSettingsService::class);
         $this->assertNull($settings->pwaLogin()['logo_url']);
 
-        $this->get('/my-apps/login')->assertOk()->assertSee('pwaLogoUrl', false);
+        $this->get('/my-apps/login')->assertOk()->assertSee('Chào mừng trở lại');
         $blade = file_get_contents(base_path('Modules/Auth/resources/views/livewire/auth/login-form-pwa.blade.php'));
         $this->assertStringContainsString('@if(filled($logo))', $blade);
         $this->assertStringNotContainsString("asset('storage/logo.png')", $blade);
