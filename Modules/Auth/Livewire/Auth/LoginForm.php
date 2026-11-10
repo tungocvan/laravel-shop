@@ -31,6 +31,8 @@ class LoginForm extends Component
 
     public array $presentation = [];
 
+    public array $pwaFormCopy = [];
+
     protected $rules = [
         'email' => 'required|email',
         'password' => 'required',
@@ -42,9 +44,11 @@ class LoginForm extends Component
         string $guard = 'web',
         string $variant = 'default',
         ?string $pwaLogoUrl = null,
+        array $pwaFormCopy = [],
     ): void {
         $this->guard = in_array($guard, ['web', 'admin'], true) ? $guard : 'web';
         $this->variant = in_array($variant, ['default', 'pwa'], true) ? $variant : 'default';
+        $this->pwaFormCopy = $this->variant === 'pwa' ? $pwaFormCopy : [];
 
         $logo = $settings->get('site_logo');
         $this->logo = $logo
