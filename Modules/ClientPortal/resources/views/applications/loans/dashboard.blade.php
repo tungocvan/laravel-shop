@@ -61,15 +61,27 @@
     <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Lưu đối tác</button>
    </form>
   </details>
-  <details class="loan-panel p-5 sm:p-6"><summary class="cursor-pointer font-semibold">Tạo hợp đồng nháp</summary>
-   <form method="POST" action="{{ route('client.loans.contracts.store') }}" class="mt-4 grid gap-3">@csrf
-    <label>Bên cho vay<select required name="lender_id" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"><option value="">Chọn đối tác</option>@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}">{{ $lender->name }}</option>@endforeach</select></label>
+  <details class="loan-panel p-5 sm:p-6"><summary class="cursor-pointer font-semibold">Tạo khoản vay có hướng dẫn</summary>
+   <form method="POST" action="{{ route('client.loans.contracts.store') }}" class="mt-4 grid gap-3" data-loan-wizard>@csrf
+    <p class="rounded-xl bg-blue-50 p-3 text-sm text-blue-900">1. Chọn bên cho vay và nhập điều khoản. 2. Chọn cách trả nợ. 3. Lưu hợp đồng nháp. Chỉ ghi nhận giải ngân khi đã nhận tiền.</p>
+    <label>Nhóm cho vay<select data-loan-lender-type class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
+    <label>Bên cho vay<select required name="lender_id" data-loan-lender class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"><option value="">Chọn đối tác</option>@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}" data-lender-type="{{ $lender->type }}">{{ $lender->name }}</option>@endforeach</select></label>
     <label>Số hợp đồng<input required name="contract_number" value="{{ old('contract_number') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
     <label>Số tiền cam kết (VND)<input required type="number" step="0.01" min="0.01" name="committed_amount" value="{{ old('committed_amount') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
     <label>Lãi suất (%/năm)<input required type="number" step="0.00001" min="0" max="100" name="annual_rate_percent" value="{{ old('annual_rate_percent') }}" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
     <label>Cơ sở tính ngày<select name="day_count_basis" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"><option value="365">365</option><option value="360">360</option><option value="366">366</option></select></label>
     <label>Ngày ký<x-pwa-date name="signed_at" :value="old('signed_at')" required /></label>
     <label>Ngày đáo hạn<x-pwa-date name="matures_at" :value="old('matures_at')" required /></label>
+    <fieldset class="rounded-xl border border-slate-200 p-3">
+      <legend class="px-1 text-sm font-semibold text-slate-800">Phương thức trả nợ dự kiến</legend>
+      <label class="mt-2 flex items-start gap-2"><input type="radio" name="repayment_mode" value="interest_monthly" @checked(old('repayment_mode', 'interest_monthly') === 'interest_monthly')> Trả lãi hằng tháng, trả gốc cuối kỳ</label>
+      <label class="mt-2 flex items-start gap-2"><input type="radio" name="repayment_mode" value="all_at_maturity" @checked(old('repayment_mode') === 'all_at_maturity')> Trả toàn bộ gốc và lãi cuối kỳ</label>
+      <label class="mt-2 flex items-start gap-2"><input type="radio" name="repayment_mode" value="manual" @checked(old('repayment_mode') === 'manual')> Tự lập lịch trả nợ sau</label>
+    </fieldset>
+    <div class="rounded-xl border border-blue-100 bg-blue-50/50 p-3 text-sm" data-loan-wizard-preview aria-live="polite">
+      Nhập số tiền, lãi suất và ngày để xem dự tính. Lãi sẽ được tính theo số ngày thực tế và cơ sở 360/365/366 ngày đã chọn.
+    </div>
+    <p class="text-xs text-slate-500">Lịch tự động chỉ là dự kiến, tính lãi đơn trên số tiền cam kết. Nếu nhận tiền nhiều đợt hoặc trả gốc sớm, hãy chọn “Tự lập lịch” và đối chiếu điều khoản thực tế. Hệ thống không tự ghi nhận giải ngân hay thanh toán.</p>
     <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Tạo hợp đồng</button>
    </form>
   </details>
@@ -268,5 +280,47 @@
         });
     });
 })();
+
+    const wizard = document.querySelector('[data-loan-wizard]');
+    if (wizard) {
+        const type = wizard.querySelector('[data-loan-lender-type]');
+        const lender = wizard.querySelector('[data-loan-lender]');
+        const preview = wizard.querySelector('[data-loan-wizard-preview]');
+        const refreshLenders = () => {
+            for (const option of lender.options) {
+                if (!option.value) continue;
+                option.hidden = option.dataset.lenderType !== type.value;
+                option.disabled = option.hidden;
+            }
+            if (lender.selectedOptions[0]?.disabled) lender.value = '';
+        };
+        type.addEventListener('change', refreshLenders);
+        refreshLenders();
+        const previewSchedule = () => {
+            const amount = Number(wizard.querySelector('[name="committed_amount"]').value);
+            const rate = Number(wizard.querySelector('[name="annual_rate_percent"]').value);
+            const basis = Number(wizard.querySelector('[name="day_count_basis"]').value);
+            const start = wizard.querySelector('[name="signed_at"]').value;
+            const end = wizard.querySelector('[name="matures_at"]').value;
+            const mode = wizard.querySelector('[name="repayment_mode"]:checked')?.value;
+            if (!(amount > 0) || !(rate >= 0) || !start || !end || mode === 'manual') {
+                preview.textContent = mode === 'manual' ? 'Bạn sẽ tự lập lịch trả nợ sau khi lưu hợp đồng.' : 'Nhập số tiền, lãi suất và thời hạn để xem dự tính.';
+                return;
+            }
+            const from = Date.parse(start + 'T00:00:00Z');
+            const to = Date.parse(end + 'T00:00:00Z');
+            const days = Math.round((to - from) / 86400000);
+            if (!(days > 0) || days > 3660) {
+                preview.textContent = 'Ngày đáo hạn phải sau ngày ký; lịch tự động hỗ trợ tối đa 120 tháng.';
+                return;
+            }
+            const interest = Math.round(amount * rate * days / (100 * basis));
+            const format = n => new Intl.NumberFormat('vi-VN', {maximumFractionDigits: 0}).format(n) + ' VND';
+            preview.textContent = 'Dự tính ' + days + ' ngày: gốc ' + format(amount) + ', tổng lãi khoảng ' + format(interest) + '. ' + (mode === 'interest_monthly' ? 'Lãi chia theo kỳ thực tế; gốc cuối kỳ.' : 'Gốc và lãi trả cuối kỳ.') + ' Chưa phát sinh thanh toán.';
+        };
+        wizard.addEventListener('input', previewSchedule);
+        wizard.addEventListener('change', previewSchedule);
+        previewSchedule();
+    }
 </script>
 @endpush
