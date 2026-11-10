@@ -28,7 +28,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php'));
         $scheduler = file_get_contents(base_path('routes/console.php'));
         $config = file_get_contents(base_path('config/loan_reminders.php'));
-        $this->assertStringContainsString("old('paid_at', \\$item->due_at)", $partial);
+        $this->assertStringContainsString('old(\'paid_at\', $item->due_at)', $partial);
         foreach (['Thiết lập nhắc hẹn qua Email', 'days_before[]', '7 ngày', '5 ngày', '2 ngày', 'Đúng ngày đến hạn'] as $fragment) {
             $this->assertStringContainsString($fragment, $partial);
         }
