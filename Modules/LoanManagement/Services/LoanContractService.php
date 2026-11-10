@@ -138,11 +138,38 @@ final class LoanContractService
             $totalOutstanding = bcadd($totalOutstanding, $contract->outstanding, 2);
         }
 
+        // Aggregate over ALL contracts, not only the 100 newest displayed above.
+        // Subqueries avoid multiplying disbursements by repayments during joins.
+        $disbursementTotals = DB::table('loan_disbursements')
+            ->selectRaw('loan_contract_id, SUM(amount) as disbursed')
+            ->groupBy('loan_contract_id');
+        $repaymentTotals = DB::table('loan_payments')
+            ->selectRaw('loan_contract_id, SUM(principal_paid) as repaid')
+            ->groupBy('loan_contract_id');
+        $byLenderType = DB::table('loan_contracts as c')
+            ->join('loan_lenders as l', 'l.id', '=', 'c.lender_id')
+            ->leftJoinSub($disbursementTotals, 'd', 'd.loan_contract_id', '=', 'c.id')
+            ->leftJoinSub($repaymentTotals, 'p', 'p.loan_contract_id', '=', 'c.id')
+            ->selectRaw("l.type as lender_type, COUNT(*) as contract_count, SUM(GREATEST(COALESCE(d.disbursed, 0) - COALESCE(p.repaid, 0), 0)) as outstanding")
+            ->groupBy('l.type')
+            ->get()
+            ->keyBy('lender_type');
+
+        $lenderTypeSummary = [];
+        foreach (['individual', 'company', 'credit_institution'] as $type) {
+            $row = $byLenderType->get($type);
+            $lenderTypeSummary[$type] = [
+                'contractCount' => (int) ($row->contract_count ?? 0),
+                'outstanding' => (string) ($row->outstanding ?? '0.00'),
+            ];
+        }
+
         return [
             'contracts' => $contracts,
             'lenders' => DB::table('loan_lenders')->orderBy('name')->get(),
             'contractCount' => DB::table('loan_contracts')->count(),
             'outstanding' => $totalOutstanding,
+            'lenderTypeSummary' => $lenderTypeSummary,
         ];
     }
 }
