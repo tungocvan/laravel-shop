@@ -59,9 +59,30 @@ class MedicineExcelRelatedDataService
         $profile = $medicine->currentProfile()->first();
         $values['hssp_status'] = $profile ? 'Đã có HSSP' : 'Chưa có HSSP';
 
-        // One representative award only. Full one-to-many export will be designed separately.
-        $award = $medicine->drugBidAwards()->where('is_active', true)
-            ->orderByDesc('decision_date')->orderByDesc('id')->first();
+        $preferences = app(MedicineAwardPreferenceService::class);
+        $default = $preferences->defaultFor((int) $medicine->id);
+        $rows = $preferences->records((int) $medicine->id);
+        $canonical = $medicine->drugBidAwards()->where('is_active', true)
+            ->orderByDesc('decision_date')->orderByDesc('id')->get();
+        $sources = $medicine->sources()->where('source_system', 'public_tender')
+            ->where('source_record_type', 'award_price')->where('is_active', true)
+            ->orderByDesc('synced_at')->orderByDesc('id')->get();
+
+        $award = null;
+        $source = null;
+        if ($default) {
+            if ($default['origin'] === 'canonical') {
+                $award = $canonical->firstWhere('id', $default['record_id']);
+            } else {
+                $source = $sources->firstWhere('id', $default['record_id']);
+            }
+        }
+        // Compatibility fallback when no valid default exists: latest visible canonical award.
+        // Never silently select the lowest or highest price.
+        if (! $award && ! $source) {
+            $award = $canonical->first(fn ($row) => ! ($rows['canonical:'.$row->id]->is_hidden ?? false));
+        }
+
         if ($award) {
             foreach (['winning_company_name', 'investor_name', 'decision_number', 'contract_period_text', 'winning_price'] as $key) {
                 $values[$key] = $this->display($award->getAttribute($key));
@@ -69,6 +90,15 @@ class MedicineExcelRelatedDataService
             $values['decision_date'] = $award->decision_date?->format('d/m/Y') ?? '';
             $allocation = $award->allocations()->where('status', 'active')->sum('allocated_quantity');
             $values['allocated_quantity'] = $allocation > 0 ? $this->display($allocation) : '';
+        } elseif ($source) {
+            $snapshot = data_get($source->metadata, 'award', []);
+            $snapshot = is_array($snapshot) ? $snapshot : [];
+            $values['winning_company_name'] = $this->display($snapshot['winningName'] ?? null);
+            $values['investor_name'] = $this->display($snapshot['tenCdtBmt'] ?? null);
+            $values['decision_number'] = $this->display($snapshot['soQuyetDinh'] ?? null);
+            $values['decision_date'] = $this->display($snapshot['ngayBanHanhQuyetDinh'] ?? null);
+            $values['winning_price'] = $this->display($snapshot['donGia'] ?? null);
+            // Public source has no verified allocation or contract period.
         }
 
         return $values;
@@ -76,6 +106,10 @@ class MedicineExcelRelatedDataService
 
     private function display(mixed $value): string
     {
-        return $value === null ? '' : trim((string) $value);
+        if (is_array($value)) {
+            return implode('; ', array_map('strval', array_filter($value, 'is_scalar')));
+        }
+
+        return is_scalar($value) ? trim((string) $value) : '';
     }
 }
