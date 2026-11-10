@@ -73,6 +73,33 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     }
 
 
+    public function test_disabling_reminder_skips_a_previously_reserved_job_without_email(): void
+    {
+        Queue::fake();
+        Mail::fake();
+        $today = \Carbon\CarbonImmutable::parse('2026-06-03');
+        \Illuminate\Support\Facades\Date::setTestNow($today);
+        try {
+            $id = $this->contract('DISABLED-REMINDER');
+            $tx = app(LoanTransactionService::class);
+            $tx->disburse($id, ['amount' => '500.00', 'disbursed_at' => '2026-02-01']);
+            $tx->schedule($id, ['installment' => 1, 'due_at' => '2026-06-10',
+                'principal_due' => '200.00', 'interest_due' => '20.00', 'fees_due' => '0.00']);
+            $service = app(LoanReminderService::class);
+            $service->save($id, ['enabled' => true, 'recipient_emails' => ['test@example.test'], 'days_before' => [7]]);
+            $this->assertSame(1, $service->reserveDueReminders($today));
+            $deliveryId = (int) DB::table('loan_reminder_deliveries')->value('id');
+            $service->save($id, ['enabled' => false, 'recipient_emails' => ['test@example.test'], 'days_before' => [7]]);
+            config()->set('loan_reminders.dispatch_enabled', true);
+            (new SendLoanReminder($deliveryId))->handle();
+            Mail::assertNothingSent();
+            $this->assertSame('skipped', DB::table('loan_reminder_deliveries')->where('id', $deliveryId)->value('status'));
+            $this->assertSame(0, $service->reserveDueReminders($today));
+        } finally {
+            \Illuminate\Support\Facades\Date::setTestNow();
+        }
+    }
+
     public function test_recipient_migration_can_resume_without_dropping_existing_data(): void
     {
         $migration = require base_path('Modules/LoanManagement/database/migrations/2026_11_10_000004_add_loan_reminder_recipients.php');
