@@ -77,7 +77,9 @@ return new class extends Migration {
 
         Schema::create('loan_insurance_premium_schedules', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('loan_insurance_policy_id')->constrained('loan_insurance_policies')->restrictOnDelete();
+            $table->foreignId('loan_insurance_policy_id');
+            $table->foreign('loan_insurance_policy_id', 'loan_ins_premium_policy_fk')
+                ->references('id')->on('loan_insurance_policies')->restrictOnDelete();
             $table->date('due_at');
             $table->decimal('amount_due', 20, 2);
             $table->decimal('amount_paid', 20, 2)->default(0);
