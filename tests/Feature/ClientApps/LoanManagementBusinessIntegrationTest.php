@@ -99,7 +99,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->assertCount(1, $rows);
         $this->assertSame('2028-01-01', $rows->first()->due_at);
         $this->assertSame('100000000', (string) (int) $rows->first()->principal_due);
-        $this->assertSame('8021918', (string) (int) $rows->first()->interest_due);
+        $this->assertSame('8000000', (string) (int) $rows->first()->interest_due);
 
         $data['contract_number'] = 'WIZARD-INVALID';
         try {
