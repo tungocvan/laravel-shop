@@ -116,6 +116,16 @@ class PwaSettingsController extends Controller
         return back()->with('success', 'Đã cập nhật nội dung giao diện đăng nhập PWA.');
     }
 
+    public function resetLogin(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        // Preserve the separately managed uploaded logo when resetting editable login copy.
+        $defaults = config('clientportal.pwa.login', []);
+        unset($defaults['logo_path']);
+        $settings->updatePwaLogin($defaults, $request->user('admin')?->getAuthIdentifier());
+
+        return back()->with('success', 'Đã khôi phục nội dung Login PWA mặc định.');
+    }
+
     public function updateLoginLogo(Request $request, ClientPortalSettingsService $settings): RedirectResponse
     {
         $validated = $request->validate([
