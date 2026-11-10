@@ -52,7 +52,7 @@ class ClientPortalPwaLoginLivePreviewContractTest extends TestCase
         $this->assertStringContainsString('x-model="security_notice"', $adminView);
         $this->assertStringContainsString('x-text="form_heading"', $adminView);
         $this->assertStringContainsString('x-text="security_notice"', $adminView);
-        $this->assertStringContainsString('Auth::guard(\$this->guard)->attempt', $authComponent);
+        $this->assertStringContainsString('Auth::guard($this->guard)->attempt', $authComponent);
     }
 
     public function test_reset_route_keeps_existing_guard_and_permissions(): void
