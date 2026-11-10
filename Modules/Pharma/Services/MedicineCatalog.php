@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Modules\Pharma\DTOs\MedicineCatalogItem;
 use Modules\Pharma\Models\MedicineVariant;
 use Modules\Pharma\Models\Medicine;
+use Modules\Pharma\Models\MedicineSource;
 
 class MedicineCatalog
 {
@@ -23,7 +24,7 @@ class MedicineCatalog
                 'packages',
             ])
             ->whereHas('medicine')
-            ->when($filter === 'awarded', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
+            ->when($filter === 'awarded', fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->whereHas('drugBidAwards')->orWhereHas('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true))))
             ->when($filter === 'profile', fn ($query) => $query->whereHas('medicine.currentProfile'))
             ->when($filter === 'supplier-priced' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
             ->when($hssp === 'with', fn ($query) => $query->whereHas('medicine.currentProfile'))
@@ -31,7 +32,7 @@ class MedicineCatalog
             ->when($supplierPrice === 'with' && $allowSupplierPricing, fn ($query) => $query->whereHas('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
             ->when($supplierPrice === 'without' && $allowSupplierPricing, fn ($query) => $query->whereDoesntHave('medicine.supplierTrackings', fn ($tracking) => $tracking->whereNotNull('import_price')))
             ->when($bidAward === 'with', fn ($query) => $query->whereHas('medicine.drugBidAwards'))
-            ->when($bidAward === 'without', fn ($query) => $query->whereDoesntHave('medicine.drugBidAwards'))
+            ->when($bidAward === 'without', fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->whereDoesntHave('drugBidAwards')->whereDoesntHave('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true))))
             ->when(filled($productType) && array_key_exists($productType, Medicine::productTypeOptions()), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('product_type', $productType)))
             ->when(in_array($specialControl, ['yes', 'no'], true), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('is_special_control', $specialControl === 'yes')))
             ->when(filled($circularGroup), fn ($query) => $query->whereHas('medicine', fn ($medicine) => $medicine->where('circular_group', $circularGroup)))
@@ -88,7 +89,7 @@ class MedicineCatalog
 
         $counts = [
             'all' => (clone $base)->count(),
-            'awarded' => (clone $base)->whereHas('medicine.drugBidAwards')->count(),
+            'awarded' => (clone $base)->whereHas('medicine', fn ($medicine) => $medicine->whereHas('drugBidAwards')->orWhereHas('sources', fn ($source) => $source->where('source_system', 'public_tender')->where('source_record_type', 'award_price')->where('is_active', true)))->count(),
             'profile' => (clone $base)->whereHas('medicine.currentProfile')->count(),
         ];
 
@@ -117,6 +118,25 @@ class MedicineCatalog
             ->sortByDesc(fn ($award) => $award->decision_date?->format('Y-m-d') ?? $award->published_at?->format('Y-m-d H:i:s') ?? '')
             ->take(10)
             ->values();
+
+        $publicAwardSources = MedicineSource::query()
+            ->where('medicine_id', $medicine->id)
+            ->where('source_system', 'public_tender')
+            ->where('source_record_type', 'award_price')
+            ->where('is_active', true)
+            ->latest('synced_at')
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (MedicineSource $source): array => [
+                'source_record_key' => $source->source_record_key,
+                'source_reference' => $source->source_reference,
+                'unit_price' => data_get($source->metadata, 'award.donGia'),
+                'winning_company_name' => data_get($source->metadata, 'award.tenNhaThau'),
+                'investor_name' => data_get($source->metadata, 'award.tenChuDauTu'),
+                'synced_at' => $source->synced_at,
+                'registration_verified' => (bool) data_get($source->metadata, 'registration_verified', false),
+            ]);
 
         $suppliers = $medicine->supplierTrackings
             ->sortByDesc(fn ($tracking) => $tracking->working_date?->format('Y-m-d') ?? sprintf('%010d', $tracking->id))
@@ -163,6 +183,7 @@ class MedicineCatalog
                 'verified_at' => $profile->verified_at,
                 'notes' => $profile->notes,
             ] : null,
+            'public_award_sources' => $publicAwardSources,
             'awards' => $awards->map(fn ($award): array => [
                 'bidding_notice_code' => $award->bidding_notice_code,
                 'investor_name' => $award->investor_name,
