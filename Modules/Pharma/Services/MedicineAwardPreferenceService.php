@@ -29,6 +29,42 @@ final class MedicineAwardPreferenceService
         return $row ? ['origin' => $row->origin, 'record_id' => (int) $row->record_id] : null;
     }
 
+    /**
+     * Human-entered tender validity is scoped to one award observation.
+     * An empty value clears the override without modifying the source record.
+     */
+    public function updateTenderValidity(int $medicineId, string $origin, int $recordId, ?string $validity): void
+    {
+        if (! in_array($origin, ['canonical', 'public_tender'], true)) {
+            throw ValidationException::withMessages(['origin' => 'Nguồn trúng thầu không hợp lệ.']);
+        }
+
+        DB::transaction(function () use ($medicineId, $origin, $recordId, $validity): void {
+            Medicine::query()->whereKey($medicineId)->lockForUpdate()->firstOrFail();
+            $exists = $origin === 'canonical'
+                ? DrugBidAward::query()->whereKey($recordId)->where('medicine_id', $medicineId)->where('is_active', true)->exists()
+                : MedicineSource::query()->whereKey($recordId)->where('medicine_id', $medicineId)
+                    ->where('source_system', 'public_tender')->where('source_record_type', 'award_price')
+                    ->where('is_active', true)->exists();
+
+            if (! $exists) {
+                throw ValidationException::withMessages(['record_id' => 'Bản ghi trúng thầu không còn thuộc thuốc này.']);
+            }
+
+            $current = DB::table(self::TABLE)->where('medicine_id', $medicineId)
+                ->where('origin', $origin)->where('record_id', $recordId)->first();
+
+            DB::table(self::TABLE)->updateOrInsert(
+                ['medicine_id' => $medicineId, 'origin' => $origin, 'record_id' => $recordId],
+                [
+                    'tender_validity_text' => $validity,
+                    'updated_at' => now(),
+                    'created_at' => $current?->created_at ?? now(),
+                ],
+            );
+        });
+    }
+
     public function update(int $medicineId, string $origin, int $recordId, string $action): void
     {
         if (! in_array($origin, ['canonical', 'public_tender'], true)
