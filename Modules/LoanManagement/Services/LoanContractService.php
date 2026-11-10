@@ -39,6 +39,17 @@ final class LoanContractService
         ]);
     }
 
+    public function createContractWithOptionalSchedule(array $data, ?string $mode): int
+    {
+        return DB::transaction(function () use ($data, $mode): int {
+            $id = $this->createContract($data);
+            if ($mode !== null) {
+                app(LoanScheduleGenerator::class)->create($id, $mode);
+            }
+            return $id;
+        }, 3);
+    }
+
     public function updateContract(int $id, array $data): void
     {
         DB::transaction(function () use ($id, $data): void {
