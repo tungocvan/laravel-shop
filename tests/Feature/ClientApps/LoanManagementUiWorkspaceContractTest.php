@@ -24,7 +24,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
     public function test_contract_filters_and_collapsible_actions_remain_scoped(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        foreach (['name="search"', 'name="type"', 'name="status"', 'name="insurance"', 'Áp dụng bộ lọc', 'loan-contract-card', 'Xóa bộ lọc', 'Mở chi tiết hợp đồng', 'Xem các kỳ phí và thao tác bảo hiểm'] as $fragment) {
+        foreach (['name="search"', 'name="type"', 'name="status"', 'name="insurance"', 'data-loan-filters', 'data-loan-delete-confirm', 'data-loan-restore-confirm', 'requestSubmit', 'loan-contract-card', 'Xóa bộ lọc', 'Mở chi tiết hợp đồng', 'Xem các kỳ phí và thao tác bảo hiểm'] as $fragment) {
             $this->assertStringContainsString($fragment, $blade);
         }
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php'));
