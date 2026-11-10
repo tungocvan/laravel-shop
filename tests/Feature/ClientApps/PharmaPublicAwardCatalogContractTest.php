@@ -15,7 +15,10 @@ class PharmaPublicAwardCatalogContractTest extends TestCase
         $this->assertStringContainsString("'source_system', 'public_tender'", $catalog);
         $this->assertStringContainsString("'source_record_type', 'award_price'", $catalog);
         $this->assertStringContainsString("'is_active', true", $catalog);
-        $this->assertStringContainsString("'awards' => \$awards->map", $catalog);
+        $this->assertStringContainsString("'awards' => \$recentAwards", $catalog);
+        $this->assertStringContainsString("'origin' => 'canonical'", $catalog);
+        $this->assertStringContainsString("'origin' => 'public_tender'", $catalog);
+        $this->assertStringContainsString('->concat($publicAwardSources)->values()', $catalog);
         $this->assertStringContainsString("'awarded' => (clone \$base)", $catalog);
     }
 
