@@ -1,3 +1,14 @@
+## 2026-11-10 — Public tender source visibility in ClientPortal catalog (CHECKPOINT)
+
+- Branch `fix/pharma-public-award-catalog-20261110` from main `1c47ac0e1`; user approved separating public tender observations from canonical `DrugBidAward`.
+- Root cause: `PublicAwardMedicineSync` writes `MedicineSource` (`public_tender/award_price`) but `MedicineCatalog::overview()` previously rendered only `drugBidAwards`; `browse()` and filter counts likewise only checked canonical awards. The preview label `#177` is **medicine_id**, not necessarily a source record ID; product URL `/products/139` is **variant_id**. Verify linkage on actual DB before claiming identity match.
+- `MedicineCatalog` now reads up to 10 active public tender sources for the resolved Medicine, maps source metadata without modifying canonical award/price, and includes public sources in awarded filters/counts. ClientPortal detail displays a separate public-source panel with provenance, timestamp, source price and registration verification. Existing master-only section is retained; master-only awarded filters include public sources.
+- No migration, no write to source/canonical award/master prices, no auto-create SKU. Potential source field variations remain visible as unknown rather than guessed. Existing canonical award section unchanged.
+- TEST PENDING: `php artisan test tests/Feature/ClientApps/PharmaPublicAwardCatalogContractTest.php`. After focused PASS, run impacted `php artisan test Modules/Pharma/Tests/Unit/MedicineCatalogContractTest.php tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`. Run Pint check for changed PHP files. UI PASS PENDING: medicine with variant and matching source, master-only medicine, filters with/without, empty source, mobile and desktop.
+- No PR/merge/deploy authorized. Keep all local untracked files intact; user remains on separate PWA logo branch until switching explicitly.
+
+---
+
 ## 2026-11-09 — ClientPortal Excel Designer V4 JSON import in modal (CHECKPOINT)
 
 - User requested `Nhập JSON` beside existing `Xuất JSON` in Excel Designer modal at `/apps/pharma/products/excel-config`.
