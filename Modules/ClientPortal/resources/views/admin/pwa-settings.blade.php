@@ -46,6 +46,8 @@
                 </div>
             </form>
 
+            <form id="pwa-login-reset" method="POST" action="{{ route('admin.client-apps.pwa.login.reset') }}" class="hidden">@csrf</form>
+
             <form method="POST" action="{{ route('admin.client-apps.pwa.login.update') }}" class="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm sm:p-6" id="pwa-login-editor">
                 @csrf
                 @method('PUT')
@@ -54,7 +56,10 @@
                         <h2 class="text-lg font-bold text-gray-900">Nội dung Login PWA</h2>
                         <p class="mt-1 text-sm text-gray-500">Nội dung được render động qua ClientPortal settings service, không đọc trực tiếp từ database trong Blade.</p>
                     </div>
-                    <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu giao diện Login</button>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="submit" form="pwa-login-reset" onclick="return confirm('Khôi phục nội dung Login PWA mặc định? Logo đã tải lên sẽ được giữ nguyên.')" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
+                        <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu giao diện Login</button>
+                    </div>
                 </div>
 
                 <div class="mt-6 space-y-5">
