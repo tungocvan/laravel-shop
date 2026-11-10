@@ -28,7 +28,8 @@ final class SendLoanReminder implements ShouldQueue
         // Serialize the final eligibility check and SMTP handoff with reminder settings
         // updates. LoanReminderService::save() locks this same contract row first.
         // A completed "disable" therefore cannot be followed by a new send.
-        DB::transaction(function (): void {
+        try {
+            DB::transaction(function (): void {
             $contractId = DB::table('loan_reminder_deliveries as d')
                 ->join('loan_repayment_schedules as s', 's.id', '=', 'd.loan_repayment_schedule_id')
                 ->where('d.id', $this->deliveryId)->value('s.loan_contract_id');
@@ -85,12 +86,14 @@ final class SendLoanReminder implements ShouldQueue
             );
             DB::table('loan_reminder_deliveries')->where('id', $this->deliveryId)
                 ->update(['status' => 'sent', 'sent_at' => now(), 'last_error' => null, 'updated_at' => now()]);
+        }
+            }); // No automatic DB transaction retries around an external SMTP send.
         } catch (\Throwable $e) {
             DB::table('loan_reminder_deliveries')->where('id', $this->deliveryId)
+                ->whereNotIn('status', ['sent', 'skipped'])
                 ->update(['status' => 'failed', 'last_error' => mb_substr($e->getMessage(), 0, 2000), 'updated_at' => now()]);
             throw $e;
         }
-        }, 3);
     }
     private function skip(): void
     {
