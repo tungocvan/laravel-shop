@@ -105,7 +105,7 @@
                     ] as [$label, $value])
                         <div class="min-w-0">
                             <dt class="text-xs font-bold text-slate-500">{{ $label }}</dt>
-                            <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ filled($value) ? $value : '—' }}</dd>
+                            <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ is_array($value) ? (implode('; ', array_filter($value, 'is_scalar')) ?: '—') : (is_scalar($value) && trim((string) $value) !== '' ? $value : '—') }}</dd>
                         </div>
                     @endforeach
                     @if($isPublic)
@@ -121,7 +121,7 @@
                         ] as [$label, $value])
                             <div class="min-w-0">
                                 <dt class="text-xs font-bold text-slate-500">{{ $label }}</dt>
-                                <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ filled($value) ? $value : '—' }}</dd>
+                                <dd class="mt-1 break-words text-sm font-semibold text-slate-800">{{ is_array($value) ? (implode('; ', array_filter($value, 'is_scalar')) ?: '—') : (is_scalar($value) && trim((string) $value) !== '' ? $value : '—') }}</dd>
                             </div>
                         @endforeach
                         <div class="min-w-0">
