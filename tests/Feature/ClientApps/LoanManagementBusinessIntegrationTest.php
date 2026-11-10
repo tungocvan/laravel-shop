@@ -138,10 +138,10 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
         $this->assertSame(8, DB::table('loan_lenders')->count());
         $this->assertSame(4, DB::table('loan_insurance_policies')->count());
-        $this->assertSame(4, DB::table('loan_insurance_premium_schedules')->count());
-        $this->assertSame(10, DB::table('loan_disbursements')->count());
+        $this->assertSame(5, DB::table('loan_insurance_premium_schedules')->count());
+        $this->assertSame(9, DB::table('loan_disbursements')->count());
         $this->assertSame(9, DB::table('loan_payments')->count());
-        $this->assertSame(14, DB::table('loan_repayment_schedules')->count());
+        $this->assertSame(16, DB::table('loan_repayment_schedules')->count());
         $this->assertEqualsCanonicalizing(
             ['individual', 'company', 'credit_institution'],
             DB::table('loan_lenders')->distinct()->pluck('type')->all()
@@ -166,7 +166,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->assertSame(4, DB::table('loan_contracts')->whereNotIn('id', DB::table('loan_insurance_policies')->select('loan_contract_id'))->count());
         $this->assertSame(1, DB::table('loan_insurance_premium_schedules')->whereColumn('amount_due', 'amount_paid')->count());
         $this->assertSame(1, DB::table('loan_insurance_premium_schedules')->where('amount_paid', '>', 0)->whereColumn('amount_paid', '<', 'amount_due')->count());
-        $this->assertSame(2, DB::table('loan_insurance_premium_schedules')->where('amount_paid', 0)->count());
+        $this->assertSame(3, DB::table('loan_insurance_premium_schedules')->where('amount_paid', 0)->count());
         $closed = DB::table('loan_contracts')->where('status', 'closed')->first();
         $this->assertNotNull($closed);
         $this->assertEquals(
