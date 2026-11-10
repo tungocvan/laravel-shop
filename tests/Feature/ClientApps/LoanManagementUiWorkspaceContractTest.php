@@ -21,6 +21,19 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_reminder_ui_warns_when_global_dispatch_is_missing_or_disabled(): void
+    {
+        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $config = file_get_contents(base_path('config/loan_reminders.php'));
+        $job = file_get_contents(base_path('Modules/LoanManagement/Jobs/SendLoanReminder.php'));
+        $this->assertStringContainsString("env('LOAN_REMINDERS_DISPATCH_ENABLED', false)", $config);
+        $this->assertStringContainsString("!config('loan_reminders.dispatch_enabled', false)", $partial);
+        $this->assertStringContainsString('Dịch vụ gửi Email chưa kích hoạt', $partial);
+        $this->assertStringContainsString('không tự sửa .env', $partial);
+        $this->assertStringContainsString("->lockForUpdate()->first()", $job);
+        $this->assertStringContainsString('DB::transaction(function (): void', $job);
+    }
+
     public function test_reminder_timeline_distinguishes_planned_from_actual_delivery_state(): void
     {
         $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
