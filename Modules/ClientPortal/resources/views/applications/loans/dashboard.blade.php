@@ -183,10 +183,10 @@
  <section id="loan-insurance" class="loan-panel scroll-mt-24 p-5 sm:p-6">
   <div class="flex flex-wrap items-center justify-between gap-2"><h2 class="text-lg font-semibold text-slate-900">Bảo hiểm khoản vay</h2><p class="text-xs text-slate-500">Theo dõi hiệu lực và phí bảo hiểm</p></div>
   @forelse($insuranceData['policies'] as $policy)
-   <article class="mt-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+   <article class="mt-3 rounded-xl border border-slate-200 bg-white p-4">
     <div class="flex flex-wrap justify-between gap-2"><div><strong>{{ $policy->provider }} · {{ $policy->policy_number }}</strong><p class="text-sm text-slate-600">{{ $policy->contract_number }} · {{ ['loan'=>'Khoản vay','life'=>'Nhân thọ','collateral'=>'Tài sản bảo đảm','other'=>'Khác'][$policy->type] ?? $policy->type }}</p></div><span class="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700">{{ ['expired'=>'Đã hết hạn','expiring'=>'Sắp hết hạn','valid'=>'Còn hiệu lực theo ngày','unknown'=>'Chưa có ngày hết hạn'][$policy->expiry_status] ?? $policy->expiry_status }}</span></div>
     <p class="mt-2 text-xs text-slate-600">Tính bắt buộc: {{ ['contractual'=>'Theo hợp đồng','voluntary'=>'Tự nguyện','unverified'=>'Chưa xác minh'][$policy->requirement] ?? $policy->requirement }} · Hết hạn: {{ $policy->ends_at ?? 'Chưa xác định' }}</p>
-    <div class="mt-3 space-y-2">
+    <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold">Xem các kỳ phí và thao tác bảo hiểm</summary><div class="mt-3 space-y-2">
      @foreach($policy->premiums as $premium)
       <div class="rounded-xl border border-slate-100 bg-white p-3 text-sm">
        <p class="font-medium">Đến hạn {{ $premium->due_at }} · {{ ['paid'=>'Đã thanh toán','overdue'=>'Quá hạn','pending'=>'Chưa thanh toán'][$premium->payment_status] ?? $premium->payment_status }}</p>
@@ -202,6 +202,7 @@
     @can('client.loans.insurance.manage')
     <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold">Thêm kỳ đóng phí</summary><form method="POST" action="{{ route('client.loans.premiums.store', $policy->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf<label class="text-sm">Ngày đến hạn<x-pwa-date name="due_at" required /></label><label class="text-sm">Phí phải đóng (VND)<input name="amount_due" type="number" min="0.01" step="0.01" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label><button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Lưu kỳ phí</button></form></details>
     @endcan
+    </details>
    </article>
   @empty
    <p class="mt-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-600">Chưa có bảo hiểm cho các khoản vay.</p>
