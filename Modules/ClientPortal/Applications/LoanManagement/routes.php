@@ -14,5 +14,8 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
             Route::post('/lenders', [LoanWorkspaceController::class, 'storeLender'])->name('lenders.store');
             Route::post('/contracts', [LoanWorkspaceController::class, 'storeContract'])->name('contracts.store');
             Route::put('/contracts/{contract}', [LoanWorkspaceController::class, 'updateContract'])->whereNumber('contract')->name('contracts.update');
+            Route::post('/contracts/{contract}/disbursements', [LoanWorkspaceController::class, 'disburse'])->whereNumber('contract')->name('disbursements.store');
+            Route::post('/contracts/{contract}/schedules', [LoanWorkspaceController::class, 'schedule'])->whereNumber('contract')->name('schedules.store');
+            Route::post('/contracts/{contract}/payments', [LoanWorkspaceController::class, 'pay'])->whereNumber('contract')->name('payments.store');
         });
 }
