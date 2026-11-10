@@ -696,6 +696,9 @@ final class PharmaApplicationController extends Controller
             'profile' => $overview['profile'],
             'awards' => $overview['awards'],
             'publicAwardSources' => $overview['public_award_sources'],
+            'hiddenAwards' => $overview['hidden_awards'],
+            'medicineId' => $overview['medicine_id'],
+            'canManageAwards' => $registry->userCan($user, 'client.pharma.products.edit'),
             'suppliers' => $overview['suppliers'],
             'supplierPricingVisible' => $overview['supplier_pricing_visible'],
         ]);
