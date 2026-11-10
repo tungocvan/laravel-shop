@@ -166,6 +166,10 @@ class PwaSettingsController extends Controller
             'supporting_visible' => ['required', 'boolean'],
             'supporting_title' => ['nullable', 'string', 'max:160'],
             'supporting_body' => ['nullable', 'string', 'max:1000'],
+            'overview_visible' => ['required', 'boolean'],
+            'overview_eyebrow' => ['nullable', 'string', 'max:80'],
+            'overview_title' => ['nullable', 'string', 'max:160'],
+            'overview_description' => ['nullable', 'string', 'max:500'],
         ]);
         $settings->updateApplicationHubPresentation($manifest['key'], $validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật Hub của ứng dụng '.$manifest['name'].'.');
