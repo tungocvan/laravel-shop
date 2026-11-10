@@ -23,7 +23,7 @@
 .loan-workspace .loan-contract-card > details > summary::before { flex:0 0 auto; }
 .loan-workspace .loan-contract-card > details > summary .loan-status { margin-left:auto; }
 .loan-workspace .loan-filter-grid { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-items:end; }
-@media(min-width:640px){ .loan-workspace .loan-filter-grid { grid-template-columns:minmax(180px,2fr) minmax(120px,1fr) minmax(120px,1fr) minmax(120px,1fr); } }
+@media(min-width:640px){ .loan-workspace .loan-filter-grid { grid-template-columns:minmax(180px,2fr) minmax(110px,1fr) minmax(110px,1fr) minmax(110px,1fr) auto; } }
 .loan-workspace .loan-contract-card:hover { border-color:#cbd5e1; }
 .loan-workspace [x-cloak] { display:none !important; }
 @media(max-width:640px){ .loan-workspace .loan-panel { border-radius:16px; } .loan-workspace .loan-nav-link { flex:1 1 auto; justify-content:center; } }
@@ -85,13 +85,13 @@
    <label>Nhóm cho vay<select name="type" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['type'] === 'all')>Tất cả nhóm</option><option value="individual" @selected($loanFilters['type'] === 'individual')>Cá nhân</option><option value="company" @selected($loanFilters['type'] === 'company')>Công ty</option><option value="credit_institution" @selected($loanFilters['type'] === 'credit_institution')>Tổ chức tín dụng</option></select></label>
    <label>Trạng thái<select name="status" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['status'] === 'all')>Tất cả trạng thái</option><option value="draft" @selected($loanFilters['status'] === 'draft')>Nháp</option><option value="active" @selected($loanFilters['status'] === 'active')>Đang vay</option><option value="closed" @selected($loanFilters['status'] === 'closed')>Đã tất toán</option><option value="cancelled" @selected($loanFilters['status'] === 'cancelled')>Đã hủy</option></select></label>
    <label>Bảo hiểm<select name="insurance" class="mt-1 w-full p-3"><option value="all" @selected($loanFilters['insurance'] === 'all')>Tất cả</option><option value="yes" @selected($loanFilters['insurance'] === 'yes')>Có bảo hiểm</option><option value="no" @selected($loanFilters['insurance'] === 'no')>Không bảo hiểm</option></select></label>
-   <div class="flex flex-wrap items-center gap-3 sm:col-span-4">
-     <span class="text-xs font-medium text-slate-600">{{ $visibleContracts->count() }} kết quả (trong tối đa 100 hợp đồng mới nhất)</span>
+   <div class="flex items-end">
      @if($loanFilters['search'] !== '' || $loanFilters['type'] !== 'all' || $loanFilters['status'] !== 'all' || $loanFilters['insurance'] !== 'all')
-       <a href="{{ route('client.loans.dashboard') }}#loan-contracts" class="text-sm font-semibold text-blue-700 underline">Xóa bộ lọc</a>
+       <a href="{{ route('client.loans.dashboard') }}#loan-contracts" class="flex min-h-11 items-center whitespace-nowrap text-sm font-semibold text-blue-700 underline">Xóa bộ lọc</a>
      @endif
-     <button type="submit" class="sr-only">Tìm kiếm</button>
    </div>
+   <div class="text-xs font-medium text-slate-600 sm:col-span-5">{{ $visibleContracts->count() }} kết quả (trong tối đa 100 hợp đồng mới nhất)</div>
+   <button type="submit" class="sr-only">Tìm kiếm</button>
   </form>
   <p class="mt-3 text-xs text-slate-500">Chọn hợp đồng để mở thao tác giải ngân, thanh toán, lịch trả nợ và bảo hiểm.</p>
   <div class="mt-4 space-y-3">
