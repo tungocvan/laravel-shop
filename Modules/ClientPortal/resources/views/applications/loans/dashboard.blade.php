@@ -46,6 +46,20 @@
   <div class="loan-panel p-5 sm:p-6"><p class="text-sm">Số hợp đồng</p><strong class="text-2xl">{{ $loanData['contractCount'] }}</strong></div>
   <div class="loan-panel p-5 sm:p-6"><p class="text-sm">Dư nợ gốc đã giải ngân (VND)</p><strong class="text-2xl">{{ number_format((float)$loanData['outstanding'], 2, ',', '.') }}</strong></div>
  </div>
+ <section class="loan-panel p-5 sm:p-6" aria-label="Tổng quan khoản vay theo nhóm bên cho vay">
+  <div class="mb-3"><h2 class="text-lg font-semibold text-slate-900">Tổng quan theo bên cho vay</h2><p class="text-xs text-slate-500">Thống kê toàn bộ hợp đồng, không giới hạn danh sách 100 hợp đồng gần nhất.</p></div>
+  <div class="grid gap-3 sm:grid-cols-3">
+   @foreach(['individual' => 'Cá nhân', 'company' => 'Công ty', 'credit_institution' => 'Tổ chức tín dụng'] as $type => $label)
+    <div class="rounded-xl border border-slate-200 bg-slate-50/60 p-4" data-loan-lender-summary="{{ $type }}">
+     <h3 class="text-sm font-semibold text-slate-800">{{ $label }}</h3>
+     <p class="mt-2 text-sm text-slate-600">Hợp đồng: <strong>{{ $loanData['lenderTypeSummary'][$type]['contractCount'] }}</strong></p>
+     <p class="mt-1 text-xs text-slate-500">Dư nợ gốc (VND)</p>
+     <p class="mt-1 break-all text-lg font-bold tabular-nums text-slate-900">{{ number_format((float) $loanData['lenderTypeSummary'][$type]['outstanding'], 0, ',', '.') }}</p>
+     <a class="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-blue-700" href="{{ route('client.loans.dashboard', ['type' => $type]) }}#loan-contracts">Xem hợp đồng</a>
+    </div>
+   @endforeach
+  </div>
+ </section>
 <section id="loan-create" class="loan-panel scroll-mt-24 p-5 sm:p-6">
  <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
   <div><p class="loan-kicker">THAO TÁC</p><h2 class="text-lg font-semibold tracking-tight text-slate-900">Tạo hồ sơ khoản vay</h2><p class="mt-1 text-sm text-slate-500">Bắt đầu bằng đối tác cho vay, sau đó lập hợp đồng nháp.</p></div>
@@ -333,13 +347,34 @@
     });
 
     document.querySelectorAll('[data-loan-installment-form]').forEach(form => {
+        const fields = ['principal_paid', 'interest_paid', 'fees_paid'];
+        const moneyInputs = fields.map(key => form.elements.namedItem(key)).filter(Boolean);
+        const formatter = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 });
+        const parseVnd = value => {
+            const digits = String(value).replace(/\\./g, '').replace(/\\s/g, '');
+            return /^\\d+$/.test(digits) ? Number(digits) : NaN;
+        };
+        moneyInputs.forEach(input => {
+            input.addEventListener('focus', () => { input.value = input.value.replace(/\\./g, ''); });
+            input.addEventListener('blur', () => {
+                const value = parseVnd(input.value);
+                if (Number.isSafeInteger(value) && value >= 0) input.value = formatter.format(value);
+            });
+        });
         form.addEventListener('submit', event => {
-            const fields = ['principal_paid', 'interest_paid', 'fees_paid'];
-            const total = fields.reduce((sum, key) => sum + Number(form.elements.namedItem(key)?.value || 0), 0);
-            if (!(total > 0) || !window.confirm('Xác nhận đã chuyển thực tế ' + new Intl.NumberFormat('vi-VN').format(total) + ' VND cho kỳ này?')) {
+            const values = moneyInputs.map(input => parseVnd(input.value));
+            const valid = values.every((value, index) => Number.isSafeInteger(value) && value >= 0 && value <= Number(moneyInputs[index].dataset.maxAmount));
+            const total = values.reduce((sum, value) => sum + value, 0);
+            if (!valid || !(total > 0)) {
+                event.preventDefault();
+                window.alert('Số tiền phải là VND nguyên, không âm và không vượt quá phần còn lại của kỳ.');
+                return;
+            }
+            if (!window.confirm('Xác nhận đã chuyển thực tế ' + formatter.format(total) + ' VND cho kỳ này?')) {
                 event.preventDefault();
                 return;
             }
+            moneyInputs.forEach((input, index) => { input.value = String(values[index]); });
             const button = form.querySelector('[data-loan-submit-payment]');
             if (button) button.disabled = true;
         });
