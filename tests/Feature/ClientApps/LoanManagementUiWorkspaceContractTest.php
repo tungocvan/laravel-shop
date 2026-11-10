@@ -21,6 +21,22 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_contract_profile_and_transaction_history_are_rendered_from_domain_service(): void
+    {
+        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php'));
+        $insurance = file_get_contents(base_path('Modules/LoanManagement/Services/LoanInsuranceService.php'));
+
+        $this->assertStringContainsString('contract-history', $blade);
+        $this->assertStringContainsString("lender_type !== 'individual'", $blade);
+        foreach (['Thông tin hồ sơ vay', 'Lịch sử giải ngân', 'Lịch trả nợ dự kiến', 'Lịch sử thanh toán thực tế', 'principal_repaid', 'annual_rate_percent'] as $fragment) {
+            $this->assertStringContainsString($fragment, $partial);
+        }
+        $this->assertStringContainsString('LoanContractHistoryService', $controller);
+        $this->assertStringContainsString("lenderType === 'individual'", $insurance);
+    }
+
     public function test_contract_filters_and_collapsible_actions_remain_scoped(): void
     {
         $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
