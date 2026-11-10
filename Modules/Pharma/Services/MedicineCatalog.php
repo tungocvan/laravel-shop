@@ -119,6 +119,8 @@ class MedicineCatalog
             ->take(10)
             ->values();
 
+        // Read-only presentation projection: preserve canonical awards and public provenance.
+        // Public source payload is the original award snapshot, not a DrugBidAward write.
         $publicAwardSources = MedicineSource::query()
             ->where('medicine_id', $medicine->id)
             ->where('source_system', 'public_tender')
@@ -128,15 +130,58 @@ class MedicineCatalog
             ->latest('id')
             ->limit(10)
             ->get()
-            ->map(fn (MedicineSource $source): array => [
-                'source_record_key' => $source->source_record_key,
-                'source_reference' => $source->source_reference,
-                'unit_price' => data_get($source->metadata, 'award.donGia'),
-                'winning_company_name' => data_get($source->metadata, 'award.tenNhaThau'),
-                'investor_name' => data_get($source->metadata, 'award.tenChuDauTu'),
-                'synced_at' => $source->synced_at,
-                'registration_verified' => (bool) data_get($source->metadata, 'registration_verified', false),
-            ]);
+            ->map(function (MedicineSource $source): array {
+                $award = data_get($source->metadata, 'award', []);
+                $award = is_array($award) ? $award : [];
+                $winning = $award['winningName'] ?? null;
+                $winning = is_array($winning)
+                    ? implode(', ', array_filter($winning, 'is_scalar'))
+                    : (is_scalar($winning) ? (string) $winning : null);
+
+                return [
+                    'origin' => 'public_tender',
+                    'source_record_key' => $source->source_record_key,
+                    'registration_verified' => (bool) data_get($source->metadata, 'registration_verified', false),
+                    'synced_at' => $source->synced_at,
+                    'bidding_notice_code' => $award['maTbmt'] ?? $source->source_reference,
+                    'investor_name' => $award['tenCdtBmt'] ?? null,
+                    'decision_number' => $award['soQuyetDinh'] ?? null,
+                    'decision_date' => $award['ngayBanHanhQuyetDinh'] ?? null,
+                    'published_at' => $award['ngayDangTaiKqlcnt'] ?? null,
+                    'quantity' => $award['soLuong'] ?? null,
+                    'unit_price' => $award['donGia'] ?? null,
+                    'winning_company_name' => $winning,
+                    'lot_no' => null,
+                    'winning_code' => $award['winningCode'] ?? null,
+                    'unit' => $award['donViTinh'] ?? null,
+                    'packaging' => $award['quyCachDongGoi'] ?? null,
+                    'manufacturer' => $award['tenCoSoSanXuat'] ?? null,
+                    'manufacturing_country' => $award['nuocSanXuat'] ?? null,
+                    'registration_number' => $award['gdklh_GPNK'] ?? null,
+                ];
+            });
+
+        $recentAwards = $awards->map(fn ($award): array => [
+            'origin' => 'canonical',
+            'bidding_notice_code' => $award->bidding_notice_code,
+            'investor_name' => $award->investor_name,
+            'decision_number' => $award->decision_number,
+            'decision_date' => $award->decision_date?->format('d/m/Y'),
+            'published_at' => null,
+            'quantity' => $award->quantity,
+            'unit_price' => $award->winning_price ?: $award->unit_price,
+            'winning_company_name' => $award->winning_company_name,
+            'lot_no' => $award->lot_no,
+            'winning_code' => null,
+            'unit' => null,
+            'packaging' => null,
+            'manufacturer' => null,
+            'manufacturing_country' => null,
+            'registration_number' => null,
+            'source_record_key' => null,
+            'registration_verified' => null,
+            'synced_at' => null,
+        ])->concat($publicAwardSources)->values();
 
         $suppliers = $medicine->supplierTrackings
             ->sortByDesc(fn ($tracking) => $tracking->working_date?->format('Y-m-d') ?? sprintf('%010d', $tracking->id))
@@ -184,17 +229,7 @@ class MedicineCatalog
                 'notes' => $profile->notes,
             ] : null,
             'public_award_sources' => $publicAwardSources,
-            'awards' => $awards->map(fn ($award): array => [
-                'bidding_notice_code' => $award->bidding_notice_code,
-                'investor_name' => $award->investor_name,
-                'decision_number' => $award->decision_number,
-                'decision_date' => $award->decision_date,
-                'quantity' => $award->quantity,
-                'unit_price' => $award->winning_price ?: $award->unit_price,
-                'winning_company_name' => $award->winning_company_name,
-                'lot_no' => $award->lot_no,
-                'contract_duration_months' => $award->contract_duration_months,
-            ])->values(),
+            'awards' => $recentAwards,
             'suppliers' => $suppliers,
             'supplier_pricing_visible' => $includeSupplierPricing,
         ];
