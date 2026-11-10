@@ -11,6 +11,7 @@ use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanTransactionService;
 use Modules\LoanManagement\Services\LoanInstallmentPaymentService;
 use Modules\LoanManagement\Services\LoanReminderService;
+use Modules\LoanManagement\Services\LoanReminderHistoryService;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Mail;
 use Modules\LoanManagement\Jobs\SendLoanReminder;
@@ -80,6 +81,42 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $indexes = collect(\Illuminate\Support\Facades\Schema::getIndexes('loan_reminder_deliveries'));
         $this->assertTrue($indexes->contains(fn (array $index): bool => $index['name'] === 'loan_reminder_delivery_recipient_uq'));
         $this->assertFalse($indexes->contains(fn (array $index): bool => $index['name'] === 'loan_reminder_delivery_once_uq'));
+    }
+
+    public function test_reminder_history_is_read_only_and_scoped_to_visible_contracts(): void
+    {
+        Queue::fake();
+        $first = $this->contract('HISTORY-ONE');
+        $second = $this->contract('HISTORY-TWO');
+        $tx = app(LoanTransactionService::class);
+        foreach ([$first, $second] as $id) {
+            $tx->disburse($id, ['amount' => '500.00', 'disbursed_at' => '2026-02-01']);
+            $tx->schedule($id, ['installment' => 1, 'due_at' => '2026-12-10',
+                'principal_due' => '100.00', 'interest_due' => '10.00', 'fees_due' => '0.00']);
+            app(LoanReminderService::class)->save($id, [
+                'enabled' => true, 'recipient_emails' => ['history@example.test'],
+                'days_before' => [7],
+            ]);
+        }
+        $service = app(LoanReminderHistoryService::class);
+        $before = $service->forContracts([$first]);
+        $this->assertCount(1, $before['upcoming'][$first]);
+        $this->assertArrayNotHasKey($second, $before['upcoming']);
+        $this->assertEmpty($before['deliveries']);
+        $this->assertSame(0, DB::table('loan_reminder_deliveries')->count());
+
+        $schedule = DB::table('loan_repayment_schedules')->where('loan_contract_id', $first)->first();
+        DB::table('loan_reminder_deliveries')->insert([
+            'loan_repayment_schedule_id' => $schedule->id,
+            'days_before' => 7, 'due_at_snapshot' => '2026-12-10',
+            'recipient_email' => 'history@example.test', 'status' => 'reserved',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $after = $service->forContracts([$first]);
+        $this->assertCount(1, $after['deliveries'][$first]);
+        $this->assertSame('reserved', $after['deliveries'][$first][0]->status);
+        $this->assertSame(1, DB::table('loan_reminder_deliveries')->count());
+        Queue::assertNothingPushed();
     }
 
     public function test_multiple_recipients_are_deduplicated_and_stale_overdue_jobs_are_skipped(): void
