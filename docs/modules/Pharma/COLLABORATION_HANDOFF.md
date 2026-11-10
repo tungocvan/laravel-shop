@@ -1,3 +1,14 @@
+## 2026-11-10 — Manual tender validity on medicine award cards (CHECKPOINT)
+
+- User approved adding editable **Hiệu lực thời gian thầu** per canonical/public award record, after confirming Mua sắm công source #329 for medicine #177 has `hanDung` (shelf life) but no verified tender validity. Never map `hanDung` to contract/tender validity.
+- Add nullable `tender_validity_text` to existing `pharma_medicine_award_preferences` via additive migration `2026_11_10_000001_add_tender_validity_to_pharma_medicine_award_preferences.php`. Original public metadata and canonical awards are unchanged. Development migration only after local approval/checkpoint; never production without `docs/PRODUCTION_DEBUG_PROMPT.md` and explicit permission.
+- Existing award preference POST route accepts `action=validity` with nullable max 255 text; same `client.pharma.products.edit` authorization. Service validates active award ownership within locked medicine transaction. Empty text clears manual value. Other default/hide/restore actions preserve the validity column.
+- ClientPortal product detail shows value and **Nhập thủ công** provenance, with inline small edit toggle, Save/Cancel and clear instructions; only editors can edit. Hidden/restore records retain their value.
+- Shared `MedicineExcelRelatedDataService` overrides existing `contract_period_text` for the selected default award only when manual validity is present. No new Excel column required; existing Excel Designer **Thời gian** field remains the output. Source data and pricing/stock unaffected.
+- Focused test `tests/Feature/ClientApps/PharmaTenderValidityContractTest.php`. **TEST PENDING, UI PENDING**; no PR, merge or production deploy. Run focused then impacted tests; verify public #329 validity edit, Excel output, canonical award, hide/restore, permissions, mobile.
+
+---
+
 ## 2026-11-10 — Medicine Excel winning quantity mapping (CHECKPOINT)
 
 - User verified Excel default selection for Pregabakern 25mg public award 6,900 VND. Source snapshot has `soLuong=18000`, but configured Excel exposed only internal `allocated_quantity` and had no separate winning quantity column. User approved a distinct **Số lượng trúng thầu** field while retaining **Số lượng phân bổ**.
