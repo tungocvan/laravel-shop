@@ -73,6 +73,57 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     }
 
 
+    public function test_eight_percent_rate_is_preserved_exactly_on_create_and_draft_update(): void
+    {
+        $lender = (int) DB::table('loan_lenders')->insertGetId([
+            'name' => 'Rate precision lender', 'type' => 'individual',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $data = [
+            'lender_id' => $lender, 'contract_number' => 'RATE-EXACT-8',
+            'committed_amount' => '200000000.00', 'annual_rate_percent' => '8.00000',
+            'day_count_basis' => 365, 'signed_at' => '2026-11-01',
+            'matures_at' => '2027-11-01',
+        ];
+        $service = app(LoanContractService::class);
+        $id = $service->createContract($data);
+        $this->assertSame('8', rtrim(rtrim((string) DB::table('loan_contracts')->where('id', $id)->value('annual_rate_percent'), '0'), '.'));
+        $service->updateContract($id, $data);
+        $this->assertSame('8', rtrim(rtrim((string) DB::table('loan_contracts')->where('id', $id)->value('annual_rate_percent'), '0'), '.'));
+    }
+
+    public function test_lender_category_dashboard_counts_and_debt_cover_all_contracts(): void
+    {
+        $service = app(LoanContractService::class);
+        $types = ['individual', 'company', 'credit_institution'];
+        $ids = [];
+        foreach ($types as $index => $type) {
+            $lender = (int) DB::table('loan_lenders')->insertGetId([
+                'name' => 'Category '.$type, 'type' => $type,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+            $ids[$type] = $service->createContract([
+                'lender_id' => $lender, 'contract_number' => 'CATEGORY-'.$index,
+                'committed_amount' => '1000.00', 'annual_rate_percent' => '8.00000',
+                'day_count_basis' => 365, 'signed_at' => '2026-01-01', 'matures_at' => '2027-01-01',
+            ]);
+        }
+        $tx = app(LoanTransactionService::class);
+        $tx->disburse($ids['individual'], ['amount' => '500.00', 'disbursed_at' => '2026-02-01']);
+        $tx->disburse($ids['company'], ['amount' => '200.00', 'disbursed_at' => '2026-02-01']);
+        $tx->pay($ids['individual'], [
+            'paid_at' => '2026-02-02', 'principal_paid' => '100.00',
+            'interest_paid' => '0.00', 'fees_paid' => '0.00',
+        ]);
+        $summary = $service->dashboard()['lenderTypeSummary'];
+        $this->assertSame(1, $summary['individual']['contractCount']);
+        $this->assertSame(1, $summary['company']['contractCount']);
+        $this->assertSame(1, $summary['credit_institution']['contractCount']);
+        $this->assertSame(0, bccomp('400.00', $summary['individual']['outstanding'], 2));
+        $this->assertSame(0, bccomp('200.00', $summary['company']['outstanding'], 2));
+        $this->assertSame(0, bccomp('0.00', $summary['credit_institution']['outstanding'], 2));
+    }
+
     public function test_disabling_reminder_skips_a_previously_reserved_job_without_email(): void
     {
         Queue::fake();
