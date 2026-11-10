@@ -1,3 +1,11 @@
+## 2026-11-10 — Product detail HTTP 500 for array-valued public award fields
+
+- User screenshot: `GET /apps/pharma/products/139` HTTP 500, `htmlspecialchars(): Argument #1 ($string) must be of type string, array given`, `product-show.blade.php:124`.
+- Root cause: public tender payload fields (e.g. `winningCode`, `gdklh_GPNK`) can be arrays, but two loops in unified award section rendered `{{ filled($value) ? $value : '—' }}` directly. Both loops now render scalar values and join scalar array elements with `; `, matching the safe rendering convention already used by `award-price-detail.blade.php`.
+- Contract regression asserts both safe rendering loops; no database, canonical award, price or synchronization changes. TEST/UI pending user rerun, do not merge or deploy.
+
+---
+
 ## 2026-11-10 — Unified awards contract regression follow-up
 
 - User ran focused tests: 11 PASS, 1 FAIL (233 assertions). Failure in `PharmaPublicAwardCatalogContractTest` line 18 expected obsolete `'awards' => $awards->map` after read model switched to `'awards' => $recentAwards`.
