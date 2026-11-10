@@ -74,8 +74,7 @@ final class SendLoanReminder implements ShouldQueue
             return;
         }
 
-        try {
-            Mail::raw(
+        Mail::raw(
                 "Nhắc lịch trả nợ hợp đồng {$delivery->contract_number}\n".
                 "Kỳ {$delivery->installment} - hạn thanh toán {$delivery->due_at}\n".
                 "Số tiền còn phải trả theo kỳ: ".number_format((float) $total, 0, ',', '.')." VND\n".
