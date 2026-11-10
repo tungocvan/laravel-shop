@@ -1,3 +1,11 @@
+## 2026-11-10 — Pre-merge acceptance checkpoint (user confirmed)
+
+- User explicitly confirmed **TEST PASS (both focused and regression layers) + UI PASS** after integration of PWA Login editable form/preview and the targeted Bottom Navigation icon fix.
+- Acceptance reported by user, not independently executed by GitHub tool. This confirmation supersedes the earlier `PENDING` notes for this feature branch. No production deploy has been authorized or performed.
+- Branch comparison before PR: 21 commits ahead of `main`, 0 behind. Review PR diff and GitHub mergeability; merge only under user's explicit approval and after required gates.
+
+---
+
 ## 2026-11-10 — Integrate previously unmerged Bottom Navigation icon fix
 
 - Ported the targeted fix from `fix/clientportal-pwa-bottom-icon-save-20261108` into `feat/clientportal-pwa-login-live-preview-20261110` without merging its diverged history.
