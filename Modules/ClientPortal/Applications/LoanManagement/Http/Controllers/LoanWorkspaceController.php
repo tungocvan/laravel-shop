@@ -106,6 +106,21 @@ final class LoanWorkspaceController extends Controller
         return redirect()->route('client.loans.dashboard')->with('success', 'Đã ghi nhận thanh toán.');
     }
 
+    public function payInstallment(Request $request, int $contract, int $schedule, \Modules\LoanManagement\Services\LoanInstallmentPaymentService $service): RedirectResponse
+    {
+        abort_unless($request->user()?->can('client.loans.payments.create'), 403);
+        $data = $request->validate([
+            'paid_at' => ['required', 'date_format:Y-m-d'],
+            'principal_paid' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'interest_paid' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'fees_paid' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'reference' => ['nullable', 'string', 'max:255'],
+        ]);
+        $service->record($contract, $schedule, $data);
+
+        return redirect()->route('client.loans.dashboard')->with('success', 'Đã ghi nhận và phân bổ thanh toán cho kỳ trả nợ.');
+    }
+
     private function validatedContract(Request $request, ?int $id = null): array
     {
         $data = $request->validate([
