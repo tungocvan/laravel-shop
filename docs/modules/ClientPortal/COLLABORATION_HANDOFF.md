@@ -1,3 +1,11 @@
+## 2026-11-10 — Integrate previously unmerged Bottom Navigation icon fix
+
+- Ported the targeted fix from `fix/clientportal-pwa-bottom-icon-save-20261108` into `feat/clientportal-pwa-login-live-preview-20261110` without merging its diverged history.
+- Admin application Bottom Navigation `items.*.bottom_icon` is nullable; when a radio value is omitted, preserve the saved icon, otherwise use manifest icon; explicitly selected icon overrides. The Blade picker includes the current icon even when not in the static palette.
+- Added missing-radio-value regression in `ClientPortalPwaSettingsTest`. Focused tests **PENDING**: `ClientPortalPwaSettingsTest`, `ClientPortalPwaLoginLivePreviewContractTest`. Impacted regression **PENDING**: `ClientAdaptiveNavigationTest`, `ClientPortalPwaLoginLogoContractTest`, `ClientPwaFoundationTest`. UI **PENDING** for saving Pharma Bottom Navigation with existing non-palette icon, toggling visibility, reload, and verifying right-side login preview. No PR/merge/deploy.
+
+---
+
 ## 2026-11-10 — PWA Login right-hand form content extension
 
 - User clarified the remaining hardcoded area is the **white Auth login card on the right**, not the existing left intro panel. Added 12 form-copy defaults under `pwa.login` and admin-editable fields: brand, heading, description, Email/Password labels, remember, submit/loading, divider, Google, registration and security notice.
