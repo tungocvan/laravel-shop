@@ -25,8 +25,13 @@ class PharmaPublicAwardCatalogContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaApplicationController.php'));
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/pharma/product-show.blade.php'));
         $this->assertStringContainsString("'publicAwardSources' => \$overview['public_award_sources']", $controller);
-        $this->assertStringContainsString('@forelse($publicAwardSources as $source)', $view);
-        $this->assertStringContainsString('Giá trúng thầu từ nguồn công khai', $view);
-        $this->assertStringContainsString('chưa phải giá bán hoặc giá nhập', $view);
+        $this->assertStringContainsString('@forelse($awards as $award)', $view);
+        $this->assertStringContainsString("'awards' => \$recentAwards", file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalog.php')));
+        $this->assertStringContainsString("'winningName'", file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalog.php')));
+        $this->assertStringContainsString("'tenCdtBmt'", file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalog.php')));
+        $this->assertStringContainsString("'ngayBanHanhQuyetDinh'", file_get_contents(base_path('Modules/Pharma/Services/MedicineCatalog.php')));
+        $this->assertStringContainsString('Thông tin trúng thầu gần đây', $view);
+        $this->assertStringContainsString('Nguồn công khai · Chưa xác minh nghiệp vụ', $view);
+        $this->assertStringContainsString('không thay đổi giá bán, giá nhập', $view);
     }
 }
