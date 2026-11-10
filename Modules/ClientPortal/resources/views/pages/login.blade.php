@@ -49,7 +49,7 @@
                 'w-full max-w-md rounded-[2rem] bg-white p-5 shadow-2xl shadow-black/30 ring-1 ring-white/20 sm:p-8',
                 'lg:justify-self-end' => $pwaLogin['show_intro_panel'],
             ])>
-                @livewire('auth.auth.login-form', ['guard' => 'web', 'variant' => 'pwa'])
+                @livewire('auth.auth.login-form', ['guard' => 'web', 'variant' => 'pwa', 'pwaLogoUrl' => $pwaLogin['logo_url'] ?? null])
                 <div class="mt-6 flex items-center justify-center gap-3 text-xs font-semibold text-slate-400">
                     <a href="/" class="hover:text-slate-700">{{ $pwaLogin['back_to_website_text'] }}</a>
                     <span>·</span>
