@@ -88,6 +88,7 @@
             <article class="border-t border-slate-100 py-4 first:border-t-0 first:pt-0">
                 <div class="mb-3 flex flex-wrap items-center gap-2">
                     <span class="rounded-full px-3 py-1 text-xs font-bold {{ $isPublic ? 'bg-cyan-50 text-cyan-800' : 'bg-slate-100 text-slate-700' }}">{{ $isPublic ? 'Nguồn công khai · Chưa xác minh nghiệp vụ' : 'Trúng thầu chính thức' }}</span>
+                    @if($award['is_default'])<span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">★ Mặc định cho Excel</span>@endif
                     @if($isPublic && $award['synced_at'])
                         <span class="text-xs text-slate-500">Đồng bộ {{ $award['synced_at']->format('d/m/Y H:i') }}</span>
                     @endif
@@ -130,10 +131,49 @@
                         </div>
                     @endif
                 </dl>
+                @if($canManageAwards)
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        @unless($award['is_default'])
+                            <form method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}">
+                                @csrf
+                                <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                                <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                                <input type="hidden" name="action" value="default">
+                                <button type="submit" class="min-h-11 rounded-xl border border-amber-300 bg-amber-50 px-4 text-sm font-bold text-amber-900">★ Đặt mặc định</button>
+                            </form>
+                        @endunless
+                        <form method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}" onsubmit="return confirm('Gỡ bản ghi khỏi danh mục thuốc? Dữ liệu gốc vẫn được giữ và có thể khôi phục.');">
+                            @csrf
+                            <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                            <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                            <input type="hidden" name="action" value="hide">
+                            <button type="submit" class="min-h-11 rounded-xl border border-rose-200 px-4 text-sm font-bold text-rose-700">Gỡ bỏ</button>
+                        </form>
+                    </div>
+                @endif
             </article>
         @empty
             <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có thông tin trúng thầu được liên kết với sản phẩm này.</p>
         @endforelse
+        @if($canManageAwards && $hiddenAwards->isNotEmpty())
+            <details class="mt-4 rounded-2xl border border-slate-200 p-4">
+                <summary class="cursor-pointer text-sm font-bold text-slate-700">Bản ghi đã gỡ ({{ $hiddenAwards->count() }}) · Khôi phục</summary>
+                <div class="mt-3 space-y-3">
+                    @foreach($hiddenAwards as $award)
+                        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                            <span class="text-sm text-slate-700">{{ $award['bidding_notice_code'] ?: 'Không có TBMT' }} · {{ is_numeric($award['unit_price']) ? number_format((float) $award['unit_price'], 0, ',', '.') . ' đ' : '—' }}</span>
+                            <form method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}">
+                                @csrf
+                                <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                                <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                                <input type="hidden" name="action" value="restore">
+                                <button type="submit" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold">Khôi phục</button>
+                            </form>
+                        </div>
+                    @endforeach
+                </div>
+            </details>
+        @endif
     </section>
 
     @if($supplierPricingVisible)
