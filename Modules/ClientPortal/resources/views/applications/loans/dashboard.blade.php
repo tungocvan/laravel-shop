@@ -104,7 +104,7 @@
     </summary>
     <div class="mt-3 border-t border-slate-100 pt-3">
 
-    <div class="mt-2 grid gap-2 text-sm sm:grid-cols-3"><p>Cam kết: {{ number_format((float)$contract->committed_amount, 0, ',', '.') }}</p><p>Giải ngân: {{ number_format((float)$contract->disbursed_total, 0, ',', '.') }}</p><p>Dư nợ gốc: {{ number_format((float)$contract->outstanding, 0, ',', '.') }}</p></div>
+    @include('ClientPortal::applications.loans.partials.contract-history', ['contract' => $contract, 'loanHistory' => $loanHistory])
 
     <div class="mt-4 grid gap-3 lg:grid-cols-3">
     @can('client.loans.payments.create')
@@ -135,6 +135,7 @@
     @endcan
 
     @can('client.loans.insurance.manage')
+    @if($contract->lender_type !== 'individual')
     <details class="mt-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3">
       <summary class="cursor-pointer text-sm font-semibold text-slate-800">Thêm bảo hiểm cho hợp đồng</summary>
       <form method="POST" action="{{ route('client.loans.insurance.store', $contract->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf
@@ -148,6 +149,7 @@
         <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Lưu bảo hiểm</button>
       </form>
     </details>
+    @endif
     @endcan
     @can('client.loans.contracts.edit')
     @if(in_array($contract->status, ['draft', 'active'], true))
