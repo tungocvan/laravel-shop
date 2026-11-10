@@ -1,3 +1,10 @@
+## 2026-11-10 — Vietnamese managed Pharma capability headings
+
+- User confirmed prior focused/regression TEST PASS and UI PASS for Pharma overview panel; requested removal of remaining hardcoded `Capability của bạn` and `Chọn workspace` labels.
+- Added `capabilities_eyebrow` and `capabilities_title` to existing Pharma Hub presentation settings and Admin form; defaults are `Chức năng được cấp quyền` / `Chọn chức năng`. Preserved feature list, permission filtering and routing. No schema migration.
+- Updated two contract tests. **Tests for this latest batch not yet run; UI not yet verified.** Stop at Git Pull/Test checkpoint; no PR/merge/deploy.
+
+---
 ## 2026-11-10 — Focused regression contract alignment
 
 - User reported regression: `ClientPortalPwaSettingsTest::test_pharma_hub_is_capability_first_and_keeps_managed_copy_out_of_blade` failed at line 198 because it expected `Workspace được cấp quyền` literally inside the Pharma Hub Blade after moving that text to managed settings.
