@@ -30,6 +30,41 @@
         <p class="mt-3 text-xs text-slate-500">Dư nợ hiển thị là dư nợ gốc, chưa bao gồm lãi/phí chưa thanh toán.</p>
     </div>
 
+    <section class="rounded-xl border border-slate-200 p-4" data-loan-priority-actions>
+        <h3 class="text-sm font-semibold text-slate-900">Thao tác hợp đồng</h3>
+        <div class="mt-3 grid gap-3 md:grid-cols-2">
+    @can('client.loans.payments.create')
+    @if(in_array($contract->status, ['draft', 'active'], true))
+    <details class="rounded-xl border border-slate-100 bg-white p-4">
+      <summary class="cursor-pointer text-sm font-semibold">Giải ngân</summary>
+      <form method="POST" action="{{ route('client.loans.disbursements.store', $contract->id) }}" class="mt-3 grid gap-3">@csrf
+        <label class="text-sm">Ngày giải ngân<x-pwa-date name="disbursed_at" required /></label>
+        <label class="text-sm">Số tiền (VND)<input name="amount" type="number" min="0.01" step="0.01" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+        <label class="text-sm">Tham chiếu<input name="reference" maxlength="255" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+        <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Ghi nhận giải ngân</button>
+      </form>
+    </details>
+    @endif
+
+    @can('client.loans.contracts.edit')
+    @if($contract->status === 'draft')
+    <details class="mt-3"><summary class="cursor-pointer text-sm font-semibold">Sửa hợp đồng nháp</summary>
+     <form method="POST" action="{{ route('client.loans.contracts.update', $contract->id) }}" class="mt-3 grid gap-3 sm:grid-cols-2">@csrf @method('PUT')
+      <label>Đối tác<select name="lender_id" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">@foreach($loanData['lenders'] as $lender)<option value="{{ $lender->id }}" @selected($lender->id == $contract->lender_id)>{{ $lender->name }}</option>@endforeach</select></label>
+      <label>Số hợp đồng<input name="contract_number" value="{{ $contract->contract_number }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+      <label>Cam kết<input name="committed_amount" type="number" step="0.01" value="{{ $contract->committed_amount }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+      <label>Lãi suất<input name="annual_rate_percent" type="number" step="0.00001" value="{{ $contract->annual_rate_percent }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100"></label>
+      <label>Cơ sở ngày<select name="day_count_basis" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100">@foreach([360,365,366] as $basis)<option value="{{ $basis }}" @selected($contract->day_count_basis == $basis)>{{ $basis }}</option>@endforeach</select></label>
+      <label>Ngày ký<x-pwa-date name="signed_at" :value="$contract->signed_at" required /></label>
+      <label>Đáo hạn<x-pwa-date name="matures_at" :value="$contract->matures_at" required /></label>
+      <button class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white">Lưu thay đổi</button>
+     </form>
+    </details>
+    @endif
+    @endcan
+        </div>
+    </section>
+
     <section class="rounded-xl border border-slate-200 p-4" id="loan-installments-{{ $contract->id }}">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h3 class="text-sm font-semibold">Lịch trả nợ · {{ count($schedules) }} kỳ</h3>
