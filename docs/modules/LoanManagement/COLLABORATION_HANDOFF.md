@@ -1,20 +1,25 @@
 # LoanManagement Collaboration Handoff
 
-Branch: feat/loan-management-pwa-20261110
+Branch: `feat/loan-management-pwa-20261110`
 
-## Completed
-- Independent domain module config and initial migration schema
-- Day-count simple-interest calculator
-- ClientPortal application manifest, protected hub route and initial view
-- Foundation contract tests
+## Database checkpoint — user verified
+- Local MySQL `db_laravel_shop`: seven LoanManagement tables present, all zero rows at time of audit.
+- Original migration failed because MySQL foreign-key identifier exceeded 64 characters; migration fixed in feature branch using `loan_ins_premium_policy_fk`.
+- User verified foreign key/index and recorded migration ledger ID 276, batch 110; `migrate:status` reports Ran.
+- User verified Module Manager enabled LoanManagement and route `GET apps/loans` present.
+- Foundation tests user reported PASS: 2 tests / 9 assertions.
 
-## Pending (do not mark PASS)
-- Domain models/services for CRUD, disbursements, repayments and insurance
-- Business validation, idempotency, audit trail, scheduler/reminders
-- Demo seeder and seeded UI scenarios
-- Permission synchronization and full ClientPortal presentation parity verification
-- Focused and impacted regression test results
-- Real iPhone/tablet/desktop UI acceptance
+## Batch 2 — pending local test
+- Added LoanContractService (domain-owned lender/contract creation, draft-only editing and outstanding principal summary).
+- Added ClientPortal PWA dashboard for lender creation, draft contract creation/editing, and contract overview.
+- Added application-protected POST/PUT routes and per-action `web` user permission checks.
+- Added focused workspace contract tests. **Not run yet; no TEST PASS claim for Batch 2.**
+- Existing data is not seeded or modified by this GitHub batch. No new migrations.
+- UI acceptance **PENDING**. No claim of desktop/iPhone PASS.
 
-## Safety
-No production migration or seeder run is authorized. No main merge authorized.
+## Outstanding
+- Business feature tests with isolated test database, demo seeder, disbursement, repayments, schedules, insurance, reporting and reminders.
+- Improve dashboard scaling/pagination and task-screen navigation.
+- UI permission checks and actual rendered PWA acceptance.
+- Focused + relevant regression gates, tracked-tree verification, PR review.
+- No main merge, production migration, or deployment authorized.
