@@ -92,6 +92,20 @@ final class LoanWorkspaceController extends Controller
         return redirect()->route('client.loans.dashboard')->with('success', 'Đã lập kỳ trả nợ dự kiến.');
     }
 
+    public function updateSchedule(Request $request, int $contract, int $schedule, \Modules\LoanManagement\Services\LoanScheduleAdjustmentService $service): RedirectResponse
+    {
+        abort_unless($request->user()?->can('client.loans.contracts.edit'), 403);
+        $data = $request->validate([
+            'due_at' => ['required', 'date_format:Y-m-d'],
+            'principal_due' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'interest_due' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+            'fees_due' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
+        ]);
+        $service->update($contract, $schedule, $data, $request->user()?->id);
+
+        return redirect()->route('client.loans.dashboard')->with('success', 'Đã lưu điều chỉnh kỳ trả nợ.');
+    }
+
     public function pay(Request $request, int $contract, \Modules\LoanManagement\Services\LoanTransactionService $service): RedirectResponse
     {
         abort_unless($request->user()?->can('client.loans.payments.create'), 403);
