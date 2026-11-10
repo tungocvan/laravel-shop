@@ -1,3 +1,12 @@
+## 2026-11-10 — Unified recent awards display (CHECKPOINT)
+
+- User screenshot confirmed source price 6,900 VND appeared in a separate public-tender panel but lacked details from the award source detail screen. User requested it in the existing `Thông tin trúng thầu gần đây` section.
+- `MedicineCatalog::overview()` now returns one read-only `awards` presentation collection combining canonical `drugBidAwards` and active `MedicineSource` public tender snapshots. Public fields use the **actual** upstream keys (`winningName`, `tenCdtBmt`, `soLuong`, `soQuyetDinh`, `ngayBanHanhQuyetDinh`, `ngayDangTaiKqlcnt`, `tenCoSoSanXuat`, `quyCachDongGoi`, `gdklh_GPNK`). Each record retains its origin label and source key. No persistence migration or canonical award creation.
+- Product detail displays both types in existing `Thông tin trúng thầu gần đây`, removing the separate public-source section. Canonical award values remain from the existing model. Public sources are visibly labeled as unverified business observations.
+- Pending: rerun focused `PharmaPublicAwardCatalogContractTest` and `PharmaProductsCapabilityTest`, then impacted module tests, then manual desktop/mobile UI confirmation. Do not claim TEST/UI PASS until confirmed. No merge/deploy.
+
+---
+
 ## 2026-11-10 — Regression follow-up for public tender award filters (CHECKPOINT)
 
 - User reported `PharmaProductsCapabilityTest` failure at line 177: old string contract required `whereDoesntHave('medicine.drugBidAwards')` after catalog queries were extended to include active `public_tender/award_price` sources. 14 tests passed, 1 failed (248 assertions) in the user's impacted run; this is **not** TEST PASS.
