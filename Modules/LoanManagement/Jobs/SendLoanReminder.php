@@ -85,7 +85,6 @@ final class SendLoanReminder implements ShouldQueue
             );
             DB::table('loan_reminder_deliveries')->where('id', $this->deliveryId)
                 ->update(['status' => 'sent', 'sent_at' => now(), 'last_error' => null, 'updated_at' => now()]);
-        }
             }); // No automatic DB transaction retries around an external SMTP send.
         } catch (\Throwable $e) {
             DB::table('loan_reminder_deliveries')->where('id', $this->deliveryId)
