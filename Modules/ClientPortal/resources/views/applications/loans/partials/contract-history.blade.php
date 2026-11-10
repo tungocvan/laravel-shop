@@ -198,6 +198,23 @@
                     </div>
                     <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{{ $statusLabel }}</span>
                 </div>
+                @can('client.loans.contracts.edit')
+                    @if(in_array($contract->status, ['draft', 'active'], true) && $item->due_at > now(config('app.timezone'))->toDateString() && $allocated < 0.005 && !DB::table('loan_payment_allocations')->where('loan_repayment_schedule_id', $item->id)->exists())
+                        <details class="mt-3 rounded-lg border border-slate-200 p-3" data-loan-edit-installment>
+                            <summary class="cursor-pointer text-sm font-semibold text-blue-700">Sửa kỳ {{ $item->installment }} chưa đến hạn</summary>
+                            <form method="POST" action="{{ route('client.loans.schedules.update', [$contract->id, $item->id]) }}" class="mt-3 grid gap-3 sm:grid-cols-2">
+                                @csrf
+                                @method('PUT')
+                                <label class="text-sm">Ngày đến hạn mới<x-pwa-date name="due_at" :value="$item->due_at" required /></label>
+                                @foreach(['principal_due' => 'Gốc dự kiến', 'interest_due' => 'Lãi dự kiến', 'fees_due' => 'Phí dự kiến'] as $field => $label)
+                                    <label class="text-sm">{{ $label }} (VND)<input name="{{ $field }}" type="number" min="0" step="0.01" value="{{ $item->$field }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+                                @endforeach
+                                <p class="text-xs text-slate-500 sm:col-span-2">Chỉ sửa kỳ chưa đến hạn, chưa thanh toán. Điều chỉnh được ghi lịch sử; lịch nhắc cũ chưa gửi sẽ bỏ qua.</p>
+                                <button type="submit" class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white sm:col-span-2">Lưu điều chỉnh kỳ {{ $item->installment }}</button>
+                            </form>
+                        </details>
+                    @endif
+                @endcan
                 @can('client.loans.payments.create')
                     @if($contract->status === 'active' && !$settled)
                         <details class="mt-3 rounded-lg border border-slate-200 p-3">
