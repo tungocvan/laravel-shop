@@ -53,15 +53,17 @@
                             <option value="1" @selected($reminder && $reminder->enabled)>Bật nhắc hẹn</option>
                         </select>
                     </label>
-                    <div class="space-y-2" x-data="{ emails: @js(array_values($recipientEmails)) }">
+                    <div class="space-y-2" data-loan-reminder-emails>
                         <p class="text-sm font-medium">Email nhận nhắc hẹn (tối đa 10)</p>
-                        <template x-for="(email, index) in emails" :key="index">
-                            <div class="flex items-center gap-2">
-                                <input type="email" name="recipient_emails[]" x-model="emails[index]" maxlength="255" required placeholder="ten@congty.vn" class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white p-3 text-sm">
-                                <button type="button" x-on:click="emails.splice(index, 1)" x-bind:disabled="emails.length <= 1" class="rounded-xl border border-slate-200 px-3 py-3 text-sm disabled:opacity-40" aria-label="Xóa Email">Xóa</button>
-                            </div>
-                        </template>
-                        <button type="button" x-on:click="if (emails.length < 10) emails.push('')" x-bind:disabled="emails.length >= 10" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">+ Thêm Email</button>
+                        <div class="space-y-2" data-loan-email-list>
+                            @foreach (count($recipientEmails) ? $recipientEmails : [''] as $recipientEmail)
+                                <div class="flex items-center gap-2" data-loan-email-row>
+                                    <input type="email" name="recipient_emails[]" value="{{ $recipientEmail }}" maxlength="255" required placeholder="ten@congty.vn" class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                                    <button type="button" data-loan-remove-email class="rounded-xl border border-slate-200 px-3 py-3 text-sm" aria-label="Xóa Email">Xóa</button>
+                                </div>
+                            @endforeach
+                        </div>
+                        <button type="button" data-loan-add-email class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-blue-700">+ Thêm Email</button>
                         <p class="text-xs text-slate-500">Mỗi Email chỉ nhận một thông báo cho mỗi kỳ và mốc nhắc hẹn.</p>
                     </div>
                     <fieldset class="rounded-xl border border-slate-200 p-3">
