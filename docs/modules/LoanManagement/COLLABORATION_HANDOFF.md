@@ -39,3 +39,10 @@ Branch: `feat/loan-management-pwa-20261110`
 - Opt-in `LoanManagementDemoSeeder` runs only in local/testing; deterministic contract number, no overwrites on rerun. **Do not run until after tests and user confirms demo data may be inserted into local DB.**
 - Focused `LoanManagementInsuranceContractTest` added; no tests executed by assistant. Tests are static contracts, NOT integration/financial DB test coverage. Business DB integration tests remain a mandatory gate before merge.
 - No schema changes or production actions; no PR or merge.
+
+## Batch 5 — UI workspace refinement (PENDING local tests/UI)
+- User screenshot of `/apps/loans` showed dark card borders and a form-first layout. Shared shell is left untouched; styling is scoped under `.loan-workspace` and injected via the existing `application-head` stack.
+- Introduced lighter `#e2e8f0` 1px borders, soft focus, subtle shadows, accent buttons, hero hierarchy, anchor navigation, expanded max width and mobile responsive spacing.
+- Preserved all lender/contract/disbursement/schedule/payment/insurance forms, actions, permissions and shared PWA date components; no database/schema changes.
+- New focused `LoanManagementUiWorkspaceContractTest`. Static source contract only; **no automated tests run by assistant**. User must verify rendered desktop/tablet/iPhone UI and confirm UI PASS before PR/merge.
+- Future improvement: move task forms to dedicated focused routes once app navigation/permission contract is reviewed; current anchor sections remain on the single hub.
