@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Modules\LoanManagement\Database\Seeders\LoanManagementDemoSeeder;
 use Modules\LoanManagement\Services\LoanInsuranceService;
 use Modules\LoanManagement\Services\LoanContractService;
+use Modules\LoanManagement\Services\LoanContractHistoryService;
 use Modules\LoanManagement\Services\LoanTransactionService;
 use Tests\TestCase;
 
@@ -56,6 +57,49 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'matures_at' => '2027-01-01', 'status' => 'draft',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    public function test_individual_lender_cannot_create_new_insurance_but_history_remains_untouched(): void
+    {
+        $id = $this->contract('PERSONAL-NO-INSURANCE');
+        $lenderId = DB::table('loan_contracts')->where('id', $id)->value('lender_id');
+        DB::table('loan_lenders')->where('id', $lenderId)->update(['type' => 'individual']);
+        try {
+            app(LoanInsuranceService::class)->createPolicy($id, [
+                'type' => 'life', 'provider' => 'Example insurer',
+                'policy_number' => 'PERSONAL-POLICY-NEW',
+                'starts_at' => '2026-02-01', 'ends_at' => '2027-01-01',
+                'requirement' => 'voluntary', 'insured_amount' => '1000.00',
+            ]);
+            $this->fail('Individual lender must not accept new insurance.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('contract', $exception->errors());
+        }
+        $this->assertSame(0, DB::table('loan_insurance_policies')->count());
+    }
+
+    public function test_contract_history_reads_actual_transactions_without_inventing_schedule_settlement(): void
+    {
+        $id = $this->contract('HISTORY-01');
+        $transactions = app(LoanTransactionService::class);
+        $transactions->disburse($id, ['amount' => '500.00', 'disbursed_at' => '2026-02-01', 'reference' => 'DIS-1']);
+        $transactions->schedule($id, [
+            'installment' => 1, 'due_at' => '2026-06-01',
+            'principal_due' => '250.00', 'interest_due' => '10.00', 'fees_due' => '0.00',
+        ]);
+        $transactions->pay($id, [
+            'paid_at' => '2026-03-01', 'principal_paid' => '100.00',
+            'interest_paid' => '5.00', 'fees_paid' => '2.00', 'reference' => 'PAY-1',
+        ]);
+        $history = app(LoanContractHistoryService::class)->forContracts([$id]);
+        $this->assertCount(1, $history['disbursements'][$id]);
+        $this->assertCount(1, $history['schedules'][$id]);
+        $this->assertCount(1, $history['payments'][$id]);
+        $this->assertSame('100.00', $history['totals'][$id]['principal']);
+        $this->assertSame('5.00', $history['totals'][$id]['interest']);
+        $this->assertSame('2.00', $history['totals'][$id]['fees']);
+        $this->assertSame('107.00', $history['totals'][$id]['paid']);
+        $this->assertSame([], app(LoanContractHistoryService::class)->forContracts([])['payments']);
     }
 
     public function test_draft_can_be_deleted_only_without_related_records(): void
