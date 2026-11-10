@@ -1,3 +1,13 @@
+## 2026-11-10 — Medicine Excel winning quantity mapping (CHECKPOINT)
+
+- User verified Excel default selection for Pregabakern 25mg public award 6,900 VND. Source snapshot has `soLuong=18000`, but configured Excel exposed only internal `allocated_quantity` and had no separate winning quantity column. User approved a distinct **Số lượng trúng thầu** field while retaining **Số lượng phân bổ**.
+- Added optional `winning_quantity` to Medicine Excel Designer column bank and related preview. Canonical source reads `DrugBidAward::quantity`; public tender source reads `MedicineSource.metadata.award.soLuong`. Allocation continues to use canonical internal allocation only. No fabricated public allocation.
+- `contract_period_text` stays empty for public sources without a verified contract term; neither decision date nor publication date is substituted. Existing column **Thời gian trúng thầu** remains configurable and unchanged.
+- Both ClientPortal configured workbook exporter and Pharma Admin Excel controller format `winning_quantity` as numeric. Existing saved Excel profiles are preserved; users must enable the new optional column in their Excel Designer configuration.
+- New focused test: `tests/Feature/ClientApps/PharmaMedicineExcelWinningQuantityContractTest.php`. Assistant did not execute tests or UI; TEST/UI PENDING. No migration for this change, no production operations, no PR/merge.
+
+---
+
 ## 2026-11-10 — Award default / hide / restore for configured Medicine Excel (CHECKPOINT)
 
 - Approved scope: per-medicine award selection in ClientPortal product detail and configured Excel Designer Medicine Master exports only; no impact on inventory, price list, commissions, source sync or import template.
