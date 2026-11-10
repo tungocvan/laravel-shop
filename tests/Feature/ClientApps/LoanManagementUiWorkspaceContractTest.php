@@ -21,6 +21,19 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
     }
 
+    public function test_multiple_reminder_emails_and_stale_queue_suppression_are_scoped(): void
+    {
+        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php'));
+        $job = file_get_contents(base_path('Modules/LoanManagement/Jobs/SendLoanReminder.php'));
+        $this->assertStringContainsString('recipient_emails[]', $partial);
+        $this->assertStringContainsString('Thêm Email', $partial);
+        $this->assertStringContainsString('recipient_emails.*', $controller);
+        $this->assertStringContainsString('recipientActive', $job);
+        $this->assertStringContainsString('expectedSendDate', $job);
+        $this->assertStringContainsString("'skipped'", $job);
+    }
+
     public function test_installment_due_date_defaults_and_reminder_settings_are_visible(): void
     {
         $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
