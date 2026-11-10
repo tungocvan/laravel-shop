@@ -4,6 +4,7 @@ namespace Modules\ClientPortal\Applications\LoanManagement\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanInsuranceService;
@@ -11,7 +12,7 @@ use Modules\ClientPortal\Services\ClientPortalSettingsService;
 
 final class LoanApplicationController extends Controller
 {
-    public function dashboard(ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance): View
+    public function dashboard(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractService $loans, LoanInsuranceService $insurance): View
     {
         $application = $registry->find('loans');
         abort_unless(is_array($application), 404);
@@ -19,13 +20,41 @@ final class LoanApplicationController extends Controller
         $feature = collect($application['features'] ?? [])->firstWhere('key', 'overview');
         $presentation = $feature ? $settings->featurePresentation('loans', $feature) : [];
 
+        $loanData = $loans->dashboard();
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'type' => (string) $request->query('type', 'all'),
+            'status' => (string) $request->query('status', 'all'),
+            'insurance' => (string) $request->query('insurance', 'all'),
+        ];
+        $filters['search'] = mb_substr($filters['search'], 0, 120);
+        foreach ([
+            'type' => ['all', 'individual', 'company', 'credit_institution'],
+            'status' => ['all', 'draft', 'active', 'closed', 'cancelled'],
+            'insurance' => ['all', 'yes', 'no'],
+        ] as $key => $allowed) {
+            if (!in_array($filters[$key], $allowed, true)) {
+                $filters[$key] = 'all';
+            }
+        }
+        $insuredContractIds = \Illuminate\Support\Facades\DB::table('loan_insurance_policies')->pluck('loan_contract_id')->all();
+        $visibleContracts = $loanData['contracts']->filter(static function ($contract) use ($filters, $insuredContractIds): bool {
+            $hasInsurance = in_array($contract->id, $insuredContractIds);
+            return ($filters['type'] === 'all' || $contract->lender_type === $filters['type'])
+                && ($filters['status'] === 'all' || $contract->status === $filters['status'])
+                && ($filters['insurance'] === 'all' || ($hasInsurance ? 'yes' : 'no') === $filters['insurance'])
+                && ($filters['search'] === '' || mb_stripos($contract->contract_number.' '.$contract->lender_name, $filters['search']) !== false);
+        })->values();
+
         return view('ClientPortal::applications.loans.dashboard', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
             'overviewPresentation' => $presentation,
-            'loanData' => $loans->dashboard(),
+            'loanData' => $loanData,
+            'visibleContracts' => $visibleContracts,
+            'loanFilters' => $filters,
             'insuranceData' => $insurance->overview(),
-            'insuredContractIds' => \Illuminate\Support\Facades\DB::table('loan_insurance_policies')->pluck('loan_contract_id')->all(),
+            'insuredContractIds' => $insuredContractIds,
         ]);
     }
 }
