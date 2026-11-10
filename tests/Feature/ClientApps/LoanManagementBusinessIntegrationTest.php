@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\LoanManagement\Database\Seeders\LoanManagementDemoSeeder;
 use Modules\LoanManagement\Services\LoanInsuranceService;
+use Modules\LoanManagement\Services\LoanContractService;
 use Modules\LoanManagement\Services\LoanTransactionService;
 use Tests\TestCase;
 
@@ -55,6 +56,61 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'matures_at' => '2027-01-01', 'status' => 'draft',
             'created_at' => now(), 'updated_at' => now(),
         ]);
+    }
+
+    public function test_draft_can_be_deleted_only_without_related_records(): void
+    {
+        $service = app(LoanContractService::class);
+        $empty = $this->contract('EMPTY-DRAFT');
+        $service->deleteDraft($empty);
+        $this->assertFalse(DB::table('loan_contracts')->where('id', $empty)->exists());
+
+        $scheduled = $this->contract('SCHEDULED-DRAFT');
+        DB::table('loan_repayment_schedules')->insert([
+            'loan_contract_id' => $scheduled, 'installment' => 1, 'due_at' => '2026-06-01',
+            'principal_due' => '100.00', 'interest_due' => '0.00', 'fees_due' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        try {
+            $service->deleteDraft($scheduled);
+            $this->fail('Scheduled draft must not be deleted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('contract', $exception->errors());
+        }
+        $this->assertTrue(DB::table('loan_contracts')->where('id', $scheduled)->exists());
+    }
+
+    public function test_restore_to_draft_requires_no_related_records_and_eligible_status(): void
+    {
+        $service = app(LoanContractService::class);
+        $active = $this->contract('EMPTY-ACTIVE');
+        DB::table('loan_contracts')->where('id', $active)->update(['status' => 'active']);
+        $service->restoreDraft($active);
+        $this->assertSame('draft', DB::table('loan_contracts')->where('id', $active)->value('status'));
+
+        $closed = $this->contract('CLOSED-NO-RESTORE');
+        DB::table('loan_contracts')->where('id', $closed)->update(['status' => 'closed']);
+        try {
+            $service->restoreDraft($closed);
+            $this->fail('Closed contract cannot be restored.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('contract', $exception->errors());
+        }
+
+        $cancelled = $this->contract('CANCELLED-RESTORE');
+        DB::table('loan_contracts')->where('id', $cancelled)->update(['status' => 'cancelled']);
+        $service->restoreDraft($cancelled);
+        $this->assertSame('draft', DB::table('loan_contracts')->where('id', $cancelled)->value('status'));
+
+        $disbursed = $this->contract('DISBURSED-ACTIVE');
+        app(LoanTransactionService::class)->disburse($disbursed, ['amount' => '100.00', 'disbursed_at' => '2026-02-01']);
+        try {
+            $service->restoreDraft($disbursed);
+            $this->fail('Disbursed active contract must not be restored.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('contract', $exception->errors());
+        }
+        $this->assertSame('active', DB::table('loan_contracts')->where('id', $disbursed)->value('status'));
     }
 
     public function test_disbursement_caps_commitment_and_activates_contract(): void
