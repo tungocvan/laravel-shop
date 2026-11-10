@@ -28,6 +28,11 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $job = file_get_contents(base_path('Modules/LoanManagement/Jobs/SendLoanReminder.php'));
         $this->assertStringContainsString('recipient_emails[]', $partial);
         $this->assertStringContainsString('Thêm Email', $partial);
+        $this->assertStringContainsString('data-loan-email-row', $partial);
+        $this->assertStringContainsString('data-loan-add-email', $partial);
+        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $this->assertStringContainsString("add.addEventListener('click'", $dashboard);
+        $this->assertStringContainsString('cloneNode(true)', $dashboard);
         $this->assertStringContainsString('recipient_emails.*', $controller);
         $this->assertStringContainsString('recipientActive', $job);
         $this->assertStringContainsString('expectedSendDate', $job);
