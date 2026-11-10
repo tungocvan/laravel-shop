@@ -131,6 +131,41 @@
                         </div>
                     @endif
                 </dl>
+                <div class="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500">Hiệu lực thời gian thầu</p>
+                            <p class="mt-1 break-words text-sm font-semibold text-slate-800">{{ $award['tender_validity_text'] ?: 'Chưa có thông tin' }}</p>
+                            @if($award['tender_validity_text'])
+                                <p class="mt-1 text-xs text-amber-700">Nhập thủ công · Không phải dữ liệu xác nhận từ API</p>
+                            @endif
+                        </div>
+                        @if($canManageAwards)
+                            <button type="button" class="min-h-11 rounded-lg border border-slate-300 bg-white px-3 text-xs font-bold text-slate-700" aria-label="Sửa hiệu lực thời gian thầu" aria-expanded="false"
+                                onclick="const panel=this.closest('.rounded-xl').querySelector('[data-validity-editor]'); panel.hidden=!panel.hidden; this.setAttribute('aria-expanded', String(!panel.hidden));">
+                                ✎ Sửa
+                            </button>
+                        @endif
+                    </div>
+                    @if($canManageAwards)
+                        <form data-validity-editor hidden method="POST" action="{{ route('client.pharma.products.award-preferences.update', $medicineId) }}" class="mt-3 space-y-2 border-t border-slate-200 pt-3">
+                            @csrf
+                            <input type="hidden" name="origin" value="{{ $award['origin'] }}">
+                            <input type="hidden" name="record_id" value="{{ $award['record_id'] }}">
+                            <input type="hidden" name="action" value="validity">
+                            <label class="block text-xs font-bold text-slate-600" for="award-validity-{{ $award['origin'] }}-{{ $award['record_id'] }}">Hiệu lực thời gian thầu (nhập thủ công)</label>
+                            <input id="award-validity-{{ $award['origin'] }}-{{ $award['record_id'] }}" name="tender_validity_text" type="text" maxlength="255"
+                                value="{{ $award['tender_validity_text'] ?? '' }}" placeholder="Ví dụ: 12 tháng hoặc 01/01/2026 - 31/12/2026"
+                                class="min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                            <p class="text-xs text-slate-500">Để trống và lưu để xóa giá trị thủ công. Không thay đổi dữ liệu trúng thầu gốc.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="submit" class="min-h-11 rounded-lg bg-slate-900 px-4 text-sm font-bold text-white">Lưu</button>
+                                <button type="button" class="min-h-11 rounded-lg border border-slate-300 px-4 text-sm font-bold text-slate-700"
+                                    onclick="const panel=this.closest('[data-validity-editor]'); panel.hidden=true; const toggle=panel.parentElement.querySelector('[aria-expanded]'); if(toggle) toggle.setAttribute('aria-expanded','false');">Hủy</button>
+                            </div>
+                        </form>
+                    @endif
+                </div>
                 @if($canManageAwards)
                     <div class="mt-4 flex flex-wrap gap-2">
                         @unless($award['is_default'])
