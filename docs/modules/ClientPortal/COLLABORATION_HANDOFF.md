@@ -1,3 +1,11 @@
+## 2026-11-10 — PWA Login right-hand form content extension
+
+- User clarified the remaining hardcoded area is the **white Auth login card on the right**, not the existing left intro panel. Added 12 form-copy defaults under `pwa.login` and admin-editable fields: brand, heading, description, Email/Password labels, remember, submit/loading, divider, Google, registration and security notice.
+- Canonical Auth Livewire accepts presentation-only `pwaFormCopy` from ClientPortal login page; no ClientPortal service dependency in Auth, no authentication/guard/Google route changes. Admin preview now includes the right login card with reactive Alpine bindings.
+- Existing feature branch `feat/clientportal-pwa-login-live-preview-20261110` extended. Focused and impacted regression **NOT RUN after this batch**; previous user PASS predates this extension. UI **NOT VERIFIED** for right-side form. No PR/merge/deploy.
+
+---
+
 ## 2026-11-10 — PWA Login editor + reactive preview checkpoint
 
 - Branch `feat/clientportal-pwa-login-live-preview-20261110` created from merged `main` at `c2805ea87`. Existing `/admin/client-apps/pwa` editor for badge, heading, description, intro visibility and up to 8 feature cards moved above general settings/Bottom Navigation, adjacent to the sticky preview.
