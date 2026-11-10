@@ -65,9 +65,9 @@ final class LoanTransactionService
         }, 3);
     }
 
-    public function pay(int $contractId, array $data): void
+    public function pay(int $contractId, array $data): int
     {
-        DB::transaction(function () use ($contractId, $data): void {
+        return DB::transaction(function () use ($contractId, $data): int {
             $contract = DB::table('loan_contracts')->where('id', $contractId)->lockForUpdate()->first();
             abort_unless($contract, 404);
             if ($contract->status !== 'active') {
@@ -85,7 +85,7 @@ final class LoanTransactionService
             if ($data['paid_at'] < $contract->signed_at) {
                 throw ValidationException::withMessages(['paid_at' => 'Ngày thanh toán không thể trước ngày ký.']);
             }
-            DB::table('loan_payments')->insert([
+            $paymentId = DB::table('loan_payments')->insertGetId([
                 'loan_contract_id' => $contractId,
                 'paid_at' => $data['paid_at'],
                 'principal_paid' => $data['principal_paid'],
@@ -95,6 +95,7 @@ final class LoanTransactionService
                 'created_at' => now(), 'updated_at' => now(),
             ]);
             // No automatic close: remaining interest, fees and insurance obligations need reconciliation.
+            return (int) $paymentId;
         }, 3);
     }
 }
