@@ -73,19 +73,19 @@
 
  </section>
  <section id="loan-contracts" class="loan-panel scroll-mt-24 p-5 sm:p-6"
- x-data="{ search: '', type: 'all', status: 'all', insurance: 'all', visible: 12 }">
+ x-data="{ search: '', type: 'all', status: 'all', insurance: 'all' }">
   <div class="flex flex-wrap items-center justify-between gap-2"><div><p class="loan-kicker">QUẢN LÝ</p><h2 class="text-lg font-semibold">Danh sách hợp đồng</h2></div><span class="text-xs text-slate-500">Tối đa 100 hợp đồng mới nhất</span></div>
   <div class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="search" aria-label="Lọc hợp đồng vay">
-   <label>Tìm hợp đồng / bên cho vay<input type="search" x-model.debounce.200ms="search" @input="visible = 12" placeholder="Số hợp đồng, tên đối tác…" class="mt-1 w-full p-3"></label>
-   <label>Nhóm cho vay<select x-model="type" @change="visible = 12" class="mt-1 w-full p-3"><option value="all">Tất cả nhóm</option><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
-   <label>Trạng thái<select x-model="status" @change="visible = 12" class="mt-1 w-full p-3"><option value="all">Tất cả trạng thái</option><option value="draft">Nháp</option><option value="active">Đang vay</option><option value="closed">Đã tất toán</option><option value="cancelled">Đã hủy</option></select></label>
-   <label>Bảo hiểm<select x-model="insurance" @change="visible = 12" class="mt-1 w-full p-3"><option value="all">Tất cả</option><option value="yes">Có bảo hiểm</option><option value="no">Không bảo hiểm</option></select></label>
+   <label>Tìm hợp đồng / bên cho vay<input type="search" x-model.debounce.200ms="search" placeholder="Số hợp đồng, tên đối tác…" class="mt-1 w-full p-3"></label>
+   <label>Nhóm cho vay<select x-model="type" class="mt-1 w-full p-3"><option value="all">Tất cả nhóm</option><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
+   <label>Trạng thái<select x-model="status" class="mt-1 w-full p-3"><option value="all">Tất cả trạng thái</option><option value="draft">Nháp</option><option value="active">Đang vay</option><option value="closed">Đã tất toán</option><option value="cancelled">Đã hủy</option></select></label>
+   <label>Bảo hiểm<select x-model="insurance" class="mt-1 w-full p-3"><option value="all">Tất cả</option><option value="yes">Có bảo hiểm</option><option value="no">Không bảo hiểm</option></select></label>
   </div>
   <p class="mt-3 text-xs text-slate-500">Chọn hợp đồng để mở thao tác giải ngân, thanh toán, lịch trả nợ và bảo hiểm.</p>
   <div class="mt-4 space-y-3">
   @forelse($loanData['contracts'] as $contract)
    <article class="loan-contract-card p-4 sm:p-5"
-    x-show="(type === 'all' || type === @js($contract->lender_type)) && (status === 'all' || status === @js($contract->status)) && (insurance === 'all' || insurance === @js(in_array($contract->id, $insuredContractIds ?? []) ? 'yes' : 'no')) && (!search || @js(mb_strtolower($contract->contract_number.' '.$contract->lender_name)).includes(search.toLocaleLowerCase())) && {{ $loop->index }} < visible"
+    x-show="(type === 'all' || type === @js($contract->lender_type)) && (status === 'all' || status === @js($contract->status)) && (insurance === 'all' || insurance === @js(in_array($contract->id, $insuredContractIds ?? []) ? 'yes' : 'no')) && (!search || @js(mb_strtolower($contract->contract_number.' '.$contract->lender_name)).includes(search.toLocaleLowerCase()))"
     x-cloak>
     <details>
     <summary aria-label="Mở chi tiết hợp đồng {{ $contract->contract_number }}">
@@ -177,7 +177,7 @@
    <p class="mt-3 rounded-xl bg-slate-50 p-4 text-sm">Chưa có hợp đồng vay.</p>
   @endforelse
   </div>
-  <div class="mt-4 flex flex-wrap items-center gap-3"><button type="button" class="loan-nav-link" @click="visible += 12" x-show="visible < {{ $loanData['contracts']->count() }}" x-cloak>Xem thêm hợp đồng</button><button type="button" class="text-sm text-slate-600 underline" @click="search='';type='all';status='all';insurance='all';visible=12">Xóa bộ lọc</button></div>
+  <div class="mt-4 flex flex-wrap items-center gap-3"><button type="button" class="text-sm text-slate-600 underline" @click="search='';type='all';status='all';insurance='all'">Xóa bộ lọc</button></div>
   @if($loanData['contractCount'] > 100)<p class="mt-3 text-sm">Hiển thị 100 hợp đồng mới nhất.</p>@endif
  </section>
  @can('client.loans.insurance.view')
