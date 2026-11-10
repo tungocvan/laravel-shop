@@ -1,3 +1,11 @@
+## 2026-11-10 — Unified awards contract regression follow-up
+
+- User ran focused tests: 11 PASS, 1 FAIL (233 assertions). Failure in `PharmaPublicAwardCatalogContractTest` line 18 expected obsolete `'awards' => $awards->map` after read model switched to `'awards' => $recentAwards`.
+- Updated contract to assert merged read-only projection and distinct `canonical`/`public_tender` origin markers; no production logic changes in this fix.
+- Rerun focused tests first; run impacted regression only after focused PASS. TEST/UI still pending; no merge/deploy.
+
+---
+
 ## 2026-11-10 — Unified recent awards display (CHECKPOINT)
 
 - User screenshot confirmed source price 6,900 VND appeared in a separate public-tender panel but lacked details from the award source detail screen. User requested it in the existing `Thông tin trúng thầu gần đây` section.
