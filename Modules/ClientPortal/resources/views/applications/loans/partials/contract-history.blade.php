@@ -30,32 +30,67 @@
         <p class="mt-3 text-xs text-slate-500">Dư nợ hiển thị là dư nợ gốc, chưa bao gồm lãi/phí chưa thanh toán.</p>
     </div>
 
-    <div class="grid gap-3 xl:grid-cols-2">
-        <section class="rounded-xl border border-slate-200 p-4">
-            <h3 class="text-sm font-semibold">Lịch sử giải ngân ({{ count($disbursements) }})</h3>
-            @forelse($disbursements as $item)
-                <div class="mt-3 flex flex-wrap items-start justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
-                    <div><p class="font-medium">{{ $item->disbursed_at }}</p><p class="break-all text-xs text-slate-500">Tham chiếu: {{ $item->reference ?: 'Không có' }}</p></div>
-                    <strong class="tabular-nums">{{ $money($item->amount) }}</strong>
+    <section class="rounded-xl border border-slate-200 p-4" id="loan-installments-{{ $contract->id }}">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="text-sm font-semibold">Lịch trả nợ · {{ count($schedules) }} kỳ</h3>
+            <span class="text-xs text-slate-500">Thanh toán trực tiếp tại kỳ cần trả</span>
+        </div>
+        @forelse($schedules as $item)
+            @php
+                $allocation = $installmentAllocations[$item->id] ?? null;
+                $remainingPrincipal = max(0, (float) $item->principal_due - (float) ($allocation->principal ?? 0));
+                $remainingInterest = max(0, (float) $item->interest_due - (float) ($allocation->interest ?? 0));
+                $remainingFees = max(0, (float) $item->fees_due - (float) ($allocation->fees ?? 0));
+                $remainingTotal = $remainingPrincipal + $remainingInterest + $remainingFees;
+                $totalDue = (float) $item->principal_due + (float) $item->interest_due + (float) $item->fees_due;
+                $allocated = $totalDue - $remainingTotal;
+                $settled = $remainingTotal < 0.005;
+                $overdue = $item->due_at < now()->toDateString() && !$settled;
+                $statusLabel = $settled ? 'Đã thanh toán' : ($allocated > 0 ? 'Thanh toán một phần' : ($overdue ? 'Quá hạn' : ($item->due_at === now()->toDateString() ? 'Đến hạn' : 'Chưa đến hạn')));
+            @endphp
+            <div class="mt-3 rounded-xl border border-slate-100 p-3">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <p class="text-sm font-semibold">Kỳ {{ $item->installment }} · {{ $item->due_at }}</p>
+                        <p class="mt-1 text-xs text-slate-600">Gốc {{ $money($item->principal_due) }} · Lãi {{ $money($item->interest_due) }} · Phí {{ $money($item->fees_due) }}</p>
+                        <p class="mt-1 text-xs font-medium text-slate-800">Còn phải trả theo kỳ: {{ $money($remainingTotal) }}</p>
+                    </div>
+                    <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">{{ $statusLabel }}</span>
                 </div>
-            @empty
-                <p class="mt-3 text-sm text-slate-500">Chưa có giải ngân.</p>
-            @endforelse
-        </section>
-
-        <section class="rounded-xl border border-slate-200 p-4">
-            <h3 class="text-sm font-semibold">Lịch trả nợ dự kiến ({{ count($schedules) }})</h3>
-            @forelse($schedules as $item)
-                <div class="mt-3 border-t border-slate-100 pt-3 text-sm">
-                    <div class="flex justify-between gap-3"><strong>Kỳ {{ $item->installment }}</strong><span>{{ $item->due_at }}</span></div>
-                    <p class="mt-1 text-slate-600">Gốc: {{ $money($item->principal_due) }} · Lãi: {{ $money($item->interest_due) }} · Phí: {{ $money($item->fees_due) }}</p>
-                </div>
-            @empty
-                <p class="mt-3 text-sm text-slate-500">Chưa lập lịch trả nợ.</p>
-            @endforelse
-            <p class="mt-3 text-xs text-slate-500">Đây là kế hoạch, không xác nhận kỳ đã được thanh toán.</p>
-        </section>
-    </div>
+                @can('client.loans.payments.create')
+                    @if($contract->status === 'active' && !$settled)
+                        <details class="mt-3 rounded-lg border border-slate-200 p-3">
+                            <summary class="cursor-pointer text-sm font-semibold text-blue-700">Thanh toán kỳ {{ $item->installment }}</summary>
+                            <form method="POST" action="{{ route('client.loans.installments.pay', [$contract->id, $item->id]) }}" class="mt-3 grid gap-3 sm:grid-cols-2" data-loan-installment-form>
+                                @csrf
+                                <label class="text-sm">Ngày thực trả<x-pwa-date name="paid_at" required /></label>
+                                <label class="text-sm">Tham chiếu<input name="reference" maxlength="255" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+                                @foreach(['principal_paid' => ['Gốc', $remainingPrincipal], 'interest_paid' => ['Lãi', $remainingInterest], 'fees_paid' => ['Phí', $remainingFees]] as $field => [$label, $remaining])
+                                    <label class="text-sm">{{ $label }} trả kỳ này (VND)<input name="{{ $field }}" type="number" min="0" max="{{ number_format($remaining, 2, '.', '') }}" step="0.01" value="{{ number_format($remaining, 2, '.', '') }}" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3"></label>
+                                @endforeach
+                                <p class="text-xs text-slate-500 sm:col-span-2">Số tiền được điền sẵn là phần còn lại của kỳ. Có thể giảm để ghi nhận thanh toán một phần. Kiểm tra số tiền thực chuyển trước khi xác nhận.</p>
+                                <button type="submit" class="loan-primary-button min-h-11 rounded-xl px-5 py-3 text-sm font-semibold text-white sm:col-span-2" data-loan-submit-payment>Xác nhận ghi nhận thanh toán</button>
+                            </form>
+                        </details>
+                    @endif
+                @endcan
+            </div>
+        @empty
+            <p class="mt-3 text-sm text-slate-500">Chưa lập lịch trả nợ.</p>
+        @endforelse
+        <p class="mt-3 text-xs text-slate-500">Chỉ thanh toán qua nút từng kỳ mới được phân bổ vào kỳ đó. Các giao dịch trước đây không tự gán vào lịch để tránh đối soát sai.</p>
+    </section>
+    <details class="rounded-xl border border-slate-200 p-4">
+        <summary class="cursor-pointer text-sm font-semibold">Lịch sử giải ngân ({{ count($disbursements) }})</summary>
+        @forelse($disbursements as $item)
+            <div class="mt-3 flex flex-wrap items-start justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
+                <div><p class="font-medium">{{ $item->disbursed_at }}</p><p class="break-all text-xs text-slate-500">Tham chiếu: {{ $item->reference ?: 'Không có' }}</p></div>
+                <strong class="tabular-nums">{{ $money($item->amount) }}</strong>
+            </div>
+        @empty
+            <p class="mt-3 text-sm text-slate-500">Chưa có giải ngân.</p>
+        @endforelse
+    </details>
 
     <section class="rounded-xl border border-slate-200 p-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
