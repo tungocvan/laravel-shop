@@ -28,6 +28,7 @@ class MedicineExcelRelatedDataService
                 'decision_date' => 'Ngày quyết định',
                 'contract_period_text' => 'Thời gian',
                 'winning_price' => 'Giá trúng thầu',
+                'winning_quantity' => 'Số lượng trúng thầu',
                 'allocated_quantity' => 'Số lượng phân bổ',
             ],
         ],
@@ -88,6 +89,7 @@ class MedicineExcelRelatedDataService
                 $values[$key] = $this->display($award->getAttribute($key));
             }
             $values['decision_date'] = $award->decision_date?->format('d/m/Y') ?? '';
+            $values['winning_quantity'] = $this->display($award->quantity);
             $allocation = $award->allocations()->where('status', 'active')->sum('allocated_quantity');
             $values['allocated_quantity'] = $allocation > 0 ? $this->display($allocation) : '';
         } elseif ($source) {
@@ -98,6 +100,7 @@ class MedicineExcelRelatedDataService
             $values['decision_number'] = $this->display($snapshot['soQuyetDinh'] ?? null);
             $values['decision_date'] = $this->display($snapshot['ngayBanHanhQuyetDinh'] ?? null);
             $values['winning_price'] = $this->display($snapshot['donGia'] ?? null);
+            $values['winning_quantity'] = $this->display($snapshot['soLuong'] ?? null);
             // Public source has no verified allocation or contract period.
         }
 
