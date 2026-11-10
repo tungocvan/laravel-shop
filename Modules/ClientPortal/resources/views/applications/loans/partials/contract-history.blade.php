@@ -40,6 +40,7 @@
             @php
                 $reminder = $loanReminderSettings[$contract->id] ?? null;
                 $selectedOffsets = $reminder ? (json_decode($reminder->days_before, true) ?: []) : [7, 5, 2, 0];
+                $recipientEmails = $loanReminderRecipients[$contract->id] ?? [$reminder->recipient_email ?? auth()->user()?->email ?? ''];
             @endphp
             <details class="mt-3 rounded-xl border border-slate-200 p-3">
                 <summary class="cursor-pointer text-sm font-semibold text-blue-700">Thiết lập nhắc hẹn qua Email {{ $reminder && $reminder->enabled ? '· Đang bật' : '· Chưa bật' }}</summary>
@@ -52,9 +53,17 @@
                             <option value="1" @selected($reminder && $reminder->enabled)>Bật nhắc hẹn</option>
                         </select>
                     </label>
-                    <label class="text-sm">Email nhận nhắc hẹn
-                        <input type="email" name="recipient_email" value="{{ old('recipient_email', $reminder->recipient_email ?? auth()->user()?->email) }}" maxlength="255" required class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3">
-                    </label>
+                    <div class="space-y-2" x-data="{ emails: @js(array_values($recipientEmails)) }">
+                        <p class="text-sm font-medium">Email nhận nhắc hẹn (tối đa 10)</p>
+                        <template x-for="(email, index) in emails" :key="index">
+                            <div class="flex items-center gap-2">
+                                <input type="email" name="recipient_emails[]" x-model="emails[index]" maxlength="255" required placeholder="ten@congty.vn" class="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                                <button type="button" x-on:click="emails.splice(index, 1)" x-bind:disabled="emails.length <= 1" class="rounded-xl border border-slate-200 px-3 py-3 text-sm disabled:opacity-40" aria-label="Xóa Email">Xóa</button>
+                            </div>
+                        </template>
+                        <button type="button" x-on:click="if (emails.length < 10) emails.push('')" x-bind:disabled="emails.length >= 10" class="rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">+ Thêm Email</button>
+                        <p class="text-xs text-slate-500">Mỗi Email chỉ nhận một thông báo cho mỗi kỳ và mốc nhắc hẹn.</p>
+                    </div>
                     <fieldset class="rounded-xl border border-slate-200 p-3">
                         <legend class="px-1 text-sm font-medium">Thời điểm gửi trước ngày đến hạn</legend>
                         <div class="mt-2 flex flex-wrap gap-4">
