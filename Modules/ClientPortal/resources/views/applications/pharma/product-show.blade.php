@@ -94,6 +94,26 @@
         @endforelse
     </section>
 
+    <section class="rounded-3xl border border-cyan-200 bg-white p-5 shadow-sm sm:p-6" aria-label="Giá trúng thầu từ nguồn công khai">
+        <div class="mb-4">
+            <p class="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">Nguồn tham khảo · Public tender</p>
+            <h2 class="mt-1 text-lg font-black text-slate-950">Giá trúng thầu từ nguồn công khai</h2>
+            <p class="mt-1 text-sm text-slate-500">Dữ liệu đã đồng bộ theo nguồn, chưa phải giá bán hoặc giá nhập của công ty.</p>
+        </div>
+        @forelse($publicAwardSources as $source)
+            <article class="grid gap-3 border-t border-slate-100 py-4 first:border-t-0 sm:grid-cols-2 lg:grid-cols-4">
+                <div><p class="text-xs font-bold text-slate-500">Mã bản ghi nguồn</p><p class="mt-1 break-all text-sm font-semibold text-slate-900">{{ $source['source_record_key'] }}</p></div>
+                <div><p class="text-xs font-bold text-slate-500">TBMT</p><p class="mt-1 text-sm text-slate-800">{{ $source['source_reference'] ?: '—' }}</p></div>
+                <div><p class="text-xs font-bold text-slate-500">Đơn giá từ nguồn</p><p class="mt-1 text-sm font-black tabular-nums text-slate-900">{{ is_numeric($source['unit_price']) ? number_format((float) $source['unit_price'], 0, ',', '.') . ' đ' : 'Chưa xác định' }}</p></div>
+                <div><p class="text-xs font-bold text-slate-500">Đồng bộ lúc</p><p class="mt-1 text-sm text-slate-800">{{ $source['synced_at']?->format('d/m/Y H:i') ?: '—' }}</p></div>
+                <div class="sm:col-span-2"><p class="text-xs font-bold text-slate-500">Đơn vị trúng thầu</p><p class="mt-1 text-sm text-slate-800">{{ $source['winning_company_name'] ?: '—' }}</p></div>
+                <div class="sm:col-span-2"><p class="text-xs font-bold text-slate-500">Trạng thái định danh</p><p class="mt-1 text-sm text-slate-800">{{ $source['registration_verified'] ? 'Đã xác minh số đăng ký' : 'Cần kiểm tra số đăng ký' }}</p></div>
+            </article>
+        @empty
+            <p class="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Chưa có nguồn giá trúng thầu công khai được liên kết.</p>
+        @endforelse
+    </section>
+
     @if($supplierPricingVisible)
     <section class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
         <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
