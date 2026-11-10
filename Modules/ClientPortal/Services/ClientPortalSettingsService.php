@@ -209,6 +209,8 @@ class ClientPortalSettingsService
             'overview_visible' => true,
             'overview_eyebrow' => 'Tổng quan',
             'overview_title' => 'Workspace được cấp quyền',
+            'capabilities_eyebrow' => 'Chức năng được cấp quyền',
+            'capabilities_title' => 'Chọn chức năng',
             'overview_description' => 'Chọn một chức năng bên dưới để bắt đầu công việc. Danh sách tự động theo quyền Web của tài khoản.',
         ];
 
