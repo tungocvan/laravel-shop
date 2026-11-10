@@ -37,6 +37,27 @@
             <label class="block md:col-span-2"><span class="text-sm font-semibold text-gray-800">Mô tả Hub</span><textarea name="description" maxlength="500" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('description', $hubPresentation['description']) }}</textarea></label>
         </div>
 
+        @if($application['key'] === 'pharma')
+        <div class="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+            <input type="hidden" name="overview_visible" value="0">
+            <label class="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                <input type="checkbox" name="overview_visible" value="1" @checked(old('overview_visible', $hubPresentation['overview_visible'] ?? true))>
+                Hiển thị khối Tổng quan / Workspace được cấp quyền
+            </label>
+            <p class="mt-1 text-xs text-gray-500">Chỉ ẩn/hiện khối giới thiệu; danh sách chức năng và phân quyền giữ nguyên.</p>
+            <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn tổng quan</span><input name="overview_eyebrow" maxlength="80" value="{{ old('overview_eyebrow', $hubPresentation['overview_eyebrow'] ?? 'Tổng quan') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+                <label class="block"><span class="text-sm font-semibold text-gray-800">Tiêu đề tổng quan</span><input name="overview_title" maxlength="160" value="{{ old('overview_title', $hubPresentation['overview_title'] ?? 'Workspace được cấp quyền') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm"></label>
+                <label class="block md:col-span-2"><span class="text-sm font-semibold text-gray-800">Mô tả tổng quan</span><textarea name="overview_description" maxlength="500" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm">{{ old('overview_description', $hubPresentation['overview_description'] ?? '') }}</textarea></label>
+            </div>
+        </div>
+        @else
+            <input type="hidden" name="overview_visible" value="{{ ($hubPresentation['overview_visible'] ?? true) ? 1 : 0 }}">
+            <input type="hidden" name="overview_eyebrow" value="{{ $hubPresentation['overview_eyebrow'] ?? 'Tổng quan' }}">
+            <input type="hidden" name="overview_title" value="{{ $hubPresentation['overview_title'] ?? 'Workspace được cấp quyền' }}">
+            <input type="hidden" name="overview_description" value="{{ $hubPresentation['overview_description'] ?? '' }}">
+        @endif
+
         <div class="mt-5 rounded-2xl border border-gray-200 bg-gray-50 p-4">
             <input type="hidden" name="supporting_visible" value="0">
             <label class="flex items-center gap-2 text-sm font-semibold text-gray-900"><input type="checkbox" name="supporting_visible" value="1" @checked(old('supporting_visible', $hubPresentation['supporting_visible']))> Hiển thị nội dung hỗ trợ</label>
