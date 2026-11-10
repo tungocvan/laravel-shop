@@ -94,3 +94,12 @@ Branch: `feat/loan-management-pwa-20261110`
 - Filter UX: compact search/type/status/insurance row on desktop; select changes auto-submit GET; search debounced 550ms; reset appears only when filters active; mobile responsive grid. Native GET remains as non-JS fallback via Enter. No new shared PWA assets, migrations, or data modifications.
 - Added isolated SQLite integration tests for draft delete and restore safety; updated focused static contract tests. **No tests executed by assistant**; user must run focused then LoanManagement regression. UI acceptance on desktop/tablet/iPhone remains pending.
 - Note: filtered set is still limited to the latest 100 contracts loaded by the existing domain dashboard; server-side pagination/global search is future scope. No PR, merge, production action.
+
+## Batch 9 — Full loan profile and actual payment history (checkpoint)
+- User reported Batch 8 focused and regression PASS; screenshot showed contract detail only committed/disbursed/outstanding, no history, and individual loans exposed insurance creation.
+- User approved read-only full contract detail + three separate histories, and no new insurance for individual lenders.
+- New domain-owned `LoanContractHistoryService` fetches actual disbursements, scheduled installments and payments for **visible filtered contract IDs only**, grouping by contract, with BCMath totals for principal/interest/fees. No N+1 per-contract queries, no fictitious accrued interest, no mapping forecast installments to actual payments.
+- Dashboard controller passes `loanHistory`; Blade partial `applications/loans/partials/contract-history.blade.php` shows contract terms, principal repaid/outstanding and actual history in compact responsive sections. Existing create-action forms remain intact.
+- Insurance creation is forbidden for `loan_lenders.type=individual` at `LoanInsuranceService::createPolicy` (transactional server validation) and hidden on the contract Blade card. Historical insurance policies (including demo 03) are **not deleted or rewritten**; existing policies remain readable, and premium operations for legacy policies are unchanged.
+- Added focused SQLite integration coverage for insurance guard and history totals, plus static UI contract checks. **No tests executed by assistant; no TEST PASS/UI PASS claimed for Batch 9.** Local focused tests -> module regression -> real UI desktop/iPhone required.
+- Existing dashboard limit of 100 contracts and insurance overview limit of 100 remain unchanged. No migration, production operation, PR or merge.
