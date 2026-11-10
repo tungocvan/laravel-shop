@@ -38,6 +38,22 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("'decimal:0,2'", $controller);
     }
 
+    public function test_unpaid_future_schedule_edit_uses_domain_service_and_authorization(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
+        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
+        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanScheduleAdjustmentService.php'));
+
+        $this->assertStringContainsString("name('schedules.update')", $routes);
+        $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
+        $this->assertStringContainsString('client.loans.schedules.update', $history);
+        $this->assertStringContainsString('data-loan-edit-installment', $history);
+        $this->assertStringContainsString('loan_payment_allocations', $service);
+        $this->assertStringContainsString('loan_schedule_adjustments', $service);
+        $this->assertStringContainsString('loan_reminder_deliveries', $service);
+    }
+
     public function test_priority_contract_actions_appear_before_repayment_schedule(): void
     {
         $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
