@@ -639,4 +639,89 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->assertEquals($before, DB::table('loan_contracts')->where('id', $id)->first());
         $this->assertSame(1, DB::table('loan_contracts')->where('contract_number', 'REAL-CONTRACT-DO-NOT-TOUCH')->count());
     }
+    public function test_demo_reset_recreates_scenarios_and_preserves_unrelated_contract_and_shared_lender(): void
+    {
+        (new LoanManagementDemoSeeder())->run();
+        $demo = DB::table('loan_contracts')->where('contract_number', 'DEMO-LOAN-20261110-01')->first();
+        $realId = $this->contract('REAL-SURVIVES-RESET');
+        DB::table('loan_contracts')->where('id', $realId)->update(['lender_id' => $demo->lender_id]);
+        $scheduleId = DB::table('loan_repayment_schedules')->where('loan_contract_id', $demo->id)->value('id');
+        $paymentId = DB::table('loan_payments')->where('loan_contract_id', $demo->id)->value('id');
+        DB::table('loan_payment_allocations')->insert([
+            'loan_payment_id' => $paymentId, 'loan_repayment_schedule_id' => $scheduleId,
+            'principal_allocated' => '1.00', 'interest_allocated' => '0.00', 'fees_allocated' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('loan_schedule_adjustments')->insert([
+            'loan_repayment_schedule_id' => $scheduleId, 'actor_id' => null,
+            'before_json' => '{}', 'after_json' => '{}', 'created_at' => now(),
+        ]);
+        DB::table('loan_reminder_settings')->insert([
+            'loan_contract_id' => $demo->id, 'enabled' => false,
+            'recipient_email' => 'demo@example.test', 'days_before' => '[7]',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('loan_reminder_recipients')->insert([
+            'loan_contract_id' => $demo->id, 'email' => 'demo@example.test',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('loan_reminder_deliveries')->insert([
+            'loan_repayment_schedule_id' => $scheduleId, 'days_before' => 7,
+            'due_at_snapshot' => '2026-12-01', 'recipient_email' => 'demo@example.test',
+            'status' => 'skipped', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+
+        $reset = app(\\Modules\\LoanManagement\\Services\\LoanDemoResetService::class);
+        $this->assertSame(8, $reset->preview()['contracts']);
+        $this->assertSame(1, $reset->preview()['schedule_adjustments']);
+        $reset->resetAndSeed();
+
+        $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
+        $this->assertSame(1, DB::table('loan_contracts')->where('id', $realId)->count());
+        $this->assertSame((int) $demo->lender_id, (int) DB::table('loan_contracts')->where('id', $realId)->value('lender_id'));
+        $this->assertSame(0, DB::table('loan_payment_allocations')->count());
+        $this->assertSame(0, DB::table('loan_schedule_adjustments')->count());
+        $this->assertSame(0, DB::table('loan_reminder_deliveries')->count());
+        $this->assertSame(0, DB::table('loan_reminder_recipients')->count());
+        $reset->resetAndSeed();
+        $this->assertSame(9, DB::table('loan_contracts')->count());
+    }
+
+    public function test_demo_reset_refuses_cross_contract_payment_allocations_without_mutation(): void
+    {
+        (new LoanManagementDemoSeeder())->run();
+        $demoSchedule = DB::table('loan_repayment_schedules')->whereIn('loan_contract_id',
+            DB::table('loan_contracts')->where('contract_number', 'DEMO-LOAN-20261110-01')->select('id')
+        )->value('id');
+        $real = $this->contract('REAL-CROSS-LINK');
+        $realPayment = DB::table('loan_payments')->insertGetId([
+            'loan_contract_id' => $real, 'paid_at' => '2026-11-01',
+            'principal_paid' => '1.00', 'interest_paid' => '0.00', 'fees_paid' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('loan_payment_allocations')->insert([
+            'loan_payment_id' => $realPayment, 'loan_repayment_schedule_id' => $demoSchedule,
+            'principal_allocated' => '1.00', 'interest_allocated' => '0.00', 'fees_allocated' => '0.00',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        try {
+            app(\\Modules\\LoanManagement\\Services\\LoanDemoResetService::class)->resetAndSeed();
+            $this->fail('Cross-contract allocation must block reset.');
+        } catch (\\RuntimeException $exception) {
+            $this->assertStringContainsString('cross-contract', $exception->getMessage());
+        }
+        $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
+        $this->assertSame(1, DB::table('loan_payment_allocations')->count());
+    }
+
+    public function test_demo_delete_command_requires_interactive_confirmation(): void
+    {
+        (new LoanManagementDemoSeeder())->run();
+        $code = \\Illuminate\\Support\\Facades\\Artisan::call('loans:demo-seed', [
+            '--delete' => true, '--no-interaction' => true,
+        ]);
+        $this->assertSame(1, $code);
+        $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
+    }
+
 }
