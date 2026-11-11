@@ -22,7 +22,7 @@ final class LoanManagementWorkbookContractTest extends TestCase
         $this->assertStringContainsString("hash_equals(",$controller);
         $this->assertStringContainsString("importNewDrafts(",$controller);
         $this->assertStringContainsString("streamDownload(",$controller);
-        $this->assertStringContainsString("array_map('intval', $data['contracts'] ?? [])", $controller);
+        $this->assertStringContainsString("array_map('intval', \\$data['contracts'] ?? [])", $controller);
         foreach ([
             "route('client.loans.contracts.import.preview')",
             "route('client.loans.contracts.import.confirm')",
@@ -48,7 +48,7 @@ final class LoanManagementWorkbookContractTest extends TestCase
             "public function preview(UploadedFile", "public function importNewDrafts(",
             "createContract([", "DB::transaction(", "->limit(self::MAX_EXPORT + 1)",
             "self::MAX_IMPORT + 1", "TYPE_STRING", "createReader('Xlsx')",
-            "whereIn($name === 'Contracts' ? 't.id' : 'c.id', $contractIds)",
+            "whereIn(\\$name === 'Contracts' ? 't.id' : 'c.id', \\$contractIds)",
         ] as $fragment) $this->assertStringContainsString($fragment,$service);
         $this->assertStringNotContainsString("DB::table('loan_disbursements')->insert",$service);
         $this->assertStringNotContainsString("DB::table('loan_payments')->insert",$service);
