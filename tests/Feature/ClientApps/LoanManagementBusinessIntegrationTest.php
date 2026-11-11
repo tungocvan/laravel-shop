@@ -724,4 +724,37 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
     }
 
+
+    public function test_full_loan_data_clean_removes_real_and_demo_records_without_reseeding(): void
+    {
+        (new LoanManagementDemoSeeder())->run();
+        $this->contract('REAL-LOAN-CLEAN-ME');
+        $this->assertSame(9, DB::table('loan_contracts')->count());
+
+        $cleaner = app(\Modules\LoanManagement\\Services\\LoanDataCleanService::class);
+        $before = $cleaner->preview();
+        $this->assertSame(9, $before['loan_contracts']);
+        $this->assertGreaterThan(0, $before['loan_lenders']);
+        $this->assertGreaterThan(0, $before['loan_repayment_schedules']);
+
+        $cleaner->deleteAll();
+        foreach ($cleaner->preview() as $table => $count) {
+            $this->assertSame(0, $count, "Expected {$table} to be empty after full cleanup");
+        }
+
+        $cleaner->deleteAll();
+        $this->assertSame(0, DB::table('loan_contracts')->count());
+        $this->assertSame(0, DB::table('loan_lenders')->count());
+    }
+
+    public function test_full_loan_data_clean_requires_explicit_all_and_interactive_confirmation(): void
+    {
+        $this->contract('REAL-LOAN-MUST-SURVIVE-CANCEL');
+        $this->assertSame(1, \Illuminate\Support\\Facades\\Artisan::call('loans:data-clean'));
+        $this->assertSame(1, \Illuminate\Support\\Facades\\Artisan::call('loans:data-clean', [
+            '--all' => true, '--no-interaction' => true,
+        ]));
+        $this->assertSame(1, DB::table('loan_contracts')->count());
+    }
+
 }
