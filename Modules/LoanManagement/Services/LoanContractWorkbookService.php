@@ -98,11 +98,11 @@ final class LoanContractWorkbookService
             if (isset($seen[$number])) $errors[] = 'Trùng số hợp đồng trong file';
             $seen[$number] = true;
             if (!in_array($item['lender_type'], ['individual','company','credit_institution'],true)) $errors[] = 'Loại đối tác không hợp lệ';
-            if ($item['lender_name'] === '') $errors[] = 'Thiếu tên đối tác';
-            foreach (['committed_amount','annual_rate_percent'] as $field) {
-                if (!is_numeric($item[$field]) || (float)$item[$field] < 0) $errors[] = 'Giá trị '.$field.' không hợp lệ';
-            }
-            if (!in_array($item['day_count_basis'], ['360','365'],true)) $errors[] = 'Cơ sở tính ngày không hợp lệ';
+            if ($item['lender_name'] === '' || mb_strlen($item['lender_name']) > 255) $errors[] = 'Tên đối tác không hợp lệ';
+            if (mb_strlen($item['lender_tax_identifier']) > 255) $errors[] = 'Mã số thuế quá dài';
+            if (!preg_match('/^\\d{1,18}(?:\\.\\d{1,2})?$/D', $item['committed_amount']) || (float)$item['committed_amount'] <= 0) $errors[] = 'Cam kết phải lớn hơn 0, tối đa 2 số lẻ';
+            if (!preg_match('/^\\d{1,3}(?:\\.\\d{1,5})?$/D', $item['annual_rate_percent']) || (float)$item['annual_rate_percent'] > 100) $errors[] = 'Lãi suất từ 0 đến 100, tối đa 5 số lẻ';
+            if (!in_array($item['day_count_basis'], ['360','365','366'],true)) $errors[] = 'Cơ sở tính ngày không hợp lệ';
             foreach (['signed_at','matures_at'] as $field) {
                 $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $item[$field]);
                 if (!$date || $date->format('Y-m-d') !== $item[$field]) $errors[] = 'Ngày '.$field.' không hợp lệ';
@@ -129,7 +129,7 @@ final class LoanContractWorkbookService
                 $data = $row['data'];
                 // Revalidate against live data. Preview is not authorization or a reservation.
                 if (DB::table('loan_contracts')->where('contract_number',$data['contract_number'])->exists()) { $skipped++; continue; }
-                if (!DB::table('loan_lenders')->where('id',$row['lender_id'])->where('name',$data['lender_name'])->where('type',$data['lender_type'])->exists()) {
+                if (!DB::table('loan_lenders')->where('id',$row['lender_id'])->where('name',$data['lender_name'])->where('type',$data['lender_type'])->when($data['lender_tax_identifier'] !== '', fn ($q) => $q->where('tax_identifier',$data['lender_tax_identifier']))->exists()) {
                     throw ValidationException::withMessages(['file'=>'Đối tác đã thay đổi sau bước xem trước. Hãy tải lại file.']);
                 }
                 $contracts->createContract([
