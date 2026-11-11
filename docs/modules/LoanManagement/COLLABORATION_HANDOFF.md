@@ -1,3 +1,14 @@
+## 2026-11-11 — LoanManagement cached PWA route incident (checkpoint)
+
+- Production incident on `inafo-tungocvan`: LoanManagement was enabled at runtime but `/my-apps` returned HTTP 500 because `client.loans.dashboard` was absent from `bootstrap/cache/routes-v7.php` created while the module was disabled. Effective `modules.registry.LoanManagement.enabled=true`; route cache remained stale.
+- Branch `fix/loanmanagement-stable-pwa-routes-20261111` from `main` at `6a381c85e7f1f6ae63b13a72136893799808b2ea`. The ClientPortal LoanManagement route adapter now registers its named routes independent of bootstrap-time module enabled state. Existing `auth:web`, `client.application:loans` and `client.feature` middleware remain; `EnsureApplicationAccess` checks `ApplicationRegistry` at request time, which excludes disabled source modules.
+- Added `tests/Feature/ClientApps/LoanManagementRouteCacheContractTest.php` for stable route declarations and runtime access guard. Scope is LoanManagement PWA adapter only; other conditional PWA route adapters remain unchanged and may require separate audit.
+- **Tests NOT RUN** by assistant; focused and impacted regression **PENDING**. Real UI **PENDING**. No PR/merge/deploy or Production cache mutation performed.
+- Production must still regenerate its existing stale route cache via approved, backed-up, rollback-capable procedure **after** source deployment. A Git pull alone does not refresh route cache or prove the running image/container changed.
+- `LOAN_REMINDERS_DISPATCH_ENABLED` was not changed; do not enable reminder dispatch as part of this route incident.
+
+---
+
 # LoanManagement Collaboration Handoff
 
 Branch: `feat/loan-management-pwa-20261110`
