@@ -3,12 +3,6 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
-@section('content')
-@php($statusOptions = ['all'=>'Tất cả hợp đồng bảo hiểm','unpaid'=>'Có kỳ chưa đóng','partial'=>'Có kỳ đóng một phần','paid'=>'Đã đóng đủ các kỳ','no_premiums'=>'Chưa có kỳ phí'])
-<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-insurance-workspace>
- @include('ClientPortal::applications.loans.partials.operations-shell')
-</main>
-@endsection
 @section('loan-operations-records')
  @forelse($operations as $record)
  @php($remaining = bcsub((string)$record->premium_due, (string)$record->premium_paid, 2))
@@ -23,4 +17,11 @@
   <a href="{{ route('client.loans.contracts.show',$record->contract_id) }}#loan-insurance" class="mt-4 inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Xem bảo hiểm và kỳ phí →</a>
  </article>
  @empty<p class="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">Chưa có hợp đồng bảo hiểm phù hợp. Có thể tạo bảo hiểm từ chi tiết hợp đồng vay nếu đủ quyền.</p>@endforelse
+@endsection
+
+@section('content')
+@php($statusOptions = ['all'=>'Tất cả hợp đồng bảo hiểm','unpaid'=>'Có kỳ chưa đóng','partial'=>'Có kỳ đóng một phần','paid'=>'Đã đóng đủ các kỳ','no_premiums'=>'Chưa có kỳ phí'])
+<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-insurance-workspace>
+ @include('ClientPortal::applications.loans.partials.operations-shell')
+</main>
 @endsection
