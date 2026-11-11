@@ -78,7 +78,6 @@ final class LoanCapabilityController extends Controller
         }, 'contracts_count')->orderBy('name')->get() : collect();
 
         $operations = null;
-        $operationTotals = null;
         $operationFilters = [
             'search' => $filters['search'],
             'status' => (string) $request->query('status', 'all'),
@@ -112,14 +111,6 @@ final class LoanCapabilityController extends Controller
             } elseif ($workspace === 'reminders') {
                 $base->leftJoin('loan_reminder_settings as rs', 'rs.loan_contract_id', '=', 'c.id')
                     ->select('c.id', 'c.contract_number', 'c.status', 'l.name as lender_name', 'rs.enabled', 'rs.days_before')
-                    ->selectSub(function ($q) {
-                        $q->from('loan_repayment_schedules as s')
-                            ->leftJoin('loan_payment_allocations as a', 'a.loan_repayment_schedule_id', '=', 's.id')
-                            ->whereColumn('s.loan_contract_id', 'c.id')
-                            ->where('s.due_at', '<', now()->toDateString())
-                            ->groupBy('s.loan_contract_id')
-                            ->selectRaw('COUNT(DISTINCT s.id)');
-                    }, 'past_schedule_count')
                     ->selectSub(function ($q) {
                         $q->from('loan_repayment_schedules')->selectRaw('MIN(due_at)')
                             ->whereColumn('loan_contract_id', 'c.id')
