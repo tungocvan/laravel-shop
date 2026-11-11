@@ -4,6 +4,7 @@
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
 @section('content')
+<style>[data-loan-contracts-workspace] [hidden] { display: none !important; }</style>
 <main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-contracts-workspace>
  <nav aria-label="Điều hướng cục bộ" class="flex flex-wrap gap-2">
   <a href="{{ route('client.loans.dashboard') }}" class="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm">← Tổng quan</a>
@@ -50,7 +51,7 @@
   <div class="mt-5">{{ $contracts->links() }}</div>
  </section>
  @can('client.loans.contracts.create')
- <section id="loan-import" @if(!session('loan_contract_import') && !$errors->any()) hidden @endif aria-labelledby="loan-import-heading" class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+ <section id="loan-import" hidden aria-labelledby="loan-import-heading" class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
   <h2 id="loan-import-heading" class="text-lg font-bold">Nhập hồ sơ hợp đồng từ Excel</h2>
   <p class="mt-2 text-sm text-slate-600">Chỉ đọc sheet Contracts để tạo hợp đồng mới ở trạng thái Nháp. Các sheet giải ngân, lịch trả nợ, thanh toán và bảo hiểm được xuất để lưu trữ/đối chiếu, không tự động ghi vào hệ thống. Hợp đồng đã tồn tại được bỏ qua.</p>
   <form method="POST" action="{{ route('client.loans.contracts.import.preview') }}" enctype="multipart/form-data" class="mt-4 flex flex-wrap items-end gap-3">
