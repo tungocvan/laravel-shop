@@ -32,9 +32,10 @@ final class LoanContractWorkbookService
     public function export(): Spreadsheet
     {
         $book = new Spreadsheet();
-        $book->removeSheetByIndex(0);
+        $first = true;
         foreach (self::SHEETS as $name => [$table, $headers]) {
-            $sheet = $book->createSheet();
+            $sheet = $first ? $book->getActiveSheet() : $book->createSheet();
+            $first = false;
             $sheet->setTitle($name);
             $sheet->fromArray($headers, null, 'A1');
             $sheet->getStyle('A1:'.\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)).'1')->getFont()->setBold(true);
