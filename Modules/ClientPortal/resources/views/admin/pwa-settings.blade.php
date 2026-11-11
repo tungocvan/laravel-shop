@@ -21,8 +21,125 @@
         </div>
     @endif
 
-    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.72fr)]">
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.72fr)]" x-data="{
+        badge: @js(old('badge', $login['badge'] ?? '')),
+        heading: @js(old('heading', $login['heading'] ?? '')),
+        description: @js(old('description', $login['description'] ?? '')),
+        showIntro: @js((bool) old('show_intro_panel', $login['show_intro_panel'] ?? true)),
+        cards: @js(old('feature_cards', $login['feature_cards'] ?? [])),
+        form_brand: @js(old('form_brand', $login['form_brand'] ?? '')),
+        form_heading: @js(old('form_heading', $login['form_heading'] ?? '')),
+        form_description: @js(old('form_description', $login['form_description'] ?? '')),
+        email_label: @js(old('email_label', $login['email_label'] ?? '')),
+        password_label: @js(old('password_label', $login['password_label'] ?? '')),
+        remember_label: @js(old('remember_label', $login['remember_label'] ?? '')),
+        submit_label: @js(old('submit_label', $login['submit_label'] ?? '')),
+        loading_label: @js(old('loading_label', $login['loading_label'] ?? '')),
+        divider_label: @js(old('divider_label', $login['divider_label'] ?? '')),
+        google_label: @js(old('google_label', $login['google_label'] ?? '')),
+        register_label: @js(old('register_label', $login['register_label'] ?? '')),
+        security_notice: @js(old('security_notice', $login['security_notice'] ?? ''))
+    }">
         <div class="space-y-6">
+            <form id="pwa-login-reset" method="POST" action="{{ route('admin.client-apps.pwa.login.reset') }}" class="hidden">@csrf</form>
+
+            <form method="POST" action="{{ route('admin.client-apps.pwa.login.update') }}" class="rounded-2xl border border-indigo-200 bg-white p-5 shadow-sm sm:p-6" id="pwa-login-editor">
+                @csrf
+                @method('PUT')
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-900">Nội dung Login PWA</h2>
+                        <p class="mt-1 text-sm text-gray-500">Nội dung được render động qua ClientPortal settings service, không đọc trực tiếp từ database trong Blade.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="submit" form="pwa-login-reset" onclick="return confirm('Khôi phục nội dung Login PWA mặc định? Logo đã tải lên sẽ được giữ nguyên.')" class="rounded-xl border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Khôi phục mặc định</button>
+                        <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu giao diện Login</button>
+                    </div>
+                </div>
+
+                <div class="mt-6 space-y-5">
+                    <label class="block">
+                        <span class="text-sm font-semibold text-gray-800">Badge</span>
+                        <input name="badge" x-model="badge" maxlength="100" value="{{ old('badge', $login['badge'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
+                    </label>
+                    <label class="block">
+                        <span class="text-sm font-semibold text-gray-800">Tiêu đề lớn</span>
+                        <textarea name="heading" x-model="heading" maxlength="200" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">{{ old('heading', $login['heading'] ?? '') }}</textarea>
+                    </label>
+                    <label class="block">
+                        <span class="text-sm font-semibold text-gray-800">Mô tả</span>
+                        <textarea name="description" x-model="description" maxlength="1000" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">{{ old('description', $login['description'] ?? '') }}</textarea>
+                    </label>
+
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                        <input type="hidden" name="show_intro_panel" value="0">
+                        <label class="flex items-start gap-3">
+                            <input type="checkbox" name="show_intro_panel" value="1" x-model="showIntro" @checked(old('show_intro_panel', $login['show_intro_panel'] ?? true)) class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <span><strong class="block text-sm text-gray-900">Hiển thị panel giới thiệu trên desktop</strong><span class="text-xs text-gray-500">Tắt nếu chỉ muốn hiển thị form đăng nhập.</span></span>
+                        </label>
+                    </div>
+
+                    <div class="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5">
+                        <h3 class="font-bold text-slate-900">Khung đăng nhập bên phải</h3>
+                        <p class="mt-1 text-xs text-slate-500">Nội dung form Email/Mật khẩu, Google và đăng ký. Xem trước ngay bên phải; lưu để áp dụng tại /my-apps/login.</p>
+                        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Thương hiệu trên form</span><input name="form_brand" x-model="form_brand" maxlength="200" value="{{ old('form_brand', $login['form_brand'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Tiêu đề form đăng nhập</span><input name="form_heading" x-model="form_heading" maxlength="200" value="{{ old('form_heading', $login['form_heading'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block sm:col-span-2"><span class="text-sm font-semibold text-gray-800">Mô tả form đăng nhập</span><textarea name="form_description" x-model="form_description" rows="2" maxlength="1000" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">{{ old('form_description', $login['form_description'] ?? '') }}</textarea></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn Email</span><input name="email_label" x-model="email_label" maxlength="200" value="{{ old('email_label', $login['email_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn mật khẩu</span><input name="password_label" x-model="password_label" maxlength="200" value="{{ old('password_label', $login['password_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn ghi nhớ đăng nhập</span><input name="remember_label" x-model="remember_label" maxlength="200" value="{{ old('remember_label', $login['remember_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nút đăng nhập</span><input name="submit_label" x-model="submit_label" maxlength="200" value="{{ old('submit_label', $login['submit_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Trạng thái đang đăng nhập</span><input name="loading_label" x-model="loading_label" maxlength="200" value="{{ old('loading_label', $login['loading_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nhãn phân cách</span><input name="divider_label" x-model="divider_label" maxlength="200" value="{{ old('divider_label', $login['divider_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nút Google</span><input name="google_label" x-model="google_label" maxlength="200" value="{{ old('google_label', $login['google_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block "><span class="text-sm font-semibold text-gray-800">Nút đăng ký</span><input name="register_label" x-model="register_label" maxlength="200" value="{{ old('register_label', $login['register_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm"></label>
+                            <label class="block sm:col-span-2"><span class="text-sm font-semibold text-gray-800">Thông báo bảo mật</span><textarea name="security_notice" x-model="security_notice" rows="2" maxlength="1000" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm">{{ old('security_notice', $login['security_notice'] ?? '') }}</textarea></label>
+                        </div>
+                    </div>
+
+                    <div class="grid gap-5 md:grid-cols-3">
+                        <label class="block"><span class="text-sm font-semibold text-gray-800">Link về Website</span><input name="back_to_website_text" value="{{ old('back_to_website_text', $login['back_to_website_text'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+                        <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn Web</span><input name="web_mode_label" value="{{ old('web_mode_label', $login['web_mode_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+                        <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn PWA đã cài</span><input name="standalone_mode_label" value="{{ old('standalone_mode_label', $login['standalone_mode_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between gap-3">
+                            <div><h3 class="font-bold text-gray-900">Các thẻ giới thiệu chức năng</h3><p class="text-xs text-gray-500">Có thể đổi nội dung và bật/tắt từng thẻ. Thứ tự hiện tại được giữ theo danh sách.</p></div>
+                            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Tối đa 8 thẻ</span>
+                        </div>
+                        <div class="mt-4 grid gap-4 md:grid-cols-2">
+                            @foreach(($login['feature_cards'] ?? []) as $index => $card)
+                                <div class="rounded-xl border border-gray-200 p-4">
+                                    <input type="hidden" name="feature_cards[{{ $index }}][enabled]" value="0">
+                                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-800"><input type="checkbox" name="feature_cards[{{ $index }}][enabled]" value="1" x-model="cards[{{ $index }}].enabled" @checked(old("feature_cards.$index.enabled", $card['enabled'] ?? true)) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"> Hiển thị thẻ</label>
+                                    <label class="mt-3 block"><span class="text-xs font-semibold text-gray-600">Tiêu đề</span><input name="feature_cards[{{ $index }}][title]" x-model="cards[{{ $index }}].title" maxlength="80" value="{{ old("feature_cards.$index.title", $card['title'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
+                                    <label class="mt-3 block"><span class="text-xs font-semibold text-gray-600">Mô tả</span><textarea name="feature_cards[{{ $index }}][description]" x-model="cards[{{ $index }}].description" maxlength="240" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">{{ old("feature_cards.$index.description", $card['description'] ?? '') }}</textarea></label>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <form method="POST" enctype="multipart/form-data" action="{{ route('admin.client-apps.pwa.login.logo.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                @csrf
+                <h2 class="text-lg font-bold text-gray-900">Logo Login PWA</h2>
+                <p class="mt-1 text-sm text-gray-500">Logo riêng cho trang đăng nhập Client. Không có logo sẽ ẩn hoàn toàn. PNG/JPG/WebP, tối đa 2 MB.</p>
+                @if($login['logo_url'] ?? null)
+                    <img src="{{ $login['logo_url'] }}" alt="Logo Login PWA" class="mt-4 h-20 w-20 rounded-xl border border-gray-200 object-contain p-2">
+                @endif
+                <label class="mt-4 block text-sm font-semibold text-gray-800" for="pwa-login-logo">Chọn ảnh logo</label>
+                <input id="pwa-login-logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full rounded-xl border border-gray-300 p-3 text-sm">
+                <div class="mt-4 flex flex-wrap gap-3">
+                    <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu logo</button>
+                    @if($login['logo_url'] ?? null)
+                        <button type="submit" name="remove_logo" value="1" onclick="return confirm('Xóa logo Login PWA?')" class="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Xóa logo</button>
+                    @endif
+                </div>
+            </form>
+
             <form method="POST" action="{{ route('admin.client-apps.pwa.general.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 @csrf
                 @method('PUT')
@@ -111,80 +228,6 @@
             <form id="bottom-navigation-theme-store" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.themes.store') }}" class="hidden">@csrf</form>
             <form id="bottom-navigation-theme-apply" method="POST" action="{{ route('admin.client-apps.pwa.bottom-navigation.themes.apply') }}" class="hidden">@csrf</form>
 
-            <form method="POST" enctype="multipart/form-data" action="{{ route('admin.client-apps.pwa.login.logo.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-                @csrf
-                <h2 class="text-lg font-bold text-gray-900">Logo Login PWA</h2>
-                <p class="mt-1 text-sm text-gray-500">Logo riêng cho trang đăng nhập Client. Không có logo sẽ ẩn hoàn toàn. PNG/JPG/WebP, tối đa 2 MB.</p>
-                @if($login['logo_url'] ?? null)
-                    <img src="{{ $login['logo_url'] }}" alt="Logo Login PWA" class="mt-4 h-20 w-20 rounded-xl border border-gray-200 object-contain p-2">
-                @endif
-                <label class="mt-4 block text-sm font-semibold text-gray-800" for="pwa-login-logo">Chọn ảnh logo</label>
-                <input id="pwa-login-logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="mt-2 block w-full rounded-xl border border-gray-300 p-3 text-sm">
-                <div class="mt-4 flex flex-wrap gap-3">
-                    <button type="submit" class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu logo</button>
-                    @if($login['logo_url'] ?? null)
-                        <button type="submit" name="remove_logo" value="1" onclick="return confirm('Xóa logo Login PWA?')" class="rounded-xl border border-red-300 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">Xóa logo</button>
-                    @endif
-                </div>
-            </form>
-
-            <form method="POST" action="{{ route('admin.client-apps.pwa.login.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
-                @csrf
-                @method('PUT')
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900">Nội dung Login PWA</h2>
-                        <p class="mt-1 text-sm text-gray-500">Nội dung được render động qua ClientPortal settings service, không đọc trực tiếp từ database trong Blade.</p>
-                    </div>
-                    <button class="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Lưu giao diện Login</button>
-                </div>
-
-                <div class="mt-6 space-y-5">
-                    <label class="block">
-                        <span class="text-sm font-semibold text-gray-800">Badge</span>
-                        <input name="badge" value="{{ old('badge', $login['badge'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
-                    </label>
-                    <label class="block">
-                        <span class="text-sm font-semibold text-gray-800">Tiêu đề lớn</span>
-                        <textarea name="heading" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">{{ old('heading', $login['heading'] ?? '') }}</textarea>
-                    </label>
-                    <label class="block">
-                        <span class="text-sm font-semibold text-gray-800">Mô tả</span>
-                        <textarea name="description" rows="3" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">{{ old('description', $login['description'] ?? '') }}</textarea>
-                    </label>
-
-                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                        <input type="hidden" name="show_intro_panel" value="0">
-                        <label class="flex items-start gap-3">
-                            <input type="checkbox" name="show_intro_panel" value="1" @checked(old('show_intro_panel', $login['show_intro_panel'] ?? true)) class="mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                            <span><strong class="block text-sm text-gray-900">Hiển thị panel giới thiệu trên desktop</strong><span class="text-xs text-gray-500">Tắt nếu chỉ muốn hiển thị form đăng nhập.</span></span>
-                        </label>
-                    </div>
-
-                    <div class="grid gap-5 md:grid-cols-3">
-                        <label class="block"><span class="text-sm font-semibold text-gray-800">Link về Website</span><input name="back_to_website_text" value="{{ old('back_to_website_text', $login['back_to_website_text'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
-                        <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn Web</span><input name="web_mode_label" value="{{ old('web_mode_label', $login['web_mode_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
-                        <label class="block"><span class="text-sm font-semibold text-gray-800">Nhãn PWA đã cài</span><input name="standalone_mode_label" value="{{ old('standalone_mode_label', $login['standalone_mode_label'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between gap-3">
-                            <div><h3 class="font-bold text-gray-900">Các thẻ giới thiệu chức năng</h3><p class="text-xs text-gray-500">Có thể đổi nội dung và bật/tắt từng thẻ. Thứ tự hiện tại được giữ theo danh sách.</p></div>
-                            <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Tối đa 8 thẻ</span>
-                        </div>
-                        <div class="mt-4 grid gap-4 md:grid-cols-2">
-                            @foreach(($login['feature_cards'] ?? []) as $index => $card)
-                                <div class="rounded-xl border border-gray-200 p-4">
-                                    <input type="hidden" name="feature_cards[{{ $index }}][enabled]" value="0">
-                                    <label class="flex items-center gap-2 text-sm font-semibold text-gray-800"><input type="checkbox" name="feature_cards[{{ $index }}][enabled]" value="1" @checked(old("feature_cards.$index.enabled", $card['enabled'] ?? true)) class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"> Hiển thị thẻ</label>
-                                    <label class="mt-3 block"><span class="text-xs font-semibold text-gray-600">Tiêu đề</span><input name="feature_cards[{{ $index }}][title]" value="{{ old("feature_cards.$index.title", $card['title'] ?? '') }}" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"></label>
-                                    <label class="mt-3 block"><span class="text-xs font-semibold text-gray-600">Mô tả</span><textarea name="feature_cards[{{ $index }}][description]" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">{{ old("feature_cards.$index.description", $card['description'] ?? '') }}</textarea></label>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </form>
         </div>
 
         <aside class="xl:sticky xl:top-4 xl:self-start">
@@ -192,20 +235,38 @@
                 <div class="border-b border-white/10 px-5 py-4 text-white">
                     <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Preview nội dung</p>
                     <h2 class="mt-1 text-lg font-bold">{{ $general['application_name'] ?? '' }}</h2>
+                    <p class="mt-1 text-xs text-slate-400">Xem trước khi nhập · Lưu để áp dụng cho trang đăng nhập</p>
                 </div>
                 <div class="p-5 text-white">
-                    @if($login['show_intro_panel'] ?? true)
-                        <span class="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-slate-300">{{ $login['badge'] ?? '' }}</span>
-                        <h3 class="mt-5 text-3xl font-black leading-tight">{{ $login['heading'] ?? '' }}</h3>
-                        <p class="mt-4 text-sm leading-6 text-slate-300">{{ $login['description'] ?? '' }}</p>
+                    <div x-show="showIntro">
+                        <span x-show="badge.trim().length > 0" x-text="badge" class="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-slate-300">{{ $login['badge'] ?? '' }}</span>
+                        <h3 x-text="heading" class="mt-5 text-3xl font-black leading-tight">{{ $login['heading'] ?? '' }}</h3>
+                        <p x-text="description" class="mt-4 text-sm leading-6 text-slate-300">{{ $login['description'] ?? '' }}</p>
                         <div class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                            @foreach(collect($login['feature_cards'] ?? [])->where('enabled', true) as $card)
-                                <div class="rounded-xl border border-white/10 bg-white/5 p-3"><strong class="block text-sm text-white">{{ $card['title'] }}</strong><span class="mt-1 block text-xs leading-5 text-slate-400">{{ $card['description'] }}</span></div>
+                            @foreach(($login['feature_cards'] ?? []) as $card)
+                                <div x-show="cards[{{ $loop->index }}]?.enabled == true || cards[{{ $loop->index }}]?.enabled == 1" class="rounded-xl border border-white/10 bg-white/5 p-3"><strong x-text="cards[{{ $loop->index }}]?.title ?? ''" class="block text-sm text-white">{{ $card['title'] }}</strong><span x-text="cards[{{ $loop->index }}]?.description ?? ''" class="mt-1 block text-xs leading-5 text-slate-400">{{ $card['description'] }}</span></div>
                             @endforeach
                         </div>
-                    @else
-                        <p class="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Panel giới thiệu đang tắt. Client sẽ chỉ thấy form đăng nhập.</p>
-                    @endif
+                    </div>
+                    <p x-show="!showIntro" class="rounded-xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">Panel giới thiệu đang tắt. Client sẽ chỉ thấy form đăng nhập.</p>
+                </div>
+                <div class="border-t border-white/10 bg-slate-900 p-4">
+                    <p class="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Preview khung đăng nhập</p>
+                    <div class="rounded-2xl bg-white p-4 text-slate-900">
+                        <p x-text="form_brand" class="text-center text-xs font-bold uppercase tracking-widest text-slate-400"></p>
+                        <h3 x-text="form_heading" class="mt-2 text-center text-xl font-black"></h3>
+                        <p x-text="form_description" class="mt-2 text-center text-xs text-slate-500"></p>
+                        <div class="mt-4 space-y-3 text-xs">
+                            <div><strong x-text="email_label"></strong><div class="mt-1 rounded-lg bg-slate-100 p-3 text-slate-400">email@example.com</div></div>
+                            <div><strong x-text="password_label"></strong><div class="mt-1 rounded-lg bg-slate-100 p-3 text-slate-400">••••••••</div></div>
+                            <div class="flex gap-2"><input type="checkbox" disabled><span x-text="remember_label"></span></div>
+                            <div x-text="submit_label" class="rounded-lg bg-slate-950 p-3 text-center font-bold text-white"></div>
+                            <p x-text="divider_label" class="text-center text-slate-400"></p>
+                            <div x-text="google_label" class="rounded-lg border p-3 text-center font-semibold"></div>
+                            <div x-text="register_label" class="rounded-lg border p-3 text-center font-semibold"></div>
+                            <p x-text="security_notice" class="rounded-lg bg-slate-50 p-3 text-center text-slate-500"></p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>
