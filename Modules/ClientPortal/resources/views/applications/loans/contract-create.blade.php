@@ -22,7 +22,7 @@
    <fieldset x-show="step===1" class="grid gap-4 sm:grid-cols-2" data-loan-step="1">
     <legend class="mb-4 text-lg font-semibold">Thông tin hợp đồng</legend>
     <label class="block text-sm">Nhóm bên cho vay<select x-model="lenderType" data-loan-lender-type class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
-    <label class="block text-sm">Bên cho vay *<select required name="lender_id" data-loan-lender x-model="lenderId" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="">Chọn đối tác</option>@foreach($lenders as $lender)<option value="{{ $lender->id }}" data-lender-type="{{ $lender->type }}" x-show="lenderType===@js($lender->type)">{{ $lender->name }}</option>@endforeach</select><a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('client.loans.lenders.index') }}">+ Thêm đối tác</a></label>
+    <label class="block text-sm">Bên cho vay *<select required name="lender_id" data-loan-lender x-model="lenderId" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="">Chọn đối tác</option>@foreach($lenders as $lender)<option value="{{ $lender->id }}" data-lender-type="{{ $lender->type }}" x-show="lenderType===@js($lender->type)">{{ $lender->name }}</option>@endforeach</select><button type="button" @click="showLender=true" class="mt-2 inline-block min-h-11 text-sm font-semibold text-blue-700 underline">+ Thêm đối tác ngay</button></label>
     <label class="block text-sm">Số hợp đồng *<input required name="contract_number" maxlength="255" value="{{ old('contract_number') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
     <label class="block text-sm">Số tiền cam kết (VND) *<input required type="number" min="0.01" step="0.01" name="committed_amount" value="{{ old('committed_amount') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
     <label class="block text-sm">Ngày ký *<x-pwa-date name="signed_at" :value="old('signed_at')" required /></label>
@@ -56,6 +56,19 @@
     <button type="submit" x-show="step===3" class="min-h-11 rounded-xl bg-blue-800 px-5 text-sm font-semibold text-white">Lưu hợp đồng nháp</button>
    </div>
   </form>
+  <div x-cloak x-show="showLender" class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 sm:items-center sm:p-5" @keydown.escape.window="showLender=false">
+   <div role="dialog" aria-modal="true" aria-labelledby="wizard-lender-title" class="max-h-[95dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 sm:max-w-xl sm:rounded-2xl sm:p-7" @click.outside="showLender=false">
+    <div class="flex items-center justify-between gap-3"><h2 id="wizard-lender-title" class="text-lg font-bold">Thêm đối tác mới</h2><button type="button" @click="showLender=false" aria-label="Đóng" class="min-h-11 rounded-xl border px-4">✕</button></div>
+    <form x-ref="lenderForm" @submit.prevent="saveLender($event)" action="{{ route('client.loans.lenders.store') }}" method="POST" class="mt-5 grid gap-3">@csrf
+     <label class="text-sm">Tên đối tác *<input required name="name" maxlength="255" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
+     <label class="text-sm">Loại *<select name="type" x-model="lenderType" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
+     <label class="text-sm">Mã số thuế<input name="tax_identifier" maxlength="255" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
+     <label class="text-sm">Liên hệ<input name="contact" maxlength="255" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
+     <p x-show="lenderError" role="alert" class="text-sm text-red-700" x-text="lenderError"></p>
+     <div class="flex justify-end gap-2"><button type="button" @click="showLender=false" class="min-h-11 rounded-xl border px-4">Hủy</button><button :disabled="savingLender" class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white disabled:opacity-50" x-text="savingLender ? 'Đang lưu…' : 'Lưu và chọn đối tác'"></button></div>
+    </form>
+   </div>
+  </div>
  </section>
 </main>
 @endsection
@@ -64,7 +77,30 @@
 @include('ClientPortal::applications.loans.partials.wizard-preview-script')
 function loanContractWizard() {
  return {
-  step: 1, lenderType: 'individual', lenderId: @js((string) old('lender_id', '')),
+  step: 1, showLender:false, savingLender:false, lenderError:'', lenderType: 'individual', lenderId: @js((string) old('lender_id', '')),
+  async saveLender(event) {
+   this.lenderError='';
+   this.savingLender=true;
+   const form=event.target;
+   try {
+    const response=await fetch(form.action,{method:'POST',headers:{'Accept':'application/json','X-Requested-With':'XMLHttpRequest'},body:new FormData(form),credentials:'same-origin'});
+    const data=await response.json();
+    if(!response.ok) {
+     this.lenderError=Object.values(data.errors||{}).flat().join(' ') || data.message || 'Không thể lưu đối tác.';
+     return;
+    }
+    const select=this.$el.querySelector('[name="lender_id"]');
+    const option=new Option(data.name,data.id,true,true);
+    option.dataset.lenderType=data.type;
+    select.add(option);
+    this.lenderType=data.type;
+    this.lenderId=String(data.id);
+    this.showLender=false;
+    form.reset();
+    this.$nextTick(()=>select.dispatchEvent(new Event('change',{bubbles:true})));
+   } catch(error) { this.lenderError='Không thể kết nối. Vui lòng thử lại.'; }
+   finally { this.savingLender=false; }
+  },
   field(name) { return this.$el.querySelector('[name="'+name+'"]')?.value || '—'; },
   validateStep(number) {
    const panel=this.$el.querySelector('[data-loan-step="'+number+'"]');
