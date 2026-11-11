@@ -22,7 +22,8 @@ final class LoanWorkspaceController extends Controller
         ]);
         $service->createLender($data);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã thêm đối tác cho vay.');
+        $destination = $request->input('source') === 'lenders' ? 'client.loans.lenders.index' : 'client.loans.dashboard';
+        return redirect()->route($destination)->with('success', 'Đã thêm đối tác cho vay.');
     }
 
     public function storeContract(Request $request, LoanContractService $service): RedirectResponse
@@ -35,7 +36,8 @@ final class LoanWorkspaceController extends Controller
         $mode = $options['repayment_mode'] ?? 'manual';
         $service->createContractWithOptionalSchedule($data, $mode === 'manual' ? null : $mode);
 
-        return redirect()->route('client.loans.dashboard')->with('success', $mode === 'manual'
+        $destination = $request->input('source') === 'wizard' ? 'client.loans.contracts.index' : 'client.loans.dashboard';
+        return redirect()->route($destination)->with('success', $mode === 'manual'
             ? 'Đã tạo hợp đồng nháp. Hãy ghi nhận giải ngân khi thực nhận tiền.'
             : 'Đã tạo hợp đồng nháp và lịch trả nợ dự kiến. Chưa ghi nhận giải ngân hay thanh toán.');
     }
