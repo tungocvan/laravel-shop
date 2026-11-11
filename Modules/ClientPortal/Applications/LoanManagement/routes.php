@@ -22,6 +22,8 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
             }
             Route::get('/contracts/create', [LoanCapabilityController::class, 'createContract'])->name('contracts.create');
             Route::post('/lenders', [LoanWorkspaceController::class, 'storeLender'])->name('lenders.store');
+            Route::put('/lenders/{lender}', [LoanWorkspaceController::class, 'updateLender'])->whereNumber('lender')->name('lenders.update');
+            Route::delete('/lenders/{lender}', [LoanWorkspaceController::class, 'deleteLender'])->whereNumber('lender')->name('lenders.destroy');
             Route::post('/contracts', [LoanWorkspaceController::class, 'storeContract'])->name('contracts.store');
             Route::put('/contracts/{contract}', [LoanWorkspaceController::class, 'updateContract'])->whereNumber('contract')->name('contracts.update');
             Route::delete('/contracts/{contract}', [LoanWorkspaceController::class, 'deleteContract'])->whereNumber('contract')->name('contracts.destroy');
