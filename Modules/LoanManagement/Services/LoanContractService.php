@@ -147,6 +147,60 @@ final class LoanContractService
         });
     }
 
+    /**
+     * Executive dashboard: portfolio totals are computed across every contract.
+     * All due amounts are read-only and do not imply a posted payment.
+     */
+    public function executiveOverview(): array
+    {
+        $disbursements = DB::table('loan_disbursements')
+            ->selectRaw('loan_contract_id, SUM(amount) as total')
+            ->groupBy('loan_contract_id');
+        $repayments = DB::table('loan_payments')
+            ->selectRaw('loan_contract_id, SUM(principal_paid) as total')
+            ->groupBy('loan_contract_id');
+        $totals = DB::table('loan_contracts as c')
+            ->leftJoinSub($disbursements, 'd', 'd.loan_contract_id', '=', 'c.id')
+            ->leftJoinSub($repayments, 'p', 'p.loan_contract_id', '=', 'c.id')
+            ->selectRaw('COUNT(*) as contract_count, COALESCE(SUM(c.committed_amount),0) as committed, COALESCE(SUM(d.total),0) as disbursed, COALESCE(SUM(p.total),0) as repaid, COALESCE(SUM(GREATEST(COALESCE(d.total,0)-COALESCE(p.total,0),0)),0) as outstanding')
+            ->first();
+
+        $upcoming = DB::table('loan_repayment_schedules as s')
+            ->join('loan_contracts as c', 'c.id', '=', 's.loan_contract_id')
+            ->join('loan_lenders as l', 'l.id', '=', 'c.lender_id')
+            ->select('s.id', 's.loan_contract_id', 's.due_at', 'c.contract_number', 'l.name as lender_name')
+            ->selectRaw('(s.principal_due + s.interest_due + s.fees_due) - COALESCE((SELECT SUM(a.principal_allocated + a.interest_allocated + a.fees_allocated) FROM loan_payment_allocations a WHERE a.loan_repayment_schedule_id = s.id),0) as remaining')
+            ->whereIn('c.status', ['active', 'draft'])
+            ->whereDate('s.due_at', '<=', now()->addDays(30)->toDateString())
+            ->whereRaw('(s.principal_due + s.interest_due + s.fees_due) > COALESCE((SELECT SUM(a.principal_allocated + a.interest_allocated + a.fees_allocated) FROM loan_payment_allocations a WHERE a.loan_repayment_schedule_id = s.id),0)')
+            ->orderBy('s.due_at')->orderBy('s.id')->limit(5)->get();
+
+        $premiumAlerts = DB::table('loan_insurance_premium_schedules as ps')
+            ->join('loan_insurance_policies as policy', 'policy.id', '=', 'ps.loan_insurance_policy_id')
+            ->join('loan_contracts as c', 'c.id', '=', 'policy.loan_contract_id')
+            ->select('ps.id', 'ps.due_at', 'c.id as loan_contract_id', 'c.contract_number', 'policy.provider')
+            ->selectRaw('(ps.amount_due - ps.amount_paid) as remaining')
+            ->whereRaw('ps.amount_due > ps.amount_paid')
+            ->whereDate('ps.due_at', '<=', now()->addDays(30)->toDateString())
+            ->orderBy('ps.due_at')->orderBy('ps.id')->limit(5)->get();
+
+        $recent = DB::table('loan_contracts as c')
+            ->join('loan_lenders as l', 'l.id', '=', 'c.lender_id')
+            ->select('c.id', 'c.contract_number', 'c.status', 'c.committed_amount', 'l.name as lender_name')
+            ->orderByDesc('c.id')->limit(5)->get();
+
+        return [
+            'contractCount' => (int) $totals->contract_count,
+            'committed' => (string) $totals->committed,
+            'disbursed' => (string) $totals->disbursed,
+            'repaid' => (string) $totals->repaid,
+            'outstanding' => (string) $totals->outstanding,
+            'upcoming' => $upcoming,
+            'premiumAlerts' => $premiumAlerts,
+            'recent' => $recent,
+        ];
+    }
+
     public function dashboard(): array
     {
         $contracts = DB::table('loan_contracts as c')
