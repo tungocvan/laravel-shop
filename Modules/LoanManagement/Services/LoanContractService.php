@@ -19,6 +19,35 @@ final class LoanContractService
         ]);
     }
 
+    public function updateLender(int $id, array $data): void
+    {
+        DB::transaction(function () use ($id, $data): void {
+            $lender = DB::table('loan_lenders')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($lender, 404);
+            DB::table('loan_lenders')->where('id', $id)->update([
+                'name' => trim($data['name']),
+                'type' => $data['type'],
+                'tax_identifier' => $data['tax_identifier'] ?? null,
+                'contact' => $data['contact'] ?? null,
+                'updated_at' => now(),
+            ]);
+        }, 3);
+    }
+
+    public function deleteUnusedLender(int $id): void
+    {
+        DB::transaction(function () use ($id): void {
+            $lender = DB::table('loan_lenders')->where('id', $id)->lockForUpdate()->first();
+            abort_unless($lender, 404);
+            if (DB::table('loan_contracts')->where('lender_id', $id)->exists()) {
+                throw ValidationException::withMessages([
+                    'lender' => 'Đối tác đã có hợp đồng vay. Chỉ được chỉnh sửa, không thể xóa.',
+                ]);
+            }
+            DB::table('loan_lenders')->where('id', $id)->delete();
+        }, 3);
+    }
+
     public function createContract(array $data): int
     {
         if (!DB::table('loan_lenders')->where('id', $data['lender_id'])->exists()) {
