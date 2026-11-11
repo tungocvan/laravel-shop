@@ -103,7 +103,7 @@ final class LoanWorkspaceController extends Controller
             'reference' => ['nullable', 'string', 'max:255'],
         ]);
         $service->disburse($contract, $data);
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã ghi nhận giải ngân.');
+        return $this->operationRedirect($request, $contract, 'Đã ghi nhận giải ngân.');
     }
 
     public function schedule(Request $request, int $contract, \Modules\LoanManagement\Services\LoanTransactionService $service): RedirectResponse
@@ -117,7 +117,7 @@ final class LoanWorkspaceController extends Controller
             'fees_due' => ['required', 'numeric', 'min:0', 'decimal:0,2'],
         ]);
         $service->schedule($contract, $data);
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã lập kỳ trả nợ dự kiến.');
+        return $this->operationRedirect($request, $contract, 'Đã lập kỳ trả nợ dự kiến.');
     }
 
     public function updateSchedule(Request $request, int $contract, int $schedule, \Modules\LoanManagement\Services\LoanScheduleAdjustmentService $service): RedirectResponse
@@ -131,7 +131,7 @@ final class LoanWorkspaceController extends Controller
         ]);
         $service->update($contract, $schedule, $data, $request->user()?->id);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã lưu điều chỉnh kỳ trả nợ.');
+        return $this->operationRedirect($request, $contract, 'Đã lưu điều chỉnh kỳ trả nợ.');
     }
 
     public function pay(Request $request, int $contract, \Modules\LoanManagement\Services\LoanTransactionService $service): RedirectResponse
@@ -145,7 +145,7 @@ final class LoanWorkspaceController extends Controller
             'reference' => ['nullable', 'string', 'max:255'],
         ]);
         $service->pay($contract, $data);
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã ghi nhận thanh toán.');
+        return $this->operationRedirect($request, $contract, 'Đã ghi nhận thanh toán.');
     }
 
     public function payInstallment(Request $request, int $contract, int $schedule, \Modules\LoanManagement\Services\LoanInstallmentPaymentService $service): RedirectResponse
@@ -160,7 +160,16 @@ final class LoanWorkspaceController extends Controller
         ]);
         $service->record($contract, $schedule, $data);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã ghi nhận và phân bổ thanh toán cho kỳ trả nợ.');
+        return $this->operationRedirect($request, $contract, 'Đã ghi nhận và phân bổ thanh toán cho kỳ trả nợ.');
+    }
+
+    private function operationRedirect(Request $request, int $contract, string $message): RedirectResponse
+    {
+        $destination = $request->input('source') === 'detail'
+            ? route('client.loans.contracts.show', $contract)
+            : route('client.loans.dashboard');
+
+        return redirect($destination)->with('success', $message);
     }
 
     private function validatedContract(Request $request, ?int $id = null): array
