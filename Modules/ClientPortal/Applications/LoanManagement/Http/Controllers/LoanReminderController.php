@@ -22,7 +22,11 @@ final class LoanReminderController extends Controller
         ]);
         $service->save($contract, $data);
 
-        return redirect()->route('client.loans.dashboard')
+        $destination = $request->input('source') === 'detail'
+            ? route('client.loans.contracts.show', $contract)
+            : route('client.loans.dashboard');
+
+        return redirect($destination)
             ->with('success', 'Đã lưu thiết lập nhắc hẹn. Email chỉ được gửi khi dịch vụ gửi nhắc hẹn được quản trị viên kích hoạt.');
     }
 }
