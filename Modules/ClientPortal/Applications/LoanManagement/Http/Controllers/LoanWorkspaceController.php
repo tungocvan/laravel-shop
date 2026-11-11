@@ -11,7 +11,7 @@ use Modules\LoanManagement\Services\LoanContractService;
 
 final class LoanWorkspaceController extends Controller
 {
-    public function storeLender(Request $request, LoanContractService $service): RedirectResponse
+    public function storeLender(Request $request, LoanContractService $service): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         abort_unless($request->user()?->can('client.loans.contracts.create'), 403);
         $data = $request->validate([
@@ -20,7 +20,10 @@ final class LoanWorkspaceController extends Controller
             'tax_identifier' => ['nullable', 'string', 'max:255'],
             'contact' => ['nullable', 'string', 'max:255'],
         ]);
-        $service->createLender($data);
+        $id = $service->createLender($data);
+        if ($request->expectsJson()) {
+            return response()->json(['id' => $id, 'name' => $data['name'], 'type' => $data['type']], 201);
+        }
 
         $destination = $request->input('source') === 'lenders' ? 'client.loans.lenders.index' : 'client.loans.dashboard';
         return redirect()->route($destination)->with('success', 'Đã thêm đối tác cho vay.');
