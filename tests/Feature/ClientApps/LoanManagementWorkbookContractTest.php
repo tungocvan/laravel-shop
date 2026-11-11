@@ -32,7 +32,8 @@ final class LoanManagementWorkbookContractTest extends TestCase
             "data-loan-import-toggle",
             "link.click()",
             "importPanel.hidden",
-            "fetch(@json(",
+            "const endpoint = @json(route('client.loans.contracts.export'))",
+            "fetch(endpoint,",
             "Xác nhận tạo",
         ] as $fragment) $this->assertStringContainsString($fragment,$view);
     }
