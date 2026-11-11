@@ -57,6 +57,14 @@ final class LoanManagementWorkbookIntegrationTest extends TestCase
             'created_at'=>now(),'updated_at'=>now(),
         ]);
         $service = app(LoanContractWorkbookService::class);
+        $selectedBook = $service->export([$id]);
+        $this->assertSame('LOAN-XLSX-001', $selectedBook->getSheetByName('Contracts')->getCell('A2')->getValue());
+        $this->assertSame('LOAN-XLSX-001', $selectedBook->getSheetByName('Disbursements')->getCell('A2')->getValue());
+        $selectedBook->disconnectWorksheets();
+        $emptyBook = $service->export([999999]);
+        $this->assertSame(1, $emptyBook->getSheetByName('Contracts')->getHighestRow());
+        $this->assertSame(1, $emptyBook->getSheetByName('Disbursements')->getHighestRow());
+        $emptyBook->disconnectWorksheets();
         $book = $service->export();
         $this->assertSame('active', $book->getSheetByName('Contracts')->getCell('J2')->getValue());
         $this->assertEquals(50000.0, (float) $book->getSheetByName('Disbursements')->getCell('C2')->getValue());
