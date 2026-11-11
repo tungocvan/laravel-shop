@@ -20,6 +20,7 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
                     ->defaults('workspace', $workspace)
                     ->name($workspace.'.index');
             }
+            Route::get('/contracts/create', [LoanCapabilityController::class, 'createContract'])->name('contracts.create');
             Route::post('/lenders', [LoanWorkspaceController::class, 'storeLender'])->name('lenders.store');
             Route::post('/contracts', [LoanWorkspaceController::class, 'storeContract'])->name('contracts.store');
             Route::put('/contracts/{contract}', [LoanWorkspaceController::class, 'updateContract'])->whereNumber('contract')->name('contracts.update');
