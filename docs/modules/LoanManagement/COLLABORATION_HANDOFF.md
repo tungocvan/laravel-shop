@@ -252,3 +252,12 @@ Branch: `feat/loan-management-pwa-20261110`
 - Draft with no financial/insurance records may be edited/deleted through existing canonical endpoints; eligible active/cancelled records with no related records may be returned to draft. Domain services remain final authority and enforce rules; no schema/financial formula changes. Detail POST redirects back to detail/list, legacy Overview redirects preserved.
 - Financial actions not yet migrated to detail (disbursements, installment payments, insurance/reminders) remain on existing Overview. UI-4 or later owns migration; no duplicate financial writes.
 - Added LoanManagementContractsWorkspaceContractTest. No tests executed by assistant, no UI PASS claimed. Focused -> module regression -> impacted ClientPortal regression -> desktop/tablet/iPhone UI checks and user confirmation. No PR/merge/deploy.
+
+ 
+## Batch UI-3B — Contract detail operations (PENDING TEST / UI)
+- User approved moving all contract-specific operations onto `/apps/loans/contracts/{id}`; UI-3 list and detail view had two-layer test PASS, but UI-3B requires fresh acceptance.
+- Branch `feat/loan-contract-detail-operations-ui3b-20261111` based on `feat/loan-workspace-contracts-ui3-20261111`; no main merge or deployment.
+- Added `partials/contract-operations.blade.php` with per-contract disbursement, planned schedule creation/adjustment, installment payment allocation, out-of-schedule payment, reminder Email settings and timeline, insurance policy creation, premium scheduling and payment.
+- UI uses existing named routes, Controller validation, canonical LoanManagement services, existing permission checks, PWA date component and domain status guards. No new financial formulas or schema changes. Existing dashboard operations retained for backward compatibility.
+- Detail controller now queries only current contract's installment allocations, reminder settings/recipients/history and insurance policies/premiums. Financial and history data remain domain-owned. Operation success redirects to the same contract when source=detail; legacy Overview POSTs still redirect to Overview. Insurance premium redirects derive the owning contract from persisted policy/premium, not user-supplied contract_id.
+- Added `LoanManagementContractDetailOperationsContractTest`. No automated tests executed by assistant. Focused tests, module regression and desktop/mobile UI (including errors, permissions, state after refresh and no double submit) required before UI PASS. Preserve all untracked files. No PR/merge/deploy.
