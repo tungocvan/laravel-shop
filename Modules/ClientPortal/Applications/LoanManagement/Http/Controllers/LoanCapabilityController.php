@@ -8,6 +8,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Modules\LoanManagement\Services\LoanContractHistoryService;
+use Modules\LoanManagement\Services\LoanInstallmentPaymentService;
+use Modules\LoanManagement\Services\LoanReminderService;
+use Modules\LoanManagement\Services\LoanReminderHistoryService;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 
@@ -100,7 +103,7 @@ final class LoanCapabilityController extends Controller
         ]);
     }
 
-    public function showContract(Request $request, int $contract, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractHistoryService $history): View
+    public function showContract(Request $request, int $contract, ApplicationRegistry $registry, ClientPortalSettingsService $settings, LoanContractHistoryService $history, LoanInstallmentPaymentService $installments, LoanReminderService $reminders, LoanReminderHistoryService $reminderHistory): View
     {
         abort_unless($request->user()?->can('client.loans.contracts.view'), 403);
         $application = $registry->find('loans');
@@ -116,6 +119,11 @@ final class LoanCapabilityController extends Controller
         $repaid = (string) DB::table('loan_payments')->where('loan_contract_id', $contract)->sum('principal_paid');
         $related = collect(['loan_disbursements', 'loan_repayment_schedules', 'loan_payments', 'loan_insurance_policies'])
             ->contains(fn ($table) => DB::table($table)->where('loan_contract_id', $contract)->exists());
+        $loanHistory = $history->forContracts([$contract]);
+        $scheduleIds = collect($loanHistory['schedules'][$contract] ?? [])->pluck('id')->all();
+        $policies = DB::table('loan_insurance_policies')->where('loan_contract_id', $contract)->orderByDesc('id')->get();
+        $premiums = $policies->isEmpty() ? collect() : DB::table('loan_insurance_premium_schedules')
+            ->whereIn('loan_insurance_policy_id', $policies->pluck('id'))->orderBy('due_at')->get()->groupBy('loan_insurance_policy_id');
         return view('ClientPortal::applications.loans.contract-detail', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
@@ -123,7 +131,13 @@ final class LoanCapabilityController extends Controller
             'contract' => $record,
             'disbursed' => $disbursed,
             'repaid' => $repaid,
-            'history' => $history->forContracts([$contract]),
+            'history' => $loanHistory,
+            'installmentAllocations' => $installments->forSchedules($scheduleIds),
+            'loanReminderSettings' => $reminders->settingsForContracts([$contract]),
+            'loanReminderRecipients' => $reminders->recipientsForContracts([$contract]),
+            'loanReminderTimeline' => $reminderHistory->forContracts([$contract]),
+            'policies' => $policies,
+            'premiums' => $premiums,
             'lenders' => DB::table('loan_lenders')->orderBy('name')->get(),
             'hasRelatedRecords' => $related,
         ]);
