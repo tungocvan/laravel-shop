@@ -4,7 +4,8 @@
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
 @section('content')
-<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-contract-detail>
+<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-contract-detail data-loan-contract-id="{{ $contract->id }}">
+ <style>[data-loan-contract-detail] [hidden]{display:none!important}</style>
  <nav aria-label="Điều hướng cục bộ" class="flex flex-wrap gap-2"><a href="{{ route('client.loans.contracts.index') }}" class="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm">← Danh sách hợp đồng</a><a href="#loan-operations" class="inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Nghiệp vụ hợp đồng ↓</a></nav>
  <header class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
   <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $presentation['eyebrow'] ?? 'Hợp đồng vay' }}</p>
