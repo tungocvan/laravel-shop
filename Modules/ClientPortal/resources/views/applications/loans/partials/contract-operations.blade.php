@@ -6,14 +6,17 @@
  $upcoming = $loanReminderTimeline['upcoming'][$contract->id] ?? [];
  $deliveries = $loanReminderTimeline['deliveries'][$contract->id] ?? collect();
 @endphp
-<section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" id="loan-operations">
+<section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" id="loan-operations" data-loan-operations>
  <h2 class="text-lg font-bold text-slate-900">Nghiệp vụ hợp đồng</h2>
  <p class="mt-1 text-sm text-slate-600">Thực hiện trực tiếp tại hợp đồng {{ $contract->contract_number }}. Mỗi thao tác được kiểm tra phân quyền và điều kiện nghiệp vụ ở máy chủ.</p>
- <nav aria-label="Nghiệp vụ hợp đồng" class="mt-4 flex flex-wrap gap-2 text-sm font-semibold">
-  <a href="#loan-disbursement" class="rounded-lg border px-3 py-3">Giải ngân</a><a href="#loan-schedules" class="rounded-lg border px-3 py-3">Lịch trả nợ</a><a href="#loan-payments" class="rounded-lg border px-3 py-3">Thanh toán</a><a href="#loan-reminders" class="rounded-lg border px-3 py-3">Nhắc hẹn</a><a href="#loan-insurance" class="rounded-lg border px-3 py-3">Bảo hiểm</a>
- </nav>
- <div class="mt-5 grid gap-4 lg:grid-cols-2">
-  <section id="loan-disbursement" class="scroll-mt-24 rounded-xl border border-slate-200 p-4">
+ <div role="tablist" aria-label="Nghiệp vụ hợp đồng" class="mt-4 flex gap-2 overflow-x-auto border-b border-slate-200 pb-2" data-loan-tablist>
+  @foreach(['loan-disbursement'=>'Giải ngân','loan-schedules'=>'Lịch trả nợ','loan-payments'=>'Thanh toán','loan-reminders'=>'Nhắc hẹn','loan-insurance'=>'Bảo hiểm'] as $panelId=>$tabLabel)
+   <button type="button" role="tab" id="tab-{{ $panelId }}" aria-controls="{{ $panelId }}" aria-selected="{{ $panelId==='loan-disbursement'?'true':'false' }}" tabindex="{{ $panelId==='loan-disbursement'?'0':'-1' }}" data-loan-tab="{{ $panelId }}" class="min-h-11 shrink-0 whitespace-nowrap rounded-t-xl border-b-2 px-4 text-sm font-semibold {{ $panelId==='loan-disbursement'?'border-blue-700 bg-blue-50 text-blue-900':'border-transparent text-slate-600 hover:bg-slate-50' }}">{{ $tabLabel }}</button>
+  @endforeach
+ </div>
+
+ <div class="contents">
+  <section id="loan-disbursement" role="tabpanel" aria-labelledby="tab-loan-disbursement" tabindex="0" data-loan-panel="loan-disbursement" class="scroll-mt-24 rounded-xl border border-slate-200 p-4">
    <h3 class="font-semibold">Giải ngân thực tế</h3>
    <p class="mt-1 text-xs text-slate-500">Chỉ ghi nhận số tiền thực nhận, không tự suy ra từ cam kết.</p>
    @can('client.loans.payments.create')
@@ -27,7 +30,7 @@
     @else<p class="mt-3 text-sm text-slate-500">Trạng thái hợp đồng không cho phép giải ngân mới.</p>@endif
    @else<p class="mt-3 text-sm text-slate-500">Tài khoản không có quyền giải ngân.</p>@endcan
   </section>
-  <section id="loan-schedules" class="scroll-mt-24 rounded-xl border border-slate-200 p-4">
+  <section id="loan-schedules" role="tabpanel" aria-labelledby="tab-loan-schedules" tabindex="0" data-loan-panel="loan-schedules" hidden class="scroll-mt-24 rounded-xl border border-slate-200 p-4">
    <h3 class="font-semibold">Lập kỳ trả nợ dự kiến</h3>
    <p class="mt-1 text-xs text-slate-500">Kỳ dự kiến không đồng nghĩa đã thanh toán.</p>
    @can('client.loans.contracts.edit')
@@ -44,7 +47,7 @@
    @else<p class="mt-3 text-sm text-slate-500">Tài khoản không có quyền lập lịch.</p>@endcan
   </section>
  </div>
- <section id="loan-payments" class="mt-4 scroll-mt-24 rounded-xl border border-slate-200 p-4">
+ <section id="loan-payments" role="tabpanel" aria-labelledby="tab-loan-payments" tabindex="0" data-loan-panel="loan-payments" hidden class="mt-4 scroll-mt-24 rounded-xl border border-slate-200 p-4">
   <h3 class="font-semibold">Các kỳ trả nợ và thanh toán</h3>
   <p class="mt-1 text-xs text-slate-500">Thanh toán theo từng kỳ để phân bổ chính xác gốc, lãi, phí; không tự phân bổ các thanh toán ngoài lịch.</p>
   <div class="mt-4 grid gap-3 lg:grid-cols-2">
@@ -104,7 +107,7 @@
   @endif
   @endcan
  </section>
- <section id="loan-reminders" class="mt-4 scroll-mt-24 rounded-xl border border-slate-200 p-4">
+ <section id="loan-reminders" role="tabpanel" aria-labelledby="tab-loan-reminders" tabindex="0" data-loan-panel="loan-reminders" hidden class="mt-4 scroll-mt-24 rounded-xl border border-slate-200 p-4">
   <h3 class="font-semibold">Nhắc hẹn thanh toán qua Email</h3>
   @can('client.loans.contracts.edit')
   @if($contract->status!=='cancelled')
@@ -124,7 +127,7 @@
    <div><h4 class="text-sm font-semibold">Lịch sử yêu cầu gửi</h4>@forelse($deliveries as $item)<p class="mt-2 rounded-lg bg-slate-50 p-3 text-sm">Kỳ {{ $item->installment }} · {{ $item->recipient_email }} · {{ ['sent'=>'Đã gửi qua Mail','failed'=>'Gửi thất bại','skipped'=>'Đã bỏ qua','reserved'=>'Đã tạo yêu cầu, chưa xác nhận gửi'][$item->status] ?? $item->status }}</p>@empty<p class="mt-2 text-sm text-slate-500">Chưa có lịch sử nhắc hẹn.</p>@endforelse</div>
   </div>
  </section>
- <section id="loan-insurance" class="mt-4 scroll-mt-24 rounded-xl border border-slate-200 p-4">
+ <section id="loan-insurance" role="tabpanel" aria-labelledby="tab-loan-insurance" tabindex="0" data-loan-panel="loan-insurance" hidden class="mt-4 scroll-mt-24 rounded-xl border border-slate-200 p-4">
   <h3 class="font-semibold">Bảo hiểm khoản vay</h3>
   @can('client.loans.insurance.manage')
   @if($contract->lender_type!=='individual' && $contract->status!=='cancelled')
@@ -182,6 +185,52 @@
  root.querySelectorAll('[data-loan-detail-mutation]').forEach(form=>form.addEventListener('submit',()=>{
   const button=form.querySelector('button[type="submit"],button:not([type])');
   if(button){button.disabled=true;button.classList.add('opacity-60');}
+ }));
+ const tabs=[...root.querySelectorAll('[data-loan-tab]')];
+ const panels=[...root.querySelectorAll('[data-loan-panel]')];
+ const tabIds=new Set(tabs.map(tab=>tab.dataset.loanTab));
+ const key='loan-contract-tab-'+root.dataset.loanContractId;
+ const choose=(id,focus=false)=>{
+  if(!tabIds.has(id))return;
+  for(const tab of tabs){
+   const active=tab.dataset.loanTab===id;
+   tab.setAttribute('aria-selected',String(active));
+   tab.tabIndex=active?0:-1;
+   tab.classList.toggle('border-blue-700',active);
+   tab.classList.toggle('bg-blue-50',active);
+   tab.classList.toggle('text-blue-900',active);
+   tab.classList.toggle('border-transparent',!active);
+   tab.classList.toggle('text-slate-600',!active);
+   if(active&&focus)tab.focus();
+  }
+  for(const panel of panels)panel.hidden=panel.dataset.loanPanel!==id;
+  try{sessionStorage.setItem(key,id);}catch(_){}
+ };
+ const requested=window.location.hash.slice(1);
+ let saved='';
+ try{saved=sessionStorage.getItem(key)||'';}catch(_){}
+ choose(tabIds.has(requested)?requested:(tabIds.has(saved)?saved:'loan-disbursement'));
+ tabs.forEach(tab=>{
+  tab.addEventListener('click',()=>{
+   const id=tab.dataset.loanTab;
+   choose(id);
+   history.replaceState(null,'','#'+id);
+  });
+  tab.addEventListener('keydown',event=>{
+   if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+   event.preventDefault();
+   const index=tabs.indexOf(tab);
+   const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+   tabs[next].click();tabs[next].focus();
+  });
+ });
+ window.addEventListener('hashchange',()=>{
+  const id=window.location.hash.slice(1);
+  if(tabIds.has(id))choose(id);
+ });
+ root.querySelectorAll('[data-loan-detail-mutation]').forEach(form=>form.addEventListener('submit',()=>{
+  const panel=form.closest('[data-loan-panel]');
+  if(panel)try{sessionStorage.setItem(key,panel.dataset.loanPanel);}catch(_){}
  }));
  const emailForm=root.querySelector('[data-loan-reminder-form]');
  if(!emailForm)return;
