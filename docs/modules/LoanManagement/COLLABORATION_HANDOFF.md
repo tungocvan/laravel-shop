@@ -304,3 +304,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Export button now fetches authenticated XLSX and automatically triggers Blob-backed anchor download, with no extra ready/share buttons. Installed iOS PWA download behavior must be verified manually: browser may restrict automatic download after async fetch. Do not claim iOS UI PASS without device acceptance; do not navigate top-level to protected binary.
 - Import panel hidden initially and toggled via Nhập Excel; it opens automatically for server-side preview or validation errors and hash anchor after preview redirect. Existing session-bound preview, confirm, draft-only import and no-posting invariants unchanged.
 - Updated focused workbook contract/integration assertions. Tests not run by assistant. No merge/deploy.
+
+## UI-6B — Import panel placement and template download (PENDING local tests/UI)
+- Moved the default-hidden `#loan-import` section above contract search/list while preserving the existing preview hash and JS toggle behavior. No always-visible import section.
+- Added permission-protected GET `/apps/loans/contracts/import/template` with a streamed XLSX generated from `LoanContractWorkbookService::SHEETS` headers. Contracts sheet contains two illustrative draft contracts (individual and bank); other sheets are empty header-only for full-workbook compatibility. No database writes or automatic ledger postings.
+- Existing lender names in the sample must match lender records in the target environment; contract numbers must be changed for repeat imports. Download link is displayed only inside the authorized import panel.
+- Added focused source-contract assertions for route, placement and template. User to run tests and desktop/iPhone PWA UI check; do not claim PASS, merge or deploy before gates.
