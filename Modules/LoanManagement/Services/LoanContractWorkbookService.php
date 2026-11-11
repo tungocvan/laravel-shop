@@ -29,7 +29,7 @@ final class LoanContractWorkbookService
         'ScheduleChanges' => ['loan_schedule_adjustments', ['contract_number','installment','actor_id','before_json','after_json','created_at']],
     ];
 
-    public function export(): Spreadsheet
+    public function export(array $contractIds = []): Spreadsheet
     {
         $book = new Spreadsheet();
         $first = true;
@@ -64,6 +64,9 @@ final class LoanContractWorkbookService
             } else {
                 $query->join('loan_contracts as c','c.id','=','t.loan_contract_id')
                     ->select(array_merge(['c.contract_number'],array_map(fn ($column) => 't.'.$column,array_slice($headers,1))));
+            }
+            if ($contractIds !== []) {
+                $query->whereIn($name === 'Contracts' ? 't.id' : 'c.id', $contractIds);
             }
             $rows = $query->orderBy($name === 'Contracts' ? 't.contract_number' : 't.id')->limit(self::MAX_EXPORT + 1)->get();
             if ($rows->count() > self::MAX_EXPORT) {
