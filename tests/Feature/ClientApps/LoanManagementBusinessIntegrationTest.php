@@ -731,7 +731,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->contract('REAL-LOAN-CLEAN-ME');
         $this->assertSame(9, DB::table('loan_contracts')->count());
 
-        $cleaner = app(\Modules\LoanManagement\\Services\\LoanDataCleanService::class);
+        $cleaner = app(\Modules\LoanManagement\Services\LoanDataCleanService::class);
         $before = $cleaner->preview();
         $this->assertSame(9, $before['loan_contracts']);
         $this->assertGreaterThan(0, $before['loan_lenders']);
@@ -750,8 +750,8 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     public function test_full_loan_data_clean_requires_explicit_all_and_interactive_confirmation(): void
     {
         $this->contract('REAL-LOAN-MUST-SURVIVE-CANCEL');
-        $this->assertSame(1, \Illuminate\Support\\Facades\\Artisan::call('loans:data-clean'));
-        $this->assertSame(1, \Illuminate\Support\\Facades\\Artisan::call('loans:data-clean', [
+        $this->assertSame(1, \Illuminate\Support\Facades\Artisan::call('loans:data-clean'));
+        $this->assertSame(1, \Illuminate\Support\Facades\Artisan::call('loans:data-clean', [
             '--all' => true, '--no-interaction' => true,
         ]));
         $this->assertSame(1, DB::table('loan_contracts')->count());
