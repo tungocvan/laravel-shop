@@ -10,7 +10,8 @@
   <dl class="mt-4 grid grid-cols-2 gap-3 text-sm">
    <div><dt class="text-slate-500">Ngày đến hạn tiếp theo</dt><dd class="font-semibold">{{ $record->next_due_at ?? 'Chưa có kỳ tương lai' }}</dd></div>
    <div><dt class="text-slate-500">Lượt ghi nhận gửi</dt><dd class="font-semibold tabular-nums">{{ $record->delivery_count }}</dd></div>
-   <div class="col-span-2"><dt class="text-slate-500">Mốc nhắc đã thiết lập</dt><dd class="font-semibold">{{ $record->days_before ? implode(', ', json_decode($record->days_before,true) ?: []) : 'Chưa thiết lập' }} ngày trước hạn</dd></div>
+   <div><dt class="text-slate-500">Kỳ quá hạn chưa trả đủ</dt><dd class="font-semibold tabular-nums {{ $record->overdue_schedule_count > 0 ? 'text-red-700' : '' }}">{{ $record->overdue_schedule_count }}</dd></div>
+   <div class="col-span-2"><dt class="text-slate-500">Mốc nhắc đã thiết lập</dt><dd class="font-semibold">{{ $record->days_before ? implode(', ', json_decode($record->days_before,true) ?: []) . ' ngày trước hạn' : 'Chưa thiết lập' }}</dd></div>
   </dl>
   <p class="mt-3 text-xs text-slate-500">Lượt ghi nhận gửi bao gồm yêu cầu đang chờ, đã gửi hoặc thất bại; không đồng nghĩa Email đã đến người nhận.</p>
   <a href="{{ route('client.loans.contracts.show',$record->id) }}#loan-reminders" class="mt-4 inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Xem lịch và thiết lập nhắc hẹn →</a>
