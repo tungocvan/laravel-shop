@@ -104,6 +104,18 @@ class PwaSettingsController extends Controller
     public function updateLogin(Request $request, ClientPortalSettingsService $settings): RedirectResponse
     {
         $validated = $request->validate([
+            'form_brand' => ['required', 'string', 'max:200'],
+            'form_heading' => ['required', 'string', 'max:200'],
+            'form_description' => ['required', 'string', 'max:1000'],
+            'email_label' => ['required', 'string', 'max:200'],
+            'password_label' => ['required', 'string', 'max:200'],
+            'remember_label' => ['required', 'string', 'max:200'],
+            'submit_label' => ['required', 'string', 'max:200'],
+            'loading_label' => ['required', 'string', 'max:200'],
+            'divider_label' => ['required', 'string', 'max:200'],
+            'google_label' => ['required', 'string', 'max:200'],
+            'register_label' => ['required', 'string', 'max:200'],
+            'security_notice' => ['required', 'string', 'max:1000'],
             'badge' => ['nullable', 'string', 'max:100'], 'heading' => ['required', 'string', 'max:200'], 'description' => ['required', 'string', 'max:1000'],
             'show_intro_panel' => ['required', 'boolean'], 'back_to_website_text' => ['required', 'string', 'max:60'], 'web_mode_label' => ['required', 'string', 'max:60'],
             'standalone_mode_label' => ['required', 'string', 'max:60'], 'feature_cards' => ['required', 'array', 'max:8'],
@@ -114,6 +126,16 @@ class PwaSettingsController extends Controller
         ])->values()->all();
         $settings->updatePwaLogin($validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật nội dung giao diện đăng nhập PWA.');
+    }
+
+    public function resetLogin(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        // Preserve the separately managed uploaded logo when resetting editable login copy.
+        $defaults = config('clientportal.pwa.login', []);
+        unset($defaults['logo_path']);
+        $settings->updatePwaLogin($defaults, $request->user('admin')?->getAuthIdentifier());
+
+        return back()->with('success', 'Đã khôi phục nội dung Login PWA mặc định.');
     }
 
     public function updateLoginLogo(Request $request, ClientPortalSettingsService $settings): RedirectResponse
@@ -185,17 +207,22 @@ class PwaSettingsController extends Controller
             'items.*.key' => ['required', 'string'],
             'items.*.bottom_enabled' => ['required', 'boolean'],
             'items.*.bottom_sort_order' => ['required', 'integer', 'min:0', 'max:9999'],
-            'items.*.bottom_icon' => ['required', 'string', 'max:60'],
+            'items.*.bottom_icon' => ['nullable', 'string', 'max:60'],
             'items.*.bottom_label' => ['nullable', 'string', 'max:30'],
         ]);
-        $allowed = collect($manifest['navigation'] ?? [])->pluck('key')->flip();
-        $items = collect($validated['items'])->filter(fn (array $item): bool => $allowed->has($item['key']))->map(fn (array $item): array => [
-            'key' => $item['key'],
-            'bottom_enabled' => (bool) $item['bottom_enabled'],
-            'bottom_sort_order' => (int) $item['bottom_sort_order'],
-            'bottom_icon' => trim((string) $item['bottom_icon']),
-            'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
-        ])->values()->all();
+        $navigation = collect($manifest['navigation'] ?? [])->keyBy('key');
+        $presentation = collect($settings->applicationNavigationPresentation($manifest)['items'])->keyBy('key');
+        $items = collect($validated['items'])->filter(fn (array $item): bool => $navigation->has($item['key']))->map(function (array $item) use ($navigation, $presentation): array {
+            $defaultIcon = $navigation->get($item['key'])['icon'] ?? 'squares-2x2';
+            $savedIcon = $presentation->get($item['key'])['bottom_icon'] ?? $defaultIcon;
+            return [
+                'key' => $item['key'],
+                'bottom_enabled' => (bool) $item['bottom_enabled'],
+                'bottom_sort_order' => (int) $item['bottom_sort_order'],
+                'bottom_icon' => trim((string) ($item['bottom_icon'] ?? '')) ?: (trim((string) $savedIcon) ?: $defaultIcon),
+                'bottom_label' => trim((string) ($item['bottom_label'] ?? '')),
+            ];
+        })->values()->all();
         $settings->updateApplicationNavigationPresentation($manifest['key'], ['items' => $items], $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật Bottom Navigation của ứng dụng '.$manifest['name'].'.');
     }
