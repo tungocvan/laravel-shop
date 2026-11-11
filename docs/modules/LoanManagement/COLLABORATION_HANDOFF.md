@@ -242,3 +242,13 @@ Branch: `feat/loan-management-pwa-20261110`
 - Contract wizard and inline lender modal now use native JS instead of uninitialized Alpine. Wizard stages, required validation, lender JSON creation, Escape/outside click and focus behavior retained. Shared legacy schedule preview stays reused.
 - Tests extended: LoanManagementWorkspaceCreationContractTest and SQLite LoanManagementBusinessIntegrationTest. **No tests executed by assistant.**
 - Checkpoint: focused tests first, then module regression; UI manually test create/edit/delete with and without contracts, wizard stages and inline lender save, desktop/tablet/iPhone, permissions and console errors. UI PASS only after user confirmation. No merge or production changes.
+
+ 
+## Batch UI-3 — Contracts list/detail workspace (PENDING LOCAL TEST/UI)
+- User confirmed UI-2 lender and contract wizard UI PASS and test PASS, requested completing UI-3.
+- Branch `feat/loan-workspace-contracts-ui3-20261111` from UI-2 branch; parent chain remains unmerged into main. GitHub compare against main previously showed feature ancestry, not an isolated UI-3 PR.
+- Replaced contracts transition shell with responsive paginated (15/page) server-filtered list (contract number/lender name, lender type, status). No longer constrained by Overview dashboard's latest-100 limit.
+- Added GET `/apps/loans/contracts/{contract}` (numeric id) with view permission and 404 for missing record. Dedicated detail shows contract terms, committed/disbursed/principal repaid/outstanding, historical disbursements, schedules and payments from LoanContractHistoryService.
+- Draft with no financial/insurance records may be edited/deleted through existing canonical endpoints; eligible active/cancelled records with no related records may be returned to draft. Domain services remain final authority and enforce rules; no schema/financial formula changes. Detail POST redirects back to detail/list, legacy Overview redirects preserved.
+- Financial actions not yet migrated to detail (disbursements, installment payments, insurance/reminders) remain on existing Overview. UI-4 or later owns migration; no duplicate financial writes.
+- Added LoanManagementContractsWorkspaceContractTest. No tests executed by assistant, no UI PASS claimed. Focused -> module regression -> impacted ClientPortal regression -> desktop/tablet/iPhone UI checks and user confirmation. No PR/merge/deploy.
