@@ -49,11 +49,13 @@
   @endcan
  </section>
  @include('ClientPortal::applications.loans.partials.contract-operations')
- <section class="grid gap-4 lg:grid-cols-3" aria-label="Lịch sử nghiệp vụ">
+ <details class="rounded-2xl border border-slate-200 bg-white p-5" data-loan-history>
+  <summary class="min-h-11 cursor-pointer text-base font-semibold text-slate-900">Xem lịch sử chi tiết giải ngân, lịch trả nợ và thanh toán</summary>
+  <section class="mt-4 grid gap-4 lg:grid-cols-3" aria-label="Lịch sử nghiệp vụ">
   @foreach(['disbursements'=>'Giải ngân','schedules'=>'Lịch trả nợ dự kiến','payments'=>'Thanh toán thực tế'] as $key=>$heading)
   <div class="rounded-2xl border border-slate-200 bg-white p-5">
    <h2 class="text-lg font-semibold">{{ $heading }}</h2>
-   <div class="mt-4 space-y-3">
+   <div class="mt-4 max-h-96 space-y-3 overflow-y-auto pr-1">
     @forelse($history[$key][$contract->id] ?? [] as $record)
      <div class="rounded-xl bg-slate-50 p-3 text-sm">
       @if($key==='disbursements')<p class="font-semibold">{{ number_format((float)$record->amount, 0, ',', '.') }} ₫</p><p class="text-slate-500">{{ $record->disbursed_at }}</p>
@@ -64,7 +66,8 @@
    </div>
   </div>
   @endforeach
- </section>
+  </section>
+ </details>
  <p class="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Lịch trả nợ là nghĩa vụ dự kiến, không phải khoản đã thanh toán. Bạn có thể thực hiện giải ngân, phân bổ thanh toán, nhắc hẹn và bảo hiểm ngay tại hợp đồng này.</p>
 </main>
 @endsection
