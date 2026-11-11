@@ -59,7 +59,8 @@
   </div>
   <p class="mt-3 text-xs text-slate-500">Hiển thị tối đa 5 kỳ gần nhất mỗi nhóm. Số liệu chỉ để theo dõi, không tự tạo thanh toán hay gửi Email.</p>
  </section>
- <section aria-label="Lối tắt quản lý khoản vay" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+ <nav aria-label="Điều hướng khoản vay" class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+  <h2 class="sr-only">Điều hướng khoản vay</h2>
   @foreach([
    ['route'=>'client.loans.contracts.index','label'=>'Hợp đồng vay','description'=>'Danh sách và chi tiết hợp đồng','permission'=>'client.loans.contracts.view'],
    ['route'=>'client.loans.payments.index','label'=>'Giải ngân & thanh toán','description'=>'Theo dõi dòng tiền thực tế','permission'=>'client.loans.contracts.view'],
@@ -68,11 +69,11 @@
   ] as $shortcut)
   @can($shortcut['permission'])
   <a href="{{ route($shortcut['route']) }}" class="group flex min-h-24 flex-col justify-center rounded-2xl border border-slate-200 bg-white p-5 hover:border-blue-300 hover:bg-blue-50">
-   <h2 class="font-semibold text-slate-900 group-hover:text-blue-800">{{ $shortcut['label'] }} →</h2><p class="mt-1 text-sm text-slate-500">{{ $shortcut['description'] }}</p>
+   <span class="font-semibold text-slate-900 group-hover:text-blue-800">{{ $shortcut['label'] }} →</span><span class="mt-1 text-sm text-slate-500">{{ $shortcut['description'] }}</span>
   </a>
   @endcan
   @endforeach
- </section>
+ </nav>
  <section aria-labelledby="loan-recent-title" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
   <div class="flex flex-wrap items-center justify-between gap-3"><h2 id="loan-recent-title" class="text-lg font-bold">Hợp đồng gần đây</h2><a href="{{ route('client.loans.contracts.index') }}" class="inline-flex min-h-11 items-center text-sm font-semibold text-blue-800">Xem tất cả hợp đồng →</a></div>
   <div class="mt-3 divide-y divide-slate-100">
