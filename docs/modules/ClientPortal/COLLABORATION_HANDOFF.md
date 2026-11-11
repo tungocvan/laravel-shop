@@ -1,3 +1,12 @@
+## 2026-11-11 — Forward-port PR #375 PWA login live preview onto current main
+
+- Branch: `feat/clientportal-pwa-login-preview-forwardport-20261111`, created from `main` after LoanManagement PR #377 merged. Original PR #375 remains open and must not be merged directly due to divergence.
+- Forward-ported configurable intro and Auth form copy, Alpine live preview, guarded login-copy reset preserving uploaded logo, and Bottom Navigation icon persistence/fallback.
+- Preserved newer Pharma overview/capability validation in `PwaSettingsController`, and current Admin application presentation changes. No migration, auth flow change, production operation, or merge.
+- Checkpoint: focused tests **PENDING local run** (`ClientPortalPwaLoginLivePreviewContractTest`, `ClientPortalPwaSettingsTest`); impacted tests **PENDING** (`ClientPortalPwaLoginLogoContractTest`, `ClientAdaptiveNavigationTest`, `ClientPwaFoundationTest`). UI **PENDING user confirmation** (desktop/tablet/iPhone, edit/preview/save/reset, login, Google, logo, Bottom Navigation).
+
+---
+
 ## 2026-11-10 — PR #376 pre-merge acceptance
 
 - User confirmed **focused TEST PASS, regression TEST PASS, and UI PASS** after the latest Pharma Hub overview/capability heading changes. Confirmation is from user's local test and manual UI, not an independent GitHub CI run.
