@@ -50,7 +50,7 @@ final class LoanManagementContractDetailOperationsContractTest extends TestCase
         ] as $needle) {
             $this->assertStringContainsString($needle, $controller);
         }
-        $this->assertStringContainsString("->where('loan_contract_id', \$contract)", str_replace('$contract', '\$contract', $controller));
+        $this->assertStringContainsString("->where('loan_contract_id', \$contract)", $controller);
     }
 
     public function test_operations_return_to_detail_without_changing_legacy_dashboard_redirect(): void
@@ -66,6 +66,6 @@ final class LoanManagementContractDetailOperationsContractTest extends TestCase
         $this->assertStringContainsString("route('client.loans.dashboard')", $workspace);
         $this->assertStringContainsString("route('client.loans.dashboard')", $insurance);
         $this->assertStringContainsString("route('client.loans.dashboard')", $reminder);
-        $this->assertStringContainsString("where('id', \$policy)", str_replace('$policy', '\$policy', $insurance));
+        $this->assertStringContainsString("where('id', \$policy)", $insurance);
     }
 }
