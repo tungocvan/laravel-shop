@@ -3,12 +3,6 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
-@section('content')
-@php($statusOptions = ['all'=>'Tất cả trạng thái','draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'])
-<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-payments-workspace>
- @include('ClientPortal::applications.loans.partials.operations-shell')
-</main>
-@endsection
 @section('loan-operations-records')
  @forelse($operations as $record)
  @php($outstanding = bcsub((string)$record->disbursed_total, (string)$record->principal_repaid, 2))
@@ -25,4 +19,11 @@
   </div>
  </article>
  @empty<p class="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">Không có hợp đồng phù hợp. Thử thay đổi bộ lọc.</p>@endforelse
+@endsection
+
+@section('content')
+@php($statusOptions = ['all'=>'Tất cả trạng thái','draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'])
+<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-payments-workspace>
+ @include('ClientPortal::applications.loans.partials.operations-shell')
+</main>
 @endsection
