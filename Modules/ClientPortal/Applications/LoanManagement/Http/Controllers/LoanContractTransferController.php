@@ -49,7 +49,7 @@ final class LoanContractTransferController extends Controller
             'expires_at'=>now()->addMinutes(15)->timestamp,
         ]);
 
-        return redirect()->route('client.loans.contracts.index')
+        return redirect()->to(route('client.loans.contracts.index').'#loan-import')
             ->with('success', 'Đã kiểm tra file. Hãy xem trước kết quả và xác nhận trước khi tạo hợp đồng.');
     }
 
