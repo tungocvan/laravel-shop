@@ -207,3 +207,12 @@ Branch: `feat/loan-management-pwa-20261110`
 - New `loans:data-clean --all` command and `LoanDataCleanService`: local/testing only, prints per-table counts, refuses noninteractive execution, requires exact `DELETE-ALL-LOANS` confirmation, deletes 12 LoanManagement-owned tables in FK-safe order within one DB transaction. Does not reseed, drop schema, disable FK checks or touch shared users/organizations outside the module.
 - Unexpected external FK dependencies should fail the transaction rather than being force-deleted. No job queue purge or recall of already-sent email; pending loan reminder jobs must be assessed separately before running a live cleanup.
 - Tests added for all-record deletion (including non-demo), repeated deletion and missing confirmation. Tests **NOT run by assistant**; user must run focused and module regression before destructive local execution. UI PASS not implied. Do not merge/deploy without approval.
+
+ 
+## Batch UI-1 — Workspace navigation foundation (PENDING TEST/UI)
+- Approved Plan A: Overview Hub + five capability browse entries: lenders, contracts, payments, reminders, insurance.
+- Branch: `feat/loan-workspace-navigation-20261111` created from `feat/loan-demo-reset-20261111` (parent feature remains unmerged into main at audit). No worktree.
+- Added manifest-managed capability metadata/navigation, dedicated GET browse routes and authorization-checked `LoanCapabilityController`, focused Blade shell with local return link, Overview discovery links. Transition shells intentionally link to existing functional dashboard anchors; full business workspace migration belongs to UI-2 through UI-4.
+- Preserved all existing mutation endpoints, domain services, database/migrations and legacy dashboard forms. Updated MODULE.md to resolve stale status/ownership description. Added `LoanManagementCapabilityNavigationContractTest`.
+- Focused tests NOT RUN by assistant. Suggested: `php8.4 artisan test tests/Feature/ClientApps/LoanManagementCapabilityNavigationContractTest.php tests/Feature/ClientApps/LoanManagementUiWorkspaceContractTest.php tests/Feature/ClientApps/LoanManagementFoundationContractTest.php`. Only after PASS run LoanManagement module regression and impacted ClientPortal tests.
+- UI acceptance required for desktop/tablet/iPhone, capability access/403, Overview return, legacy form continuity. No UI PASS claim. No PR, merge, production change or data cleanup performed.
