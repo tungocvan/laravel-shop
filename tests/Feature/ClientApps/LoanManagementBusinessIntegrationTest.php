@@ -671,7 +671,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'status' => 'skipped', 'created_at' => now(), 'updated_at' => now(),
         ]);
 
-        $reset = app(\Modules\LoanManagement\Services\\LoanDemoResetService::class);
+        $reset = app(\Modules\LoanManagement\Services\LoanDemoResetService::class);
         $this->assertSame(8, $reset->preview()['contracts']);
         $this->assertSame(1, $reset->preview()['schedule_adjustments']);
         $reset->resetAndSeed();
@@ -705,9 +705,9 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
         try {
-            app(\Modules\LoanManagement\Services\\LoanDemoResetService::class)->resetAndSeed();
+            app(\Modules\LoanManagement\Services\LoanDemoResetService::class)->resetAndSeed();
             $this->fail('Cross-contract allocation must block reset.');
-        } catch (\\RuntimeException $exception) {
+        } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('cross-contract', $exception->getMessage());
         }
         $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
@@ -717,7 +717,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     public function test_demo_delete_command_requires_interactive_confirmation(): void
     {
         (new LoanManagementDemoSeeder())->run();
-        $code = \Illuminate\Support\Facades\\Artisan::call('loans:demo-seed', [
+        $code = \Illuminate\Support\Facades\Artisan::call('loans:demo-seed', [
             '--delete' => true, '--no-interaction' => true,
         ]);
         $this->assertSame(1, $code);
