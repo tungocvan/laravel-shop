@@ -8,8 +8,7 @@ use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanInsura
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanReminderController;
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanContractTransferController;
 
-if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
-    Route::middleware(['web', 'auth:web', 'client.application:loans'])
+Route::middleware(['web', 'auth:web', 'client.application:loans'])
         ->prefix('apps/loans')->name('client.loans.')
         ->group(function (): void {
             Route::get('/', [LoanApplicationController::class, 'dashboard'])
@@ -44,4 +43,3 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
             Route::post('/insurance/{policy}/premiums', [LoanInsuranceController::class, 'storePremium'])->whereNumber('policy')->name('premiums.store');
             Route::post('/premiums/{premium}/payments', [LoanInsuranceController::class, 'payPremium'])->whereNumber('premium')->name('premiums.pay');
         });
-}
