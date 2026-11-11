@@ -3,7 +3,6 @@
 namespace Modules\LoanManagement\Services;
 
 use Illuminate\Support\Facades\DB;
-use Modules\LoanManagement\Database\Seeders\LoanManagementDemoSeeder;
 use RuntimeException;
 
 final class LoanDemoResetService
@@ -50,7 +49,7 @@ final class LoanDemoResetService
      * Delete only the eight canonical demo contracts and their dependent records.
      * Never truncate tables or delete lenders still referenced by other contracts.
      */
-    public function resetAndSeed(): void
+    public function deleteDemo(): void
     {
         $this->assertSafeEnvironment();
 
@@ -100,7 +99,6 @@ final class LoanDemoResetService
                 }
             }
 
-            app(LoanManagementDemoSeeder::class)->run();
         }, 3);
     }
 }
