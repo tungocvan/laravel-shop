@@ -21,6 +21,7 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
                     ->defaults('workspace', $workspace)
                     ->name($workspace.'.index');
             }
+            Route::get('/contracts/import/template', [LoanContractTransferController::class, 'template'])->name('contracts.import.template');
             Route::get('/contracts/export', [LoanContractTransferController::class, 'export'])->name('contracts.export');
             Route::post('/contracts/import/preview', [LoanContractTransferController::class, 'preview'])->name('contracts.import.preview');
             Route::post('/contracts/import/confirm', [LoanContractTransferController::class, 'confirm'])->name('contracts.import.confirm');
