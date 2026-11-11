@@ -639,7 +639,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $this->assertEquals($before, DB::table('loan_contracts')->where('id', $id)->first());
         $this->assertSame(1, DB::table('loan_contracts')->where('contract_number', 'REAL-CONTRACT-DO-NOT-TOUCH')->count());
     }
-    public function test_demo_reset_recreates_scenarios_and_preserves_unrelated_contract_and_shared_lender(): void
+    public function test_demo_delete_removes_scenarios_and_preserves_unrelated_contract_and_shared_lender(): void
     {
         (new LoanManagementDemoSeeder())->run();
         $demo = DB::table('loan_contracts')->where('contract_number', 'DEMO-LOAN-20261110-01')->first();
@@ -674,17 +674,17 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
         $reset = app(\Modules\LoanManagement\Services\LoanDemoResetService::class);
         $this->assertSame(8, $reset->preview()['contracts']);
         $this->assertSame(1, $reset->preview()['schedule_adjustments']);
-        $reset->resetAndSeed();
+        $reset->deleteDemo();
 
-        $this->assertSame(8, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
+        $this->assertSame(0, DB::table('loan_contracts')->where('contract_number', 'like', 'DEMO-LOAN-20261110-%')->count());
         $this->assertSame(1, DB::table('loan_contracts')->where('id', $realId)->count());
         $this->assertSame((int) $demo->lender_id, (int) DB::table('loan_contracts')->where('id', $realId)->value('lender_id'));
         $this->assertSame(0, DB::table('loan_payment_allocations')->count());
         $this->assertSame(0, DB::table('loan_schedule_adjustments')->count());
         $this->assertSame(0, DB::table('loan_reminder_deliveries')->count());
         $this->assertSame(0, DB::table('loan_reminder_recipients')->count());
-        $reset->resetAndSeed();
-        $this->assertSame(9, DB::table('loan_contracts')->count());
+        $reset->deleteDemo();
+        $this->assertSame(1, DB::table('loan_contracts')->count());
     }
 
     public function test_demo_reset_refuses_cross_contract_payment_allocations_without_mutation(): void
@@ -705,7 +705,7 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
             'created_at' => now(), 'updated_at' => now(),
         ]);
         try {
-            app(\Modules\LoanManagement\Services\LoanDemoResetService::class)->resetAndSeed();
+            app(\Modules\LoanManagement\Services\LoanDemoResetService::class)->deleteDemo();
             $this->fail('Cross-contract allocation must block reset.');
         } catch (\RuntimeException $exception) {
             $this->assertStringContainsString('cross-contract', $exception->getMessage());
