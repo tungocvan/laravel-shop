@@ -53,3 +53,13 @@ use the existing web guard and explicit create permissions.
 The legacy Overview forms remain compatible during migration.
 The preview calculator script is shared by the legacy and new wizards;
 actual schedule persistence and interest validation remain domain-owned.
+
+ 
+## UI-3 contract workspace
+`GET /apps/loans/contracts` is a server-paginated, filtered ClientPortal
+browse page, not the legacy Overview's latest-100 dashboard snapshot.
+`GET /apps/loans/contracts/{contract}` is an authorized detail/read-history
+page. It reuses canonical LoanManagement history services and existing
+contract update/delete/restore domain endpoints. The existing Overview
+remains the compatibility surface for disbursement, repayment, reminders
+and insurance operations until subsequent approved workspace batches.
