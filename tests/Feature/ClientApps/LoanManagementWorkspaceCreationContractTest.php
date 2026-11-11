@@ -11,9 +11,13 @@ final class LoanManagementWorkspaceCreationContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/lenders.blade.php'));
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanCapabilityController.php'));
         $this->assertStringContainsString('data-loan-lenders-workspace', $view);
-        $this->assertStringContainsString('x-model.debounce.150ms="search"', $view);
-        $this->assertStringContainsString('x-model="type"', $view);
+        $this->assertStringContainsString('data-lender-search', $view);
+        $this->assertStringContainsString('data-lender-filter', $view);
         $this->assertStringContainsString('aria-modal="true"', $view);
+        $this->assertStringContainsString('data-lender-overlay', $view);
+        $this->assertStringContainsString("overlay.hidden=false", $view);
+        $this->assertStringContainsString("overlay.hidden=true", $view);
+        $this->assertStringNotContainsString('x-data=', $view);
         $this->assertStringContainsString("route('client.loans.lenders.store')", $view);
         $this->assertStringContainsString("DB::table('loan_lenders')->orderBy('name')->get()", $controller);
     }
