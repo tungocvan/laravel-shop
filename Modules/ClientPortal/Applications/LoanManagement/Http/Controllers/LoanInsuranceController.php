@@ -5,6 +5,7 @@ namespace Modules\ClientPortal\Applications\LoanManagement\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Modules\LoanManagement\Services\LoanInsuranceService;
 
@@ -23,7 +24,7 @@ final class LoanInsuranceController extends Controller
             'insured_amount' => ['nullable', 'numeric', 'gt:0', 'decimal:0,2'],
         ]);
         $service->createPolicy($contract, $data);
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã thêm hợp đồng bảo hiểm.');
+        return $this->redirectAfterOperation($request, $contract, 'Đã thêm hợp đồng bảo hiểm.');
     }
 
     public function storePremium(Request $request, int $policy, LoanInsuranceService $service): RedirectResponse
@@ -34,7 +35,8 @@ final class LoanInsuranceController extends Controller
             'amount_due' => ['required', 'numeric', 'gt:0', 'decimal:0,2'],
         ]);
         $service->createPremium($policy, $data);
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã thêm kỳ đóng phí bảo hiểm.');
+        $contractId = (int) DB::table('loan_insurance_policies')->where('id', $policy)->value('loan_contract_id');
+        return $this->redirectAfterOperation($request, $contractId, 'Đã thêm kỳ đóng phí bảo hiểm.');
     }
 
     public function payPremium(Request $request, int $premium, LoanInsuranceService $service): RedirectResponse
@@ -45,6 +47,17 @@ final class LoanInsuranceController extends Controller
             'paid_at' => ['required', 'date_format:Y-m-d'],
         ]);
         $service->recordPremiumPayment($premium, $data);
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã ghi nhận phí bảo hiểm.');
+        $contractId = (int) DB::table('loan_insurance_premium_schedules as s')
+            ->join('loan_insurance_policies as p', 'p.id', '=', 's.loan_insurance_policy_id')
+            ->where('s.id', $premium)->value('p.loan_contract_id');
+        return $this->redirectAfterOperation($request, $contractId, 'Đã ghi nhận phí bảo hiểm.');
+    }
+    private function redirectAfterOperation(Request $request, int $contractId, string $message): RedirectResponse
+    {
+        $destination = $request->input('source') === 'detail' && $contractId > 0
+            ? route('client.loans.contracts.show', $contractId)
+            : route('client.loans.dashboard');
+
+        return redirect($destination)->with('success', $message);
     }
 }
