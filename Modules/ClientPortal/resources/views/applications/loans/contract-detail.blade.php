@@ -5,7 +5,7 @@
 @section('hide-mobile-navigation', true)
 @section('content')
 <main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-contract-detail>
- <nav aria-label="Điều hướng cục bộ" class="flex flex-wrap gap-2"><a href="{{ route('client.loans.contracts.index') }}" class="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm">← Danh sách hợp đồng</a><a href="{{ route('client.loans.dashboard') }}#loan-contracts" class="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm">Thao tác nghiệp vụ hiện tại</a></nav>
+ <nav aria-label="Điều hướng cục bộ" class="flex flex-wrap gap-2"><a href="{{ route('client.loans.contracts.index') }}" class="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm">← Danh sách hợp đồng</a><a href="#loan-operations" class="inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Nghiệp vụ hợp đồng ↓</a></nav>
  <header class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
   <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $presentation['eyebrow'] ?? 'Hợp đồng vay' }}</p>
   <div class="mt-2 flex flex-wrap items-start justify-between gap-3"><div><h1 class="break-words text-2xl font-bold text-slate-900">{{ $contract->contract_number }}</h1><p class="mt-2 text-sm text-slate-600">{{ $contract->lender_name }}</p></div><span class="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold">{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span></div>
@@ -47,6 +47,7 @@
   @endif
   @endcan
  </section>
+ @include('ClientPortal::applications.loans.partials.contract-operations')
  <section class="grid gap-4 lg:grid-cols-3" aria-label="Lịch sử nghiệp vụ">
   @foreach(['disbursements'=>'Giải ngân','schedules'=>'Lịch trả nợ dự kiến','payments'=>'Thanh toán thực tế'] as $key=>$heading)
   <div class="rounded-2xl border border-slate-200 bg-white p-5">
@@ -63,7 +64,7 @@
   </div>
   @endforeach
  </section>
- <p class="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Lịch trả nợ là nghĩa vụ dự kiến, không phải khoản đã thanh toán. Các thao tác giải ngân, phân bổ thanh toán, nhắc nhở và bảo hiểm vẫn được xử lý tại màn hình nghiệp vụ hiện tại.</p>
+ <p class="rounded-xl bg-blue-50 p-4 text-sm text-blue-900">Lịch trả nợ là nghĩa vụ dự kiến, không phải khoản đã thanh toán. Bạn có thể thực hiện giải ngân, phân bổ thanh toán, nhắc hẹn và bảo hiểm ngay tại hợp đồng này.</p>
 </main>
 @endsection
 @push('application-scripts')
