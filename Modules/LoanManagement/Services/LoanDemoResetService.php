@@ -65,6 +65,20 @@ final class LoanDemoResetService
             $paymentIds = DB::table('loan_payments')->whereIn('loan_contract_id', $contractIds)->pluck('id')->all();
             $policyIds = DB::table('loan_insurance_policies')->whereIn('loan_contract_id', $contractIds)->pluck('id')->all();
 
+            // Refuse cross-contract allocations: never mutate accounting links owned by a real contract.
+            $crossLinked = DB::table('loan_payment_allocations')
+                ->where(function ($query) use ($paymentIds, $scheduleIds): void {
+                    $query->whereIn('loan_payment_id', $paymentIds)
+                        ->orWhereIn('loan_repayment_schedule_id', $scheduleIds);
+                })
+                ->where(function ($query) use ($paymentIds, $scheduleIds): void {
+                    $query->whereNotIn('loan_payment_id', $paymentIds)
+                        ->orWhereNotIn('loan_repayment_schedule_id', $scheduleIds);
+                })->exists();
+            if ($crossLinked) {
+                throw new RuntimeException('Demo records have cross-contract payment allocations; reset refused.');
+            }
+
             // Dependent records first: all FKs use RESTRICT, not cascading deletes.
             DB::table('loan_reminder_deliveries')->whereIn('loan_repayment_schedule_id', $scheduleIds)->delete();
             DB::table('loan_schedule_adjustments')->whereIn('loan_repayment_schedule_id', $scheduleIds)->delete();
