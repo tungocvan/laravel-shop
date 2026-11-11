@@ -3,12 +3,6 @@
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
-@section('content')
-@php($statusOptions = ['all'=>'Tất cả','enabled'=>'Đang bật Email','disabled'=>'Chưa bật Email','overdue'=>'Có kỳ quá hạn chưa trả đủ'])
-<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-reminders-workspace>
- @include('ClientPortal::applications.loans.partials.operations-shell')
-</main>
-@endsection
 @section('loan-operations-records')
  @forelse($operations as $record)
  <article class="rounded-xl border border-slate-200 p-4 sm:p-5">
@@ -22,4 +16,11 @@
   <a href="{{ route('client.loans.contracts.show',$record->id) }}#loan-reminders" class="mt-4 inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Xem lịch và thiết lập nhắc hẹn →</a>
  </article>
  @empty<p class="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">Không có hợp đồng phù hợp với bộ lọc nhắc hẹn.</p>@endforelse
+@endsection
+
+@section('content')
+@php($statusOptions = ['all'=>'Tất cả','enabled'=>'Đang bật Email','disabled'=>'Chưa bật Email','overdue'=>'Có kỳ quá hạn chưa trả đủ'])
+<main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-reminders-workspace>
+ @include('ClientPortal::applications.loans.partials.operations-shell')
+</main>
 @endsection
