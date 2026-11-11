@@ -39,7 +39,7 @@ final class LoanContractWorkbookService
             $first = false;
             $sheet->setTitle($name);
             $sheet->fromArray($headers, null, 'A1');
-            $sheet->getStyle('A1:'.\\PhpOffice\\PhpSpreadsheet\\Cell\\Coordinate::stringFromColumnIndex(count($headers)).'1')->getFont()->setBold(true);
+            $sheet->getStyle('A1:'.\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)).'1')->getFont()->setBold(true);
             $sheet->freezePane('A2');
             if ($name === 'Contracts') {
                 $sheet->fromArray([
