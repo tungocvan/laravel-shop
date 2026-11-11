@@ -30,7 +30,9 @@ final class LoanCapabilityController extends Controller
         abort_unless(is_array($feature), 404);
 
         $view = $workspace === 'lenders' ? 'ClientPortal::applications.loans.lenders' : 'ClientPortal::applications.loans.capability';
-        $lenders = $workspace === 'lenders' ? DB::table('loan_lenders')->orderBy('name')->get() : collect();
+        $lenders = $workspace === 'lenders' ? DB::table('loan_lenders')->select('loan_lenders.*')->selectSub(function ($query) {
+            $query->from('loan_contracts')->selectRaw('COUNT(*)')->whereColumn('loan_contracts.lender_id', 'loan_lenders.id');
+        }, 'contracts_count')->orderBy('name')->get() : collect();
 
         return view($view, [
             'application' => $application,
