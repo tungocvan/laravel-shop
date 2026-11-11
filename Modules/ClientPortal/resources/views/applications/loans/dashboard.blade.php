@@ -39,13 +39,7 @@
   <h1 class="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{{ $overviewPresentation['page_title'] ?? '' }}</h1>
   <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{{ $overviewPresentation['page_description'] ?? '' }}</p>
   <nav aria-label="Điều hướng khoản vay" class="mt-5 flex flex-wrap gap-2"><a class="loan-nav-link" href="#loan-contracts">Hợp đồng</a><a class="loan-nav-link" href="#loan-create">Tạo hồ sơ</a><a class="loan-nav-link" href="#loan-insurance">Bảo hiểm</a></nav>
-  <nav aria-label="Không gian nghiệp vụ khoản vay" class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-   @foreach($application['features'] ?? [] as $capability)
-    @if(($capability['key'] ?? '') !== 'overview' && !empty($capability['route']) && auth('web')->user()?->can($capability['permission'] ?? ''))
-     <a class="loan-nav-link justify-center" href="{{ route($capability['route']) }}">{{ $capability['name'] ?? $capability['key'] }}</a>
-    @endif
-   @endforeach
-  </nav>
+
  </header>
  @if(session('success'))<p role="status" class="rounded-xl bg-emerald-50 p-3">{{ session('success') }}</p>@endif
  @if($errors->any())<div role="alert" class="rounded-xl bg-red-50 p-3"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
