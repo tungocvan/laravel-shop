@@ -16,7 +16,7 @@ final class LoanManagementContractsWorkspaceContractTest extends TestCase
         $this->assertStringContainsString("Route::get('/contracts/{contract}'", $routes);
         $this->assertStringContainsString("can('client.loans.contracts.view')", $controller);
         $this->assertStringContainsString("->paginate(15)->withQueryString()", $controller);
-        $this->assertStringContainsString("->where('c.id', $contract)", str_replace('$contract', '\$contract', $controller));
+        $this->assertStringContainsString("->where('c.id', \$contract)", $controller);
         $this->assertStringContainsString('data-loan-contracts-workspace', $list);
         $this->assertStringContainsString("route('client.loans.contracts.show'", $list);
         $this->assertStringContainsString('$contracts->links()', $list);
