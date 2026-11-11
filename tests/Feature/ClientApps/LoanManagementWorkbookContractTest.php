@@ -13,6 +13,7 @@ final class LoanManagementWorkbookContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/contracts.blade.php'));
         foreach ([
             "Route::get('/contracts/export'",
+            "Route::get('/contracts/import/template'",
             "Route::post('/contracts/import/preview'",
             "Route::post('/contracts/import/confirm'",
         ] as $route) $this->assertStringContainsString($route,$routes);
@@ -22,9 +23,15 @@ final class LoanManagementWorkbookContractTest extends TestCase
         $this->assertStringContainsString("hash_equals(",$controller);
         $this->assertStringContainsString("importNewDrafts(",$controller);
         $this->assertStringContainsString("streamDownload(",$controller);
+        $this->assertStringContainsString("public function template(Request $request", $controller);
+        $this->assertStringContainsString("can('client.loans.contracts.create')", $controller);
+        $this->assertLessThan(strpos($view, 'role="search"'), strpos($view, 'id="loan-import"'));
+
         $this->assertStringContainsString("array_map('intval', \$data['contracts'] ?? [])", $controller);
         foreach ([
             "route('client.loans.contracts.import.preview')",
+            "route('client.loans.contracts.import.template')",
+            "Tải file mẫu",
             "route('client.loans.contracts.import.confirm')",
             "route('client.loans.contracts.export')",
             "data-loan-contract-select",
@@ -44,6 +51,9 @@ final class LoanManagementWorkbookContractTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanContractWorkbookService.php'));
         foreach ([
+            "public function template(): Spreadsheet",
+            "'HDCN-TEMPLATE-001'",
+            "'HDNH-TEMPLATE-001'",
             "'Contracts' =>", "'Disbursements' =>", "'Schedules' =>", "'Payments' =>",
             "'Insurance' =>", "'Premiums' =>", "'Allocations' =>", "'ReminderSettings' =>",
             "'ReminderRecipients' =>", "'ReminderDeliveries' =>", "'ScheduleChanges' =>",
