@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanApplicationController;
+use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanCapabilityController;
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanWorkspaceController;
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanInsuranceController;
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanReminderController;
@@ -13,6 +14,12 @@ if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
             Route::get('/', [LoanApplicationController::class, 'dashboard'])
                 ->middleware('client.feature:loans,overview')
                 ->name('dashboard');
+            // Browse/Index entry points. Existing mutation routes stay unchanged during UI-1.
+            foreach (['lenders', 'contracts', 'payments', 'reminders', 'insurance'] as $workspace) {
+                Route::get('/'.$workspace, [LoanCapabilityController::class, 'index'])
+                    ->defaults('workspace', $workspace)
+                    ->name($workspace.'.index');
+            }
             Route::post('/lenders', [LoanWorkspaceController::class, 'storeLender'])->name('lenders.store');
             Route::post('/contracts', [LoanWorkspaceController::class, 'storeContract'])->name('contracts.store');
             Route::put('/contracts/{contract}', [LoanWorkspaceController::class, 'updateContract'])->whereNumber('contract')->name('contracts.update');
