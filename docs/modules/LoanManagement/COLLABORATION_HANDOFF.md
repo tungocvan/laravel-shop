@@ -193,3 +193,10 @@ Branch: `feat/loan-management-pwa-20261110`
 - Added isolated in-memory SQLite integration coverage for reset, foreign keys, shared lender protection, cross-contract guard and non-interactive refusal. **Tests not executed by assistant; no TEST PASS or UI PASS claimed for this batch.**
 - User checkpoint: pull this child branch, run focused `LoanManagementBusinessIntegrationTest.php`, then LoanManagement module regression only after focused PASS; verify tracked working tree. Do NOT execute `--delete` against MySQL until the user separately approves an actual demo data reset.
 - Prior Batch 17C: user confirmed focused tests 36 passed / 353 assertions, module regression and UI PASS, and migration 000005 DONE on local MySQL.
+
+
+## Batch 17D correction — --delete means delete only (pending tests)
+- User clarified `loans:demo-seed --delete` must permanently remove the eight canonical demo contracts and their related rows **without reseeding**. Prior behavior (`resetAndSeed`) was incorrect and is superseded.
+- CLI now prompts for `DELETE-DEMO`; normal `loans:demo-seed` remains the only opt-in create path. `LoanDemoResetService::deleteDemo()` deletes in a transaction and preserves unrelated contracts and shared lenders. Repeated delete is idempotent.
+- Existing pre-correction tests and real MySQL reset PASS do **not** verify this corrected behavior. Run focused SQLite integration and module regression on updated commit, then explicitly approve and run the destructive local MySQL command. Expected post-delete demo contract count: zero; reminder settings/recipients/deliveries for those demo contracts: zero.
+- No merge, production operation or CLI execution performed by assistant.
