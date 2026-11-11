@@ -22,6 +22,10 @@ final class LoanContractWorkbookService
         'Payments' => ['loan_payments', ['contract_number','paid_at','principal_paid','interest_paid','fees_paid','reference']],
         'Insurance' => ['loan_insurance_policies', ['contract_number','type','provider','policy_number','starts_at','ends_at','requirement','insured_amount']],
         'Premiums' => ['loan_insurance_premium_schedules', ['contract_number','policy_number','due_at','amount_due','amount_paid','paid_at']],
+        'Allocations' => ['loan_payment_allocations', ['contract_number','payment_id','installment','principal_allocated','interest_allocated','fees_allocated']],
+        'ReminderSettings' => ['loan_reminder_settings', ['contract_number','enabled','recipient_email','days_before']],
+        'ReminderRecipients' => ['loan_reminder_recipients', ['contract_number','email']],
+        'ReminderDeliveries' => ['loan_reminder_deliveries', ['contract_number','installment','days_before','due_at_snapshot','recipient_email','status','sent_at']],
     ];
 
     public function export(): Spreadsheet
@@ -42,6 +46,15 @@ final class LoanContractWorkbookService
                 $query->join('loan_insurance_policies as policy','policy.id','=','t.loan_insurance_policy_id')
                     ->join('loan_contracts as c','c.id','=','policy.loan_contract_id')
                     ->select('c.contract_number','policy.policy_number','t.due_at','t.amount_due','t.amount_paid','t.paid_at');
+            } elseif ($name === 'Allocations') {
+                $query->join('loan_payments as payment','payment.id','=','t.loan_payment_id')
+                    ->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
+                    ->join('loan_contracts as c','c.id','=','payment.loan_contract_id')
+                    ->select('c.contract_number','payment.id as payment_id','schedule.installment','t.principal_allocated','t.interest_allocated','t.fees_allocated');
+            } elseif ($name === 'ReminderDeliveries') {
+                $query->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
+                    ->join('loan_contracts as c','c.id','=','schedule.loan_contract_id')
+                    ->select('c.contract_number','schedule.installment','t.days_before','t.due_at_snapshot','t.recipient_email','t.status','t.sent_at');
             } else {
                 $query->join('loan_contracts as c','c.id','=','t.loan_contract_id')
                     ->select(array_merge(['c.contract_number'],array_map(fn ($column) => 't.'.$column,array_slice($headers,1))));
@@ -65,7 +78,7 @@ final class LoanContractWorkbookService
         $meta = $book->createSheet();
         $meta->setTitle('README');
         $meta->setCellValue('A1', self::FORMAT);
-        $meta->setCellValue('A2', 'Contracts: dữ liệu hợp đồng và trạng thái hiện tại. Các sheet còn lại chỉ để đối chiếu.');
+        $meta->setCellValue('A2', 'Contracts: dữ liệu hợp đồng và trạng thái hiện tại. Các sheet còn lại chỉ để đối chiếu; gồm cả phân bổ thanh toán và lịch sử nhắc hẹn.');
         $meta->setCellValue('A3', 'Import chỉ tạo hợp đồng chưa tồn tại dưới dạng Nháp. Không import giao dịch, lịch, bảo hiểm hay tự động ghi sổ.');
         $book->setActiveSheetIndex(0);
         return $book;
