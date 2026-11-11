@@ -146,17 +146,19 @@
    @forelse($policies as $policy)
    <article class="rounded-xl border p-4"><h4 class="font-semibold">{{ $policy->provider }} · {{ $policy->policy_number }}</h4><p class="mt-1 text-sm text-slate-500">{{ $policy->starts_at }} — {{ $policy->ends_at ?? 'Không xác định' }}</p>
     @can('client.loans.insurance.manage')
+    @if($contract->status!=='cancelled')
     <details class="mt-3 rounded-lg border p-3"><summary class="min-h-11 cursor-pointer text-sm font-semibold">Thêm kỳ phí bảo hiểm</summary>
      <form method="POST" action="{{ route('client.loans.premiums.store',$policy->id) }}" class="mt-3 grid gap-3" data-loan-detail-mutation>@csrf<input type="hidden" name="source" value="detail"><input type="hidden" name="contract_id" value="{{ $contract->id }}">
       <label class="text-sm">Ngày đến hạn<x-pwa-date name="due_at" required /></label><label class="text-sm">Số phí (VND)<input name="amount_due" type="number" min="0.01" step="0.01" required class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
       <button class="min-h-11 rounded-xl bg-blue-800 px-4 font-semibold text-white">Lưu kỳ phí</button>
      </form>
     </details>
+    @endif
     @endcan
     @foreach($premiums[$policy->id] ?? [] as $premium)
     <div class="mt-3 rounded-lg bg-slate-50 p-3 text-sm"><p class="font-semibold">Hạn {{ $premium->due_at }} · Phí {{ number_format((float)$premium->amount_due,0,',','.') }} ₫</p><p class="mt-1">Đã đóng {{ number_format((float)$premium->amount_paid,0,',','.') }} ₫</p>
      @can('client.loans.insurance.manage')
-     @if(bccomp((string)$premium->amount_paid,(string)$premium->amount_due,2)<0)
+     @if($contract->status!=='cancelled' && bccomp((string)$premium->amount_paid,(string)$premium->amount_due,2)<0)
      <details class="mt-2 rounded-lg border bg-white p-3"><summary class="min-h-11 cursor-pointer font-semibold">Ghi nhận đóng phí</summary>
       <form method="POST" action="{{ route('client.loans.premiums.pay',$premium->id) }}" class="mt-2 grid gap-3" data-loan-detail-mutation>@csrf<input type="hidden" name="source" value="detail"><input type="hidden" name="contract_id" value="{{ $contract->id }}">
        <label class="text-sm">Ngày đóng<x-pwa-date name="paid_at" required /></label><label class="text-sm">Số tiền (VND)<input name="amount" type="number" min="0.01" step="0.01" max="{{ bcsub((string)$premium->amount_due,(string)$premium->amount_paid,2) }}" required class="mt-1 min-h-11 w-full rounded-xl border p-3"></label><button class="min-h-11 rounded-xl bg-blue-800 px-4 font-semibold text-white">Ghi nhận đóng phí</button>
