@@ -23,7 +23,7 @@ final class LoanManagementWorkbookContractTest extends TestCase
         $this->assertStringContainsString("hash_equals(",$controller);
         $this->assertStringContainsString("importNewDrafts(",$controller);
         $this->assertStringContainsString("streamDownload(",$controller);
-        $this->assertStringContainsString("public function template(Request $request", $controller);
+        $this->assertStringContainsString("public function template(Request \$request", $controller);
         $this->assertStringContainsString("can('client.loans.contracts.create')", $controller);
         $this->assertLessThan(strpos($view, 'role="search"'), strpos($view, 'id="loan-import"'));
 
