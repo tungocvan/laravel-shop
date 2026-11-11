@@ -4,6 +4,7 @@
 @section('hide-application-header', true)
 @section('hide-mobile-navigation', true)
 @section('content')
+<style>[data-loan-lenders-workspace] [hidden]{display:none!important}</style>
 <main class="mx-auto max-w-7xl space-y-5 px-3 py-4 sm:px-6" data-loan-lenders-workspace>
  <nav aria-label="Điều hướng cục bộ" class="flex flex-wrap gap-2">
   <a href="{{ route('client.loans.dashboard') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium">← Tổng quan</a>
