@@ -200,3 +200,10 @@ Branch: `feat/loan-management-pwa-20261110`
 - CLI now prompts for `DELETE-DEMO`; normal `loans:demo-seed` remains the only opt-in create path. `LoanDemoResetService::deleteDemo()` deletes in a transaction and preserves unrelated contracts and shared lenders. Repeated delete is idempotent.
 - Existing pre-correction tests and real MySQL reset PASS do **not** verify this corrected behavior. Run focused SQLite integration and module regression on updated commit, then explicitly approve and run the destructive local MySQL command. Expected post-delete demo contract count: zero; reminder settings/recipients/deliveries for those demo contracts: zero.
 - No merge, production operation or CLI execution performed by assistant.
+
+
+## Batch 17E — full LoanManagement data clean (PENDING local tests)
+- User explicitly authorized a command to delete **all** LoanManagement-owned business records, including actual individual, organization, and credit institution lender details, contracts, payments, insurance and reminders. This is distinct from canonical demo-only deletion.
+- New `loans:data-clean --all` command and `LoanDataCleanService`: local/testing only, prints per-table counts, refuses noninteractive execution, requires exact `DELETE-ALL-LOANS` confirmation, deletes 12 LoanManagement-owned tables in FK-safe order within one DB transaction. Does not reseed, drop schema, disable FK checks or touch shared users/organizations outside the module.
+- Unexpected external FK dependencies should fail the transaction rather than being force-deleted. No job queue purge or recall of already-sent email; pending loan reminder jobs must be assessed separately before running a live cleanup.
+- Tests added for all-record deletion (including non-demo), repeated deletion and missing confirmation. Tests **NOT run by assistant**; user must run focused and module regression before destructive local execution. UI PASS not implied. Do not merge/deploy without approval.
