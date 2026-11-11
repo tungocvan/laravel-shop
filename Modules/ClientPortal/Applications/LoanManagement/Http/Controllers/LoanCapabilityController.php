@@ -117,6 +117,13 @@ final class LoanCapabilityController extends Controller
                             ->where('due_at', '>=', now()->toDateString());
                     }, 'next_due_at')
                     ->selectSub(function ($q) {
+                        $q->from('loan_repayment_schedules as s')
+                            ->whereColumn('s.loan_contract_id', 'c.id')
+                            ->where('s.due_at', '<', now()->toDateString())
+                            ->whereRaw('(s.principal_due + s.interest_due + s.fees_due) > COALESCE((SELECT SUM(a.principal_allocated + a.interest_allocated + a.fees_allocated) FROM loan_payment_allocations a WHERE a.loan_repayment_schedule_id = s.id), 0)')
+                            ->selectRaw('COUNT(*)');
+                    }, 'overdue_schedule_count')
+                    ->selectSub(function ($q) {
                         $q->from('loan_reminder_deliveries as d')
                             ->join('loan_repayment_schedules as s', 's.id', '=', 'd.loan_repayment_schedule_id')
                             ->whereColumn('s.loan_contract_id', 'c.id')->selectRaw('COUNT(*)');
@@ -141,6 +148,17 @@ final class LoanCapabilityController extends Controller
                         $q->from('loan_insurance_premium_schedules')->selectRaw('COALESCE(SUM(amount_paid), 0)')
                             ->whereColumn('loan_insurance_policy_id', 'p.id');
                     }, 'premium_paid')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_insurance_premium_schedules')->selectRaw('MIN(due_at)')
+                            ->whereColumn('loan_insurance_policy_id', 'p.id')
+                            ->whereRaw('amount_paid < amount_due');
+                    }, 'next_unpaid_due_at')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_insurance_premium_schedules')->selectRaw('COUNT(*)')
+                            ->whereColumn('loan_insurance_policy_id', 'p.id')
+                            ->where('due_at', '<', now()->toDateString())
+                            ->whereRaw('amount_paid < amount_due');
+                    }, 'overdue_premium_count')
                     ->selectSub(function ($q) {
                         $q->from('loan_insurance_premium_schedules')->selectRaw('COUNT(*)')
                             ->whereColumn('loan_insurance_policy_id', 'p.id');
