@@ -34,3 +34,9 @@ if (config('modules.registry.Attendance.enabled', false)) {
 Schedule::command('system:cloud-backup')
     ->everyMinute()
     ->withoutOverlapping();
+
+if (config('modules.registry.LoanManagement.enabled', false) && config('loan_reminders.dispatch_enabled', false)) {
+    Schedule::command('loans:dispatch-reminders')
+        ->dailyAt('08:00')
+        ->withoutOverlapping();
+}

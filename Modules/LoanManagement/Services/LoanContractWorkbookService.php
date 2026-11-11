@@ -1,0 +1,194 @@
+<?php
+
+namespace Modules\LoanManagement\Services;
+
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\IOFactory;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+
+final class LoanContractWorkbookService
+{
+    public const FORMAT = 'LOAN-CONTRACTS-V1';
+    public const MAX_IMPORT = 100;
+    public const MAX_EXPORT = 5000;
+
+    // Export-only dependent ledgers. Import never writes these tables.
+    private const SHEETS = [
+        'Contracts' => ['loan_contracts', ['contract_number','lender_name','lender_type','lender_tax_identifier','committed_amount','annual_rate_percent','day_count_basis','signed_at','matures_at','status']],
+        'Disbursements' => ['loan_disbursements', ['contract_number','disbursed_at','amount','reference']],
+        'Schedules' => ['loan_repayment_schedules', ['contract_number','installment','due_at','principal_due','interest_due','fees_due']],
+        'Payments' => ['loan_payments', ['contract_number','paid_at','principal_paid','interest_paid','fees_paid','reference']],
+        'Insurance' => ['loan_insurance_policies', ['contract_number','type','provider','policy_number','starts_at','ends_at','requirement','insured_amount']],
+        'Premiums' => ['loan_insurance_premium_schedules', ['contract_number','policy_number','due_at','amount_due','amount_paid','paid_at']],
+        'Allocations' => ['loan_payment_allocations', ['contract_number','payment_id','installment','principal_allocated','interest_allocated','fees_allocated']],
+        'ReminderSettings' => ['loan_reminder_settings', ['contract_number','enabled','recipient_email','days_before']],
+        'ReminderRecipients' => ['loan_reminder_recipients', ['contract_number','email']],
+        'ReminderDeliveries' => ['loan_reminder_deliveries', ['contract_number','installment','days_before','due_at_snapshot','recipient_email','status','sent_at']],
+        'ScheduleChanges' => ['loan_schedule_adjustments', ['contract_number','installment','actor_id','before_json','after_json','created_at']],
+    ];
+
+    /** Download-only sample; never queries or changes financial records. */
+    public function template(): Spreadsheet
+    {
+        $book = new Spreadsheet();
+        $first = true;
+        foreach (self::SHEETS as $name => [, $headers]) {
+            $sheet = $first ? $book->getActiveSheet() : $book->createSheet();
+            $first = false;
+            $sheet->setTitle($name);
+            $sheet->fromArray($headers, null, 'A1');
+            $sheet->getStyle('A1:'.\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)).'1')->getFont()->setBold(true);
+            $sheet->freezePane('A2');
+            if ($name === 'Contracts') {
+                $sheet->fromArray([
+                    ['HDCN-TEMPLATE-001', 'Nguyễn Văn An', 'individual', null, 120000000, 11.5, 365, '2026-11-11', '2027-11-30', 'draft'],
+                    ['HDNH-TEMPLATE-001', 'Ngân Hàng Techcombank', 'credit_institution', null, 1500000000, 10.5, 365, '2026-11-11', '2027-11-30', 'draft'],
+                ], null, 'A2');
+            }
+        }
+
+        return $book;
+    }
+
+    public function export(array $contractIds = []): Spreadsheet
+    {
+        $book = new Spreadsheet();
+        $first = true;
+        foreach (self::SHEETS as $name => [$table, $headers]) {
+            $sheet = $first ? $book->getActiveSheet() : $book->createSheet();
+            $first = false;
+            $sheet->setTitle($name);
+            $sheet->fromArray($headers, null, 'A1');
+            $sheet->getStyle('A1:'.\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)).'1')->getFont()->setBold(true);
+            $sheet->freezePane('A2');
+            $query = DB::table($table.' as t');
+            if ($name === 'Contracts') {
+                $query->join('loan_lenders as l', 'l.id', '=', 't.lender_id')
+                    ->select('t.contract_number','l.name as lender_name','l.type as lender_type','l.tax_identifier as lender_tax_identifier','t.committed_amount','t.annual_rate_percent','t.day_count_basis','t.signed_at','t.matures_at','t.status');
+            } elseif ($name === 'Premiums') {
+                $query->join('loan_insurance_policies as policy','policy.id','=','t.loan_insurance_policy_id')
+                    ->join('loan_contracts as c','c.id','=','policy.loan_contract_id')
+                    ->select('c.contract_number','policy.policy_number','t.due_at','t.amount_due','t.amount_paid','t.paid_at');
+            } elseif ($name === 'Allocations') {
+                $query->join('loan_payments as payment','payment.id','=','t.loan_payment_id')
+                    ->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
+                    ->join('loan_contracts as c','c.id','=','payment.loan_contract_id')
+                    ->select('c.contract_number','payment.id as payment_id','schedule.installment','t.principal_allocated','t.interest_allocated','t.fees_allocated');
+            } elseif ($name === 'ScheduleChanges') {
+                $query->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
+                    ->join('loan_contracts as c','c.id','=','schedule.loan_contract_id')
+                    ->select('c.contract_number','schedule.installment','t.actor_id','t.before_json','t.after_json','t.created_at');
+            } elseif ($name === 'ReminderDeliveries') {
+                $query->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
+                    ->join('loan_contracts as c','c.id','=','schedule.loan_contract_id')
+                    ->select('c.contract_number','schedule.installment','t.days_before','t.due_at_snapshot','t.recipient_email','t.status','t.sent_at');
+            } else {
+                $query->join('loan_contracts as c','c.id','=','t.loan_contract_id')
+                    ->select(array_merge(['c.contract_number'],array_map(fn ($column) => 't.'.$column,array_slice($headers,1))));
+            }
+            if ($contractIds !== []) {
+                $query->whereIn($name === 'Contracts' ? 't.id' : 'c.id', $contractIds);
+            }
+            $rows = $query->orderBy($name === 'Contracts' ? 't.contract_number' : 't.id')->limit(self::MAX_EXPORT + 1)->get();
+            if ($rows->count() > self::MAX_EXPORT) {
+                $book->disconnectWorksheets();
+                throw ValidationException::withMessages(['export' => 'Dữ liệu vượt giới hạn 5.000 dòng mỗi sheet. Chưa xuất file để tránh thiếu dữ liệu.']);
+            }
+            $index = 2;
+            foreach ($rows as $row) {
+                foreach ($headers as $column => $header) {
+                    $value = $row->{$header};
+                    // All exported values are plain strings; never evaluate spreadsheet formulas from user input.
+                    $sheet->setCellValueExplicit(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($column + 1).$index, (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                }
+                $index++;
+            }
+            $sheet->setAutoFilter('A1:'.\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex(count($headers)).max(1,$index-1));
+        }
+        $meta = $book->createSheet();
+        $meta->setTitle('README');
+        $meta->setCellValue('A1', self::FORMAT);
+        $meta->setCellValue('A2', 'Contracts: dữ liệu hợp đồng và trạng thái hiện tại. Các sheet còn lại chỉ để đối chiếu; gồm cả phân bổ thanh toán và lịch sử nhắc hẹn.');
+        $meta->setCellValue('A3', 'Import chỉ tạo hợp đồng chưa tồn tại dưới dạng Nháp. Không import giao dịch, lịch, bảo hiểm hay tự động ghi sổ.');
+        $book->setActiveSheetIndex(0);
+        return $book;
+    }
+
+    public function preview(UploadedFile $file): array
+    {
+        $book = IOFactory::createReader('Xlsx')->load($file->getRealPath());
+        $sheet = $book->getSheetByName('Contracts');
+        if (!$sheet) {
+            throw ValidationException::withMessages(['file' => 'Thiếu sheet Contracts trong file Excel.']);
+        }
+        if ($sheet->getHighestRow() > self::MAX_IMPORT + 1) {
+            throw ValidationException::withMessages(['file' => 'Mỗi lần nhập tối đa 100 hợp đồng.']);
+        }
+        $headers = self::SHEETS['Contracts'][1];
+        $actual = $sheet->rangeToArray('A1:J1', null, false, false)[0];
+        if ($actual !== $headers) {
+            throw ValidationException::withMessages(['file' => 'Cấu trúc cột không khớp mẫu Export hợp đồng.']);
+        }
+        $seen = [];
+        $rows = [];
+        for ($line = 2; $line <= $sheet->getHighestRow(); $line++) {
+            $values = $sheet->rangeToArray('A'.$line.':J'.$line, null, false, false)[0];
+            if (count(array_filter($values, fn ($value) => trim((string)$value) !== '')) === 0) continue;
+            $item = array_combine($headers, array_map(fn ($value) => trim((string)$value), $values));
+            $number = $item['contract_number'];
+            $errors = [];
+            if ($number === '' || mb_strlen($number) > 255) $errors[] = 'Số hợp đồng không hợp lệ';
+            if (isset($seen[$number])) $errors[] = 'Trùng số hợp đồng trong file';
+            $seen[$number] = true;
+            if (!in_array($item['lender_type'], ['individual','company','credit_institution'],true)) $errors[] = 'Loại đối tác không hợp lệ';
+            if ($item['lender_name'] === '' || mb_strlen($item['lender_name']) > 255) $errors[] = 'Tên đối tác không hợp lệ';
+            if (mb_strlen($item['lender_tax_identifier']) > 255) $errors[] = 'Mã số thuế quá dài';
+            if (!preg_match('/^\\d{1,18}(?:\\.\\d{1,2})?$/D', $item['committed_amount']) || (float)$item['committed_amount'] <= 0) $errors[] = 'Cam kết phải lớn hơn 0, tối đa 2 số lẻ';
+            if (!preg_match('/^\\d{1,3}(?:\\.\\d{1,5})?$/D', $item['annual_rate_percent']) || (float)$item['annual_rate_percent'] > 100) $errors[] = 'Lãi suất từ 0 đến 100, tối đa 5 số lẻ';
+            if (!in_array($item['day_count_basis'], ['360','365','366'],true)) $errors[] = 'Cơ sở tính ngày không hợp lệ';
+            foreach (['signed_at','matures_at'] as $field) {
+                $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $item[$field]);
+                if (!$date || $date->format('Y-m-d') !== $item[$field]) $errors[] = 'Ngày '.$field.' không hợp lệ';
+            }
+            if ($item['signed_at'] > $item['matures_at']) $errors[] = 'Đáo hạn trước ngày ký';
+            if (!in_array($item['status'], ['draft','active','closed','cancelled'],true)) $errors[] = 'Trạng thái không hợp lệ';
+            $lender = DB::table('loan_lenders')->where('name',$item['lender_name'])->where('type',$item['lender_type'])->when($item['lender_tax_identifier'] !== '', fn ($q) => $q->where('tax_identifier',$item['lender_tax_identifier']))->get(['id']);
+            if ($lender->count() !== 1) $errors[] = 'Đối tác không tồn tại hoặc không duy nhất';
+            $existing = DB::table('loan_contracts')->where('contract_number',$number)->first();
+            $action = $errors ? 'error' : ($existing ? 'existing' : 'create');
+            $rows[] = ['line'=>$line,'data'=>$item,'lender_id'=>$lender->count()===1 ? (int)$lender[0]->id : null,'action'=>$action,'errors'=>$errors];
+        }
+        $book->disconnectWorksheets();
+        return $rows;
+    }
+
+    public function importNewDrafts(array $rows, LoanContractService $contracts): array
+    {
+        $created = 0;
+        $skipped = 0;
+        DB::transaction(function () use ($rows, $contracts, &$created, &$skipped): void {
+            foreach ($rows as $row) {
+                if ($row['action'] !== 'create') { $skipped++; continue; }
+                $data = $row['data'];
+                // Revalidate against live data. Preview is not authorization or a reservation.
+                if (DB::table('loan_contracts')->where('contract_number',$data['contract_number'])->exists()) { $skipped++; continue; }
+                if (!DB::table('loan_lenders')->where('id',$row['lender_id'])->where('name',$data['lender_name'])->where('type',$data['lender_type'])->when($data['lender_tax_identifier'] !== '', fn ($q) => $q->where('tax_identifier',$data['lender_tax_identifier']))->exists()) {
+                    throw ValidationException::withMessages(['file'=>'Đối tác đã thay đổi sau bước xem trước. Hãy tải lại file.']);
+                }
+                $contracts->createContract([
+                    'lender_id'=>$row['lender_id'],
+                    'contract_number'=>$data['contract_number'],
+                    'committed_amount'=>$data['committed_amount'],
+                    'annual_rate_percent'=>$data['annual_rate_percent'],
+                    'day_count_basis'=>(int)$data['day_count_basis'],
+                    'signed_at'=>$data['signed_at'],
+                    'matures_at'=>$data['matures_at'],
+                ]);
+                $created++;
+            }
+        }, 3);
+        return ['created'=>$created,'skipped'=>$skipped];
+    }
+}

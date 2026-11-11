@@ -1,0 +1,70 @@
+<?php
+
+namespace Tests\Feature\ClientApps;
+
+use Tests\TestCase;
+
+final class LoanManagementWorkbookContractTest extends TestCase
+{
+    public function test_export_and_two_step_import_are_guarded_and_do_not_expose_binary_navigation(): void
+    {
+        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
+        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanContractTransferController.php'));
+        $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/contracts.blade.php'));
+        foreach ([
+            "Route::get('/contracts/export'",
+            "Route::get('/contracts/import/template'",
+            "Route::post('/contracts/import/preview'",
+            "Route::post('/contracts/import/confirm'",
+        ] as $route) $this->assertStringContainsString($route,$routes);
+        $this->assertStringContainsString("can('client.loans.contracts.view')",$controller);
+        $this->assertStringContainsString("can('client.loans.contracts.create')",$controller);
+        $this->assertStringContainsString("session()->put('loan_contract_import'",$controller);
+        $this->assertStringContainsString("hash_equals(",$controller);
+        $this->assertStringContainsString("importNewDrafts(",$controller);
+        $this->assertStringContainsString("streamDownload(",$controller);
+        $this->assertStringContainsString("public function template(Request \$request", $controller);
+        $this->assertStringContainsString("can('client.loans.contracts.create')", $controller);
+        $this->assertLessThan(strpos($view, 'role="search"'), strpos($view, 'id="loan-import"'));
+
+        $this->assertStringContainsString("array_map('intval', \$data['contracts'] ?? [])", $controller);
+        foreach ([
+            "route('client.loans.contracts.import.preview')",
+            "route('client.loans.contracts.import.template')",
+            "Tải file mẫu",
+            "route('client.loans.contracts.import.confirm')",
+            "route('client.loans.contracts.export')",
+            "data-loan-contract-select",
+            "data-loan-select-all",
+            "data-loan-import-toggle",
+            "link.click()",
+            "importPanel.hidden",
+            '<section id="loan-import" hidden',
+            '[data-loan-contracts-workspace] [hidden] { display: none !important; }',
+            "const endpoint = @json(route('client.loans.contracts.export'))",
+            "fetch(endpoint,",
+            "Xác nhận tạo",
+        ] as $fragment) $this->assertStringContainsString($fragment,$view);
+    }
+
+    public function test_workbook_export_covers_business_and_audit_state_but_import_only_creates_drafts(): void
+    {
+        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanContractWorkbookService.php'));
+        foreach ([
+            "public function template(): Spreadsheet",
+            "'HDCN-TEMPLATE-001'",
+            "'HDNH-TEMPLATE-001'",
+            "'Contracts' =>", "'Disbursements' =>", "'Schedules' =>", "'Payments' =>",
+            "'Insurance' =>", "'Premiums' =>", "'Allocations' =>", "'ReminderSettings' =>",
+            "'ReminderRecipients' =>", "'ReminderDeliveries' =>", "'ScheduleChanges' =>",
+            "public function preview(UploadedFile", "public function importNewDrafts(",
+            "createContract([", "DB::transaction(", "->limit(self::MAX_EXPORT + 1)",
+            "self::MAX_IMPORT + 1", "TYPE_STRING", "createReader('Xlsx')",
+            "whereIn(\$name === 'Contracts' ? 't.id' : 'c.id', \$contractIds)",
+        ] as $fragment) $this->assertStringContainsString($fragment,$service);
+        $this->assertStringNotContainsString("DB::table('loan_disbursements')->insert",$service);
+        $this->assertStringNotContainsString("DB::table('loan_payments')->insert",$service);
+        $this->assertStringNotContainsString("DB::table('loan_insurance_policies')->insert",$service);
+        $this->assertStringNotContainsString("DB::table('loan_contracts')->update",$service);
+    }
+}

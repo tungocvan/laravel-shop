@@ -1,0 +1,65 @@
+# LoanManagement — Module Contract
+
+## Ownership
+Owns company borrowing contracts, lenders, disbursements, repayment obligations,
+payments, insurance policies and insurance premium schedules. Does not own lending
+to other parties or Finance ledgers. No dependency on Finance.
+
+## ClientPortal boundary
+ClientPortal owns the web-guard PWA adapter at /apps/loans and /my-apps registration.
+LoanManagement owns canonical financial rules and persistence. Domain code must not
+depend on ClientPortal.
+
+## Safety
+Never auto-seed production. Do not calculate interest on undisbursed commitments.
+Do not treat a scheduled payment as settled. Insurance purchase is not presumed
+mandatory; store contractual/voluntary/unverified requirement separately.
+
+## Implementation status
+Domain services, CRUD endpoints, disbursement and repayment workflows, insurance,
+reminder settings/history, local demo seed/clean commands and feature/contract tests
+exist on the current LoanManagement feature branch. They are not evidence of
+production deployment or UI acceptance for new refactor batches.
+
+## PWA workspace contract (UI-1 transition)
+ClientPortal owns the `/apps/loans` Overview Hub and dedicated browse entry
+routes `/apps/loans/{lenders|contracts|payments|reminders|insurance}`.
+Each capability declares manifest navigation, permission and presentation defaults.
+The Hub remains the canonical discovery surface; focused browse screens hide the
+global app header/mobile navigation and provide a local return path.
+
+During UI-1 the dedicated pages were transition shells linking back to the
+existing functional dashboard anchors. Existing POST/PUT/PATCH/DELETE endpoints
+and financial services remain canonical. Later UI batches may move forms and
+lists into focused workspaces without changing financial calculations or
+persistence ownership. Do not duplicate business rules in ClientPortal.
+
+## Dependencies and non-ownership
+Direct dependencies: Auth, Role, Shared (per module config).
+ClientPortal is a consumer/integration adapter, not a domain dependency.
+Finance ledgers and unrelated shared user/organization records are not owned
+by LoanManagement. UI refactor does not change database schema or domain
+data-clean semantics.
+
+ 
+## UI-2 contract (pending regression/UI acceptance)
+ClientPortal renders a dedicated lender list/search/create workspace at
+`GET /apps/loans/lenders` and a three-step contract creation workspace at
+`GET /apps/loans/contracts/create`. The contract form posts to the existing
+canonical `client.loans.contracts.store` endpoint. Inline lender creation
+reuses `client.loans.lenders.store` with an optional JSON response and
+preserves the legacy redirect for ordinary HTML submissions. Both pages
+use the existing web guard and explicit create permissions.
+The legacy Overview forms remain compatible during migration.
+The preview calculator script is shared by the legacy and new wizards;
+actual schedule persistence and interest validation remain domain-owned.
+
+ 
+## UI-3 contract workspace
+`GET /apps/loans/contracts` is a server-paginated, filtered ClientPortal
+browse page, not the legacy Overview's latest-100 dashboard snapshot.
+`GET /apps/loans/contracts/{contract}` is an authorized detail/read-history
+page. It reuses canonical LoanManagement history services and existing
+contract update/delete/restore domain endpoints. The existing Overview
+remains the compatibility surface for disbursement, repayment, reminders
+and insurance operations until subsequent approved workspace batches.
