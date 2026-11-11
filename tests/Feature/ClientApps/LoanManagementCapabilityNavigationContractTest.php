@@ -38,6 +38,6 @@ final class LoanManagementCapabilityNavigationContractTest extends TestCase
         $this->assertStringContainsString("@section('hide-mobile-navigation', true)", $view);
         $this->assertStringContainsString("route('client.loans.dashboard')", $view);
         $this->assertStringContainsString("aria-label=\"Không gian nghiệp vụ khoản vay\"", $dashboard);
-        $this->assertStringContainsString("$application['features']", $dashboard);
+        $this->assertStringContainsString('$application[\'features\']', $dashboard);
     }
 }
