@@ -9,12 +9,10 @@
   <a href="{{ route('client.loans.dashboard') }}" class="inline-flex min-h-11 items-center rounded-xl border bg-white px-4 text-sm">← Tổng quan</a>
   @can('client.loans.contracts.create')<a href="{{ route('client.loans.contracts.create') }}" class="inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">+ Tạo hợp đồng vay</a>@endcan
   @can('client.loans.contracts.view')
-  <button type="button" data-loan-export class="inline-flex min-h-11 items-center rounded-xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800">Xuất Excel đầy đủ</button>
-  <a data-loan-export-ready hidden download="loan-contracts.xlsx" class="inline-flex min-h-11 items-center rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-800">Tải file đã chuẩn bị</a>
-  <button type="button" data-loan-export-share hidden class="min-h-11 rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Chia sẻ file</button>
+  <button type="button" data-loan-export class="inline-flex min-h-11 items-center rounded-xl border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800">Xuất Excel</button>
   @endcan
   @can('client.loans.contracts.create')
-  <a href="#loan-import" class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold">Nhập Excel</a>
+  <button type="button" data-loan-import-toggle aria-expanded="false" aria-controls="loan-import" class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm font-semibold">Nhập Excel</button>
   @endcan
  </nav>
  <header class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
@@ -32,10 +30,15 @@
    <div class="flex items-end gap-2"><button class="min-h-11 rounded-xl bg-blue-800 px-5 text-sm font-semibold text-white">Lọc</button><a href="{{ route('client.loans.contracts.index') }}" class="inline-flex min-h-11 items-center rounded-xl border px-4 text-sm">Đặt lại</a></div>
   </form>
   <p class="mt-5 text-sm text-slate-600">{{ $contracts->total() }} hợp đồng phù hợp · Trang {{ $contracts->currentPage() }}/{{ $contracts->lastPage() }}</p>
+  @can('client.loans.contracts.view')
+  <label class="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" data-loan-select-all class="h-5 w-5 rounded border-slate-300"> Chọn tất cả hợp đồng trên trang này</label>
+  <p data-loan-selection-count class="text-xs text-slate-500">Không chọn hợp đồng nào: xuất toàn bộ dữ liệu.</p>
+  @endcan
   <div class="mt-4 grid gap-3 lg:grid-cols-2">
    @forelse($contracts as $contract)
     @php($outstanding = bcsub((string)$contract->disbursed_total, (string)$contract->principal_repaid, 2))
     <article class="rounded-xl border border-slate-200 p-4 sm:p-5">
+     @can('client.loans.contracts.view')<label class="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" data-loan-contract-select value="{{ $contract->id }}" class="h-5 w-5 rounded border-slate-300"> Chọn xuất Excel</label>@endcan
      <div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0"><h2 class="break-words font-semibold text-slate-900">{{ $contract->contract_number }}</h2><p class="mt-1 text-sm text-slate-600">{{ $contract->lender_name }}</p></div><span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">{{ ['draft'=>'Nháp','active'=>'Đang vay','closed'=>'Đã tất toán','cancelled'=>'Đã hủy'][$contract->status] ?? $contract->status }}</span></div>
      <dl class="mt-4 grid grid-cols-2 gap-3 text-sm"><div><dt class="text-slate-500">Cam kết</dt><dd class="font-semibold tabular-nums">{{ number_format((float)$contract->committed_amount, 0, ',', '.') }} ₫</dd></div><div><dt class="text-slate-500">Dư nợ gốc đã giải ngân</dt><dd class="font-semibold tabular-nums">{{ number_format((float)$outstanding, 0, ',', '.') }} ₫</dd></div><div><dt class="text-slate-500">Ngày ký</dt><dd>{{ $contract->signed_at }}</dd></div><div><dt class="text-slate-500">Đáo hạn</dt><dd>{{ $contract->matures_at }}</dd></div></dl>
      <a href="{{ route('client.loans.contracts.show', $contract->id) }}" class="mt-4 inline-flex min-h-11 items-center rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-800">Xem chi tiết →</a>
@@ -47,7 +50,7 @@
   <div class="mt-5">{{ $contracts->links() }}</div>
  </section>
  @can('client.loans.contracts.create')
- <section id="loan-import" aria-labelledby="loan-import-heading" class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+ <section id="loan-import" @if(!session('loan_contract_import') && !$errors->any()) hidden @endif aria-labelledby="loan-import-heading" class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
   <h2 id="loan-import-heading" class="text-lg font-bold">Nhập hồ sơ hợp đồng từ Excel</h2>
   <p class="mt-2 text-sm text-slate-600">Chỉ đọc sheet Contracts để tạo hợp đồng mới ở trạng thái Nháp. Các sheet giải ngân, lịch trả nợ, thanh toán và bảo hiểm được xuất để lưu trữ/đối chiếu, không tự động ghi vào hệ thống. Hợp đồng đã tồn tại được bỏ qua.</p>
   <form method="POST" action="{{ route('client.loans.contracts.import.preview') }}" enctype="multipart/form-data" class="mt-4 flex flex-wrap items-end gap-3">
@@ -86,30 +89,56 @@
  const root = document.querySelector('[data-loan-contracts-workspace]');
  if (!root) return;
  const button = root.querySelector('[data-loan-export]');
- const ready = root.querySelector('[data-loan-export-ready]');
- const share = root.querySelector('[data-loan-export-share]');
- let url = null, file = null;
+ const boxes = [...root.querySelectorAll('[data-loan-contract-select]')];
+ const selectAll = root.querySelector('[data-loan-select-all]');
+ const selectionCount = root.querySelector('[data-loan-selection-count]');
+ const importToggle = root.querySelector('[data-loan-import-toggle]');
+ const importPanel = root.querySelector('#loan-import');
+ const refreshSelection = () => {
+  const selected = boxes.filter(box => box.checked).length;
+  if (selectionCount) selectionCount.textContent = selected ? 'Đã chọn '+selected+' hợp đồng trên trang này để xuất.' : 'Không chọn hợp đồng nào: xuất toàn bộ dữ liệu.';
+  if (selectAll) {
+   selectAll.checked = boxes.length > 0 && selected === boxes.length;
+   selectAll.indeterminate = selected > 0 && selected < boxes.length;
+  }
+ };
+ selectAll?.addEventListener('change', () => { boxes.forEach(box => { box.checked = selectAll.checked; }); refreshSelection(); });
+ boxes.forEach(box => box.addEventListener('change', refreshSelection));
+ refreshSelection();
+ const setImportOpen = (open) => {
+  if (!importPanel) return;
+  importPanel.hidden = !open;
+  importToggle?.setAttribute('aria-expanded', String(open));
+  if (open) importPanel.scrollIntoView({behavior:'smooth',block:'start'});
+ };
+ importToggle?.addEventListener('click', () => setImportOpen(importPanel?.hidden));
+ if (importPanel && !importPanel.hidden) importToggle?.setAttribute('aria-expanded', 'true');
+ if (window.location.hash === '#loan-import') setImportOpen(true);
  button?.addEventListener('click', async () => {
   button.disabled = true;
-  button.textContent = 'Đang chuẩn bị file…';
+  button.textContent = 'Đang xuất Excel…';
+  let url;
   try {
-   const response = await fetch(@json(route('client.loans.contracts.export')), {credentials:'same-origin',cache:'no-store',headers:{Accept:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}});
+   const selected = boxes.filter(box => box.checked).map(box => box.value);
+   const params = new URLSearchParams();
+   selected.forEach(id => params.append('contracts[]', id));
+   const endpoint = @json(route('client.loans.contracts.export')) + (selected.length ? '?'+params.toString() : '');
+   const response = await fetch(endpoint, {credentials:'same-origin',cache:'no-store',headers:{Accept:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}});
    if (!response.ok) throw new Error('Không thể xuất Excel (HTTP '+response.status+').');
    const blob = await response.blob();
-   if (url) URL.revokeObjectURL(url);
    url = URL.createObjectURL(blob);
-   const filename = 'loan-contracts-'+new Date().toISOString().slice(0,10)+'.xlsx';
-   file = new File([blob], filename, {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-   ready.href = url;
-   ready.download = filename;
-   ready.hidden = false;
-   share.hidden = !(navigator.canShare && navigator.canShare({files:[file]}));
-   button.textContent = 'Chuẩn bị lại file';
-  } catch(error) { alert(error.message || 'Xuất file thất bại.'); button.textContent = 'Xuất Excel đầy đủ'; }
-  finally { button.disabled = false; }
+   const link = document.createElement('a');
+   link.href = url;
+   link.download = 'loan-contracts-'+new Date().toISOString().slice(0,10)+'.xlsx';
+   link.style.display = 'none';
+   document.body.appendChild(link);
+   link.click();
+   link.remove();
+   // Delay revocation to allow the browser to finish its download handoff.
+   setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch(error) { alert(error.message || 'Xuất file thất bại.'); if(url) URL.revokeObjectURL(url); }
+  finally { button.disabled = false; button.textContent = 'Xuất Excel'; }
  });
- share?.addEventListener('click', async () => { if (!file) return; try { await navigator.share({files:[file]}); } catch(error) { if(error.name !== 'AbortError') alert('Không thể chia sẻ file. Hãy dùng nút Tải file.'); } });
- window.addEventListener('pagehide', () => { if(url) URL.revokeObjectURL(url); });
 })();
 </script>
 @endpush
