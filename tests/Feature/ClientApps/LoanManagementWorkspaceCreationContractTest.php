@@ -35,7 +35,7 @@ final class LoanManagementWorkspaceCreationContractTest extends TestCase
         $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
         $this->assertStringContainsString('updateLender(', $service);
         $this->assertStringContainsString('deleteUnusedLender(', $service);
-        $this->assertStringContainsString("DB::table('loan_contracts')->where('lender_id', $id)->exists()", $service);
+        $this->assertStringContainsString("DB::table('loan_contracts')->where('lender_id', \$id)->exists()", $service);
     }
 
     public function test_contract_creation_has_three_steps_and_reuses_existing_preview(): void
