@@ -37,6 +37,24 @@ final class LoanContractTransferController extends Controller
         ]);
     }
 
+    public function template(Request $request, LoanContractWorkbookService $service): StreamedResponse
+    {
+        abort_unless($request->user()?->can('client.loans.contracts.create'), 403);
+        $book = $service->template();
+
+        return response()->streamDownload(function () use ($book): void {
+            try {
+                (new Xlsx($book))->save('php://output');
+            } finally {
+                $book->disconnectWorksheets();
+            }
+        }, 'loan-contracts-import-template.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'private, no-store, max-age=0',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function preview(Request $request, LoanContractWorkbookService $service): RedirectResponse
     {
         abort_unless($request->user()?->can('client.loans.contracts.create'), 403);
