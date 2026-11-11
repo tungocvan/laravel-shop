@@ -75,6 +75,35 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     }
 
 
+    public function test_lender_can_be_edited_but_only_deleted_without_contracts(): void
+    {
+        $service = app(LoanContractService::class);
+        $unused = $service->createLender(['name' => 'Unused', 'type' => 'individual']);
+        $usedContract = $this->contract('LENDER-GUARD-01');
+        $used = (int) DB::table('loan_contracts')->where('id', $usedContract)->value('lender_id');
+
+        $service->updateLender($used, [
+            'name' => 'Updated institution',
+            'type' => 'credit_institution',
+            'tax_identifier' => 'TAX-123',
+            'contact' => 'Contact',
+        ]);
+        $this->assertSame('Updated institution', DB::table('loan_lenders')->where('id', $used)->value('name'));
+        $this->assertSame('credit_institution', DB::table('loan_lenders')->where('id', $used)->value('type'));
+        $this->assertSame($used, (int) DB::table('loan_contracts')->where('id', $usedContract)->value('lender_id'));
+
+        try {
+            $service->deleteUnusedLender($used);
+            $this->fail('Lender with contracts must not be deleted.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('lender', $exception->errors());
+        }
+        $this->assertTrue(DB::table('loan_lenders')->where('id', $used)->exists());
+        $service->deleteUnusedLender($unused);
+        $this->assertFalse(DB::table('loan_lenders')->where('id', $unused)->exists());
+        $this->assertTrue(DB::table('loan_contracts')->where('id', $usedContract)->exists());
+    }
+
     public function test_future_unpaid_installment_can_be_corrected_with_audit_and_ordering(): void
     {
         $contract = $this->contract('CORRECTION-01');
