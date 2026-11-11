@@ -16,18 +16,18 @@
  </header>
  @if(session('success'))<p role="status" class="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-900">{{ session('success') }}</p>@endif
  @if($errors->any())<div role="alert" class="rounded-xl bg-red-50 p-4 text-sm text-red-800"><ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
- <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6" x-data="{search:'', type:'all', open: {{ $errors->any() ? 'true' : 'false' }} }">
+ <section class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
   <div class="flex flex-wrap items-center justify-between gap-3">
    <div><h2 class="text-lg font-semibold">Danh sách đối tác</h2><p class="text-sm text-slate-500">{{ $lenders->count() }} đối tác</p></div>
-   @can('client.loans.contracts.create')<button type="button" @click="open=true" class="min-h-11 rounded-xl bg-blue-800 px-5 text-sm font-semibold text-white">+ Thêm đối tác</button>@endcan
+   @can('client.loans.contracts.create')<button type="button" data-lender-open class="min-h-11 rounded-xl bg-blue-800 px-5 text-sm font-semibold text-white">+ Thêm đối tác</button>@endcan
   </div>
   <div class="mt-5 grid gap-3 sm:grid-cols-2">
-   <label class="block text-sm text-slate-700">Tìm kiếm<input type="search" x-model.debounce.150ms="search" placeholder="Tên, mã số thuế, liên hệ…" class="mt-1 min-h-11 w-full rounded-xl border border-slate-200 p-3"></label>
-   <label class="block text-sm text-slate-700">Loại đối tác<select x-model="type" class="mt-1 min-h-11 w-full rounded-xl border border-slate-200 p-3"><option value="all">Tất cả</option><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
+   <label class="block text-sm text-slate-700">Tìm kiếm<input type="search" data-lender-search placeholder="Tên, mã số thuế, liên hệ…" class="mt-1 min-h-11 w-full rounded-xl border border-slate-200 p-3"></label>
+   <label class="block text-sm text-slate-700">Loại đối tác<select data-lender-filter class="mt-1 min-h-11 w-full rounded-xl border border-slate-200 p-3"><option value="all">Tất cả</option><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
   </div>
   <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
    @forelse($lenders as $lender)
-    <article x-show="(type==='all'||type===@js($lender->type)) && (@js(mb_strtolower($lender->name.' '.$lender->tax_identifier.' '.$lender->contact)).includes(search.toLocaleLowerCase()))" class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+    <article data-lender-card data-lender-type="{{ $lender->type }}" data-lender-search-text="{{ mb_strtolower($lender->name.' '.$lender->tax_identifier.' '.$lender->contact) }}" class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
      <h3 class="break-words font-semibold text-slate-900">{{ $lender->name }}</h3>
      <p class="mt-2 text-xs text-slate-600">{{ ['individual'=>'Cá nhân','company'=>'Công ty','credit_institution'=>'Tổ chức tín dụng'][$lender->type] ?? $lender->type }}</p>
      @if($lender->tax_identifier)<p class="mt-2 break-words text-sm text-slate-700">Mã số thuế: {{ $lender->tax_identifier }}</p>@endif
@@ -38,16 +38,16 @@
    @endforelse
   </div>
   @can('client.loans.contracts.create')
-  <div x-cloak x-show="open" x-transition.opacity class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-5" role="presentation" @keydown.escape.window="open=false">
-   <div role="dialog" aria-modal="true" aria-labelledby="loan-lender-modal-title" class="max-h-[95dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:max-w-xl sm:rounded-2xl sm:p-7" @click.outside="open=false">
-    <div class="flex items-center justify-between gap-3"><h2 id="loan-lender-modal-title" class="text-xl font-bold">Thêm đối tác cho vay</h2><button type="button" @click="open=false" aria-label="Đóng" class="min-h-11 rounded-lg border px-4">✕</button></div>
+  <div data-lender-overlay @if(!$errors->any()) hidden @endif class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-5" role="presentation">
+   <div role="dialog" aria-modal="true" aria-labelledby="loan-lender-modal-title" class="max-h-[95dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:max-w-xl sm:rounded-2xl sm:p-7">
+    <div class="flex items-center justify-between gap-3"><h2 id="loan-lender-modal-title" class="text-xl font-bold">Thêm đối tác cho vay</h2><button type="button" data-lender-close aria-label="Đóng" class="min-h-11 rounded-lg border px-4">✕</button></div>
     <form method="POST" action="{{ route('client.loans.lenders.store') }}" class="mt-5 grid gap-4">@csrf
      <input type="hidden" name="source" value="lenders">
      <label class="text-sm">Tên đối tác *<input required name="name" maxlength="255" value="{{ old('name') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
      <label class="text-sm">Loại *<select name="type" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="individual" @selected(old('type')==='individual')>Cá nhân</option><option value="company" @selected(old('type')==='company')>Công ty</option><option value="credit_institution" @selected(old('type')==='credit_institution')>Tổ chức tín dụng</option></select></label>
      <label class="text-sm">Mã số thuế<input name="tax_identifier" maxlength="255" value="{{ old('tax_identifier') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
      <label class="text-sm">Liên hệ<input name="contact" maxlength="255" value="{{ old('contact') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
-     <div class="flex justify-end gap-2"><button type="button" @click="open=false" class="min-h-11 rounded-xl border px-5">Hủy</button><button class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white">Lưu đối tác</button></div>
+     <div class="flex justify-end gap-2"><button type="button" data-lender-close class="min-h-11 rounded-xl border px-5">Hủy</button><button class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white">Lưu đối tác</button></div>
     </form>
    </div>
   </div>
@@ -55,3 +55,37 @@
  </section>
 </main>
 @endsection
+@push('application-scripts')
+<script>
+(() => {
+ const root=document.querySelector('[data-loan-lenders-workspace]');
+ if(!root) return;
+ const overlay=root.querySelector('[data-lender-overlay]');
+ const open=root.querySelector('[data-lender-open]');
+ const search=root.querySelector('[data-lender-search]');
+ const filter=root.querySelector('[data-lender-filter]');
+ const cards=[...root.querySelectorAll('[data-lender-card]')];
+ let previousFocus=null;
+ const update=()=>{
+  const term=(search.value||'').toLocaleLowerCase('vi');
+  for(const card of cards) card.hidden=!(filter.value==='all'||filter.value===card.dataset.lenderType)||!card.dataset.lenderSearchText.includes(term);
+ };
+ const close=()=>{overlay.hidden=true;document.body.style.overflow='';(previousFocus||open)?.focus();};
+ open?.addEventListener('click',()=>{previousFocus=document.activeElement;overlay.hidden=false;document.body.style.overflow='hidden';overlay.querySelector('input[name="name"]')?.focus();});
+ overlay?.querySelectorAll('[data-lender-close]').forEach(button=>button.addEventListener('click',close));
+ overlay?.addEventListener('click',event=>{if(event.target===overlay)close();});
+ document.addEventListener('keydown',event=>{
+  if(overlay.hidden)return;
+  if(event.key==='Escape'){close();return;}
+  if(event.key!=='Tab')return;
+  const focusable=[...overlay.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled])')];
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+  else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+ });
+ search?.addEventListener('input',update);
+ filter?.addEventListener('change',update);
+ update();
+})();
+</script>
+@endpush
