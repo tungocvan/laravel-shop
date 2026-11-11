@@ -261,3 +261,11 @@ Branch: `feat/loan-management-pwa-20261110`
 - UI uses existing named routes, Controller validation, canonical LoanManagement services, existing permission checks, PWA date component and domain status guards. No new financial formulas or schema changes. Existing dashboard operations retained for backward compatibility.
 - Detail controller now queries only current contract's installment allocations, reminder settings/recipients/history and insurance policies/premiums. Financial and history data remain domain-owned. Operation success redirects to the same contract when source=detail; legacy Overview POSTs still redirect to Overview. Insurance premium redirects derive the owning contract from persisted policy/premium, not user-supplied contract_id.
 - Added `LoanManagementContractDetailOperationsContractTest`. No automated tests executed by assistant. Focused tests, module regression and desktop/mobile UI (including errors, permissions, state after refresh and no double submit) required before UI PASS. Preserve all untracked files. No PR/merge/deploy.
+
+ 
+## UI-3B UX refinement — native Tab Panel (PENDING TEST/UI)
+- User screenshots showed successful disbursement but an excessively long detail page: all forms and 13+ installment cards rendered sequentially. User requested professional tab panels.
+- Branch `feat/loan-contract-detail-tab-panel-ui3b-20261111` from UI-3B branch; no worktree and no merge.
+- Five native tab panels: Giải ngân, Lịch trả nợ, Thanh toán, Nhắc hẹn, Bảo hiểm. Only one panel visible at a time. Uses accessible tablist/tab/tabpanel, aria-selected/controls/labelledby, Left/Right/Home/End keyboard navigation and 44px touch targets.
+- Tab state is scoped per contract via sessionStorage, URL fragments permit deep linking; no Alpine dependency. Hidden panels enforce CSS [hidden] visibility. All existing Blade forms, route names, permissions, server validations and domain services remain unchanged.
+- Added LoanManagementContractDetailTabsContractTest. Requires focused test + UI-3B contract test, module regression, and user UI verification on desktop/tablet/iPhone. Verify tab switching, keyboard, post-save selected tab restoration, 13+ installments, form submissions, reminder Email and insurance. No test or UI PASS claimed by assistant.
