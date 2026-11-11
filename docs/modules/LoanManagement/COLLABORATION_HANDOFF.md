@@ -232,3 +232,13 @@ Branch: `feat/loan-management-pwa-20261110`
 - Replaced Alpine-dependent lender modal/search/filter with scoped native JS; retained POST, validation, focus return, Escape/Tab and outside close. Added scoped hidden-display rule and updated contract assertions. No changes to finance data, routes or schema.
 - **Remaining risk**: contract-create wizard also uses Alpine directives and must be audited/fixed before UI-2 overall PASS; do not certify wizard from lender-only retest.
 - Focused tests not rerun by assistant; request local focused then module regression and manual UI retest.
+
+ 
+## UI-2A/UI-2B — Native wizard and safe lender management (PENDING TEST/UI)
+- User approved: lenders with any loan contracts may be edited but must not be deleted; lenders with zero contracts may be deleted after explicit confirmation.
+- LoanContractService owns updateLender and deleteUnusedLender, both transactional with row lock; delete rejects any linked loan_contracts with ValidationException. Existing contract data and database schema unchanged.
+- Added PUT/DELETE /apps/loans/lenders/{lender} with contract-edit permission and server-side validation. Existing POST and JSON inline-create remain unchanged.
+- Lender list shows contract count, edit action and conditional delete action; native JS reuses modal for create/edit, confirm on delete.
+- Contract wizard and inline lender modal now use native JS instead of uninitialized Alpine. Wizard stages, required validation, lender JSON creation, Escape/outside click and focus behavior retained. Shared legacy schedule preview stays reused.
+- Tests extended: LoanManagementWorkspaceCreationContractTest and SQLite LoanManagementBusinessIntegrationTest. **No tests executed by assistant.**
+- Checkpoint: focused tests first, then module regression; UI manually test create/edit/delete with and without contracts, wizard stages and inline lender save, desktop/tablet/iPhone, permissions and console errors. UI PASS only after user confirmation. No merge or production changes.
