@@ -12,6 +12,8 @@
    <div><dt class="text-slate-500">Phí phải đóng</dt><dd class="font-semibold tabular-nums">{{ number_format((float)$record->premium_due,0,',','.') }} ₫</dd></div>
    <div><dt class="text-slate-500">Đã đóng</dt><dd class="font-semibold tabular-nums">{{ number_format((float)$record->premium_paid,0,',','.') }} ₫</dd></div>
    <div><dt class="text-slate-500">Còn phải đóng</dt><dd class="font-semibold tabular-nums">{{ number_format((float)$remaining,0,',','.') }} ₫</dd></div>
+   <div><dt class="text-slate-500">Kỳ phí chưa đóng gần nhất</dt><dd class="font-semibold">{{ $record->next_unpaid_due_at ?? 'Không có' }}</dd></div>
+   <div><dt class="text-slate-500">Kỳ phí quá hạn</dt><dd class="font-semibold {{ $record->overdue_premium_count > 0 ? 'text-red-700' : '' }}">{{ $record->overdue_premium_count }}</dd></div>
    <div><dt class="text-slate-500">Hiệu lực</dt><dd>{{ $record->starts_at }} — {{ $record->ends_at ?? 'Không xác định' }}</dd></div>
   </dl>
   <a href="{{ route('client.loans.contracts.show',$record->contract_id) }}#loan-insurance" class="mt-4 inline-flex min-h-11 items-center rounded-xl bg-blue-800 px-4 text-sm font-semibold text-white">Xem bảo hiểm và kỳ phí →</a>
