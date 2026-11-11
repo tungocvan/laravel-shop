@@ -29,7 +29,7 @@ final class LoanManagementCapabilityNavigationContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/capability.blade.php'));
         $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
 
-        $this->assertStringContainsString("Route::get('/'.$workspace", $routes);
+        $this->assertStringContainsString('Route::get(\'/\'.$workspace', $routes);
         foreach (["Route::post('/lenders'", "Route::post('/contracts'", "Route::put('/contracts/{contract}'", "Route::delete('/contracts/{contract}'"] as $endpoint) {
             $this->assertStringContainsString($endpoint, $routes);
         }
