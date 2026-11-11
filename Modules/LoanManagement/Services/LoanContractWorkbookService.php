@@ -29,6 +29,29 @@ final class LoanContractWorkbookService
         'ScheduleChanges' => ['loan_schedule_adjustments', ['contract_number','installment','actor_id','before_json','after_json','created_at']],
     ];
 
+    /** Download-only sample; never queries or changes financial records. */
+    public function template(): Spreadsheet
+    {
+        $book = new Spreadsheet();
+        $first = true;
+        foreach (self::SHEETS as $name => [, $headers]) {
+            $sheet = $first ? $book->getActiveSheet() : $book->createSheet();
+            $first = false;
+            $sheet->setTitle($name);
+            $sheet->fromArray($headers, null, 'A1');
+            $sheet->getStyle('A1:'.\\PhpOffice\\PhpSpreadsheet\\Cell\\Coordinate::stringFromColumnIndex(count($headers)).'1')->getFont()->setBold(true);
+            $sheet->freezePane('A2');
+            if ($name === 'Contracts') {
+                $sheet->fromArray([
+                    ['HDCN-TEMPLATE-001', 'Nguyễn Văn An', 'individual', null, 120000000, 11.5, 365, '2026-11-11', '2027-11-30', 'draft'],
+                    ['HDNH-TEMPLATE-001', 'Ngân Hàng Techcombank', 'credit_institution', null, 1500000000, 10.5, 365, '2026-11-11', '2027-11-30', 'draft'],
+                ], null, 'A2');
+            }
+        }
+
+        return $book;
+    }
+
     public function export(array $contractIds = []): Spreadsheet
     {
         $book = new Spreadsheet();
