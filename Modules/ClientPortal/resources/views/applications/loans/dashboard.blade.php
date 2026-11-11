@@ -38,7 +38,7 @@
     <div class="flex items-center justify-between gap-2"><h3 class="font-semibold">Lịch trả nợ</h3><span class="rounded-full bg-slate-100 px-3 py-1 text-xs">{{ $executive['upcoming']->count() }} kỳ hiển thị</span></div>
     <div class="mt-3 divide-y divide-slate-100">
      @forelse($executive['upcoming'] as $due)
-     <a href="{{ route('client.loans.contracts.show', $due->loan_contract_id) }}#loan-schedule" class="flex min-h-14 items-center justify-between gap-3 py-3 hover:bg-slate-50">
+     <a href="{{ route('client.loans.contracts.show', $due->loan_contract_id) }}#loan-schedules" class="flex min-h-14 items-center justify-between gap-3 py-3 hover:bg-slate-50">
       <div class="min-w-0"><p class="truncate text-sm font-semibold text-slate-900">{{ $due->contract_number }} · {{ $due->lender_name }}</p><p class="mt-1 text-xs {{ $due->due_at < now()->toDateString() ? 'font-semibold text-red-700' : 'text-slate-500' }}">Hạn {{ $due->due_at }}{{ $due->due_at < now()->toDateString() ? ' · Quá hạn' : '' }}</p></div>
       <strong class="shrink-0 text-right text-sm tabular-nums">{{ number_format((float)$due->remaining, 0, ',', '.') }} ₫</strong>
      </a>
