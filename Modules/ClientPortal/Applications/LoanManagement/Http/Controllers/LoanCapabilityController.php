@@ -37,6 +37,9 @@ final class LoanCapabilityController extends Controller
         $view = match ($workspace) {
             'lenders' => 'ClientPortal::applications.loans.lenders',
             'contracts' => 'ClientPortal::applications.loans.contracts',
+            'payments' => 'ClientPortal::applications.loans.payments',
+            'reminders' => 'ClientPortal::applications.loans.reminders',
+            'insurance' => 'ClientPortal::applications.loans.insurance',
             default => 'ClientPortal::applications.loans.capability',
         };
         $filters = [
@@ -74,6 +77,104 @@ final class LoanCapabilityController extends Controller
             $query->from('loan_contracts')->selectRaw('COUNT(*)')->whereColumn('loan_contracts.lender_id', 'loan_lenders.id');
         }, 'contracts_count')->orderBy('name')->get() : collect();
 
+        $operations = null;
+        $operationTotals = null;
+        $operationFilters = [
+            'search' => $filters['search'],
+            'status' => (string) $request->query('status', 'all'),
+        ];
+        if (in_array($workspace, ['payments', 'reminders', 'insurance'], true)) {
+            $allowedStatuses = match ($workspace) {
+                'payments' => ['all', 'draft', 'active', 'closed', 'cancelled'],
+                'reminders' => ['all', 'enabled', 'disabled', 'overdue'],
+                'insurance' => ['all', 'unpaid', 'partial', 'paid', 'no_premiums'],
+            };
+            if (!in_array($operationFilters['status'], $allowedStatuses, true)) {
+                $operationFilters['status'] = 'all';
+            }
+            $base = DB::table('loan_contracts as c')
+                ->join('loan_lenders as l', 'l.id', '=', 'c.lender_id');
+            if ($workspace === 'payments') {
+                $base->select('c.id', 'c.contract_number', 'c.status', 'c.committed_amount', 'l.name as lender_name')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_disbursements')->selectRaw('COALESCE(SUM(amount), 0)')
+                            ->whereColumn('loan_contract_id', 'c.id');
+                    }, 'disbursed_total')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_payments')->selectRaw('COALESCE(SUM(principal_paid), 0)')
+                            ->whereColumn('loan_contract_id', 'c.id');
+                    }, 'principal_repaid')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_payments')->selectRaw('COALESCE(SUM(interest_paid + fees_paid), 0)')
+                            ->whereColumn('loan_contract_id', 'c.id');
+                    }, 'charges_paid');
+                if ($operationFilters['status'] !== 'all') $base->where('c.status', $operationFilters['status']);
+            } elseif ($workspace === 'reminders') {
+                $base->leftJoin('loan_reminder_settings as rs', 'rs.loan_contract_id', '=', 'c.id')
+                    ->select('c.id', 'c.contract_number', 'c.status', 'l.name as lender_name', 'rs.enabled', 'rs.days_before')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_repayment_schedules as s')
+                            ->leftJoin('loan_payment_allocations as a', 'a.loan_repayment_schedule_id', '=', 's.id')
+                            ->whereColumn('s.loan_contract_id', 'c.id')
+                            ->where('s.due_at', '<', now()->toDateString())
+                            ->groupBy('s.loan_contract_id')
+                            ->selectRaw('COUNT(DISTINCT s.id)');
+                    }, 'past_schedule_count')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_repayment_schedules')->selectRaw('MIN(due_at)')
+                            ->whereColumn('loan_contract_id', 'c.id')
+                            ->where('due_at', '>=', now()->toDateString());
+                    }, 'next_due_at')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_reminder_deliveries as d')
+                            ->join('loan_repayment_schedules as s', 's.id', '=', 'd.loan_repayment_schedule_id')
+                            ->whereColumn('s.loan_contract_id', 'c.id')->selectRaw('COUNT(*)');
+                    }, 'delivery_count');
+                if ($operationFilters['status'] === 'enabled') $base->where('rs.enabled', true);
+                if ($operationFilters['status'] === 'disabled') $base->where(fn ($q) => $q->whereNull('rs.enabled')->orWhere('rs.enabled', false));
+                if ($operationFilters['status'] === 'overdue') $base->whereExists(function ($q) {
+                    $q->selectRaw('1')->from('loan_repayment_schedules as s')
+                        ->whereColumn('s.loan_contract_id', 'c.id')
+                        ->where('s.due_at', '<', now()->toDateString())
+                        ->whereRaw('(s.principal_due + s.interest_due + s.fees_due) > COALESCE((SELECT SUM(a.principal_allocated + a.interest_allocated + a.fees_allocated) FROM loan_payment_allocations a WHERE a.loan_repayment_schedule_id = s.id), 0)');
+                });
+            } else {
+                $base->join('loan_insurance_policies as p', 'p.loan_contract_id', '=', 'c.id')
+                    ->select('c.id as contract_id', 'c.contract_number', 'c.status as contract_status', 'l.name as lender_name',
+                        'p.id', 'p.provider', 'p.policy_number', 'p.type', 'p.requirement', 'p.starts_at', 'p.ends_at', 'p.insured_amount')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_insurance_premium_schedules')->selectRaw('COALESCE(SUM(amount_due), 0)')
+                            ->whereColumn('loan_insurance_policy_id', 'p.id');
+                    }, 'premium_due')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_insurance_premium_schedules')->selectRaw('COALESCE(SUM(amount_paid), 0)')
+                            ->whereColumn('loan_insurance_policy_id', 'p.id');
+                    }, 'premium_paid')
+                    ->selectSub(function ($q) {
+                        $q->from('loan_insurance_premium_schedules')->selectRaw('COUNT(*)')
+                            ->whereColumn('loan_insurance_policy_id', 'p.id');
+                    }, 'premium_count');
+                if ($operationFilters['status'] === 'no_premiums') $base->whereNotExists(fn ($q) => $q->selectRaw('1')->from('loan_insurance_premium_schedules as ps')->whereColumn('ps.loan_insurance_policy_id', 'p.id'));
+                if ($operationFilters['status'] === 'unpaid') $base->whereExists(fn ($q) => $q->selectRaw('1')->from('loan_insurance_premium_schedules as ps')->whereColumn('ps.loan_insurance_policy_id', 'p.id')->whereRaw('ps.amount_paid = 0'));
+                if ($operationFilters['status'] === 'partial') $base->whereExists(fn ($q) => $q->selectRaw('1')->from('loan_insurance_premium_schedules as ps')->whereColumn('ps.loan_insurance_policy_id', 'p.id')->whereRaw('ps.amount_paid > 0 AND ps.amount_paid < ps.amount_due'));
+                if ($operationFilters['status'] === 'paid') $base->whereExists(fn ($q) => $q->selectRaw('1')->from('loan_insurance_premium_schedules as ps')->whereColumn('ps.loan_insurance_policy_id', 'p.id'))
+                    ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('loan_insurance_premium_schedules as ps')->whereColumn('ps.loan_insurance_policy_id', 'p.id')->whereRaw('ps.amount_paid < ps.amount_due'));
+            }
+            if ($operationFilters['search'] !== '') {
+                $term = $operationFilters['search'];
+                $base->where(function ($q) use ($term, $workspace) {
+                    $q->where('c.contract_number', 'like', '%'.$term.'%')
+                        ->orWhere('l.name', 'like', '%'.$term.'%');
+                    if ($workspace === 'insurance') {
+                        $q->orWhere('p.provider', 'like', '%'.$term.'%')
+                            ->orWhere('p.policy_number', 'like', '%'.$term.'%');
+                    }
+                });
+            }
+            $operations = $base->orderByDesc($workspace === 'insurance' ? 'p.id' : 'c.id')
+                ->paginate(12)->withQueryString();
+        }
+
         return view($view, [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
@@ -84,6 +185,8 @@ final class LoanCapabilityController extends Controller
             'lenders' => $lenders,
             'contracts' => $contracts,
             'filters' => $filters,
+            'operations' => $operations,
+            'operationFilters' => $operationFilters,
         ]);
     }
     public function createContract(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings): View
