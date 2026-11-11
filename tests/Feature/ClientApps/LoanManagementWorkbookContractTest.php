@@ -32,6 +32,8 @@ final class LoanManagementWorkbookContractTest extends TestCase
             "data-loan-import-toggle",
             "link.click()",
             "importPanel.hidden",
+            '<section id="loan-import" hidden',
+            '[data-loan-contracts-workspace] [hidden] { display: none !important; }',
             "const endpoint = @json(route('client.loans.contracts.export'))",
             "fetch(endpoint,",
             "Xác nhận tạo",
