@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 final class LoanContractWorkbookService
 {
@@ -57,7 +56,7 @@ final class LoanContractWorkbookService
                 foreach ($headers as $column => $header) {
                     $value = $row->{$header};
                     // All exported values are plain strings; never evaluate spreadsheet formulas from user input.
-                    $sheet->setCellValueExplicitByColumnAndRow($column + 1, $index, (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($column + 1).$index, (string) ($value ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                 }
                 $index++;
             }
@@ -74,7 +73,7 @@ final class LoanContractWorkbookService
 
     public function preview(UploadedFile $file): array
     {
-        $book = IOFactory::load($file->getRealPath());
+        $book = IOFactory::createReader('Xlsx')->load($file->getRealPath());
         $sheet = $book->getSheetByName('Contracts');
         if (!$sheet) {
             throw ValidationException::withMessages(['file' => 'Thiếu sheet Contracts trong file Excel.']);
@@ -83,14 +82,14 @@ final class LoanContractWorkbookService
             throw ValidationException::withMessages(['file' => 'Mỗi lần nhập tối đa 100 hợp đồng.']);
         }
         $headers = self::SHEETS['Contracts'][1];
-        $actual = $sheet->rangeToArray('A1:J1', null, true, false)[0];
+        $actual = $sheet->rangeToArray('A1:J1', null, false, false)[0];
         if ($actual !== $headers) {
             throw ValidationException::withMessages(['file' => 'Cấu trúc cột không khớp mẫu Export hợp đồng.']);
         }
         $seen = [];
         $rows = [];
         for ($line = 2; $line <= $sheet->getHighestRow(); $line++) {
-            $values = $sheet->rangeToArray('A'.$line.':J'.$line, null, true, false)[0];
+            $values = $sheet->rangeToArray('A'.$line.':J'.$line, null, false, false)[0];
             if (count(array_filter($values, fn ($value) => trim((string)$value) !== '')) === 0) continue;
             $item = array_combine($headers, array_map(fn ($value) => trim((string)$value), $values));
             $number = $item['contract_number'];
