@@ -22,7 +22,7 @@ final class LoanManagementOperationsWorkspacesContractTest extends TestCase
             $this->assertStringContainsString("route('client.loans.contracts.show'", $view);
             $this->assertStringContainsString('#loan-', $view);
         }
-        $this->assertStringContainsString("abort_unless($request->user()?->can(self::WORKSPACES[", str_replace('$request', '\$request', $controller));
+        $this->assertStringContainsString('abort_unless($request->user()?->can(self::WORKSPACES[', $controller);
     }
 
     public function test_search_filter_pagination_and_managed_presentation_are_preserved(): void
