@@ -26,6 +26,7 @@ final class LoanContractWorkbookService
         'ReminderSettings' => ['loan_reminder_settings', ['contract_number','enabled','recipient_email','days_before']],
         'ReminderRecipients' => ['loan_reminder_recipients', ['contract_number','email']],
         'ReminderDeliveries' => ['loan_reminder_deliveries', ['contract_number','installment','days_before','due_at_snapshot','recipient_email','status','sent_at']],
+        'ScheduleChanges' => ['loan_schedule_adjustments', ['contract_number','installment','actor_id','before_json','after_json','created_at']],
     ];
 
     public function export(): Spreadsheet
@@ -51,6 +52,10 @@ final class LoanContractWorkbookService
                     ->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
                     ->join('loan_contracts as c','c.id','=','payment.loan_contract_id')
                     ->select('c.contract_number','payment.id as payment_id','schedule.installment','t.principal_allocated','t.interest_allocated','t.fees_allocated');
+            } elseif ($name === 'ScheduleChanges') {
+                $query->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
+                    ->join('loan_contracts as c','c.id','=','schedule.loan_contract_id')
+                    ->select('c.contract_number','schedule.installment','t.actor_id','t.before_json','t.after_json','t.created_at');
             } elseif ($name === 'ReminderDeliveries') {
                 $query->join('loan_repayment_schedules as schedule','schedule.id','=','t.loan_repayment_schedule_id')
                     ->join('loan_contracts as c','c.id','=','schedule.loan_contract_id')
