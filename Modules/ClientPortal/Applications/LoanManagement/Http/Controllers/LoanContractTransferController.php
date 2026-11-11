@@ -17,7 +17,11 @@ final class LoanContractTransferController extends Controller
     public function export(Request $request, LoanContractWorkbookService $service): StreamedResponse
     {
         abort_unless($request->user()?->can('client.loans.contracts.view'), 403);
-        $book = $service->export();
+        $data = $request->validate([
+            'contracts' => ['sometimes', 'array', 'max:5000'],
+            'contracts.*' => ['required', 'integer', 'distinct', 'min:1', \Illuminate\Validation\Rule::exists('loan_contracts', 'id')],
+        ]);
+        $book = $service->export(array_map('intval', $data['contracts'] ?? []));
         $filename = 'loan-contracts-'.now()->format('Ymd-His').'.xlsx';
 
         return response()->streamDownload(function () use ($book): void {
