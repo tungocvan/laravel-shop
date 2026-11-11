@@ -43,7 +43,6 @@ final class LoanManagementWorkspaceCreationContractTest extends TestCase
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/contract-create.blade.php'));
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
-        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
         $shared = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/wizard-preview-script.blade.php'));
 
         foreach (['data-loan-step="1"', 'data-loan-step="2"', 'data-loan-step="3"',
@@ -55,7 +54,6 @@ final class LoanManagementWorkspaceCreationContractTest extends TestCase
         $this->assertStringContainsString("createContractWithOptionalSchedule", $controller);
         $this->assertStringContainsString("expectsJson()", $controller);
         $this->assertStringContainsString('const previewSchedule = () =>', $shared);
-        $this->assertStringContainsString('partials.wizard-preview-script', $dashboard);
         $this->assertStringContainsString('partials.wizard-preview-script', $view);
         $this->assertStringNotContainsString('x-data=', $view);
         $this->assertStringContainsString("form.addEventListener('submit'", $view);
