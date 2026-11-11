@@ -216,3 +216,13 @@ Branch: `feat/loan-management-pwa-20261110`
 - Preserved all existing mutation endpoints, domain services, database/migrations and legacy dashboard forms. Updated MODULE.md to resolve stale status/ownership description. Added `LoanManagementCapabilityNavigationContractTest`.
 - Focused tests NOT RUN by assistant. Suggested: `php8.4 artisan test tests/Feature/ClientApps/LoanManagementCapabilityNavigationContractTest.php tests/Feature/ClientApps/LoanManagementUiWorkspaceContractTest.php tests/Feature/ClientApps/LoanManagementFoundationContractTest.php`. Only after PASS run LoanManagement module regression and impacted ClientPortal tests.
 - UI acceptance required for desktop/tablet/iPhone, capability access/403, Overview return, legacy form continuity. No UI PASS claim. No PR, merge, production change or data cleanup performed.
+
+ 
+## Batch UI-2 — Lender workspace + contract creation wizard (PENDING TEST/UI)
+- User confirmed UI-1 TEST two layers + UI PASS, approved UI-2 through Git Pull/Test.
+- Branch `feat/loan-workspace-lenders-wizard-20261111` created from UI-1 feature branch; parent LoanManagement branches not yet merged into main.
+- Lenders: dedicated list, client-side search/type filter, responsive modal, existing POST service and permission; JSON response for inline wizard lender creation while legacy HTML redirect remains.
+- Contracts: dedicated GET `/apps/loans/contracts/create` guarded by create permission, three-step wizard with native validation, summary and existing preview script shared with Overview. Inline lender modal preserves entered contract values. Existing contract store endpoint, finance domain logic, migrations and mutation routes retained.
+- Redirect to relevant focused workspace only for explicitly sourced forms. Removed redundant Overview capability navigation (shared shell sidebar remains). Contract list remains a UI-1 transition shell; UI-3 owns full list/detail migration.
+- Focused tests added `LoanManagementWorkspaceCreationContractTest`; updated UI-1 navigation contract for removed duplication. No tests run by assistant; no UI PASS claimed.
+- Checkpoint: git fetch/switch/pull, focused `LoanManagementWorkspaceCreationContractTest.php`, `LoanManagementCapabilityNavigationContractTest.php`, `LoanManagementUiWorkspaceContractTest.php`; then module regression and impacted ClientPortal regression if PASS. UI check desktop/tablet/iPhone, create lender modal and wizard, server validation, permission 403, legacy forms, no console errors. Do not merge/deploy without approval.
