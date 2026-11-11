@@ -66,7 +66,7 @@
      <label class="text-sm">Mã số thuế<input name="tax_identifier" maxlength="255" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
      <label class="text-sm">Liên hệ<input name="contact" maxlength="255" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
      <p hidden data-wizard-lender-error role="alert" class="text-sm text-red-700"></p>
-     <div class="flex justify-end gap-2"><button type="button" data-wizard-lender-close class="min-h-11 rounded-xl border px-4">Hủy</button><button data-wizard-lender-save class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white disabled:opacity-50"></button></div>
+     <div class="flex justify-end gap-2"><button type="button" data-wizard-lender-close class="min-h-11 rounded-xl border px-4">Hủy</button><button data-wizard-lender-save class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white disabled:opacity-50">Lưu và chọn đối tác</button></div>
     </form>
    </div>
   </div>
