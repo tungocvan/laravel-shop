@@ -22,7 +22,7 @@
    <fieldset x-show="step===1" class="grid gap-4 sm:grid-cols-2" data-loan-step="1">
     <legend class="mb-4 text-lg font-semibold">Thông tin hợp đồng</legend>
     <label class="block text-sm">Nhóm bên cho vay<select x-model="lenderType" data-loan-lender-type class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="individual">Cá nhân</option><option value="company">Công ty</option><option value="credit_institution">Tổ chức tín dụng</option></select></label>
-    <label class="block text-sm">Bên cho vay *<select required name="lender_id" x-model="lenderId" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="">Chọn đối tác</option>@foreach($lenders as $lender)<option value="{{ $lender->id }}" data-type="{{ $lender->type }}" x-show="lenderType===@js($lender->type)">{{ $lender->name }}</option>@endforeach</select><a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('client.loans.lenders.index') }}">+ Thêm đối tác</a></label>
+    <label class="block text-sm">Bên cho vay *<select required name="lender_id" data-loan-lender x-model="lenderId" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="">Chọn đối tác</option>@foreach($lenders as $lender)<option value="{{ $lender->id }}" data-lender-type="{{ $lender->type }}" x-show="lenderType===@js($lender->type)">{{ $lender->name }}</option>@endforeach</select><a class="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href="{{ route('client.loans.lenders.index') }}">+ Thêm đối tác</a></label>
     <label class="block text-sm">Số hợp đồng *<input required name="contract_number" maxlength="255" value="{{ old('contract_number') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
     <label class="block text-sm">Số tiền cam kết (VND) *<input required type="number" min="0.01" step="0.01" name="committed_amount" value="{{ old('committed_amount') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
     <label class="block text-sm">Ngày ký *<x-pwa-date name="signed_at" :value="old('signed_at')" required /></label>
@@ -61,6 +61,7 @@
 @endsection
 @push('application-scripts')
 <script>
+@include('ClientPortal::applications.loans.partials.wizard-preview-script')
 function loanContractWizard() {
  return {
   step: 1, lenderType: 'individual', lenderId: @js((string) old('lender_id', '')),
