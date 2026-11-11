@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\ClientApps;
 
-use Modules\ClientPortal\Http\Middleware\EnsureApplicationAccess;
 use Tests\TestCase;
 
 final class LoanManagementRouteCacheContractTest extends TestCase
