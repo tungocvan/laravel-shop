@@ -226,3 +226,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Redirect to relevant focused workspace only for explicitly sourced forms. Removed redundant Overview capability navigation (shared shell sidebar remains). Contract list remains a UI-1 transition shell; UI-3 owns full list/detail migration.
 - Focused tests added `LoanManagementWorkspaceCreationContractTest`; updated UI-1 navigation contract for removed duplication. No tests run by assistant; no UI PASS claimed.
 - Checkpoint: git fetch/switch/pull, focused `LoanManagementWorkspaceCreationContractTest.php`, `LoanManagementCapabilityNavigationContractTest.php`, `LoanManagementUiWorkspaceContractTest.php`; then module regression and impacted ClientPortal regression if PASS. UI check desktop/tablet/iPhone, create lender modal and wizard, server validation, permission 403, legacy forms, no console errors. Do not merge/deploy without approval.
+
+## UI-2 lender modal regression — pending local verification
+- User confirmed two test layers PASS but UI FAIL: modal visible, clicks not functional. Browser inspection: input/close are topmost click targets, Alpine `window.Alpine` absent and `_x_dataStack` undefined. Source `resources/js/tailwind.js` does not load Alpine; npm package.json does not declare Alpine.
+- Replaced Alpine-dependent lender modal/search/filter with scoped native JS; retained POST, validation, focus return, Escape/Tab and outside close. Added scoped hidden-display rule and updated contract assertions. No changes to finance data, routes or schema.
+- **Remaining risk**: contract-create wizard also uses Alpine directives and must be audited/fixed before UI-2 overall PASS; do not certify wizard from lender-only retest.
+- Focused tests not rerun by assistant; request local focused then module regression and manual UI retest.
