@@ -28,11 +28,24 @@
   </div>
   <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
    @forelse($lenders as $lender)
-    <article data-lender-card data-lender-type="{{ $lender->type }}" data-lender-search-text="{{ mb_strtolower($lender->name.' '.$lender->tax_identifier.' '.$lender->contact) }}" class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+    <article data-lender-card data-lender-id="{{ $lender->id }}" data-lender-name="{{ $lender->name }}" data-lender-tax="{{ $lender->tax_identifier }}" data-lender-contact="{{ $lender->contact }}" data-lender-type="{{ $lender->type }}" data-lender-search-text="{{ mb_strtolower($lender->name.' '.$lender->tax_identifier.' '.$lender->contact) }}" class="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
      <h3 class="break-words font-semibold text-slate-900">{{ $lender->name }}</h3>
      <p class="mt-2 text-xs text-slate-600">{{ ['individual'=>'Cá nhân','company'=>'Công ty','credit_institution'=>'Tổ chức tín dụng'][$lender->type] ?? $lender->type }}</p>
      @if($lender->tax_identifier)<p class="mt-2 break-words text-sm text-slate-700">Mã số thuế: {{ $lender->tax_identifier }}</p>@endif
      @if($lender->contact)<p class="mt-1 break-words text-sm text-slate-700">Liên hệ: {{ $lender->contact }}</p>@endif
+     <p class="mt-2 text-xs text-slate-500">{{ $lender->contracts_count }} hợp đồng vay</p>
+     @can('client.loans.contracts.edit')
+     <div class="mt-4 flex flex-wrap items-center gap-2 border-t pt-3">
+      <button type="button" data-lender-edit data-update-url="{{ route('client.loans.lenders.update', $lender->id) }}" class="min-h-11 rounded-lg border border-blue-200 bg-white px-4 text-sm font-semibold text-blue-800">Sửa</button>
+      @if((int) $lender->contracts_count === 0)
+      <form method="POST" action="{{ route('client.loans.lenders.destroy', $lender->id) }}" data-lender-delete-form>@csrf @method('DELETE')
+       <button type="submit" class="min-h-11 rounded-lg border border-red-200 bg-white px-4 text-sm font-semibold text-red-700">Xóa</button>
+      </form>
+      @else
+      <span class="text-xs text-slate-500">Đã có hợp đồng — không thể xóa</span>
+      @endif
+     </div>
+     @endcan
     </article>
    @empty
     <p class="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">Chưa có đối tác cho vay. Chọn “Thêm đối tác” để bắt đầu.</p>
@@ -41,14 +54,15 @@
   @can('client.loans.contracts.create')
   <div data-lender-overlay @if(!$errors->any()) hidden @endif class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-5" role="presentation">
    <div role="dialog" aria-modal="true" aria-labelledby="loan-lender-modal-title" class="max-h-[95dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:max-w-xl sm:rounded-2xl sm:p-7">
-    <div class="flex items-center justify-between gap-3"><h2 id="loan-lender-modal-title" class="text-xl font-bold">Thêm đối tác cho vay</h2><button type="button" data-lender-close aria-label="Đóng" class="min-h-11 rounded-lg border px-4">✕</button></div>
-    <form method="POST" action="{{ route('client.loans.lenders.store') }}" class="mt-5 grid gap-4">@csrf
+    <div class="flex items-center justify-between gap-3"><h2 id="loan-lender-modal-title" class="text-xl font-bold" data-lender-modal-title>Thêm đối tác cho vay</h2><button type="button" data-lender-close aria-label="Đóng" class="min-h-11 rounded-lg border px-4">✕</button></div>
+    <form method="POST" action="{{ route('client.loans.lenders.store') }}" data-lender-form data-create-url="{{ route('client.loans.lenders.store') }}" class="mt-5 grid gap-4">@csrf
+     <input type="hidden" name="_method" value="POST" data-lender-method>
      <input type="hidden" name="source" value="lenders">
      <label class="text-sm">Tên đối tác *<input required name="name" maxlength="255" value="{{ old('name') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
      <label class="text-sm">Loại *<select name="type" class="mt-1 min-h-11 w-full rounded-xl border p-3"><option value="individual" @selected(old('type')==='individual')>Cá nhân</option><option value="company" @selected(old('type')==='company')>Công ty</option><option value="credit_institution" @selected(old('type')==='credit_institution')>Tổ chức tín dụng</option></select></label>
      <label class="text-sm">Mã số thuế<input name="tax_identifier" maxlength="255" value="{{ old('tax_identifier') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
      <label class="text-sm">Liên hệ<input name="contact" maxlength="255" value="{{ old('contact') }}" class="mt-1 min-h-11 w-full rounded-xl border p-3"></label>
-     <div class="flex justify-end gap-2"><button type="button" data-lender-close class="min-h-11 rounded-xl border px-5">Hủy</button><button class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white">Lưu đối tác</button></div>
+     <div class="flex justify-end gap-2"><button type="button" data-lender-close class="min-h-11 rounded-xl border px-5">Hủy</button><button class="min-h-11 rounded-xl bg-blue-800 px-5 font-semibold text-white" data-lender-save-label>Lưu đối tác</button></div>
     </form>
    </div>
   </div>
@@ -66,13 +80,31 @@
  const search=root.querySelector('[data-lender-search]');
  const filter=root.querySelector('[data-lender-filter]');
  const cards=[...root.querySelectorAll('[data-lender-card]')];
+ const form=root.querySelector('[data-lender-form]');
+ const method=root.querySelector('[data-lender-method]');
+ const title=root.querySelector('[data-lender-modal-title]');
+ const saveLabel=root.querySelector('[data-lender-save-label]');
  let previousFocus=null;
  const update=()=>{
   const term=(search.value||'').toLocaleLowerCase('vi');
   for(const card of cards) card.hidden=!(filter.value==='all'||filter.value===card.dataset.lenderType)||!card.dataset.lenderSearchText.includes(term);
  };
  const close=()=>{overlay.hidden=true;document.body.style.overflow='';(previousFocus||open)?.focus();};
- open?.addEventListener('click',()=>{previousFocus=document.activeElement;overlay.hidden=false;document.body.style.overflow='hidden';overlay.querySelector('input[name="name"]')?.focus();});
+ const show=()=>{previousFocus=document.activeElement;overlay.hidden=false;document.body.style.overflow='hidden';form.elements.namedItem('name')?.focus();};
+ open?.addEventListener('click',()=>{form.reset();form.action=form.dataset.createUrl;method.value='POST';title.textContent='Thêm đối tác cho vay';saveLabel.textContent='Lưu đối tác';show();});
+ root.querySelectorAll('[data-lender-edit]').forEach(button=>button.addEventListener('click',()=>{
+  const card=button.closest('[data-lender-card]');
+  form.action=button.dataset.updateUrl;method.value='PUT';
+  form.elements.namedItem('name').value=card.dataset.lenderName;
+  form.elements.namedItem('type').value=card.dataset.lenderType;
+  form.elements.namedItem('tax_identifier').value=card.dataset.lenderTax;
+  form.elements.namedItem('contact').value=card.dataset.lenderContact;
+  title.textContent='Chỉnh sửa đối tác';saveLabel.textContent='Lưu thay đổi';show();
+ }));
+ root.querySelectorAll('[data-lender-delete-form]').forEach(deleteForm=>deleteForm.addEventListener('submit',event=>{
+  const name=deleteForm.closest('[data-lender-card]').dataset.lenderName;
+  if(!window.confirm('Xóa đối tác "'+name+'"? Thao tác này không thể hoàn tác.'))event.preventDefault();
+ }));
  overlay?.querySelectorAll('[data-lender-close]').forEach(button=>button.addEventListener('click',close));
  overlay?.addEventListener('click',event=>{if(event.target===overlay)close();});
  document.addEventListener('keydown',event=>{
