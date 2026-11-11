@@ -51,7 +51,7 @@
     <p class="rounded-xl bg-slate-50 p-5 text-sm text-slate-600">Chưa có đối tác cho vay. Chọn “Thêm đối tác” để bắt đầu.</p>
    @endforelse
   </div>
-  @can('client.loans.contracts.create')
+  @canany(['client.loans.contracts.create', 'client.loans.contracts.edit'])
   <div data-lender-overlay @if(!$errors->any()) hidden @endif class="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-5" role="presentation">
    <div role="dialog" aria-modal="true" aria-labelledby="loan-lender-modal-title" class="max-h-[95dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 shadow-xl sm:max-w-xl sm:rounded-2xl sm:p-7">
     <div class="flex items-center justify-between gap-3"><h2 id="loan-lender-modal-title" class="text-xl font-bold" data-lender-modal-title>Thêm đối tác cho vay</h2><button type="button" data-lender-close aria-label="Đóng" class="min-h-11 rounded-lg border px-4">✕</button></div>
@@ -66,7 +66,7 @@
     </form>
    </div>
   </div>
-  @endcan
+  @endcanany
  </section>
 </main>
 @endsection
