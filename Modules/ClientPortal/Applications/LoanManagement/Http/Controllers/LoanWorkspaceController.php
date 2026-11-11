@@ -71,7 +71,8 @@ final class LoanWorkspaceController extends Controller
         $data = $this->validatedContract($request, $contract);
         $service->updateContract($contract, $data);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã cập nhật hợp đồng.');
+        $destination = $request->input('source') === 'detail' ? route('client.loans.contracts.show', $contract) : route('client.loans.dashboard');
+        return redirect($destination)->with('success', 'Đã cập nhật hợp đồng.');
     }
 
 
@@ -80,7 +81,8 @@ final class LoanWorkspaceController extends Controller
         abort_unless($request->user()?->can('client.loans.contracts.edit'), 403);
         $service->deleteDraft($contract);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã xóa hợp đồng nháp.');
+        $destination = $request->input('source') === 'detail' ? 'client.loans.contracts.index' : 'client.loans.dashboard';
+        return redirect()->route($destination)->with('success', 'Đã xóa hợp đồng nháp.');
     }
 
     public function restoreDraft(Request $request, int $contract, LoanContractService $service): RedirectResponse
@@ -88,7 +90,8 @@ final class LoanWorkspaceController extends Controller
         abort_unless($request->user()?->can('client.loans.contracts.edit'), 403);
         $service->restoreDraft($contract);
 
-        return redirect()->route('client.loans.dashboard')->with('success', 'Đã chuyển hợp đồng về nháp.');
+        $destination = $request->input('source') === 'detail' ? route('client.loans.contracts.show', $contract) : route('client.loans.dashboard');
+        return redirect($destination)->with('success', 'Đã chuyển hợp đồng về nháp.');
     }
 
     public function disburse(Request $request, int $contract, \Modules\LoanManagement\Services\LoanTransactionService $service): RedirectResponse
