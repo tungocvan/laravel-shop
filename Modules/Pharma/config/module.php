@@ -51,6 +51,11 @@ return [
             'tries' => 3,
         ],
     ],
+    'permissions_by_guard' => [
+        'web' => [
+            'client.pharma.products.excel-share',
+        ],
+    ],
     'permissions' => [
         'view_pharma',
         'create_pharma',
