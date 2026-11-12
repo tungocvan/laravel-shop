@@ -281,3 +281,12 @@ A future Website change must begin from a newly stated objective and must not tr
 - Regression after focused PASS: `php artisan test tests/Feature/Website/PharmaHeaderBuilderSavePersistenceContractTest.php tests/Feature/Website/WebsiteHeaderBuilderInteractionTest.php tests/Feature/Website/PharmaIphoneHeaderResponsiveContractTest.php`.
 - UI gate: user verifies desktop hover/click/keyboard, iPhone mobile drawer expansion, parent links, two Demo child destinations, existing navigation and no JS console errors. **Do not mark PASS until local results and user confirmation.**
 - Do not merge/deploy before user approval; leave existing untracked files untouched.
+
+
+## 2026-11-12 — Sitemap XML Blade production syntax hotfix (CHECKPOINT: tests/UI pending)
+
+- Production evidence: repeated `production.ERROR` on `/sitemap.xml`, compiled view retained literal `{!! '<?xml ...' !!}` at line 1 and PHP raised `unexpected identifier "version"`. The current PHP CLI has `short_open_tag=On`; no runtime configuration change is included.
+- Root cause boundary: Blade's raw XML declaration expression was left uncompiled in the compiled PHP view. Replace the declaration with a Blade `@php` echo that constructs the opening `<?xml` without a literal XML processing instruction in Blade source. Preserve URL escaping, `lastmod` handling, controller, cache TTL and routing.
+- Focused regression: `tests/Feature/Website/SitemapXmlBladeTest.php` checks Blade compilation and rendered XML/escaped query parameters.
+- **Not yet verified**: focused tests, Website regression, actual HTTP `/sitemap.xml`, browser/UI, and runtime compiled-view/OPcache refresh. Production code has not been changed by this branch. Do not claim TEST/UI PASS or merge until gates are confirmed.
+- Production rollout (separate approval required): after PR merge and Git sync, inspect host/image/container view ownership and compiled cache; refresh only the applicable view/OPcache state if evidence requires it. No blanket `optimize:clear`, Docker restart, DB changes or Compose overlay edits.
