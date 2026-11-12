@@ -17,7 +17,7 @@ class MedicineExcelSharingContractTest extends TestCase
         $this->assertStringContainsString("->boolean('is_shared')->default(false)", $migration);
         $this->assertStringContainsString("'is_shared' => 'boolean'", $model);
         $this->assertStringContainsString("if (\$guard === 'web')", $service);
-        $this->assertStringContainsString("->where('owner_guard', 'admin')->where('is_shared', true)", $service);
+        $this->assertStringContainsString("->where('is_shared', true)", $service);
         $this->assertStringContainsString("->where('owner_guard', 'admin')", $service);
         $this->assertStringContainsString("->where('user_id', \$adminId)", $service);
         $this->assertStringContainsString("->findOrFail(\$profileId)", $service);
@@ -39,14 +39,16 @@ class MedicineExcelSharingContractTest extends TestCase
     }
 
     #[Test]
-    public function only_authorized_admin_can_toggle_sharing_from_designer(): void
+    public function only_authorized_owner_can_toggle_sharing_from_designer(): void
     {
         $component = file_get_contents(base_path('Modules/Pharma/Livewire/Medicine/ExcelConfigurator.php'));
         $view = file_get_contents(base_path('Modules/Pharma/resources/views/livewire/medicine/excel-configurator.blade.php'));
 
         $this->assertStringContainsString("function toggleSharing(", $component);
-        $this->assertStringContainsString("\$this->ownerGuard === 'admin' && auth('admin')->user()?->can('edit_pharma')", $component);
-        $this->assertStringContainsString("setSharedByAdmin(\$adminId, \$this->profileId", $component);
+        $this->assertStringContainsString("function canShareProfile(", $component);
+        $this->assertStringContainsString("client.pharma.products.excel-share", $component);
+        $this->assertStringContainsString("setSharedByAdmin(\$ownerId, \$this->profileId", $component);
+        $this->assertStringContainsString("setSharedByWeb(\$ownerId, \$this->profileId", $component);
         $this->assertStringContainsString('wire:click="toggleSharing"', $view);
         $this->assertStringContainsString("Chia sẻ cho User Web", $view);
         $this->assertStringContainsString("Thu hồi", $view);
