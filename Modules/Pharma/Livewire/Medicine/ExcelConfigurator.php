@@ -27,6 +27,7 @@ class ExcelConfigurator extends Component
     public ?int $profileId = null;
     public string $profileName = 'Mặc định';
     public bool $isDefault = true;
+    public bool $isShared = false;
     public array $profiles = [];
     public array $columns = [];
     public array $selected = [];
@@ -92,6 +93,7 @@ class ExcelConfigurator extends Component
         $this->apply($service->defaults());
         $this->profileName = 'Cấu hình mới';
         $this->isDefault = false;
+        $this->isShared = false;
     }
 
     public function setSection(string $section): void
@@ -143,6 +145,7 @@ class ExcelConfigurator extends Component
         $this->profileId = null;
         $this->profileName = mb_substr($this->profileName.' - Bản sao', 0, 120);
         $this->isDefault = false;
+        $this->isShared = false;
         $this->designerRevision++;
     }
 
@@ -327,6 +330,17 @@ class ExcelConfigurator extends Component
         $this->saveConfirmationOpen = false;
     }
 
+    public function toggleSharing(MedicineExcelProfileService $service): void
+    {
+        abort_unless($this->ownerGuard === 'admin' && auth('admin')->user()?->can('edit_pharma'), 403);
+        abort_unless($this->profileId !== null, 422);
+
+        $adminId = $this->assertOwner();
+        $service->setSharedByAdmin($adminId, $this->profileId, ! $this->isShared);
+        $this->refreshProfiles($service);
+        $this->loadProfile($service);
+    }
+
     public function deleteProfile(MedicineExcelProfileService $service): void
     {
         if ($this->profileId === null) {
@@ -353,6 +367,7 @@ class ExcelConfigurator extends Component
         $this->profileId = $profile['id'];
         $this->profileName = $profile['name'];
         $this->isDefault = (bool) $profile['is_default'];
+        $this->isShared = (bool) ($profile['is_shared'] ?? false);
         $this->columns = array_values(array_unique(array_merge(array_values(array_intersect($profile['columns'], array_keys($this->allowedColumns()))), array_keys($this->allowedColumns()))));
         $this->activeColumnKey = $profile['columns'][0] ?? 'name';
         $this->selected = array_fill_keys(array_values(array_intersect($profile['columns'], array_keys($this->allowedColumns()))), true);
