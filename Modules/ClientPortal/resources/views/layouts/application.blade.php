@@ -4,8 +4,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0f172a">
-    <link rel="manifest" href="{{ route('website.manifest') }}">
+    <link rel="manifest" href="{{ route('client.apps.manifest') }}">
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ app(\Modules\ClientPortal\Services\PwaIconService::class)->appleTouchIcon(app(\Modules\ClientPortal\Services\ClientPortalSettingsService::class)->pwaGeneral()['icon_version'] ?? null) }}">
     <title>@yield('title', 'Ứng dụng') · INAFO</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
     @php
