@@ -28,7 +28,7 @@
                     <input wire:model="profileName" class="{{ $input }}">
                 </label>
                 <label class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold"><input type="checkbox" wire:model="isDefault"> Đặt mặc định</label>
-                @if($ownerGuard === 'admin' && auth('admin')->user()?->can('edit_pharma'))
+                @if($canShare)
                     <button type="button" wire:click="toggleSharing" wire:confirm="{{ $isShared ? 'Ngừng chia sẻ mẫu này cho User Web?' : 'Chia sẻ mẫu này cho tất cả User có quyền xuất Excel?' }}"
                         @disabled(!$profileId)
                         class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-800 disabled:opacity-40">
