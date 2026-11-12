@@ -10,6 +10,7 @@ class MedicineExcelProfile extends Model
     protected $guarded = [];
     protected $casts = [
         'is_default' => 'boolean',
+        'is_shared' => 'boolean',
         'columns' => 'array',
         'headers' => 'array',
         'widths' => 'array',
