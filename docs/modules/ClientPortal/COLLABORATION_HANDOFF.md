@@ -1,3 +1,15 @@
+## 2026-11-12 — Navigation action permissions missing from ClientPortal Web grants
+
+- Branch: `fix/clientportal-navigation-action-permissions-20261112`, based on `main` commit `6e37e7db591fdcbc2de73dd68c440f8961d9108a`.
+- Root cause: Pharma declares create/edit/import/export/excel-config and other permissions under `navigation.products.actions`; `ApplicationRegistry::normalizeNavigation()` previously discarded actions, and `ApplicationPermissionService::applicationDefinitions()` only collected feature actions. Thus `/admin/client-apps/users/22` could not offer those Web permissions.
+- Fix: preserve normalized navigation action metadata and collect navigation item/action permissions in managed definitions; retain `unique('name')` to avoid duplicate permission records when features overlap. No new route, migration, permission bypass, Admin guard change, automatic user grants or production operation.
+- Focused test: `php artisan test Modules/ClientPortal/Tests/Unit/NavigationActionPermissionTest.php` — **PENDING local execution**.
+- Module regression: `php artisan test Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php tests/Feature/ClientApps/ClientPwaFoundationTest.php` — **PENDING after focused PASS**.
+- Manual UI **PENDING**: after pull/test, Admin should check `/admin/client-apps/users/22` for newly available permissions, use existing Web permission sync/grant controls as approved, then verify a non-Super-Admin account sees the intended Excel controls and unauthorized accounts remain restricted. Sync/grants modify database and are not performed by this code change.
+- PR/merge/deploy: **NOT DONE**. Await test and user UI acceptance. Existing untracked local files must be preserved.
+
+---
+
 ## 2026-11-11 — Forward-port PR #375 PWA login live preview onto current main
 
 - Branch: `feat/clientportal-pwa-login-preview-forwardport-20261111`, created from `main` after LoanManagement PR #377 merged. Original PR #375 remains open and must not be merged directly due to divergence.
