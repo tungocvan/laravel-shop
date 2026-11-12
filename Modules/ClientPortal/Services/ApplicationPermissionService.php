@@ -53,6 +53,39 @@ class ApplicationPermissionService
                 ];
             }
 
+            // Navigation actions can be declared without a matching feature.
+            // Include them in the managed Web permissions list, without granting
+            // them to any user or role. unique('name') removes shared declarations.
+            foreach ($application['navigation'] ?? [] as $item) {
+                if (! empty($item['permission'])) {
+                    $rows[] = [
+                        'source' => 'application',
+                        'group' => $application['key'],
+                        'application' => $application['key'],
+                        'feature' => $item['key'],
+                        'action' => null,
+                        'name' => $item['permission'],
+                        'label' => $item['name'],
+                    ];
+                }
+
+                foreach ($item['actions'] ?? [] as $action) {
+                    if (empty($action['permission'])) {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'source' => 'application',
+                        'group' => $application['key'],
+                        'application' => $application['key'],
+                        'feature' => $item['key'],
+                        'action' => $action['key'],
+                        'name' => $action['permission'],
+                        'label' => $item['name'].' · '.$action['name'],
+                    ];
+                }
+            }
+
             foreach ($application['features'] as $feature) {
                 if (! empty($feature['permission'])) {
                     $rows[] = [
