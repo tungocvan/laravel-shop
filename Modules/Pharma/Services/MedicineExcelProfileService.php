@@ -54,7 +54,7 @@ class MedicineExcelProfileService
             'circular_order_number', 'visa_validity_date', 'gmp_certification_date', 'is_special_control',
         ]));
         return [
-            'id' => null, 'name' => 'Mặc định', 'is_default' => true,
+            'id' => null, 'name' => 'Mặc định', 'is_default' => true, 'is_shared' => false,
             'columns' => $columns,
             'headers' => self::COLUMNS,
             'widths' => array_fill_keys(array_keys(self::COLUMNS), 130),
@@ -91,11 +91,11 @@ class MedicineExcelProfileService
             })
             ->orderByDesc('is_default')->orderBy('name')
             ->get(['id', 'name', 'is_default', 'is_shared', 'owner_guard'])
-            ->map(function (MedicineExcelProfile $profile): array {
+            ->map(function (MedicineExcelProfile $profile) use ($guard): array {
                 return [
                     'id' => $profile->id,
                     'name' => $profile->name,
-                    'is_default' => $profile->is_default && $profile->owner_guard === 'web',
+                    'is_default' => $profile->is_default && ! ($profile->owner_guard === 'admin' && $guard === 'web'),
                     'is_shared' => $profile->is_shared && $profile->owner_guard === 'admin',
                 ];
             })->all();
@@ -112,7 +112,7 @@ class MedicineExcelProfileService
             });
         $profile = $id ? $query->findOrFail($id) : $query->where('owner_guard', $guard)->orderByDesc('is_default')->orderBy('id')->first();
 
-        return $profile ? $profile->only(['id', 'name', 'is_default', 'columns', 'headers', 'widths', 'alignments', 'settings']) : $this->defaults();
+        return $profile ? $profile->only(['id', 'name', 'is_default', 'is_shared', 'columns', 'headers', 'widths', 'alignments', 'settings']) : $this->defaults();
     }
 
     /**
