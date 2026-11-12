@@ -17,6 +17,21 @@ return [
         'client.loans.insurance.manage',
         'client.loans.reports.view',
     ],
+    // ClientPortal permission discovery reads permissions_by_guard.web, not permissions.
+    // Keep this list aligned with the canonical domain permissions above.
+    'permissions_by_guard' => [
+        'web' => [
+            'client.loans.access',
+            'client.loans.overview.view',
+            'client.loans.contracts.view',
+            'client.loans.contracts.create',
+            'client.loans.contracts.edit',
+            'client.loans.payments.create',
+            'client.loans.insurance.view',
+            'client.loans.insurance.manage',
+            'client.loans.reports.view',
+        ],
+    ],
     'tables' => [
         'loan_lenders',
         'loan_contracts',
