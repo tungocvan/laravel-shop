@@ -95,7 +95,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
     public function test_reminder_history_is_read_only_and_tracks_delivery_states(): void
     {
         $history = $this->source('Modules/LoanManagement/Services/LoanReminderHistoryService.php');
-        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanCapabilityController.php');
         $this->assertStringContainsString('loan_reminder_deliveries', $history);
         $this->assertStringContainsString('loan_reminder_recipients', $history);
         $this->assertStringNotContainsString('->insert(', $history);
@@ -145,14 +145,14 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
     {
         $contracts = $this->bladeSource('contracts');
         $detail = $this->bladeSource('contract-detail');
-        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanCapabilityController.php');
         foreach (['name="search"', 'name="type"', 'name="status"'] as $filter) {
             $this->assertStringContainsString($filter, $contracts);
         }
         $this->assertStringContainsString('data-contract-delete', $detail);
         $this->assertStringContainsString('data-contract-restore', $detail);
-        $this->assertStringContainsString('insuredContractIds', $controller);
-        $this->assertStringContainsString('visibleContracts', $controller);
+        $this->assertStringContainsString('loan_insurance_policies as p', $controller);
+        $this->assertStringContainsString('operationFilters', $controller);
     }
 
     public function test_insurance_and_payment_navigation_remains_permission_scoped(): void
