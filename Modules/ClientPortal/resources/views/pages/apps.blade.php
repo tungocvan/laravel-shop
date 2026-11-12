@@ -8,8 +8,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="{{ $pwaGeneral['apple_title'] }}">
-    <link rel="manifest" href="{{ route('website.manifest') }}">
+    <link rel="manifest" href="{{ route('client.apps.manifest') }}">
     <link rel="icon" href="/pwa/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ app(\Modules\ClientPortal\Services\PwaIconService::class)->appleTouchIcon(app(\Modules\ClientPortal\Services\ClientPortalSettingsService::class)->pwaGeneral()['icon_version'] ?? null) }}">
     <title>{{ $launcher['browser_title'] }}</title>
     @vite(['resources/css/tailwind.css', 'resources/js/tailwind.js'])
 </head>
