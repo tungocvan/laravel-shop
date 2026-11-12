@@ -331,3 +331,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Expanded `LoanManagementRouteCacheContractTest` with a static guard against route/config cache precompilation in Dockerfile/entrypoint. Static contracts do not prove runtime integration or a full audit of all module route providers.
 - **CHECKPOINT PENDING**: focused test, LoanManagement regression, impacted ClientPortal tests, review and PR. Do not claim TEST PASS. Existing Production Git index has staged changes; do not switch/pull/reset/restore there. Untracked Compose overlays remain untouched.
 - UI PASS was reported for repaired Production behavior. Automated tests and feature-branch acceptance are still pending. No merge or production deploy authorized.
+
+## 2026-11-12 — GitHub Actions test checkpoint
+
+- Added `.github/workflows/loanmanagement-cache-regression.yml`: PHP 8.3 with BCMath/SQLite and locked Composer development dependencies; isolated SQLite `:memory:` and no external DB service or production secrets.
+- CI stage 1 runs the route/cache focused contract; stage 2 depends on focused PASS and runs all `LoanManagement*Test.php` feature tests. Workflow triggers on this feature branch push, matching PR changes and manual dispatch.
+- **CI status not yet verified; do not report TEST PASS.** Impacted ClientPortal regression and review remain separate gates. The VPS Production image intentionally has no PHPUnit and must not be modified to install it.
