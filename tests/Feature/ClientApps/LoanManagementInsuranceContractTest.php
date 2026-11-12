@@ -25,7 +25,7 @@ final class LoanManagementInsuranceContractTest extends TestCase
         $this->assertStringContainsString("where('due_at', \$data['due_at'])", $source);
         $this->assertStringContainsString("'overdue'", $source);
         $this->assertStringContainsString("'expiring'", $source);
-        $this->assertStringContainsString("'unverified'", file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php')));
+        $this->assertStringContainsString("'unverified'", file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-operations.blade.php')));
     }
 
     public function test_demo_seeder_is_opt_in_and_idempotent(): void

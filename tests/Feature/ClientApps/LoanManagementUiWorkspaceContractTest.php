@@ -4,155 +4,136 @@ namespace Tests\Feature\ClientApps;
 
 use Tests\TestCase;
 
+/**
+ * Contract for the current split LoanManagement workspaces.
+ * The executive dashboard is navigation/summary only; mutation forms live
+ * in dedicated views and are still authorized in their controllers.
+ */
 final class LoanManagementUiWorkspaceContractTest extends TestCase
 {
-    public function test_loan_workspace_has_soft_scoped_visual_system_and_navigation(): void
+    private function bladeSource(string $name): string
     {
-        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
+        $source = file_get_contents(base_path(
+            'Modules/ClientPortal/resources/views/applications/loans/'.$name.'.blade.php'
+        ));
+        $this->assertIsString($source);
 
-        $this->assertStringContainsString("@push('application-head')", $blade);
-        $this->assertStringContainsString('.loan-workspace .loan-panel', $blade);
-        $this->assertStringContainsString('border:1px solid #e2e8f0 !important', $blade);
-        $this->assertStringContainsString('id="loan-contracts"', $blade);
-        $this->assertStringContainsString('id="loan-create"', $blade);
-        $this->assertStringContainsString('id="loan-insurance"', $blade);
-        $this->assertStringContainsString('aria-label="Điều hướng khoản vay"', $blade);
-        $this->assertStringContainsString('max-w-7xl', $blade);
-        $this->assertStringNotContainsString('border:2px solid #0f172a', $blade);
+        return $source;
     }
 
-    public function test_lender_dashboard_and_whole_vnd_installment_fields_preserve_server_validation(): void
+    private function source(string $path): string
     {
-        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanContractService.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
+        $source = file_get_contents(base_path($path));
+        $this->assertIsString($source);
 
-        $this->assertStringContainsString("lenderTypeSummary", $dashboard);
-        $this->assertStringContainsString("data-loan-lender-summary", $dashboard);
-        $this->assertStringContainsString("leftJoinSub(", $service);
-        $this->assertStringContainsString("data-max-amount", $history);
-        $this->assertStringContainsString('inputmode="numeric"', $history);
-        $this->assertStringContainsString("moneyInputs.forEach", $dashboard);
-        $this->assertStringContainsString("Number.isSafeInteger", $dashboard);
+        return $source;
+    }
+
+    public function test_executive_dashboard_is_scoped_and_links_to_dedicated_workspaces(): void
+    {
+        $dashboard = $this->bladeSource('dashboard');
+        $this->assertStringContainsString('data-loan-executive-dashboard', $dashboard);
+        $this->assertStringContainsString('aria-label="Điều hướng khoản vay"', $dashboard);
+        foreach (['contracts.index', 'payments.index', 'reminders.index', 'insurance.index'] as $route) {
+            $this->assertStringContainsString('client.loans.'.$route, $dashboard);
+        }
+        $this->assertStringNotContainsString('client.loans.payments.store', $dashboard);
+        $this->assertStringNotContainsString('client.loans.insurance.store', $dashboard);
+    }
+
+    public function test_lenders_and_contract_create_are_separate_permission_scoped_workspaces(): void
+    {
+        $lenders = $this->bladeSource('lenders');
+        $wizard = $this->bladeSource('contract-create');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php');
+        $this->assertStringContainsString('data-loan-lenders-workspace', $lenders);
+        $this->assertStringContainsString("@can('client.loans.contracts.create')", $lenders);
+        $this->assertStringContainsString('client.loans.lenders.store', $lenders);
+        foreach (['data-loan-wizard', 'data-loan-lender-type', 'data-loan-wizard-preview', 'client.loans.contracts.store'] as $fragment) {
+            $this->assertStringContainsString($fragment, $wizard);
+        }
         $this->assertStringContainsString("'decimal:0,2'", $controller);
     }
 
-    public function test_unpaid_future_schedule_edit_uses_domain_service_and_authorization(): void
+    public function test_schedule_mutations_keep_domain_validation_and_permission_guards(): void
     {
-        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
-        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanScheduleAdjustmentService.php'));
-
+        $routes = $this->source('Modules/ClientPortal/Applications/LoanManagement/routes.php');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php');
+        $operations = $this->bladeSource('partials/contract-operations');
+        $service = $this->source('Modules/LoanManagement/Services/LoanScheduleAdjustmentService.php');
         $this->assertStringContainsString("name('schedules.update')", $routes);
         $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
-        $this->assertStringContainsString('client.loans.schedules.update', $history);
-        $this->assertStringContainsString('data-loan-edit-installment', $history);
+        $this->assertStringContainsString('client.loans.schedules.update', $operations);
         $this->assertStringContainsString('loan_payment_allocations', $service);
         $this->assertStringContainsString('loan_schedule_adjustments', $service);
         $this->assertStringContainsString('loan_reminder_deliveries', $service);
     }
 
-    public function test_priority_contract_actions_appear_before_repayment_schedule(): void
+    public function test_contract_detail_holds_mutations_outside_the_dashboard(): void
     {
-        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-
-        $this->assertStringContainsString('data-loan-priority-actions', $history);
-        $this->assertStringContainsString('client.loans.disbursements.store', $history);
-        $this->assertStringContainsString('client.loans.contracts.update', $history);
-        $this->assertStringContainsString('Sửa hợp đồng nháp', $history);
-        $this->assertTrue(strpos($history, 'data-loan-priority-actions') < strpos($history, 'id="loan-installments-'));
-        $this->assertStringNotContainsString('client.loans.disbursements.store', $dashboard);
-        $this->assertStringNotContainsString('client.loans.contracts.update', $dashboard);
+        $detail = $this->bladeSource('contract-detail');
+        $operations = $this->bladeSource('partials/contract-operations');
+        $this->assertStringContainsString('data-loan-contract-detail', $detail);
+        $this->assertStringContainsString('client.loans.contracts.update', $detail);
+        $this->assertStringContainsString('client.loans.contracts.destroy', $detail);
+        $this->assertStringContainsString('client.loans.contracts.restore-draft', $detail);
+        $this->assertStringContainsString('partials.contract-operations', $detail);
+        foreach (['client.loans.disbursements.store', 'client.loans.schedules.store', 'client.loans.payments.store'] as $route) {
+            $this->assertStringContainsString($route, $operations);
+        }
     }
 
-    public function test_reminder_ui_warns_when_global_dispatch_is_missing_or_disabled(): void
+    public function test_reminder_dispatch_is_opt_in_and_queue_job_is_idempotent(): void
     {
-        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $config = file_get_contents(base_path('config/loan_reminders.php'));
-        $job = file_get_contents(base_path('Modules/LoanManagement/Jobs/SendLoanReminder.php'));
+        $config = $this->source('config/loan_reminders.php');
+        $job = $this->source('Modules/LoanManagement/Jobs/SendLoanReminder.php');
         $this->assertStringContainsString("env('LOAN_REMINDERS_DISPATCH_ENABLED', false)", $config);
-        $this->assertStringContainsString("!config('loan_reminders.dispatch_enabled', false)", $partial);
-        $this->assertStringContainsString('Dịch vụ gửi Email chưa kích hoạt', $partial);
-        $this->assertStringContainsString('không tự sửa .env', $partial);
-        $this->assertStringContainsString("->lockForUpdate()->first()", $job);
+        $this->assertStringContainsString('->lockForUpdate()->first()', $job);
         $this->assertStringContainsString('DB::transaction(function (): void', $job);
     }
 
-    public function test_reminder_timeline_distinguishes_planned_from_actual_delivery_state(): void
+    public function test_reminder_history_is_read_only_and_tracks_delivery_states(): void
     {
-        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php'));
-        $history = file_get_contents(base_path('Modules/LoanManagement/Services/LoanReminderHistoryService.php'));
-        foreach (['Lịch sử nhắc hẹn Email', 'Theo lịch — chưa xác nhận vào Queue',
-            'Đã tạo yêu cầu · chưa xác nhận gửi', 'Đã gửi qua Mail', 'Gửi thất bại',
-            'Đã bỏ qua', "can('client.loans.contracts.edit')"] as $fragment) {
-            $this->assertStringContainsString($fragment, $partial);
-        }
-        $this->assertStringContainsString('LoanReminderHistoryService', $controller);
-        $this->assertStringContainsString('loanReminderTimeline', $controller);
+        $history = $this->source('Modules/LoanManagement/Services/LoanReminderHistoryService.php');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanCapabilityController.php');
         $this->assertStringContainsString('loan_reminder_deliveries', $history);
         $this->assertStringContainsString('loan_reminder_recipients', $history);
         $this->assertStringNotContainsString('->insert(', $history);
+        $this->assertStringContainsString('LoanReminderHistoryService', $controller);
     }
 
-    public function test_multiple_reminder_emails_and_stale_queue_suppression_are_scoped(): void
+    public function test_reminder_recipient_controls_and_stale_queue_guards_remain_present(): void
     {
-        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php'));
-        $job = file_get_contents(base_path('Modules/LoanManagement/Jobs/SendLoanReminder.php'));
-        $this->assertStringContainsString('recipient_emails[]', $partial);
-        $this->assertStringContainsString('Thêm Email', $partial);
-        $this->assertStringContainsString('data-loan-email-row', $partial);
-        $this->assertStringContainsString('data-loan-add-email', $partial);
-        $dashboard = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $this->assertStringContainsString("add.addEventListener('click'", $dashboard);
-        $this->assertStringContainsString('cloneNode(true)', $dashboard);
+        $operations = $this->bladeSource('partials/contract-operations');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php');
+        $job = $this->source('Modules/LoanManagement/Jobs/SendLoanReminder.php');
+        $this->assertStringContainsString('recipient_emails[]', $operations);
+        $this->assertStringContainsString('Thêm Email', $operations);
+        $this->assertStringContainsString('cloneNode(true)', $operations);
         $this->assertStringContainsString('recipient_emails.*', $controller);
         $this->assertStringContainsString('recipientActive', $job);
         $this->assertStringContainsString('expectedSendDate', $job);
-        $this->assertStringContainsString("'skipped'", $job);
     }
 
-    public function test_installment_due_date_defaults_and_reminder_settings_are_visible(): void
+    public function test_installment_and_insurance_forms_are_in_contract_operations(): void
     {
-        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php'));
-        $scheduler = file_get_contents(base_path('routes/console.php'));
-        $config = file_get_contents(base_path('config/loan_reminders.php'));
-        $this->assertStringContainsString('old(\'paid_at\', $item->due_at)', $partial);
-        foreach (['Thiết lập nhắc hẹn qua Email', 'days_before[]', '7 ngày', '5 ngày', '2 ngày', 'Đúng ngày đến hạn'] as $fragment) {
-            $this->assertStringContainsString($fragment, $partial);
+        $operations = $this->bladeSource('partials/contract-operations');
+        $routes = $this->source('Modules/ClientPortal/Applications/LoanManagement/routes.php');
+        foreach (['client.loans.installments.pay', 'client.loans.insurance.store',
+            'client.loans.premiums.store', 'client.loans.premiums.pay'] as $route) {
+            $this->assertStringContainsString($route, $operations);
         }
-        $this->assertStringContainsString('reminders.update', $routes);
-        $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
-        $this->assertStringContainsString('loans:dispatch-reminders', $scheduler);
-        $this->assertStringContainsString("'dispatch_enabled' => env('LOAN_REMINDERS_DISPATCH_ENABLED', false)", $config);
-    }
-
-    public function test_installment_payment_action_is_permission_scoped_and_secondary_forms_are_collapsed(): void
-    {
-        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/routes.php'));
-        foreach (['client.loans.installments.pay', 'data-loan-installment-form', 'Thanh toán kỳ', 'Thanh toán một phần', 'Còn phải trả theo kỳ'] as $fragment) {
-            $this->assertStringContainsString($fragment, $partial.$blade);
-        }
-        $this->assertStringContainsString('Thao tác khác', $blade);
         $this->assertStringContainsString("whereNumber('schedule')", $routes);
-        $this->assertStringContainsString("@can('client.loans.payments.create')", $partial);
+        $this->assertStringContainsString('<x-pwa-date', $operations);
     }
 
-    public function test_guided_loan_creation_supports_three_lender_types_and_forecast_only(): void
+    public function test_wizard_is_forecast_only_and_uses_domain_calculator(): void
     {
-        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php'));
-        $service = file_get_contents(base_path('Modules/LoanManagement/Services/LoanScheduleGenerator.php'));
-        foreach (['data-loan-wizard', 'data-loan-lender-type', 'data-loan-wizard-preview', 'interest_monthly', 'all_at_maturity', 'manual'] as $fragment) {
-            $this->assertStringContainsString($fragment, $blade);
+        $wizard = $this->bladeSource('contract-create');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php');
+        $service = $this->source('Modules/LoanManagement/Services/LoanScheduleGenerator.php');
+        foreach (['data-loan-wizard', 'data-loan-lender-type', 'data-loan-wizard-preview'] as $fragment) {
+            $this->assertStringContainsString($fragment, $wizard);
         }
         $this->assertStringContainsString('createContractWithOptionalSchedule', $controller);
         $this->assertStringContainsString('LoanInterestCalculator', $service);
@@ -160,48 +141,27 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
         $this->assertStringNotContainsString("DB::table('loan_disbursements')->insert", $service);
     }
 
-    public function test_contract_profile_and_transaction_history_are_rendered_from_domain_service(): void
+    public function test_contract_filters_and_destructive_actions_remain_separated(): void
     {
-        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $partial = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php'));
-        $insurance = file_get_contents(base_path('Modules/LoanManagement/Services/LoanInsuranceService.php'));
-
-        $this->assertStringContainsString('contract-history', $blade);
-        $this->assertStringContainsString("lender_type !== 'individual'", $blade);
-        foreach (['Thông tin hồ sơ vay', 'Lịch sử giải ngân', 'Lịch trả nợ ·', 'Lịch sử thanh toán thực tế', 'principal_repaid', 'annual_rate_percent'] as $fragment) {
-            $this->assertStringContainsString($fragment, $partial);
+        $contracts = $this->bladeSource('contracts');
+        $detail = $this->bladeSource('contract-detail');
+        $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanCapabilityController.php');
+        foreach (['name="search"', 'name="type"', 'name="status"'] as $filter) {
+            $this->assertStringContainsString($filter, $contracts);
         }
-        $this->assertStringContainsString('LoanContractHistoryService', $controller);
-        $this->assertStringContainsString("lenderType === 'individual'", $insurance);
+        $this->assertStringContainsString('data-contract-delete', $detail);
+        $this->assertStringContainsString('data-contract-restore', $detail);
+        $this->assertStringContainsString('loan_insurance_policies as p', $controller);
+        $this->assertStringContainsString('operationFilters', $controller);
     }
 
-    public function test_contract_filters_and_collapsible_actions_remain_scoped(): void
+    public function test_insurance_and_payment_navigation_remains_permission_scoped(): void
     {
-        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        foreach (['name="search"', 'name="type"', 'name="status"', 'name="insurance"', 'data-loan-filters', 'data-loan-delete-confirm', 'data-loan-restore-confirm', 'requestSubmit', 'loan-contract-card', 'Xóa bộ lọc', 'Mở chi tiết hợp đồng', 'Xem các kỳ phí và thao tác bảo hiểm'] as $fragment) {
-            $this->assertStringContainsString($fragment, $blade);
-        }
-        $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php'));
-        $this->assertStringContainsString('insuredContractIds', $controller);
-        $this->assertStringContainsString('visibleContracts', $controller);
-        $this->assertStringContainsString('mb_stripos', $controller);
-        $this->assertStringNotContainsString('x-show=', $blade);
-    }
-
-    public function test_workspace_preserves_transaction_and_insurance_actions(): void
-    {
-        $blade = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/dashboard.blade.php'));
-        $history = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/loans/partials/contract-history.blade.php'));
-        foreach (['lenders.store', 'contracts.store', 'schedules.store', 'payments.store', 'insurance.store', 'premiums.store', 'premiums.pay'] as $name) {
-            $this->assertStringContainsString('client.loans.'.$name, $blade);
-        }
-        foreach (['contracts.update', 'disbursements.store'] as $name) {
-            $this->assertStringContainsString('client.loans.'.$name, $history);
-        }
-        $this->assertStringContainsString("partials.contract-history", $blade);
-        $this->assertStringContainsString("client.loans.contracts.create", $blade);
-        $this->assertStringContainsString("client.loans.insurance.view", $blade);
-        $this->assertStringContainsString('<x-pwa-date', $blade);
+        $dashboard = $this->bladeSource('dashboard');
+        $operations = $this->bladeSource('partials/contract-operations');
+        $this->assertStringContainsString("client.loans.insurance.view", $dashboard);
+        $this->assertStringContainsString('client.loans.contracts.create', $dashboard);
+        $this->assertStringContainsString('client.loans.payments.store', $operations);
+        $this->assertStringContainsString('client.loans.insurance.store', $operations);
     }
 }

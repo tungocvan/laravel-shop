@@ -25,6 +25,12 @@ final class LoanManagementBusinessIntegrationTest extends TestCase
     {
         parent::setUp();
 
+        // LoanManagement is disabled by default. Register only these two commands
+        // in this isolated test application; never change the module's runtime state.
+        $console = app(\Illuminate\Contracts\Console\Kernel::class);
+        $console->registerCommand(app(\Modules\LoanManagement\Console\Commands\SeedLoanDemo::class));
+        $console->registerCommand(app(\Modules\LoanManagement\Console\Commands\CleanLoanData::class));
+
         $this->previousConnection = DB::getDefaultConnection();
 
         // Fail closed: these tests must never use the app's configured MySQL database.

@@ -8,40 +8,38 @@ use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanInsura
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanReminderController;
 use Modules\ClientPortal\Applications\LoanManagement\Http\Controllers\LoanContractTransferController;
 
-if ((bool) config('modules.registry.LoanManagement.enabled', false)) {
-    Route::middleware(['web', 'auth:web', 'client.application:loans'])
-        ->prefix('apps/loans')->name('client.loans.')
-        ->group(function (): void {
-            Route::get('/', [LoanApplicationController::class, 'dashboard'])
-                ->middleware('client.feature:loans,overview')
-                ->name('dashboard');
-            // Browse/Index entry points. Existing mutation routes stay unchanged during UI-1.
-            foreach (['lenders', 'contracts', 'payments', 'reminders', 'insurance'] as $workspace) {
-                Route::get('/'.$workspace, [LoanCapabilityController::class, 'index'])
-                    ->defaults('workspace', $workspace)
-                    ->name($workspace.'.index');
-            }
-            Route::get('/contracts/import/template', [LoanContractTransferController::class, 'template'])->name('contracts.import.template');
-            Route::get('/contracts/export', [LoanContractTransferController::class, 'export'])->name('contracts.export');
-            Route::post('/contracts/import/preview', [LoanContractTransferController::class, 'preview'])->name('contracts.import.preview');
-            Route::post('/contracts/import/confirm', [LoanContractTransferController::class, 'confirm'])->name('contracts.import.confirm');
-            Route::get('/contracts/{contract}', [LoanCapabilityController::class, 'showContract'])->whereNumber('contract')->name('contracts.show');
-            Route::get('/contracts/create', [LoanCapabilityController::class, 'createContract'])->name('contracts.create');
-            Route::post('/lenders', [LoanWorkspaceController::class, 'storeLender'])->name('lenders.store');
-            Route::put('/lenders/{lender}', [LoanWorkspaceController::class, 'updateLender'])->whereNumber('lender')->name('lenders.update');
-            Route::delete('/lenders/{lender}', [LoanWorkspaceController::class, 'deleteLender'])->whereNumber('lender')->name('lenders.destroy');
-            Route::post('/contracts', [LoanWorkspaceController::class, 'storeContract'])->name('contracts.store');
-            Route::put('/contracts/{contract}', [LoanWorkspaceController::class, 'updateContract'])->whereNumber('contract')->name('contracts.update');
-            Route::delete('/contracts/{contract}', [LoanWorkspaceController::class, 'deleteContract'])->whereNumber('contract')->name('contracts.destroy');
-            Route::patch('/contracts/{contract}/restore-draft', [LoanWorkspaceController::class, 'restoreDraft'])->whereNumber('contract')->name('contracts.restore-draft');
-            Route::post('/contracts/{contract}/disbursements', [LoanWorkspaceController::class, 'disburse'])->whereNumber('contract')->name('disbursements.store');
-            Route::post('/contracts/{contract}/schedules', [LoanWorkspaceController::class, 'schedule'])->whereNumber('contract')->name('schedules.store');
-            Route::put('/contracts/{contract}/schedules/{schedule}', [LoanWorkspaceController::class, 'updateSchedule'])->whereNumber('contract')->whereNumber('schedule')->name('schedules.update');
-            Route::put('/contracts/{contract}/reminders', [LoanReminderController::class, 'update'])->whereNumber('contract')->name('reminders.update');
-            Route::post('/contracts/{contract}/schedules/{schedule}/payments', [LoanWorkspaceController::class, 'payInstallment'])->whereNumber('contract')->whereNumber('schedule')->name('installments.pay');
-            Route::post('/contracts/{contract}/payments', [LoanWorkspaceController::class, 'pay'])->whereNumber('contract')->name('payments.store');
-            Route::post('/contracts/{contract}/insurance', [LoanInsuranceController::class, 'storePolicy'])->whereNumber('contract')->name('insurance.store');
-            Route::post('/insurance/{policy}/premiums', [LoanInsuranceController::class, 'storePremium'])->whereNumber('policy')->name('premiums.store');
-            Route::post('/premiums/{premium}/payments', [LoanInsuranceController::class, 'payPremium'])->whereNumber('premium')->name('premiums.pay');
-        });
-}
+Route::middleware(['web', 'auth:web', 'client.application:loans'])
+    ->prefix('apps/loans')->name('client.loans.')
+    ->group(function (): void {
+        Route::get('/', [LoanApplicationController::class, 'dashboard'])
+            ->middleware('client.feature:loans,overview')
+            ->name('dashboard');
+        // Browse/Index entry points. Existing mutation routes stay unchanged during UI-1.
+        foreach (['lenders', 'contracts', 'payments', 'reminders', 'insurance'] as $workspace) {
+            Route::get('/'.$workspace, [LoanCapabilityController::class, 'index'])
+                ->defaults('workspace', $workspace)
+                ->name($workspace.'.index');
+        }
+        Route::get('/contracts/import/template', [LoanContractTransferController::class, 'template'])->name('contracts.import.template');
+        Route::get('/contracts/export', [LoanContractTransferController::class, 'export'])->name('contracts.export');
+        Route::post('/contracts/import/preview', [LoanContractTransferController::class, 'preview'])->name('contracts.import.preview');
+        Route::post('/contracts/import/confirm', [LoanContractTransferController::class, 'confirm'])->name('contracts.import.confirm');
+        Route::get('/contracts/{contract}', [LoanCapabilityController::class, 'showContract'])->whereNumber('contract')->name('contracts.show');
+        Route::get('/contracts/create', [LoanCapabilityController::class, 'createContract'])->name('contracts.create');
+        Route::post('/lenders', [LoanWorkspaceController::class, 'storeLender'])->name('lenders.store');
+        Route::put('/lenders/{lender}', [LoanWorkspaceController::class, 'updateLender'])->whereNumber('lender')->name('lenders.update');
+        Route::delete('/lenders/{lender}', [LoanWorkspaceController::class, 'deleteLender'])->whereNumber('lender')->name('lenders.destroy');
+        Route::post('/contracts', [LoanWorkspaceController::class, 'storeContract'])->name('contracts.store');
+        Route::put('/contracts/{contract}', [LoanWorkspaceController::class, 'updateContract'])->whereNumber('contract')->name('contracts.update');
+        Route::delete('/contracts/{contract}', [LoanWorkspaceController::class, 'deleteContract'])->whereNumber('contract')->name('contracts.destroy');
+        Route::patch('/contracts/{contract}/restore-draft', [LoanWorkspaceController::class, 'restoreDraft'])->whereNumber('contract')->name('contracts.restore-draft');
+        Route::post('/contracts/{contract}/disbursements', [LoanWorkspaceController::class, 'disburse'])->whereNumber('contract')->name('disbursements.store');
+        Route::post('/contracts/{contract}/schedules', [LoanWorkspaceController::class, 'schedule'])->whereNumber('contract')->name('schedules.store');
+        Route::put('/contracts/{contract}/schedules/{schedule}', [LoanWorkspaceController::class, 'updateSchedule'])->whereNumber('contract')->whereNumber('schedule')->name('schedules.update');
+        Route::put('/contracts/{contract}/reminders', [LoanReminderController::class, 'update'])->whereNumber('contract')->name('reminders.update');
+        Route::post('/contracts/{contract}/schedules/{schedule}/payments', [LoanWorkspaceController::class, 'payInstallment'])->whereNumber('contract')->whereNumber('schedule')->name('installments.pay');
+        Route::post('/contracts/{contract}/payments', [LoanWorkspaceController::class, 'pay'])->whereNumber('contract')->name('payments.store');
+        Route::post('/contracts/{contract}/insurance', [LoanInsuranceController::class, 'storePolicy'])->whereNumber('contract')->name('insurance.store');
+        Route::post('/insurance/{policy}/premiums', [LoanInsuranceController::class, 'storePremium'])->whereNumber('policy')->name('premiums.store');
+        Route::post('/premiums/{premium}/payments', [LoanInsuranceController::class, 'payPremium'])->whereNumber('premium')->name('premiums.pay');
+    });
