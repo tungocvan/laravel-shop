@@ -140,6 +140,28 @@
                 </div>
             </form>
 
+            <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+                <h2 class="text-lg font-bold text-gray-900">Biểu tượng PWA trên iPhone và Android</h2>
+                <p class="mt-1 text-sm text-gray-500">Tải ảnh PNG vuông 512–2048 px, tối đa 5 MB. Hệ thống tạo Apple icon 180 px, PWA 192/512 px và maskable.</p>
+                <div class="mt-4 flex flex-wrap items-center gap-4">
+                    <img src="{{ $pwaIconUrl }}" alt="Icon PWA hiện tại" class="h-20 w-20 rounded-2xl border border-gray-200 object-contain">
+                    <form method="POST" action="{{ route('admin.client-apps.pwa.icon.update') }}" enctype="multipart/form-data" class="flex min-w-0 flex-1 flex-wrap items-end gap-3">
+                        @csrf
+                        <label class="min-w-0 flex-1 text-sm font-semibold text-gray-800">Chọn icon PNG
+                            <input type="file" name="icon" accept="image/png" required class="mt-2 block w-full min-w-0 text-sm text-gray-700">
+                        </label>
+                        <button class="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white">Cập nhật icon</button>
+                    </form>
+                    @if(!empty($general['icon_version']))
+                        <form method="POST" action="{{ route('admin.client-apps.pwa.icon.reset') }}">
+                            @csrf
+                            <button class="rounded-xl border border-gray-300 px-4 py-3 text-sm font-semibold text-gray-700">Khôi phục mặc định</button>
+                        </form>
+                    @endif
+                </div>
+                <p class="mt-3 text-xs text-amber-700">iPhone có thể cần thêm lại PWA để nhận icon mới. Sao lưu dữ liệu cục bộ cần thiết trước khi xóa ứng dụng.</p>
+            </section>
+
             <form method="POST" action="{{ route('admin.client-apps.pwa.general.update') }}" class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
                 @csrf
                 @method('PUT')

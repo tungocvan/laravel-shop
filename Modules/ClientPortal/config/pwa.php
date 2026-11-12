@@ -8,6 +8,7 @@ return [
         'theme_color' => '#0f172a',
         'background_color' => '#0f172a',
         'apple_title' => 'INAFO',
+        'icon_version' => null,
         'start_url' => '/my-apps',
         'display' => 'standalone',
     ],

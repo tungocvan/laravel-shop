@@ -10,6 +10,7 @@ use Illuminate\Validation\Rules\File;
 use Illuminate\View\View;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\ClientPortal\Services\PwaIconService;
 
 class PwaSettingsController extends Controller
 {
@@ -17,6 +18,7 @@ class PwaSettingsController extends Controller
     {
         return view('ClientPortal::admin.pwa-settings', [
             'general' => $settings->pwaGeneral(),
+            'pwaIconUrl' => app(PwaIconService::class)->appleTouchIcon($settings->pwaGeneral()['icon_version'] ?? null),
             'login' => $settings->pwaLogin(),
             'bottomNavigation' => $settings->pwaBottomNavigation(),
             'bottomNavigationThemes' => $settings->pwaBottomNavigationThemes(),
@@ -60,6 +62,30 @@ class PwaSettingsController extends Controller
         ]);
         $settings->updatePwaGeneral($validated, $request->user('admin')?->getAuthIdentifier());
         return back()->with('success', 'Đã cập nhật cấu hình PWA chung.');
+    }
+
+    public function updateIcon(Request $request, ClientPortalSettingsService $settings, PwaIconService $icons): RedirectResponse
+    {
+        $request->validate(['icon' => ['required', File::image()->types(['png'])->max('5mb')]]);
+        try {
+            $old = $settings->pwaGeneral()['icon_version'] ?? null;
+            $version = $icons->store($request->file('icon'));
+            try {
+                $settings->updatePwaGeneral(['icon_version' => $version], $request->user('admin')?->getAuthIdentifier());
+            } catch (\Throwable $e) {
+                if ($old !== $version) $icons->delete($version);
+                throw $e;
+            }
+            return back()->with('success', 'Đã cập nhật icon PWA. iPhone có thể cần thêm lại ứng dụng vào Màn hình chính.');
+        } catch (\RuntimeException $e) {
+            return back()->withErrors(['icon' => $e->getMessage()]);
+        }
+    }
+
+    public function resetIcon(Request $request, ClientPortalSettingsService $settings): RedirectResponse
+    {
+        $settings->updatePwaGeneral(['icon_version' => null], $request->user('admin')?->getAuthIdentifier());
+        return back()->with('success', 'Đã khôi phục icon PWA mặc định.');
     }
 
     public function updateBottomNavigation(Request $request, ClientPortalSettingsService $settings): RedirectResponse

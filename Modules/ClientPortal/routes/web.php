@@ -24,6 +24,8 @@ Route::middleware(['web', 'auth:admin'])->prefix('admin/client-apps')->name('adm
     Route::post('/sync-permissions', [ApplicationAdminController::class, 'syncPermissions'])->middleware('permission:edit_role,admin')->name('sync-permissions');
     Route::post('/sync-super-admin', [ApplicationAdminController::class, 'syncSuperAdmin'])->middleware('permission:edit_role,admin')->name('sync-super-admin');
     Route::get('/pwa', [PwaSettingsController::class, 'edit'])->middleware('permission:edit_role,admin')->name('pwa.edit');
+    Route::post('/pwa/icon', [PwaSettingsController::class, 'updateIcon'])->middleware('permission:edit_role,admin')->name('pwa.icon.update');
+    Route::post('/pwa/icon/reset', [PwaSettingsController::class, 'resetIcon'])->middleware('permission:edit_role,admin')->name('pwa.icon.reset');
     Route::put('/pwa/general', [PwaSettingsController::class, 'updateGeneral'])->middleware('permission:edit_role,admin')->name('pwa.general.update');
     Route::put('/pwa/bottom-navigation', [PwaSettingsController::class, 'updateBottomNavigation'])->middleware('permission:edit_role,admin')->name('pwa.bottom-navigation.update');
     Route::post('/pwa/bottom-navigation/reset', [PwaSettingsController::class, 'resetBottomNavigation'])->middleware('permission:edit_role,admin')->name('pwa.bottom-navigation.reset');

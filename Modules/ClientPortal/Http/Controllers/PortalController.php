@@ -8,30 +8,25 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
+use Modules\ClientPortal\Services\PwaIconService;
 use Modules\ClientPortal\Services\PortalContextResolver;
 
 class PortalController extends Controller
 {
-    public function manifest(ClientPortalSettingsService $settings): JsonResponse
+    public function manifest(ClientPortalSettingsService $settings, PwaIconService $icons): JsonResponse
     {
         $general = $settings->pwaGeneral();
 
         return response()->json([
+            'id' => '/my-apps',
             'name' => $general['application_name'],
             'short_name' => $general['short_name'],
             'start_url' => $general['start_url'] ?? '/my-apps',
-            'scope' => '/my-apps',
+            'scope' => '/',
             'display' => $general['display'] ?? 'standalone',
             'theme_color' => $general['theme_color'],
             'background_color' => $general['background_color'],
-            'icons' => [
-                [
-                    'src' => '/pwa/icon.svg',
-                    'sizes' => 'any',
-                    'type' => 'image/svg+xml',
-                    'purpose' => 'any maskable',
-                ],
-            ],
+            'icons' => $icons->icons($general['icon_version'] ?? null),
         ], 200, [
             'Content-Type' => 'application/manifest+json',
             'Cache-Control' => 'no-cache, private',
