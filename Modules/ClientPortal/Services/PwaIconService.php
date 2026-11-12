@@ -41,7 +41,8 @@ class PwaIconService
         if (!$source) {
             throw new RuntimeException('Không đọc được ảnh PNG.');
         }
-        $version = md5_file($file->getRealPath());
+        // Unique version avoids overwriting assets referenced by already-installed PWAs.
+        $version = bin2hex(random_bytes(16));
         $written = [];
         try {
             foreach (['180' => 180, '192' => 192, '512' => 512, 'maskable' => 512] as $key => $size) {
