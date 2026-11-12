@@ -290,3 +290,11 @@ A future Website change must begin from a newly stated objective and must not tr
 - Focused regression: `tests/Feature/Website/SitemapXmlBladeTest.php` checks Blade compilation and rendered XML/escaped query parameters.
 - **Not yet verified**: focused tests, Website regression, actual HTTP `/sitemap.xml`, browser/UI, and runtime compiled-view/OPcache refresh. Production code has not been changed by this branch. Do not claim TEST/UI PASS or merge until gates are confirmed.
 - Production rollout (separate approval required): after PR merge and Git sync, inspect host/image/container view ownership and compiled cache; refresh only the applicable view/OPcache state if evidence requires it. No blanket `optimize:clear`, Docker restart, DB changes or Compose overlay edits.
+
+## 2026-11-12 — Sitemap XML CI gate (Draft PR #380)
+
+- Added `.github/workflows/website-sitemap-regression.yml` on the existing feature branch to run PHP 8.3 / SQLite in GitHub Actions, without changing Production Docker.
+- Workflow gates `tests/Feature/Website/SitemapXmlBladeTest.php` first, then `tests/Feature/Website` only if focused tests pass; no full-suite regression requested.
+- CI execution/result: **PENDING / NOT VERIFIED** at this handoff. Historical Website regression includes 3 `FooterSettingsUxContractTest` failures; compare actual results before classifying.
+- Production main remains on its baseline, with the known compiled-view parse error; no cache clear, rebuild, deployment, or production test authorized.
+- PR #380 remains Draft. User must confirm rendered HTTP/XML smoke and approve merge separately; Production rollout requires its own explicit approval and safety checks.
