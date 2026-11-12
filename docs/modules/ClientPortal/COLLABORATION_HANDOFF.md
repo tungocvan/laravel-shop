@@ -2185,3 +2185,15 @@ UI gate for P3 should smoke the Order footer actions, Receipt add/save actions, 
 - Canonical Excel detail management uses native `<details>` collapsed by default, with no JS dependency. Reset action appears only when setup records exist; delete remains available to authorized users.
 - Delete revalidates Excel-only provenance and downstream guards in the existing DB transaction, then clears setup if needed before deleting Pharma and canonical rows. All steps rollback together on exception. Standalone reset preserved.
 - Focused test: `php artisan test tests/Feature/ClientApps/PharmaKqlcntExcelRemovalContractTest.php` — NOT YET RUN. Run relevant KQLCNT/Pharma regression only after focused PASS. UI PASS requires operator verification for both configured/unconfigured Excel states and blocked cases.
+
+
+## 2026-11-12 — ClientPortal managed PWA icon (checkpoint)
+
+- Branch: feat/clientportal-managed-pwa-icons-20261112, based on main 0f233b7b.
+- Admin: /admin/client-apps/pwa supports upload/reset of PNG icons. The upload validates 5 MB max, square 512–2048 px and uses PHP GD to generate Apple 180, PWA 192/512 and maskable 512 assets.
+- ClientPortal's /my-apps and /apps/* pages now reference the ClientPortal manifest, with scope / to preserve installed-app navigation. Website's separate manifest endpoint is untouched.
+- Generated icon versions are stored under public disk clientportal/pwa-icons; older versions are intentionally retained so existing installed clients do not lose assets.
+- No migrations, no Production changes, no forced PWA uninstall. Before removing an installed PWA on iPhone, back up any device-local data.
+- Focused test: php artisan test tests/Feature/ClientApps/ClientPortalPwaIconTest.php
+- Regression after focused PASS: php artisan test tests/Feature/ClientApps/ClientPortalPwaSettingsTest.php tests/Feature/ClientApps/ClientPwaFoundationTest.php tests/Feature/Website/WebsiteDynamicManifestConfigurationTest.php tests/Feature/Website/WebsitePwaRuntimeSyncConfigurationTest.php
+- Real Admin and iPhone Safari UI PASS must be confirmed by user. PHP GD and public storage symlink must be available for uploads; do not change Production configuration without Production workflow.
