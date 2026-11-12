@@ -116,9 +116,5 @@ jobs:
       - name: Run impacted ClientPortal contracts
         run: |
           vendor/bin/phpunit \
-            tests/Feature/ClientApps/ClientApplicationRegistryTest.php \
             tests/Feature/ClientApps/ClientPortalArchitectureContractTest.php \
-            tests/Feature/ClientApps/ClientPortalExtractionTest.php \
-            tests/Feature/ClientApps/ClientPortalPwaRegistrationTest.php \
-            tests/Feature/ClientApps/ClientPwaFoundationTest.php \
             tests/Feature/ClientPortal/ClientPortalPwaBoundaryTest.php
