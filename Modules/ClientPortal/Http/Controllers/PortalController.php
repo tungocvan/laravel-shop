@@ -21,7 +21,7 @@ class PortalController extends Controller
             'name' => $general['application_name'],
             'short_name' => $general['short_name'],
             'start_url' => $general['start_url'] ?? '/my-apps',
-            'scope' => '/my-apps',
+            'scope' => '/',
             'display' => $general['display'] ?? 'standalone',
             'theme_color' => $general['theme_color'],
             'background_color' => $general['background_color'],
