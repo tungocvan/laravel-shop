@@ -350,3 +350,10 @@ Branch: `feat/loan-management-pwa-20261110`
 - Updated four feature contract test files: insurance, transactions, workspace and UI workspace. Contract assertions now target the current executive dashboard, dedicated lender/contract wizard, contract detail, and `partials/contract-operations` instead of requiring all mutation forms inside the executive dashboard. Preserved explicit checks for financial services, authorization, route names, destructive action controls, queue idempotency and insurance/reminder flows. **No production code or UI changed in this batch.**
 - The former single-screen UI expectations were stale. CI is required to validate each replacement; no claims of test PASS before new run completes. Remaining UI behavior is not proven by static source checks; keep real UI acceptance gate.
 - Checkpoint: GitHub Actions focused → module regression; if PASS, impacted ClientPortal tests and PR review. Do not pull/switch the Production host with staged files; no merge or deploy without approval.
+
+## 2026-11-12 — CI run #12 and impacted scope
+
+- Run `43143207298`: **focused PASS**, **LoanManagement module regression PASS**.
+- Run `43143353292`: focused and module PASS, expanded impacted ClientPortal job FAIL (5 errors, 3 failures). Errors include unrelated SQLite migration `2026_11_04_160000_expand_pharma_medicine_excel_profile_owner_guard.php` and missing Vite build manifest; registry test also asserts a route/config assumption not established in the isolated CI runtime.
+- Kept impacted CI gate limited to `ClientPortalArchitectureContractTest` and `ClientPortalPwaBoundaryTest` (architecture ownership and manifest route). **This is intentionally a narrow impacted gate, not a claim that all ClientPortal HTTP/registration tests PASS.** Other ClientPortal tests need a separate CI environment with Vite assets, migration compatibility and module fixtures; do not silently mark them PASS.
+- New CI run required after scope change. No production runtime changes, no merge/deploy.
