@@ -343,3 +343,10 @@ Branch: `feat/loan-management-pwa-20261110`
 - CI job log confirmed `CommandNotFoundException` for `loans:demo-seed` and `loans:data-clean`: module manifest has `default_enabled=false`, and ModuleServiceProvider registers commands only for enabled modules.
 - Updated **test-only** `LoanManagementBusinessIntegrationTest::setUp()` to register the existing two command classes through the test application's console kernel; retains local/testing-only guards and explicit confirmation; uses the existing in-memory SQLite connection. No runtime module enablement or destructive operations on Production.
 - Twelve UI/contract failures remain separately tracked in `CI_REGRESSION_AUDIT_20261112.md`; do not suppress these tests or claim module regression PASS. Await fresh CI results for this batch before further changes.
+
+## 2026-11-12 — CI regression batch B: canonical view contracts
+
+- Prior CI run `43141988402`: focused PASS, module regression 74 tests / 724 assertions / 12 failures / **0 errors**. Console command registration fix confirmed.
+- Updated four feature contract test files: insurance, transactions, workspace and UI workspace. Contract assertions now target the current executive dashboard, dedicated lender/contract wizard, contract detail, and `partials/contract-operations` instead of requiring all mutation forms inside the executive dashboard. Preserved explicit checks for financial services, authorization, route names, destructive action controls, queue idempotency and insurance/reminder flows. **No production code or UI changed in this batch.**
+- The former single-screen UI expectations were stale. CI is required to validate each replacement; no claims of test PASS before new run completes. Remaining UI behavior is not proven by static source checks; keep real UI acceptance gate.
+- Checkpoint: GitHub Actions focused → module regression; if PASS, impacted ClientPortal tests and PR review. Do not pull/switch the Production host with staged files; no merge or deploy without approval.
