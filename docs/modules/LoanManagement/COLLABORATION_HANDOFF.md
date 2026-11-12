@@ -321,3 +321,13 @@ Branch: `feat/loan-management-pwa-20261110`
 - Added permission-protected GET `/apps/loans/contracts/import/template` with a streamed XLSX generated from `LoanContractWorkbookService::SHEETS` headers. Contracts sheet contains two illustrative draft contracts (individual and bank); other sheets are empty header-only for full-workbook compatibility. No database writes or automatic ledger postings.
 - Existing lender names in the sample must match lender records in the target environment; contract numbers must be changed for repeat imports. Download link is displayed only inside the authorized import panel.
 - Added focused source-contract assertions for route, placement and template. User to run tests and desktop/iPhone PWA UI check; do not claim PASS, merge or deploy before gates.
+
+
+## 2026-11-12 — Stable routes and Docker cache lifecycle checkpoint
+
+- Production incident root cause: LoanManagement named routes were omitted from route cache when the module was disabled during cache generation. After regeneration, PHP-FPM with `opcache.validate_timestamps=0` still needed a separately approved graceful reload. Operator confirmed HTTP/UI PASS on `/my-apps` and `/apps/loans` **for the emergency runtime repair only**; this is not proof the feature branch has been deployed.
+- Source fix: register LoanManagement routes regardless of module enablement; retain `client.application:loans` request-time access checks. No DB or migration changes.
+- Added `docs/DOCKER_LARAVEL_CACHE_LIFECYCLE.md` to explain image vs bind-mount/runtime config, route cache and OPcache deployment gates for future projects. Audited `Dockerfile`, `docker/entrypoint.sh`, `compose.yaml`, `docker/php/opcache.ini`; no automatic Docker lifecycle changes in this batch.
+- Expanded `LoanManagementRouteCacheContractTest` with a static guard against route/config cache precompilation in Dockerfile/entrypoint. Static contracts do not prove runtime integration or a full audit of all module route providers.
+- **CHECKPOINT PENDING**: focused test, LoanManagement regression, impacted ClientPortal tests, review and PR. Do not claim TEST PASS. Existing Production Git index has staged changes; do not switch/pull/reset/restore there. Untracked Compose overlays remain untouched.
+- UI PASS was reported for repaired Production behavior. Automated tests and feature-branch acceptance are still pending. No merge or production deploy authorized.
