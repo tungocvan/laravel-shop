@@ -28,6 +28,8 @@ class ExcelConfigurator extends Component
     public string $profileName = 'Mặc định';
     public bool $isDefault = true;
     public bool $isShared = false;
+
+    public bool $canShare = false;
     public array $profiles = [];
     public array $columns = [];
     public array $selected = [];
@@ -40,6 +42,7 @@ class ExcelConfigurator extends Component
     {
         abort_unless(in_array($ownerGuard, ['admin', 'web'], true), 403);
         $this->ownerGuard = $ownerGuard;
+        $this->canShare = $this->canShareProfile();
         $this->openOnMount = $openOnMount;
         $this->assertOwner();
         $this->refreshProfiles($service);
@@ -56,6 +59,18 @@ class ExcelConfigurator extends Component
                 ->userCan($user, 'client.pharma.products.excel-config'), 403);
         }
         return (int) $user->id;
+    }
+
+    private function canShareProfile(): bool
+    {
+        if ($this->ownerGuard === 'admin') {
+            return (bool) auth('admin')->user()?->can('edit_pharma');
+        }
+
+        $user = auth('web')->user();
+
+        return $user !== null && app(\Modules\ClientPortal\Services\ApplicationRegistry::class)
+            ->userCan($user, 'client.pharma.products.excel-share');
     }
 
     private function allowedColumns(): array
@@ -252,7 +267,7 @@ class ExcelConfigurator extends Component
     public function exportProfileJson(MedicineExcelProfileService $service)
     {
         $userId = $this->assertOwner();
-        $profile = $service->forUser($userId, $this->profileId, $this->ownerGuard);
+        $profile = $service->forOwner($userId, $this->profileId, $this->ownerGuard);
         $payload = array_intersect_key($profile, array_flip(['name', 'is_default', 'columns', 'headers', 'widths', 'alignments', 'settings']));
         $payload = ['schema_version' => 1] + $payload;
 
@@ -332,11 +347,15 @@ class ExcelConfigurator extends Component
 
     public function toggleSharing(MedicineExcelProfileService $service): void
     {
-        abort_unless($this->ownerGuard === 'admin' && auth('admin')->user()?->can('edit_pharma'), 403);
+        abort_unless($this->canShareProfile(), 403);
         abort_unless($this->profileId !== null, 422);
 
-        $adminId = $this->assertOwner();
-        $service->setSharedByAdmin($adminId, $this->profileId, ! $this->isShared);
+        $ownerId = $this->assertOwner();
+        if ($this->ownerGuard === 'admin') {
+            $service->setSharedByAdmin($ownerId, $this->profileId, ! $this->isShared);
+        } else {
+            $service->setSharedByWeb($ownerId, $this->profileId, ! $this->isShared);
+        }
         $this->refreshProfiles($service);
         $this->loadProfile($service);
     }
@@ -354,12 +373,12 @@ class ExcelConfigurator extends Component
 
     private function refreshProfiles(MedicineExcelProfileService $service): void
     {
-        $this->profiles = $service->listForUser($this->assertOwner(), $this->ownerGuard);
+        $this->profiles = $service->listOwnedForUser($this->assertOwner(), $this->ownerGuard);
     }
 
     private function loadProfile(MedicineExcelProfileService $service): void
     {
-        $this->apply($service->forUser($this->assertOwner(), $this->profileId, $this->ownerGuard));
+        $this->apply($service->forOwner($this->assertOwner(), $this->profileId, $this->ownerGuard));
     }
 
     private function apply(array $profile): void
