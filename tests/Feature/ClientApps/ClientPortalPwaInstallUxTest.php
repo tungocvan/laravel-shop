@@ -98,7 +98,7 @@ class ClientPortalPwaInstallUxTest extends TestCase
             ->assertSee('Thêm vào Màn hình chính');
     }
 
-    public function test_client_portal_pages_reuse_the_root_website_pwa_manifest(): void
+    public function test_client_portal_pages_use_the_clientportal_pwa_manifest(): void
     {
         $pages = [
             'login.blade.php',
@@ -110,15 +110,15 @@ class ClientPortalPwaInstallUxTest extends TestCase
         foreach ($pages as $page) {
             $content = file_get_contents(base_path('Modules/ClientPortal/resources/views/pages/'.$page));
 
-            $this->assertStringContainsString("route('website.manifest')", $content, $page);
+            $this->assertStringContainsString("route('client.apps.manifest')", $content, $page);
             $this->assertStringNotContainsString('/manifest.webmanifest', $content, $page);
         }
 
-        $manifest = $this->get('/website-manifest.webmanifest')
+        $manifest = $this->get('/my-apps/manifest.webmanifest')
             ->assertOk()
             ->json();
 
-        $this->assertSame('/', $manifest['id']);
+        $this->assertSame('/my-apps', $manifest['id']);
         $this->assertSame('/my-apps', $manifest['start_url']);
         $this->assertSame('/', $manifest['scope']);
         $this->assertSame('standalone', $manifest['display']);
