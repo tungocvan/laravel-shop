@@ -163,6 +163,22 @@ class ApplicationRegistry
             ->map(function (array $item, string|int $itemKey): array {
                 $fallbackKey = is_string($itemKey) ? $itemKey : ($item['name'] ?? 'item-'.$itemKey);
                 $placement = $item['placement'] ?? 'primary';
+                // Keep navigation action metadata for Web permission registration.
+                $actions = collect($item['actions'] ?? [])
+                    ->filter(fn (mixed $action): bool => is_array($action))
+                    ->map(function (array $action, string|int $actionKey): array {
+                        $fallbackActionKey = is_string($actionKey) ? $actionKey : 'action-'.$actionKey;
+
+                        return [
+                            'key' => Str::lower(trim((string) ($action['key'] ?? $fallbackActionKey))),
+                            'name' => trim((string) ($action['name'] ?? Str::headline($fallbackActionKey))),
+                            'permission' => $this->nullableString($action['permission'] ?? null),
+                            'sort_order' => (int) ($action['sort_order'] ?? 100),
+                        ];
+                    })
+                    ->sortBy(fn (array $action): array => [$action['sort_order'], $action['name']])
+                    ->values()
+                    ->all();
 
                 return [
                     'key' => Str::lower(trim((string) ($item['key'] ?? $fallbackKey))),
@@ -172,6 +188,7 @@ class ApplicationRegistry
                     'icon' => trim((string) ($item['icon'] ?? 'square-3-stack-3d')),
                     'sort_order' => (int) ($item['sort_order'] ?? 100),
                     'placement' => in_array($placement, ['primary', 'more'], true) ? $placement : 'primary',
+                    'actions' => $actions,
                 ];
             })
             ->filter(fn (array $item): bool => $item['key'] !== '' && $item['name'] !== '' && $item['route'] !== null)
