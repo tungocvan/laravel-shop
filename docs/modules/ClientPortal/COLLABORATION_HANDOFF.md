@@ -1,3 +1,31 @@
+## 2026-11-12 — Web Excel profile sharing (permission-gated)
+
+- Feature branch: `feat/pharma-web-excel-profile-sharing-20261112`, extending unmerged `feat/pharma-shared-excel-profiles-20261112` (base main `6e37e7db5`); previous sharing implementation is included in this branch.
+- Permission: `client.pharma.products.excel-share`, declared in Pharma application manifest and registered via `Modules/Pharma/config/module.php` `permissions_by_guard.web`, independent of `excel-config`. Existing Admin `edit_pharma` policy unchanged.
+- Shared profiles: explicit opt-in `is_shared`; Web owner may publish/revoke only their own profile after Web authorization. Admin owner may publish/revoke own Admin profiles. Shared Admin/Web profiles appear in the authorized Web export dropdown. Service scopes export lookup; private templates inaccessible.
+- Important isolation: Excel Designer now uses `listOwnedForUser` and `forOwner`, not shared `listForUser`/`forUser`, preventing edits to other users' shared profiles. Owner-only save/delete remain unchanged. Shared export remains separate and permission-checked.
+- Migration from preceding feature branch `2026_11_12_120000_add_sharing_to_medicine_excel_profiles.php` is included, not executed here. Existing templates remain private by default. Do not run production migration without production workflow and approval.
+- Focused tests **PENDING local**: `php artisan test Modules/Pharma/Tests/Unit/MedicineWebExcelSharingContractTest.php Modules/Pharma/Tests/Unit/MedicineExcelSharingContractTest.php`.
+- Impacted regression **PENDING after focused PASS**: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelProfileContractTest.php Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php tests/Feature/ClientApps/PharmaMedicineExcelDesignerJsonImportContractTest.php`.
+- Manual UI **PENDING**: grant `excel-share` explicitly via Admin Client Apps permission management after sync; Web account with only `excel-config` must not see share button; authorized Web account may publish/revoke own template; another authorized exporter sees/exports shared template but cannot edit it; Admin share remains functional; mobile/desktop/Livewire refresh; verify private templates inaccessible and no 403/404/500.
+- No PR, merge or deploy. Preserve untracked local files.
+
+---
+
+## 2026-11-12 — Opt-in shared Pharma Medicine Excel profiles
+
+- Branch `feat/pharma-shared-excel-profiles-20261112`, based on main `6e37e7db591fdcbc2de73dd68c440f8961d9108a`.
+- Root cause: MedicineExcelProfileService scopes list/lookup to `owner_guard + user_id`; Web user 22 could export but only saw the built-in default, not Admin's saved profiles.
+- Implementation: new `is_shared` boolean defaults false; authorized Admin owner may publish/revoke their own saved Excel profile in shared Excel Designer V4. Only Admin-owned explicitly published profiles are available to Web users, and only after existing `client.pharma.products.export` authorization. Web personal profiles remain private; sharing does not grant edit rights or expose other Admin profiles. Shared lookup uses the same guarded service in list and export.
+- No automatic data migration or publishing. **Migration is required** before exercising new code; do not run it on production without explicit approval and the production debug workflow. All existing rows default private.
+- Scope: shared templates visible to all Web users with export permission, not individual recipient targeting. Per-recipient grants require a separately approved design.
+- Focused tests **PENDING local**: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelSharingContractTest.php`.
+- Regression **PENDING after focused PASS**: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelProfileContractTest.php Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php tests/Feature/ClientApps/PharmaMedicineExcelDesignerJsonImportContractTest.php`.
+- UI **PENDING user acceptance**: Admin Designer share/revoke, User 22 list/export, private profile hidden, Web no sharing control, Desktop/iPhone, no 403/404/500. Migration must be explicitly approved/executed in local test environment first.
+- PR/merge/deploy **NOT DONE**. Do not alter existing untracked local files.
+
+---
+
 ## 2026-11-11 — Forward-port PR #375 PWA login live preview onto current main
 
 - Branch: `feat/clientportal-pwa-login-preview-forwardport-20261111`, created from `main` after LoanManagement PR #377 merged. Original PR #375 remains open and must not be merged directly due to divergence.

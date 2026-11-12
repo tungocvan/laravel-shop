@@ -48,7 +48,7 @@
                 <select name="profile_id" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 px-3 text-sm">
                     <option value="">Mẫu mặc định</option>
                     @foreach($medicineExcelProfiles as $template)
-                        <option value="{{ $template['id'] }}">{{ $template['name'] }}{{ $template['is_default'] ? ' ★' : '' }}</option>
+                        <option value="{{ $template['id'] }}">{{ $template['name'] }}{{ !empty($template['is_shared']) ? ' · Dùng chung' : '' }}{{ $template['is_default'] ? ' ★' : '' }}</option>
                     @endforeach
                 </select>
             </label>

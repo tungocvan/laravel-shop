@@ -28,6 +28,13 @@
                     <input wire:model="profileName" class="{{ $input }}">
                 </label>
                 <label class="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-semibold"><input type="checkbox" wire:model="isDefault"> Đặt mặc định</label>
+                @if($canShare)
+                    <button type="button" wire:click="toggleSharing" wire:confirm="{{ $isShared ? 'Ngừng chia sẻ mẫu này cho User Web?' : 'Chia sẻ mẫu này cho tất cả User có quyền xuất Excel?' }}"
+                        @disabled(!$profileId)
+                        class="min-h-10 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-xs font-bold text-emerald-800 disabled:opacity-40">
+                        {{ $isShared ? 'Đang dùng chung · Thu hồi' : 'Chia sẻ cho User Web' }}
+                    </button>
+                @endif
                 <button type="button" wire:click="duplicateProfile" class="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700">Nhân đôi</button>
                 <button type="button" wire:click="newProfile" class="h-10 rounded-xl border border-indigo-200 bg-white px-3 text-xs font-bold text-indigo-700">+ Tạo mới</button>
                 <button type="button" wire:click="deleteProfile" wire:confirm="Xóa cấu hình này?" @disabled(!$profileId) class="h-10 rounded-xl border border-rose-200 bg-white px-3 text-xs font-bold text-rose-600 disabled:opacity-40">Xóa</button>
