@@ -82,15 +82,51 @@ class MedicineExcelProfileService
 
     public function listForUser(int $userId, string $guard = 'admin'): array
     {
-        return MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId)
-            ->orderByDesc('is_default')->orderBy('name')->get(['id', 'name', 'is_default'])->toArray();
+        return MedicineExcelProfile::query()
+            ->where(function ($query) use ($guard, $userId): void {
+                $query->where(fn ($own) => $own->where('owner_guard', $guard)->where('user_id', $userId));
+                if ($guard === 'web') {
+                    $query->orWhere(fn ($shared) => $shared->where('owner_guard', 'admin')->where('is_shared', true));
+                }
+            })
+            ->orderByDesc('is_default')->orderBy('name')
+            ->get(['id', 'name', 'is_default', 'is_shared', 'owner_guard'])
+            ->map(function (MedicineExcelProfile $profile): array {
+                return [
+                    'id' => $profile->id,
+                    'name' => $profile->name,
+                    'is_default' => $profile->is_default && $profile->owner_guard === 'web',
+                    'is_shared' => $profile->is_shared && $profile->owner_guard === 'admin',
+                ];
+            })->all();
     }
 
     public function forUser(int $userId, ?int $id = null, string $guard = 'admin'): array
     {
-        $query = MedicineExcelProfile::query()->where('owner_guard', $guard)->where('user_id', $userId);
-        $profile = $id ? $query->findOrFail($id) : $query->orderByDesc('is_default')->orderBy('id')->first();
-        return $profile ? array_merge($profile->only(['id', 'name', 'is_default', 'columns', 'headers', 'widths', 'alignments', 'settings'])) : $this->defaults();
+        $query = MedicineExcelProfile::query()
+            ->where(function ($query) use ($guard, $userId): void {
+                $query->where(fn ($own) => $own->where('owner_guard', $guard)->where('user_id', $userId));
+                if ($guard === 'web') {
+                    $query->orWhere(fn ($shared) => $shared->where('owner_guard', 'admin')->where('is_shared', true));
+                }
+            });
+        $profile = $id ? $query->findOrFail($id) : $query->where('owner_guard', $guard)->orderByDesc('is_default')->orderBy('id')->first();
+
+        return $profile ? $profile->only(['id', 'name', 'is_default', 'columns', 'headers', 'widths', 'alignments', 'settings']) : $this->defaults();
+    }
+
+    /**
+     * Only an Admin owner may publish or revoke an Admin Excel profile.
+     * This never changes a Web user's ownership or edit permissions.
+     */
+    public function setSharedByAdmin(int $adminId, int $profileId, bool $shared): void
+    {
+        MedicineExcelProfile::query()
+            ->where('owner_guard', 'admin')
+            ->where('user_id', $adminId)
+            ->findOrFail($profileId)
+            ->forceFill(['is_shared' => $shared])
+            ->save();
     }
 
     public function save(int $userId, array $data, ?int $id = null, string $guard = 'admin'): array
