@@ -1,3 +1,17 @@
+## 2026-11-12 — Opt-in shared Pharma Medicine Excel profiles
+
+- Branch `feat/pharma-shared-excel-profiles-20261112`, based on main `6e37e7db591fdcbc2de73dd68c440f8961d9108a`.
+- Root cause: MedicineExcelProfileService scopes list/lookup to `owner_guard + user_id`; Web user 22 could export but only saw the built-in default, not Admin's saved profiles.
+- Implementation: new `is_shared` boolean defaults false; authorized Admin owner may publish/revoke their own saved Excel profile in shared Excel Designer V4. Only Admin-owned explicitly published profiles are available to Web users, and only after existing `client.pharma.products.export` authorization. Web personal profiles remain private; sharing does not grant edit rights or expose other Admin profiles. Shared lookup uses the same guarded service in list and export.
+- No automatic data migration or publishing. **Migration is required** before exercising new code; do not run it on production without explicit approval and the production debug workflow. All existing rows default private.
+- Scope: shared templates visible to all Web users with export permission, not individual recipient targeting. Per-recipient grants require a separately approved design.
+- Focused tests **PENDING local**: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelSharingContractTest.php`.
+- Regression **PENDING after focused PASS**: `php artisan test Modules/Pharma/Tests/Unit/MedicineExcelProfileContractTest.php Modules/ClientPortal/Tests/Unit/PharmaMedicineEditorContractTest.php tests/Feature/ClientApps/PharmaMedicineExcelDesignerJsonImportContractTest.php`.
+- UI **PENDING user acceptance**: Admin Designer share/revoke, User 22 list/export, private profile hidden, Web no sharing control, Desktop/iPhone, no 403/404/500. Migration must be explicitly approved/executed in local test environment first.
+- PR/merge/deploy **NOT DONE**. Do not alter existing untracked local files.
+
+---
+
 ## 2026-11-11 — Forward-port PR #375 PWA login live preview onto current main
 
 - Branch: `feat/clientportal-pwa-login-preview-forwardport-20261111`, created from `main` after LoanManagement PR #377 merged. Original PR #375 remains open and must not be merged directly due to divergence.
