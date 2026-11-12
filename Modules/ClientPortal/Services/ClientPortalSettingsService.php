@@ -18,7 +18,9 @@ class ClientPortalSettingsService
 
     public function pwaGeneral(): array
     {
-        return $this->group('pwa.general', config('clientportal.pwa.general', []));
+        $general = $this->group('pwa.general', config('clientportal.pwa.general', []));
+        $general['icon_version'] = is_string($general['icon_version'] ?? null) && preg_match('/^[a-f0-9]{32}$/', $general['icon_version']) ? $general['icon_version'] : null;
+        return $general;
     }
 
     public function pwaBottomNavigationDefaults(): array
