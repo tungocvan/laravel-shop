@@ -11,7 +11,7 @@ use Tests\TestCase;
  */
 final class LoanManagementUiWorkspaceContractTest extends TestCase
 {
-    private function view(string $name): string
+    private function bladeSource(string $name): string
     {
         $source = file_get_contents(base_path(
             'Modules/ClientPortal/resources/views/applications/loans/'.$name.'.blade.php'
@@ -31,7 +31,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_executive_dashboard_is_scoped_and_links_to_dedicated_workspaces(): void
     {
-        $dashboard = $this->view('dashboard');
+        $dashboard = $this->bladeSource('dashboard');
         $this->assertStringContainsString('data-loan-executive-dashboard', $dashboard);
         $this->assertStringContainsString('aria-label="Điều hướng khoản vay"', $dashboard);
         foreach (['contracts.index', 'payments.index', 'reminders.index', 'insurance.index'] as $route) {
@@ -43,8 +43,8 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_lenders_and_contract_create_are_separate_permission_scoped_workspaces(): void
     {
-        $lenders = $this->view('lenders');
-        $wizard = $this->view('contract-create');
+        $lenders = $this->bladeSource('lenders');
+        $wizard = $this->bladeSource('contract-create');
         $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php');
         $this->assertStringContainsString('data-loan-lenders-workspace', $lenders);
         $this->assertStringContainsString("@can('client.loans.contracts.create')", $lenders);
@@ -59,7 +59,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
     {
         $routes = $this->source('Modules/ClientPortal/Applications/LoanManagement/routes.php');
         $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php');
-        $operations = $this->view('partials/contract-operations');
+        $operations = $this->bladeSource('partials/contract-operations');
         $service = $this->source('Modules/LoanManagement/Services/LoanScheduleAdjustmentService.php');
         $this->assertStringContainsString("name('schedules.update')", $routes);
         $this->assertStringContainsString("can('client.loans.contracts.edit')", $controller);
@@ -71,8 +71,8 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_contract_detail_holds_mutations_outside_the_dashboard(): void
     {
-        $detail = $this->view('contract-detail');
-        $operations = $this->view('partials/contract-operations');
+        $detail = $this->bladeSource('contract-detail');
+        $operations = $this->bladeSource('partials/contract-operations');
         $this->assertStringContainsString('data-loan-contract-detail', $detail);
         $this->assertStringContainsString('client.loans.contracts.update', $detail);
         $this->assertStringContainsString('client.loans.contracts.destroy', $detail);
@@ -104,7 +104,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_reminder_recipient_controls_and_stale_queue_guards_remain_present(): void
     {
-        $operations = $this->view('partials/contract-operations');
+        $operations = $this->bladeSource('partials/contract-operations');
         $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanReminderController.php');
         $job = $this->source('Modules/LoanManagement/Jobs/SendLoanReminder.php');
         $this->assertStringContainsString('recipient_emails[]', $operations);
@@ -117,7 +117,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_installment_and_insurance_forms_are_in_contract_operations(): void
     {
-        $operations = $this->view('partials/contract-operations');
+        $operations = $this->bladeSource('partials/contract-operations');
         $routes = $this->source('Modules/ClientPortal/Applications/LoanManagement/routes.php');
         foreach (['client.loans.installments.pay', 'client.loans.insurance.store',
             'client.loans.premiums.store', 'client.loans.premiums.pay'] as $route) {
@@ -129,7 +129,7 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_wizard_is_forecast_only_and_uses_domain_calculator(): void
     {
-        $wizard = $this->view('contract-create');
+        $wizard = $this->bladeSource('contract-create');
         $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanWorkspaceController.php');
         $service = $this->source('Modules/LoanManagement/Services/LoanScheduleGenerator.php');
         foreach (['data-loan-wizard', 'data-loan-lender-type', 'data-loan-wizard-preview'] as $fragment) {
@@ -143,8 +143,8 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_contract_filters_and_destructive_actions_remain_separated(): void
     {
-        $contracts = $this->view('contracts');
-        $detail = $this->view('contract-detail');
+        $contracts = $this->bladeSource('contracts');
+        $detail = $this->bladeSource('contract-detail');
         $controller = $this->source('Modules/ClientPortal/Applications/LoanManagement/Http/Controllers/LoanApplicationController.php');
         foreach (['name="search"', 'name="type"', 'name="status"'] as $filter) {
             $this->assertStringContainsString($filter, $contracts);
@@ -157,8 +157,8 @@ final class LoanManagementUiWorkspaceContractTest extends TestCase
 
     public function test_insurance_and_payment_navigation_remains_permission_scoped(): void
     {
-        $dashboard = $this->view('dashboard');
-        $operations = $this->view('partials/contract-operations');
+        $dashboard = $this->bladeSource('dashboard');
+        $operations = $this->bladeSource('partials/contract-operations');
         $this->assertStringContainsString("client.loans.insurance.view", $dashboard);
         $this->assertStringContainsString('client.loans.contracts.create', $dashboard);
         $this->assertStringContainsString('client.loans.payments.store', $operations);
