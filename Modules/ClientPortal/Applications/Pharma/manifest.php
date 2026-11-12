@@ -55,6 +55,11 @@ return [
                     'permission' => 'client.pharma.products.import',
                     'sort_order' => 30,
                 ],
+                'excel-share' => [
+                    'name' => 'Chia sẻ mẫu Excel danh mục thuốc',
+                    'permission' => 'client.pharma.products.excel-share',
+                    'sort_order' => 26,
+                ],
                 'excel-config' => [
                     'name' => 'Cấu hình mẫu Excel danh mục thuốc',
                     'permission' => 'client.pharma.products.excel-config',
