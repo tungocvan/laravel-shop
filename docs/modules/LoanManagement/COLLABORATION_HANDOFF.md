@@ -337,3 +337,9 @@ Branch: `feat/loan-management-pwa-20261110`
 - Added `.github/workflows/loanmanagement-cache-regression.yml`: PHP 8.3 with BCMath/SQLite and locked Composer development dependencies; isolated SQLite `:memory:` and no external DB service or production secrets.
 - CI stage 1 runs the route/cache focused contract; stage 2 depends on focused PASS and runs all `LoanManagement*Test.php` feature tests. Workflow triggers on this feature branch push, matching PR changes and manual dispatch.
 - **CI status not yet verified; do not report TEST PASS.** Impacted ClientPortal regression and review remain separate gates. The VPS Production image intentionally has no PHPUnit and must not be modified to install it.
+
+## 2026-11-12 — CI regression batch A
+
+- CI job log confirmed `CommandNotFoundException` for `loans:demo-seed` and `loans:data-clean`: module manifest has `default_enabled=false`, and ModuleServiceProvider registers commands only for enabled modules.
+- Updated **test-only** `LoanManagementBusinessIntegrationTest::setUp()` to register the existing two command classes through the test application's console kernel; retains local/testing-only guards and explicit confirmation; uses the existing in-memory SQLite connection. No runtime module enablement or destructive operations on Production.
+- Twelve UI/contract failures remain separately tracked in `CI_REGRESSION_AUDIT_20261112.md`; do not suppress these tests or claim module regression PASS. Await fresh CI results for this batch before further changes.
