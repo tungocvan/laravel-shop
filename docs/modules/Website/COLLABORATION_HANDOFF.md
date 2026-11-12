@@ -281,3 +281,20 @@ A future Website change must begin from a newly stated objective and must not tr
 - Regression after focused PASS: `php artisan test tests/Feature/Website/PharmaHeaderBuilderSavePersistenceContractTest.php tests/Feature/Website/WebsiteHeaderBuilderInteractionTest.php tests/Feature/Website/PharmaIphoneHeaderResponsiveContractTest.php`.
 - UI gate: user verifies desktop hover/click/keyboard, iPhone mobile drawer expansion, parent links, two Demo child destinations, existing navigation and no JS console errors. **Do not mark PASS until local results and user confirmation.**
 - Do not merge/deploy before user approval; leave existing untracked files untouched.
+
+
+## 2026-11-12 — Sitemap XML Blade production syntax hotfix (CI PASS; Production HTTP smoke pending)
+
+- Production evidence: repeated `production.ERROR` on `/sitemap.xml`, compiled view retained literal `{!! '<?xml ...' !!}` at line 1 and PHP raised `unexpected identifier "version"`. The current PHP CLI has `short_open_tag=On`; no runtime configuration change is included.
+- Root cause boundary: Blade's raw XML declaration expression was left uncompiled in the compiled PHP view. Replace the declaration with a Blade `@php` echo that constructs the opening `<?xml` without a literal XML processing instruction in Blade source. Preserve URL escaping, `lastmod` handling, controller, cache TTL and routing.
+- Focused regression: `tests/Feature/Website/SitemapXmlBladeTest.php` checks Blade compilation and rendered XML/escaped query parameters.
+- **GitHub Actions PASS**: focused tests and Website module regression, run `43148652467` on commit `220994868`. **Not yet verified**: actual Production HTTP `/sitemap.xml`, browser/XML acceptance, and runtime compiled-view/OPcache refresh. Production code has not been changed by this branch. Do not claim TEST/UI PASS or merge until gates are confirmed.
+- Production rollout (separate approval required): after PR merge and Git sync, inspect host/image/container view ownership and compiled cache; refresh only the applicable view/OPcache state if evidence requires it. No blanket `optimize:clear`, Docker restart, DB changes or Compose overlay edits.
+
+## 2026-11-12 — Sitemap XML CI gate (Draft PR #380)
+
+- Added `.github/workflows/website-sitemap-regression.yml` on the existing feature branch to run PHP 8.3 / SQLite in GitHub Actions, without changing Production Docker.
+- Workflow gates `tests/Feature/Website/SitemapXmlBladeTest.php` first, then `tests/Feature/Website` only if focused tests pass; no full-suite regression requested.
+- CI execution/result: **PASS** — focused and Website regression jobs succeeded in GitHub Actions run `43148652467`. Historical Website regression includes 3 `FooterSettingsUxContractTest` failures; compare actual results before classifying.
+- Production main remains on its baseline, with the known compiled-view parse error; no cache clear, rebuild, deployment, or production test authorized.
+- PR #380 was reviewed with a 4-file scoped diff, successful CI and user authorization to merge on 2026-11-12. Production HTTP/XML smoke is deferred until separately approved rollout; no UI PASS claimed. Production rollout requires its own explicit approval and safety checks.
