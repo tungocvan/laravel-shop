@@ -18,6 +18,7 @@ class PortalController extends Controller
         $general = $settings->pwaGeneral();
 
         return response()->json([
+            'id' => '/my-apps',
             'name' => $general['application_name'],
             'short_name' => $general['short_name'],
             'start_url' => $general['start_url'] ?? '/my-apps',
