@@ -1,3 +1,14 @@
+## 2026-11-12 — LoanManagement Web permission registry (checkpoint pending)
+
+- Branch: `fix/loanmanagement-client-permission-registry-20261112` from main `071420ad6aa1ca1c7983142ed5da829f830aeaab`.
+- Root cause: `LoanCapabilityController::createContract` requires `client.loans.contracts.create`, but Admin Client Apps permission picker previously discovered only the four app/feature view permissions. LoanManagement declared nine permissions in `config/module.php:permissions` but `ApplicationPermissionService::domainDefinitions()` reads `permissions_by_guard.web`.
+- Fix: expose all nine LoanManagement permissions via `permissions_by_guard.web`; declare five fine-grained actions in LoanManagement ClientPortal manifest for human-readable Admin labels. Keep server-side `can()` checks unchanged. No automatic grants to User #22 or other users.
+- Added `LoanManagementPermissionRegistryContractTest` for domain permission discovery, manifest actions, and authorization contract.
+- Local focused/regression tests **PENDING**; UI **PENDING**. No PR, merge, production permission sync, or deployment authorized.
+- Local operator should sync permission definitions via existing approved ClientPortal flow and explicitly assign only the required permissions to User #22. Existing roles/permissions must not be broadly overwritten.
+
+---
+
 ## 2026-11-11 — LoanManagement cached PWA route incident (checkpoint)
 
 - Production incident on `inafo-tungocvan`: LoanManagement was enabled at runtime but `/my-apps` returned HTTP 500 because `client.loans.dashboard` was absent from `bootstrap/cache/routes-v7.php` created while the module was disabled. Effective `modules.registry.LoanManagement.enabled=true`; route cache remained stale.
