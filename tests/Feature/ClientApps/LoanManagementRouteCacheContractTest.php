@@ -28,4 +28,21 @@ final class LoanManagementRouteCacheContractTest extends TestCase
         $this->assertStringContainsString('abort_if($manifest === null, 404)', $middleware);
         $this->assertStringContainsString("! (\$source['enabled'] ?? false)", $registry);
     }
+    public function test_docker_image_and_entrypoint_do_not_precompile_project_specific_route_cache(): void
+    {
+        $dockerfile = file_get_contents(base_path('Dockerfile'));
+        $entrypoint = file_get_contents(base_path('docker/entrypoint.sh'));
+        $opcache = file_get_contents(base_path('docker/php/opcache.ini'));
+
+        $this->assertIsString($dockerfile);
+        $this->assertIsString($entrypoint);
+        $this->assertIsString($opcache);
+
+        // A build image must not bake routes/config from a different project's runtime.
+        $this->assertDoesNotMatchRegularExpression('/php\\s+artisan\\s+(?:route:cache|config:cache|optimize)(?:\\s|$)/m', $dockerfile);
+        $this->assertDoesNotMatchRegularExpression('/php\\s+artisan\\s+(?:route:cache|config:cache|optimize)(?:\\s|$)/m', $entrypoint);
+
+        // With timestamp validation disabled, a PHP-FPM reload is a separate deployment gate.
+        $this->assertMatchesRegularExpression('/^opcache\\.validate_timestamps\\s*=\\s*0\\s*$/m', $opcache);
+    }
 }
