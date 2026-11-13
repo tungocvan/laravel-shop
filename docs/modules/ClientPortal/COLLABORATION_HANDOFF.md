@@ -1,3 +1,14 @@
+## 2026-11-13 — Pharma price-list effective filtering (batch 1 checkpoint)
+
+- Branch: `fix/pharma-price-list-effective-filter-20261113` from latest GitHub main at branch creation.
+- Default ClientPortal browse uses ACTIVE status and canonical `activeAt(now())` when no dates are selected; date controls start empty. Explicit date range matches overlapping effective intervals, not only effective start dates. The "Tất cả" status remains available using `status=all`. Reset returns to the default effective view.
+- No canonical price-list mutations, schema changes, production operations or active-list SKU writes.
+- Focused test PENDING LOCAL: `php artisan test tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php`.
+- Follow-up scope **NOT IMPLEMENTED**: safely add products to existing ACTIVE lists; requires audit of approval/versioning and downstream order/price snapshots before introducing a write path. Do not directly modify approved rows.
+- UI PASS PENDING: default active list, status tabs, date overlap, clear dates, desktop/iPhone. No PR or merge authorized.
+
+---
+
 ## 2026-11-13 — Pharma order manager/source navigation fix (local checkpoint pending)
 
 - Branch: `fix/pharma-order-manager-source-20261113`, based on main `caa1c9821c3e614726558f5cbd66c8bb93cf3be3`.
