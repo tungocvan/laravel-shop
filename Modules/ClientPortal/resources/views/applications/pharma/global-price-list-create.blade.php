@@ -40,6 +40,11 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 class="text-base font-black">03 · Chọn thuốc và thiết lập giá</h2>
             <p class="mt-1 text-sm text-slate-500">Chọn SKU đang hoạt động và nhập Giá bán (VAT). Giá thu và Giá HĐ có thể để trống để dùng Giá bán.</p>
+            <form method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex flex-wrap gap-2">
+                <input type="hidden" name="type" value="global">
+                <input type="search" name="q" value="{{ $search }}" maxlength="120" placeholder="Tìm tên thuốc, SĐK hoặc SKU" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-sm">
+                <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white">Tìm thuốc</button>
+            </form>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <label class="flex items-center gap-2 text-sm font-bold"><input id="global-select-page" type="checkbox" class="h-5 w-5"> Chọn tất cả trên trang</label>
                 <span id="global-selected-count" class="text-sm text-slate-600">0 SKU được chọn</span>
