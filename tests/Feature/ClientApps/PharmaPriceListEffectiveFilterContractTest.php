@@ -18,8 +18,8 @@ class PharmaPriceListEffectiveFilterContractTest extends TestCase
         $this->assertStringContainsString("\$fromDate = \$validated['from_date'] ?? null;", $controller);
         $this->assertStringContainsString("\$toDate = \$validated['to_date'] ?? null;", $controller);
         $this->assertStringContainsString("->activeAt(now())", $workspace);
-        $this->assertStringContainsString("whereDate('effective_to', '>=', \$fromDate)", $workspace);
-        $this->assertStringContainsString("whereDate('effective_from', '<=', \$toDate)", $workspace);
+        $this->assertStringContainsString("orWhereDate('effective_to', '>=', \$fromDate)", $workspace);
+        $this->assertStringContainsString("orWhereDate('effective_from', '<=', \$toDate)", $workspace);
         $this->assertStringContainsString("'all' => ['label' => 'Tất cả'", $view);
         $this->assertStringNotContainsString('now()->startOfMonth()->toDateString()', $view);
     }
