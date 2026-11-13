@@ -8,6 +8,7 @@ if ((bool) config('modules.registry.Partner.enabled', false)) {
   Route::post('/import', [PartnerApplicationController::class,'import'])->middleware('permission:client.partners.create,web')->name('import');
   Route::get('/export', [PartnerApplicationController::class,'export'])->middleware('permission:client.partners.view,web')->name('export');
   Route::get('/template', [PartnerApplicationController::class,'template'])->middleware('permission:client.partners.create,web')->name('template');
+  Route::get('/business-lookup', [PartnerApplicationController::class,'businessLookup'])->middleware('client.feature:partners,lookup')->name('lookup');
   Route::get('/create', [PartnerApplicationController::class,'create'])->middleware('client.feature:partners,create')->name('create');
   Route::post('/', [PartnerApplicationController::class,'store'])->middleware('permission:client.partners.create,web')->name('store');
   Route::get('/{partner}/edit', [PartnerApplicationController::class,'edit'])->middleware('permission:client.partners.edit,web')->name('edit');
