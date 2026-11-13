@@ -77,6 +77,8 @@ RUN ln -s /var/www/html/storage/app/public /var/www/html/public/storage
 FROM composer-deps AS test
 RUN composer install --prefer-dist --no-interaction --no-scripts --optimize-autoloader
 COPY . .
+# No host secrets: provide an empty env file for legacy boot readers.
+RUN touch .env
 RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
 ENV APP_ENV=testing \
     DB_CONNECTION=sqlite \
