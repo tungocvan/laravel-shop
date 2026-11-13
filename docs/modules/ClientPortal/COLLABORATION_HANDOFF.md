@@ -1,3 +1,12 @@
+## 2026-11-13 — Partner PWA data tools checkpoint
+
+- Added dual supplier+customer role intersection through canonical PartnerQueryService (also available to Admin query consumers without changing their UI).
+- PWA list has page-scoped selection and select-all; Excel export of selected rows or currently filtered rows; expandable data tools, template download, and bounded Excel import (5 MB, 1000 rows, row validation, transactional PartnerService writes).
+- File operations have separate web-guard permissions: view for export; create for template/import. No bulk deletion in PWA. Never test import against real records: matching tax code/name can update existing partners.
+- CHECKPOINT PENDING: run focused PartnerPwaContractTest, relevant ClientPortal/Partner regression, and manual Excel roundtrip with disposable data; confirm PWA download behavior and desktop/iPhone UI. No claim of test/UI pass for this batch.
+
+---
+
 ## 2026-11-13 — Partner PWA application (checkpoint pending)
 
 - Branch: `feat/clientportal-partner-pwa-20261113`, based on main `7c0ef7d7b`.
