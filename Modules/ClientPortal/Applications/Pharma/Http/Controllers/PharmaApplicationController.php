@@ -729,7 +729,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:'.implode(',', [
+            'status' => ['nullable', 'in:all,'.implode(',', [
                 PriceList::STATUS_DRAFT,
                 PriceList::STATUS_PENDING_APPROVAL,
                 PriceList::STATUS_REJECTED,
@@ -753,9 +753,9 @@ final class PharmaApplicationController extends Controller
         $priceListsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'price-lists');
         abort_if($priceListsFeature === null, 404);
 
-        $status = $validated['status'] ?? null;
-        $fromDate = $validated['from_date'] ?? now()->startOfMonth()->toDateString();
-        $toDate = $validated['to_date'] ?? now()->toDateString();
+        $status = $validated['status'] ?? PriceList::STATUS_ACTIVE;
+        $fromDate = $validated['from_date'] ?? null;
+        $toDate = $validated['to_date'] ?? null;
 
         $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
         $managerUserId = $canApprove && ! empty($validated['manager_user_id'])
@@ -765,7 +765,7 @@ final class PharmaApplicationController extends Controller
         $priceLists = $workspace->browse(
             userId: (int) $user->id,
             search: $validated['q'] ?? null,
-            status: $status,
+            status: $status === 'all' ? null : $status,
             perPage: (int) ($validated['per_page'] ?? 25),
             page: (int) ($validated['page'] ?? 1),
             fromDate: $fromDate,
