@@ -20,6 +20,12 @@ final class KqlcntAssignedUserOverview
     /** @return array<int, list<string>> Keyed by canonical group's MIN(id). */
     public function assignedGroups(): array
     {
+        return array_map(fn (array $users) => array_values(array_unique(array_column($users, 'name'))), $this->assignedGroupUsers());
+    }
+
+    /** @return array<int, list<array{user_id:int,name:string}>> */
+    public function assignedGroupUsers(): array
+    {
         $groups = DB::table('muasamcong_kqlcnt_award_items')
             ->whereNotNull('synced_from_catalog_at')
             ->selectRaw('MIN(id) AS id')
@@ -47,12 +53,13 @@ final class KqlcntAssignedUserOverview
                 continue;
             }
 
-            $names = $this->workflow->managementAssignmentSummary($award)
-                ->pluck('user.name')->filter(fn ($name) => filled($name))
-                ->unique()->sort()->values()->all();
+            $users = $this->workflow->managementAssignmentSummary($award)
+                ->filter(fn ($row) => (int) ($row->user_id ?? 0) > 0)
+                ->map(fn ($row) => ['user_id' => (int) $row->user_id, 'name' => (string) ($row->user?->name ?? '')])
+                ->unique('user_id')->sortBy('name')->values()->all();
 
-            if ($names !== []) {
-                $result[$id] = $names;
+            if ($users !== []) {
+                $result[$id] = $users;
             }
         }
 
