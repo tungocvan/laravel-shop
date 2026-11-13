@@ -45,41 +45,7 @@ return [
             'permission' => 'client.pharma.products.view',
             'icon' => 'beaker',
             'sort_order' => 20,
-            'actions' => [
-                'create' => ['name' => 'Thêm thuốc', 'permission' => 'client.pharma.products.create', 'sort_order' => 5],
-                'edit' => ['name' => 'Sửa thuốc', 'permission' => 'client.pharma.products.edit', 'sort_order' => 6],
-                'delete' => ['name' => 'Xóa thuốc chưa liên kết', 'permission' => 'client.pharma.products.delete', 'sort_order' => 12],
-                'create-variant' => ['name' => 'Tạo SKU thuốc', 'permission' => 'client.pharma.products.create-variant', 'sort_order' => 7],
-                'import' => [
-                    'name' => 'Nhập Excel vào staging danh mục thuốc',
-                    'permission' => 'client.pharma.products.import',
-                    'sort_order' => 30,
-                ],
-                'excel-share' => [
-                    'name' => 'Chia sẻ mẫu Excel danh mục thuốc',
-                    'permission' => 'client.pharma.products.excel-share',
-                    'sort_order' => 26,
-                ],
-                'excel-config' => [
-                    'name' => 'Cấu hình mẫu Excel danh mục thuốc',
-                    'permission' => 'client.pharma.products.excel-config',
-                    'sort_order' => 25,
-                ],
-                'export' => [
-                    'name' => 'Xuất danh mục thuốc Excel',
-                    'permission' => 'client.pharma.products.export',
-                    'sort_order' => 20,
-                ],
-                'hssp.view' => ['name' => 'Xem HSSP thuốc', 'permission' => 'client.pharma.products.hssp.view', 'sort_order' => 8],
-                'hssp.update' => ['name' => 'Cập nhật HSSP', 'permission' => 'client.pharma.products.hssp.update', 'sort_order' => 10],
-                'hssp.create' => ['name' => 'Tạo HSSP nháp', 'permission' => 'client.pharma.products.hssp.create', 'sort_order' => 9],
-                'supplier-conditions.manage' => ['name' => 'Cập nhật điều kiện thương mại', 'permission' => 'client.pharma.products.supplier-conditions.manage', 'sort_order' => 11],
-                'supplier-pricing' => [
-                    'name' => 'Xem giá nhà cung cấp',
-                    'permission' => 'client.pharma.products.supplier-pricing',
-                    'sort_order' => 10,
-                ],
-            ],
+
         ],
         'kqlcnt-awards' => [
             'name' => 'Theo dõi thầu',
@@ -94,11 +60,7 @@ return [
             'permission' => 'client.pharma.price-lists.view',
             'icon' => 'document-chart-bar',
             'sort_order' => 30,
-            'actions' => [
-                'create' => ['name' => 'Tạo bảng giá', 'permission' => 'client.pharma.price-lists.create', 'sort_order' => 10],
-                'submit' => ['name' => 'Gửi duyệt bảng giá', 'permission' => 'client.pharma.price-lists.submit', 'sort_order' => 20],
-                'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
-            ],
+
         ],
         'orders' => [
             'name' => 'Đơn hàng',
@@ -106,33 +68,7 @@ return [
             'permission' => 'client.pharma.orders',
             'icon' => 'clipboard-document-list',
             'sort_order' => 60,
-            'actions' => [
-                'create' => [
-                    'name' => 'Tạo đơn hàng',
-                    'permission' => 'client.pharma.orders.create',
-                    'sort_order' => 10,
-                ],
-                'submit' => [
-                    'name' => 'Gửi duyệt đơn hàng',
-                    'permission' => 'client.pharma.orders.submit',
-                    'sort_order' => 20,
-                ],
-                'create-for-user' => [
-                    'name' => 'Lên đơn thay User',
-                    'permission' => 'client.pharma.orders.create-for-user',
-                    'sort_order' => 30,
-                ],
-                'approve' => [
-                    'name' => 'Phê duyệt đơn hàng',
-                    'permission' => 'client.pharma.orders.approve',
-                    'sort_order' => 40,
-                ],
-                'post' => [
-                    'name' => 'Ghi sổ đơn hàng',
-                    'permission' => 'client.pharma.orders.post',
-                    'sort_order' => 50,
-                ],
-            ],
+
         ],
         'commissions' => [
             'name' => 'Hoa hồng của tôi',
@@ -264,6 +200,41 @@ return [
             'permission' => 'client.pharma.products.view',
             'icon' => 'beaker',
             'sort_order' => 20,
+            'actions' => [
+                'create' => ['name' => 'Thêm thuốc', 'permission' => 'client.pharma.products.create', 'sort_order' => 5],
+                'edit' => ['name' => 'Sửa thuốc', 'permission' => 'client.pharma.products.edit', 'sort_order' => 6],
+                'delete' => ['name' => 'Xóa thuốc chưa liên kết', 'permission' => 'client.pharma.products.delete', 'sort_order' => 12],
+                'create-variant' => ['name' => 'Tạo SKU thuốc', 'permission' => 'client.pharma.products.create-variant', 'sort_order' => 7],
+                'import' => [
+                    'name' => 'Nhập Excel vào staging danh mục thuốc',
+                    'permission' => 'client.pharma.products.import',
+                    'sort_order' => 30,
+                ],
+                'excel-share' => [
+                    'name' => 'Chia sẻ mẫu Excel danh mục thuốc',
+                    'permission' => 'client.pharma.products.excel-share',
+                    'sort_order' => 26,
+                ],
+                'excel-config' => [
+                    'name' => 'Cấu hình mẫu Excel danh mục thuốc',
+                    'permission' => 'client.pharma.products.excel-config',
+                    'sort_order' => 25,
+                ],
+                'export' => [
+                    'name' => 'Xuất danh mục thuốc Excel',
+                    'permission' => 'client.pharma.products.export',
+                    'sort_order' => 20,
+                ],
+                'hssp.view' => ['name' => 'Xem HSSP thuốc', 'permission' => 'client.pharma.products.hssp.view', 'sort_order' => 8],
+                'hssp.update' => ['name' => 'Cập nhật HSSP', 'permission' => 'client.pharma.products.hssp.update', 'sort_order' => 10],
+                'hssp.create' => ['name' => 'Tạo HSSP nháp', 'permission' => 'client.pharma.products.hssp.create', 'sort_order' => 9],
+                'supplier-conditions.manage' => ['name' => 'Cập nhật điều kiện thương mại', 'permission' => 'client.pharma.products.supplier-conditions.manage', 'sort_order' => 11],
+                'supplier-pricing' => [
+                    'name' => 'Xem giá nhà cung cấp',
+                    'permission' => 'client.pharma.products.supplier-pricing',
+                    'sort_order' => 10,
+                ],
+            ],
         ],
         'price-lists' => [
             'name' => 'Bảng giá',
@@ -292,6 +263,7 @@ return [
                     'sort_order' => 30,
                 ],
             ],
+
         ],
         'bid-awards' => [
             'name' => 'Trúng thầu',
@@ -371,6 +343,7 @@ return [
                     'sort_order' => 50,
                 ],
             ],
+
         ],
         'inventory' => [
             'name' => 'Tồn kho',
