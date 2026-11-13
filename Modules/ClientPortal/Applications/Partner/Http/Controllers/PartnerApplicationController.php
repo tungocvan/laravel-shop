@@ -118,7 +118,9 @@ final class PartnerApplicationController extends Controller
    'contact_person'=>$partner->contact_person,'source'=>$partner->source,
    'status'=>$partner->status,'note'=>$partner->note,
   ]);
-  $path=tempnam(sys_get_temp_dir(),'partner-export-');
+  $temp=tempnam(sys_get_temp_dir(),'partner-export-');
+  $path=$temp.'.xlsx';
+  @unlink($temp);
   try {
    (new FastExcel($rows))->export($path);
    return response()->download($path,'partners_'.now()->format('Ymd_His').'.xlsx')->deleteFileAfterSend(true);
@@ -129,7 +131,9 @@ final class PartnerApplicationController extends Controller
  }
  public function template()
  {
-  $path=tempnam(sys_get_temp_dir(),'partner-template-');
+  $temp=tempnam(sys_get_temp_dir(),'partner-template-');
+  $path=$temp.'.xlsx';
+  @unlink($temp);
   try {
    (new FastExcel(collect([[
     'tax_code'=>'','name'=>'','legal_type'=>'company','partner_types'=>'supplier,customer',
