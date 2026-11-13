@@ -1,3 +1,15 @@
+## 2026-11-13 — KQLCNT visibility + historical provenance integration (main sync)
+
+- Replayed approved KQLCNT feature work from `feat/pharma-kqlcnt-view-all-scope-20261113` onto latest `main` (after PR #390) in `feat/pharma-kqlcnt-visibility-provenance-main-sync-20261113`, preserving the newer Pharma three-price approval changes.
+- Explicit `client.pharma.kqlcnt-awards.view-all` permission; users without it see only canonical TBMT groups assigned to their authenticated user ID via existing active Pharma management assignments. Enforced before pagination, in filter metadata/dashboard, per-item route middleware, and Excel export.
+- Historical KQLCNT #14 / Pharma #13 with active unique provenance but NULL source_id and corrected contractor display name can resolve via strict existing provenance validation. No source data is rewritten. Mismatched, ambiguous or missing links remain blocked.
+- Focused tests pending: `php artisan test tests/Feature/ClientApps/PharmaKqlcntVisibilityScopeContractTest.php tests/Feature/ClientApps/PharmaKqlcntHistoricalProvenanceContractTest.php tests/Feature/ClientApps/PharmaKqlcntAssignedUsersContractTest.php`.
+- Module/cross-module regression pending focused PASS: `php artisan test tests/Feature/ClientApps/PharmaKqlcntAwardWorkspaceContractTest.php tests/Feature/ClientApps/PharmaKqlcntWorkflowPreviewContractTest.php tests/Feature/ClientApps/PharmaKqlcntAwardExcelContractTest.php`.
+- UI PENDING user verification: view-all vs assigned only, direct URL 403, export restriction, dashboard/filter counts, IB2500394830 commercial-policy readiness, desktop/tablet/iPhone.
+- No tests executed in GitHub connector; no UI PASS claimed. No PR, merge, migration or production deploy.
+
+---
+
 ## 2026-10-20 — Contractor history MOF Origin regression (awaiting local tests)
 
 - Runtime check confirmed contractor_joined_bids endpoint and Referer resolve to muasamcong.mof.gov.vn, while global origin remains muasamcong.mpi.gov.vn. Route `/admin/muasamcong/contractors/history/{contractorSearch}` loads saved search; fresh search calls ContractorHistoryService.

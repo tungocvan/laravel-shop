@@ -140,7 +140,6 @@ final class KqlcntLegacyWorkflowBridge
             $candidates = DrugBidAward::query()
                 ->where('bidding_notice_code', $notice)
                 ->where('contractor_code', $line->contractor_code)
-                ->where('winning_company_name', $contractorName)
                 ->where('medicine_name', $medicineName)
                 ->where(function ($query) use ($line): void {
                     // A direct canonical link or an exact active source-record
@@ -174,6 +173,15 @@ final class KqlcntLegacyWorkflowBridge
             $matches = $candidates->filter(function (DrugBidAward $candidate) use ($line): bool {
                 if (! $this->sameDecimal($candidate->quantity, $line->quantity)
                     || ! $this->sameDecimal($candidate->winning_price, $line->winning_price)) {
+                    return false;
+                }
+
+                // A stable contractor code can identify the contractor even if
+                // the historical display name contains that code instead of
+                // the later-corrected legal name. Without a code, require the
+                // exact name to prevent cross-contractor matches.
+                if (trim((string) $line->contractor_code) === ''
+                    && trim((string) $candidate->winning_company_name) !== trim((string) $line->contractor_name)) {
                     return false;
                 }
 

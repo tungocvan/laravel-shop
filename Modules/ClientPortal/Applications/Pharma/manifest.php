@@ -88,6 +88,7 @@ return [
             'icon' => 'clipboard-document-list',
             'sort_order' => 25,
             'actions' => [
+                'view-all' => ['name' => 'Xem tất cả TBMT', 'permission' => 'client.pharma.kqlcnt-awards.view-all', 'sort_order' => 5],
                 'export' => ['name' => 'Xuất Excel KQLCNT', 'permission' => 'client.pharma.kqlcnt-awards.export', 'sort_order' => 10],
                 'import' => ['name' => 'Nhập Excel KQLCNT', 'permission' => 'client.pharma.kqlcnt-awards.import', 'sort_order' => 20],
                 'edit' => ['name' => 'Sửa KQLCNT', 'permission' => 'client.pharma.kqlcnt-awards.edit', 'sort_order' => 30],
