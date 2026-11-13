@@ -263,11 +263,7 @@ return [
                     'sort_order' => 30,
                 ],
             ],
-            'actions' => [
-                'create' => ['name' => 'Tạo bảng giá', 'permission' => 'client.pharma.price-lists.create', 'sort_order' => 10],
-                'submit' => ['name' => 'Gửi duyệt bảng giá', 'permission' => 'client.pharma.price-lists.submit', 'sort_order' => 20],
-                'approve' => ['name' => 'Phê duyệt bảng giá', 'permission' => 'client.pharma.price-lists.approve', 'sort_order' => 30],
-            ],
+
         ],
         'bid-awards' => [
             'name' => 'Trúng thầu',
@@ -347,33 +343,7 @@ return [
                     'sort_order' => 50,
                 ],
             ],
-            'actions' => [
-                'create' => [
-                    'name' => 'Tạo đơn hàng',
-                    'permission' => 'client.pharma.orders.create',
-                    'sort_order' => 10,
-                ],
-                'submit' => [
-                    'name' => 'Gửi duyệt đơn hàng',
-                    'permission' => 'client.pharma.orders.submit',
-                    'sort_order' => 20,
-                ],
-                'create-for-user' => [
-                    'name' => 'Lên đơn thay User',
-                    'permission' => 'client.pharma.orders.create-for-user',
-                    'sort_order' => 30,
-                ],
-                'approve' => [
-                    'name' => 'Phê duyệt đơn hàng',
-                    'permission' => 'client.pharma.orders.approve',
-                    'sort_order' => 40,
-                ],
-                'post' => [
-                    'name' => 'Ghi sổ đơn hàng',
-                    'permission' => 'client.pharma.orders.post',
-                    'sort_order' => 50,
-                ],
-            ],
+
         ],
         'inventory' => [
             'name' => 'Tồn kho',
