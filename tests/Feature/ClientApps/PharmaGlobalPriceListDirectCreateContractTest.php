@@ -20,7 +20,7 @@ class PharmaGlobalPriceListDirectCreateContractTest extends TestCase
         $this->assertStringContainsString("view('ClientPortal::applications.pharma.global-price-list-create'", $controller);
         $this->assertStringContainsString("view('ClientPortal::applications.pharma.price-list-create'", $controller);
         $this->assertStringContainsString("client.pharma.price-lists.approve", $controller);
-        $this->assertStringContainsString("if ($sourceId > 0 && ! $source)", $workflow);
+        $this->assertStringContainsString('if ($sourceId > 0 && ! $source)', $workflow);
         $this->assertStringContainsString('MedicineVariant::query()', $workflow);
         $this->assertStringContainsString('DB::transaction(', $workflow);
         $this->assertStringContainsString("client.pharma.price-lists.global.store", $view);
