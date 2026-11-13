@@ -1,3 +1,15 @@
+## 2026-11-13 — KQLCNT Web Role permission catalog fix (checkpoint)
+
+- Root cause: KQLCNT `view-all`, `export`, `import` and `edit` actions were declared under `navigation.kqlcnt-awards.actions`. `ApplicationPermissionService::applicationDefinitions()` discovers only normalized `features[*].actions`, so these permissions were absent from the Web Role checkbox catalog even though `KqlcntAwardVisibility` checked `view-all` at runtime.
+- Moved four existing actions (same permission names/labels) into `features.kqlcnt-awards.actions`, removed unsupported navigation actions. Existing `bid-awards.allocate` and `bid-awards.commercial-policy` remain independent and unchanged. `ApplicationAdminController::editRole()` already calls `ApplicationPermissionService::sync()`, which creates missing permissions on a normal role-edit GET; no manual production DB mutation or migration is required.
+- Added `tests/Feature/ClientApps/PharmaKqlcntWebRolePermissionCatalogTest.php` for catalog visibility and ownership.
+- **Focused test pending**: `php artisan test tests/Feature/ClientApps/PharmaKqlcntWebRolePermissionCatalogTest.php`.
+- **Module regression after focused PASS**: `php artisan test tests/Feature/ClientApps/PharmaKqlcntVisibilityScopeContractTest.php tests/Feature/ClientApps/PharmaKqlcntAwardWorkspaceContractTest.php`.
+- **UI pending**: Admin Web Role screen shows `Theo dõi thầu · Xem tất cả TBMT`; grant it explicitly to intended role, save, then user verifies all TBMT and authorized allocation/commercial policy actions. No automatic privilege grants; UI PASS only after user confirmation.
+- No tests run in GitHub connector, no PR/merge/deploy.
+
+---
+
 ## 2026-11-13 — KQLCNT visibility + historical provenance integration (main sync)
 
 - Replayed approved KQLCNT feature work from `feat/pharma-kqlcnt-view-all-scope-20261113` onto latest `main` (after PR #390) in `feat/pharma-kqlcnt-visibility-provenance-main-sync-20261113`, preserving the newer Pharma three-price approval changes.
