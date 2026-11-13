@@ -19,7 +19,7 @@
   <label class="text-xs font-semibold text-slate-600">{{ $config[0] }}<select name="{{ $field }}" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-2 text-sm"><option value="">Tất cả</option>@foreach($config[1] as $key=>$label)<option value="{{ $key }}" @selected(($filters[$field]??'')===$key)>{{ $label }}</option>@endforeach</select></label>
   @endforeach
   <label class="text-xs font-semibold text-slate-600">Hiển thị<select name="per_page" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-2 text-sm">@foreach([10,25,50,100] as $n)<option value="{{ $n }}" @selected(($filters['per_page']??10)==$n)>{{ $n }} dòng</option>@endforeach</select></label>
-  <div class="col-span-2 flex gap-3 lg:col-span-5"><a id="partner-reset-filters" href="{{ route('client.partners.index') }}" @if(!collect($filters)->except('per_page')->filter(fn ($value) => filled($value))->isNotEmpty() && (int)($filters['per_page'] ?? 10) === 10) hidden @endif class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 px-4 text-sm">Xóa bộ lọc</a></div>
+  <div class="col-span-2 flex gap-3 lg:col-span-5"><a id="partner-reset-filters" href="{{ route('client.partners.index') }}" @if(collect($filters)->except('per_page')->filter(fn ($value) => filled($value))->isEmpty() && (int)($filters['per_page'] ?? 10) === 10) hidden @endif class="min-h-11 items-center rounded-xl border border-slate-300 px-4 py-3 text-sm">Xóa bộ lọc</a></div>
  </form>
  <section class="space-y-3"><div class="flex items-center justify-between"><h2 class="font-bold">Danh sách đối tác</h2><span class="text-sm text-slate-500">Tổng: {{ $partners->total() }}</span></div>
  @forelse($partners as $partner)
