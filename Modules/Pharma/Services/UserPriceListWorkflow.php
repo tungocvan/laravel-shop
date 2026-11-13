@@ -192,6 +192,19 @@ final class UserPriceListWorkflow
         });
     }
 
+    /** Delete only a global draft; authorization is enforced by the calling adapter. */
+    public function deleteGlobalDraft(int $priceListId): void
+    {
+        DB::transaction(function () use ($priceListId): void {
+            $list = PriceList::query()->lockForUpdate()->findOrFail($priceListId);
+            if ($list->type !== PriceList::TYPE_GLOBAL || $list->status !== PriceList::STATUS_DRAFT) {
+                throw ValidationException::withMessages(['price_list' => 'Chỉ được xóa bảng giá chung ở trạng thái Nháp.']);
+            }
+
+            $list->delete();
+        });
+    }
+
     public function submit(int $userId, int $priceListId, bool $approverScope = false): PriceList
     {
         return DB::transaction(function () use ($userId, $priceListId, $approverScope): PriceList {
