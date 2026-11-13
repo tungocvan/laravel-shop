@@ -66,7 +66,7 @@
 
     <form id="kqlcnt-live-filters" method="GET" action="{{ route('client.pharma.kqlcnt-awards.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-base font-bold text-slate-950">Bộ lọc hồ sơ</h2>
-        <p class="mt-1 text-xs text-slate-500">Lọc theo mã TBMT, chủ đầu tư, thuốc hoặc trạng thái.</p>
+        <p class="mt-1 text-xs text-slate-500">Lọc theo mã TBMT, chủ đầu tư, thuốc, trạng thái hoặc User phụ trách.</p>
         <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex xl:items-end">
             <div class="min-w-0 xl:w-44 xl:shrink-0">
                 <label for="kqlcnt-notify" class="mb-1 block text-xs font-semibold text-slate-700">Mã TBMT</label>
@@ -102,7 +102,14 @@
                     <option value="0" @selected(($filters['active'] ?? '') === '0')>Không hoạt động</option>
                 </select>
             </label>
-        @if(collect($filters)->only(['notify_no', 'investor_code', 'medicine', 'active'])->contains(fn ($value) => filled($value)))
+            <label class="block min-w-0 text-xs font-semibold text-slate-700 xl:w-48 xl:shrink-0">User phụ trách
+                <select name="assigned" class="mt-1 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900">
+                    <option value="">Tất cả hồ sơ</option>
+                    <option value="1" @selected(($filters['assigned'] ?? '') === '1')>Đã có User phụ trách</option>
+                    <option value="0" @selected(($filters['assigned'] ?? '') === '0')>Chưa có User phụ trách</option>
+                </select>
+            </label>
+        @if(collect($filters)->only(['notify_no', 'investor_code', 'medicine', 'active', 'assigned'])->contains(fn ($value) => filled($value)))
             <div class="flex items-end sm:col-span-2 xl:col-span-1 xl:shrink-0">
                 <a href="{{ route('client.pharma.kqlcnt-awards.index') }}" class="inline-flex min-h-11 items-center whitespace-nowrap rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-semibold text-red-700 hover:bg-red-100">Xóa lọc</a>
             </div>
@@ -138,6 +145,18 @@
                     <div class="min-w-0">
                         <p class="text-xs text-slate-500">Thời gian thực hiện hợp đồng</p>
                         <p class="mt-1 text-sm font-semibold text-slate-900">{{ $item->contract_period !== null ? $item->contract_period.' '.($item->contract_period_unit ?: 'tháng') : ($item->contract_period_text ?: 'Chưa cập nhật') }}</p>
+                    </div>
+                    <div class="min-w-0 sm:col-span-2 xl:col-span-3">
+                        <p class="text-xs font-semibold text-slate-600">User phụ trách</p>
+                        @if(!empty($assignedUsers[(int) $item->id]))
+                            <div class="mt-2 flex flex-wrap gap-2">
+                                @foreach($assignedUsers[(int) $item->id] as $name)
+                                    <span class="rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-800">{{ $name }}</span>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="mt-1 text-sm text-slate-500">Chưa phân công User phụ trách được xác minh</p>
+                        @endif
                     </div>
                     <div class="rounded-xl bg-slate-50 p-3">
                         <p class="text-xs text-slate-500">Số tiền trúng thầu</p>
@@ -241,7 +260,7 @@
     form.addEventListener('click', (event) => {
         if (event.target.closest('[data-pwa-select-search-option]')) submit();
     }, true);
-    form.querySelector('select[name="active"]')?.addEventListener('change', submit);
+    form.querySelectorAll('select[name="active"], select[name="assigned"]').forEach(control => control.addEventListener('change', submit));
 })();
 </script>
 @endpush
