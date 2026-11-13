@@ -1,3 +1,14 @@
+## 2026-11-13 — Historical KQLCNT provenance / corrected contractor name
+
+- Case: canonical KQLCNT #14 (TBMT IB2500394830) and Pharma #13 have identical contractor code, medicine, quantity and winning price; active provenance source_reference `muasamcong_kqlcnt_award_items:14`, while Pharma source_id is NULL and historical winning_company_name contains the contractor code instead of the corrected legal name.
+- Fix: legacy bridge no longer prefilters by winning_company_name when a stable contractor_code exists. If contractor_code is absent, exact name remains mandatory. Exact provenance/direct source, medicine, quantities, price, one-to-one uniqueness and whole Pharma result group verification remain required.
+- Readiness now recognizes the verified whole-group bridge for historical provenance, without updating source_id or any database row.
+- Focused test PENDING: `php artisan test tests/Feature/ClientApps/PharmaKqlcntHistoricalProvenanceContractTest.php tests/Feature/ClientApps/PharmaKqlcntVisibilityScopeContractTest.php`.
+- Regression PENDING after focused PASS: `php artisan test tests/Feature/ClientApps/PharmaKqlcntWorkflowPreviewContractTest.php tests/Feature/ClientApps/PharmaKqlcntAssignedUsersContractTest.php tests/Feature/ClientApps/PharmaKqlcntAwardWorkspaceContractTest.php`.
+- UI PENDING: policy #14 readiness and ability to save only with correct permissions, allocation, other contractor mismatch/ambiguous cases, view-all permission scope. No PR, merge or production changes.
+
+---
+
 ## 2026-11-13 — KQLCNT per-user visibility and view-all permission
 
 - Feature branch: `feat/pharma-kqlcnt-view-all-scope-20261113` from main `6e93050c4af1f73a92452c0ff5f47db82ee251a5`.
