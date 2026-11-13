@@ -13,7 +13,7 @@
 
             <div>
                 <label for="business-query" class="mb-1 block text-sm font-medium text-gray-700">Tên doanh nghiệp hoặc mã số thuế</label>
-                <input id="business-query" wire:model="query" type="text" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" placeholder="Ví dụ: Công ty ABC hoặc 0317193865">
+                <input id="business-query" wire:model.live.debounce.400ms="query" type="text" autocomplete="off" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" placeholder="Ví dụ: Công ty ABC hoặc 0317193865">
                 @error('query') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
