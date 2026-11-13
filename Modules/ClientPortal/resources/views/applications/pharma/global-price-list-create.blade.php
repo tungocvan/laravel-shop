@@ -15,11 +15,6 @@
     @if($errors->any())
         <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><strong>Không thể lưu bảng giá:</strong><ul class="mt-2 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
-    <form id="global-medicine-search" method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex items-center gap-2">
-        <input type="hidden" name="type" value="global">
-        <input id="global-search-input" type="search" name="q" value="{{ $search }}" maxlength="120" autocomplete="off" placeholder="Tìm tên thuốc, SĐK hoặc SKU..." aria-label="Tìm thuốc" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-sm">
-        <button id="global-search-clear" type="button" aria-label="Xóa tìm kiếm" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold {{ $search === '' ? 'hidden' : '' }}">×</button>
-    </form>
     <form id="global-price-list-form" method="POST" action="{{ route('client.pharma.price-lists.global.store') }}" class="space-y-5">
         @csrf
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -45,11 +40,16 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 class="text-base font-black">03 · Chọn thuốc và thiết lập giá</h2>
             <p class="mt-1 text-sm text-slate-500">Chọn SKU đang hoạt động. Ba mức giá mặc định theo giá kê khai (nếu có) và có thể chỉnh sửa.</p>
+    <form id="global-medicine-search" method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex items-center gap-2">
+        <input type="hidden" name="type" value="global">
+        <input id="global-search-input" type="search" name="q" value="{{ $search }}" maxlength="120" autocomplete="off" placeholder="Tìm tên thuốc, SĐK hoặc SKU..." aria-label="Tìm thuốc" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-sm">
+        <button id="global-search-clear" type="button" aria-label="Xóa tìm kiếm" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold {{ $search === '' ? 'hidden' : '' }}">×</button>
+    </form>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <label class="flex items-center gap-2 text-sm font-bold"><input id="global-select-page" type="checkbox" class="h-5 w-5"> Chọn tất cả trên trang</label>
                 <span id="global-selected-count" class="text-sm text-slate-600">0 SKU được chọn</span>
             </div>
-            <div class="mt-3 space-y-3">
+            <div id="global-medicine-results" class="mt-3 space-y-3">
                 @forelse($variants as $variant)
                     @php $medicine = $variant->medicine; $id = $variant->id; $declaredPrice = $medicine?->declared_price; @endphp
                     <article class="rounded-xl border border-slate-200 p-3" data-global-product>
@@ -64,8 +64,8 @@
                     <p class="rounded-xl bg-slate-50 p-5 text-sm text-slate-500">Không có SKU phù hợp.</p>
                 @endforelse
             </div>
-            <div class="mt-4">{{ $variants->links() }}</div>
-            <p class="mt-2 text-xs text-slate-500">Danh sách phân trang; chỉ các SKU đã chọn trên trang hiện tại được gửi khi lưu. Có thể tìm SKU ở trang khác trước khi lập bảng giá.</p>
+            <div id="global-medicine-pagination" class="mt-4">{{ $variants->links() }}</div>
+            <p class="mt-2 text-xs text-slate-500">SKU đã chọn và giá nhập được giữ khi tìm kiếm hoặc chuyển trang.</p>
         </section>
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 class="text-base font-black">04 · Kiểm tra và kích hoạt</h2>
@@ -76,48 +76,158 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('global-price-list-form');
     const searchForm = document.getElementById('global-medicine-search');
     const searchInput = document.getElementById('global-search-input');
     const clearSearch = document.getElementById('global-search-clear');
+    const results = document.getElementById('global-medicine-results');
+    const pagination = document.getElementById('global-medicine-pagination');
+    const all = document.getElementById('global-apply-all');
+    const users = document.getElementById('global-user-list');
+    const selectPage = document.getElementById('global-select-page');
+    const count = document.getElementById('global-selected-count');
+    const submit = document.getElementById('global-submit');
+    const selected = new Map();
     let searchTimer;
+    let requestController;
+    let requestVersion = 0;
+
+    const visibleRows = () => [...results.querySelectorAll('[data-global-product]')];
+    const capture = () => {
+        visibleRows().forEach(row => {
+            const checkbox = row.querySelector('[data-global-select]');
+            const id = checkbox.name.match(/\[(\d+)\]/)?.[1];
+            if (!id) return;
+            if (!checkbox.checked) {
+                selected.delete(id);
+                return;
+            }
+            const prices = {};
+            row.querySelectorAll('[data-global-price]').forEach(input => {
+                prices[input.name.split('[')[0]] = input.value;
+            });
+            selected.set(id, prices);
+        });
+    };
+    const restore = () => {
+        visibleRows().forEach(row => {
+            const checkbox = row.querySelector('[data-global-select]');
+            const id = checkbox.name.match(/\[(\d+)\]/)?.[1];
+            if (!selected.has(id)) return;
+            checkbox.checked = true;
+            const prices = selected.get(id);
+            row.querySelectorAll('[data-global-price]').forEach(input => {
+                const key = input.name.split('[')[0];
+                if (Object.prototype.hasOwnProperty.call(prices, key)) input.value = prices[key];
+            });
+        });
+        sync();
+    };
+    const sync = () => {
+        users.classList.toggle('hidden', all.checked);
+        const rows = visibleRows();
+        const checked = rows.filter(row => row.querySelector('[data-global-select]').checked).length;
+        count.textContent = selected.size + ' SKU được chọn';
+        selectPage.checked = rows.length > 0 && checked === rows.length;
+        selectPage.indeterminate = checked > 0 && checked < rows.length;
+        submit.disabled = selected.size === 0;
+    };
+    const load = async (url) => {
+        capture();
+        requestController?.abort();
+        requestController = new AbortController();
+        const version = ++requestVersion;
+        results.setAttribute('aria-busy', 'true');
+        try {
+            const response = await fetch(url, {
+                signal: requestController.signal,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error('Không thể tải danh sách thuốc');
+            const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const nextResults = doc.getElementById('global-medicine-results');
+            const nextPagination = doc.getElementById('global-medicine-pagination');
+            if (!nextResults || !nextPagination) throw new Error('Phản hồi tìm kiếm không hợp lệ');
+            if (version !== requestVersion) return;
+            results.innerHTML = nextResults.innerHTML;
+            pagination.innerHTML = nextPagination.innerHTML;
+            restore();
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                console.error(error);
+                alert('Không tải được danh sách thuốc. Vui lòng thử lại.');
+            }
+        } finally {
+            if (version === requestVersion) results.removeAttribute('aria-busy');
+        }
+    };
+    const search = () => {
+        const url = new URL(searchForm.action, window.location.href);
+        url.searchParams.set('type', 'global');
+        if (searchInput.value.trim()) url.searchParams.set('q', searchInput.value.trim());
+        load(url.toString());
+    };
+
+    searchForm.addEventListener('submit', event => { event.preventDefault(); clearTimeout(searchTimer); search(); });
     searchInput.addEventListener('input', () => {
         clearTimeout(searchTimer);
         clearSearch.classList.toggle('hidden', searchInput.value.length === 0);
-        searchTimer = setTimeout(() => {
-            if (searchInput.value.trim() !== @json($search)) searchForm.requestSubmit();
-        }, 400);
+        searchTimer = setTimeout(search, 400);
     });
     clearSearch.addEventListener('click', () => {
         clearTimeout(searchTimer);
         searchInput.value = '';
-        searchForm.requestSubmit();
+        clearSearch.classList.add('hidden');
+        searchInput.focus();
+        search();
     });
-    const all = document.getElementById('global-apply-all');
-    const users = document.getElementById('global-user-list');
-    const selections = [...document.querySelectorAll('[data-global-select]')];
-    const selectPage = document.getElementById('global-select-page');
-    const count = document.getElementById('global-selected-count');
-    const submit = document.getElementById('global-submit');
-    const sync = () => {
-        users.classList.toggle('hidden', all.checked);
-        const selected = selections.filter(el => el.checked).length;
-        count.textContent = selected + ' SKU được chọn';
-        selectPage.checked = selections.length > 0 && selected === selections.length;
-        submit.disabled = selected === 0;
-    };
+    pagination.addEventListener('click', event => {
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+        event.preventDefault();
+        load(link.href);
+    });
+    results.addEventListener('change', event => {
+        if (event.target.matches('[data-global-select], [data-global-price]')) { capture(); sync(); }
+    });
+    results.addEventListener('input', event => {
+        if (event.target.matches('[data-global-price]')) { capture(); sync(); }
+    });
     all.addEventListener('change', sync);
-    selections.forEach(el => el.addEventListener('change', sync));
-    selectPage.addEventListener('change', () => { selections.forEach(el => el.checked = selectPage.checked); sync(); });
-    document.getElementById('global-price-list-form').addEventListener('submit', event => {
+    selectPage.addEventListener('change', () => {
+        visibleRows().forEach(row => row.querySelector('[data-global-select]').checked = selectPage.checked);
+        capture();
+        sync();
+    });
+    form.addEventListener('submit', event => {
+        capture();
         if (!all.checked && !users.querySelector('input:checked')) {
             event.preventDefault(); alert('Vui lòng chọn ít nhất một User.'); return;
         }
-        selections.forEach(el => {
-            const row = el.closest('[data-global-product]');
-            row.querySelectorAll('[data-global-price]').forEach(input => input.disabled = !el.checked);
+        if (selected.size === 0) { event.preventDefault(); return; }
+        form.querySelectorAll('[data-global-persisted]').forEach(el => el.remove());
+        // Only persisted values are submitted; visible page inputs must not overwrite them.
+        visibleRows().forEach(row => {
+            row.querySelectorAll('[data-global-select], [data-global-price]').forEach(input => input.disabled = true);
         });
+        const fragment = document.createDocumentFragment();
+        selected.forEach((prices, id) => {
+            const values = { ['selected[' + id + ']']: '1' };
+            Object.entries(prices).forEach(([key, value]) => { values[key + '[' + id + ']'] = value; });
+            Object.entries(values).forEach(([name, value]) => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = name;
+                input.value = value;
+                input.dataset.globalPersisted = '1';
+                fragment.appendChild(input);
+            });
+        });
+        form.appendChild(fragment);
         submit.disabled = true;
     });
+    capture();
     sync();
 });
 </script>
