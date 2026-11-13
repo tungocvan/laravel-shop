@@ -17,7 +17,16 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $priceList->name }}</h1><p class="mt-2 text-sm text-slate-300">{{ $customer }} · {{ $priceList->purpose?->name ?: 'Chưa có mục đích' }}</p></div><span class="w-fit rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{{ $priceList->status }}</span></div>
     </section>
 
-    @if($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && ($canSubmit || $canEdit))
+    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_ACTIVE)
+        <form method="POST" action="{{ route('client.pharma.price-lists.revision.start', $priceList->id) }}" onsubmit="return confirm('Tạo bản Nháp từ bảng giá đang hiệu lực để bổ sung sản phẩm?')">
+            @csrf
+            <button type="submit" class="min-h-11 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white">+ Bổ sung sản phẩm (tạo phiên bản mới)</button>
+        </form>
+    @endif
+    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && $priceList->source_price_list_id)
+        <a href="{{ route('client.pharma.price-lists.revision.edit', $priceList->id) }}" class="inline-flex min-h-11 items-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white">+ Bổ sung sản phẩm vào bản Nháp</a>
+    @endif
+    @if($priceList->type === \Modules\Pharma\Models\PriceList::TYPE_CUSTOMER && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && ($canSubmit || $canEdit))
         <section class="flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div><p class="font-black text-amber-950">Bảng giá đang ở trạng thái Nháp</p><p class="mt-1 text-sm text-amber-800">Gửi duyệt sẽ khóa bước lập giá và chuyển sang hàng chờ người có quyền phê duyệt.</p></div>
             <div class="flex flex-wrap gap-2">@if($canEdit)<a href="{{ route('client.pharma.price-lists.edit', $priceList->id) }}" class="rounded-2xl border border-amber-300 bg-white px-5 py-3 text-sm font-black text-amber-800">Sửa Nháp</a><form method="POST" action="{{ route('client.pharma.price-lists.delete', $priceList->id) }}" onsubmit="return confirm('Xóa bảng giá Nháp này?')">@csrf @method('DELETE')<button class="rounded-2xl border border-red-200 bg-white px-5 py-3 text-sm font-black text-red-600">Xóa</button></form>@endif @if($canSubmit)<form method="POST" action="{{ route('client.pharma.price-lists.submit', $priceList->id) }}">@csrf<button class="rounded-2xl border border-amber-300 bg-white px-5 py-3 text-sm font-black text-amber-800">Gửi duyệt</button></form>@endif @if($canApprove)<form method="POST" action="{{ route('client.pharma.price-lists.activate-own-draft',$priceList->id) }}" onsubmit="return confirm('Kích hoạt trực tiếp bảng giá này?')">@csrf<button class="rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-black text-white">Kích hoạt ngay</button></form>@endif</div>
@@ -82,6 +91,13 @@
                 @php $productSearchText = collect([$item->variant?->medicine?->name, $item->variant?->sku, $item->package?->name, $item->package?->packaging_specification])->filter()->implode(' '); @endphp
                 <article class="px-4 py-5 sm:px-5" data-price-list-product data-search="{{ $productSearchText }}">
                     <div><p class="font-black leading-6 text-slate-900">{{ $item->variant?->medicine?->name ?? $item->variant?->sku ?? 'SKU #'.$item->medicine_variant_id }}</p><p class="mt-1 break-words text-xs leading-5 text-slate-400">{{ $item->variant?->sku }}@if($item->package) · {{ $item->package->name ?? $item->package->packaging_specification ?? '' }}@endif</p></div>
+                    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_ACTIVE)
+                        <form method="POST" action="{{ route('client.pharma.price-lists.items.remove', [$priceList->id, $item->id]) }}" class="mt-3" onsubmit="return confirm('Gỡ SKU này khỏi bảng giá đang hiệu lực? Thao tác cập nhật ngay bảng giá hiện tại và không thể hoàn tác tự động.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="min-h-11 rounded-xl border border-rose-200 bg-white px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50">Gỡ khỏi bảng giá</button>
+                        </form>
+                    @endif
                     <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
                         <div><p class="text-xs font-bold text-slate-400">Giá kê khai</p><p class="mt-1 font-bold tabular-nums">{{ $item->declared_price_snapshot !== null ? number_format((float)$item->declared_price_snapshot,0,',','.') : '—' }}</p></div>
                         <div><p class="text-xs font-bold text-slate-400">Giá bán CT</p><p class="mt-1 font-black tabular-nums text-slate-950">{{ $item->company_sale_price !== null ? number_format((float)$item->company_sale_price,0,',','.') : '—' }}</p></div>

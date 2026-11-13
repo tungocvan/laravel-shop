@@ -1,3 +1,54 @@
+## 2026-11-13 — PR #386 merge readiness
+
+- User confirmed focused tests PASS, module regression PASS and UI PASS in conversation.
+- GitHub PR #386 targets `main`; review confirms effective filtering, global revision, SKU removal and approver-only GLOBAL DRAFT deletion are included.
+- GitHub commit status API returned no status checks; user local test evidence is the acceptance source. Merge authorized by user; no production deployment.
+
+---
+
+## 2026-11-13 — Delete global DRAFT price list (checkpoint)
+
+- Branch: `fix/pharma-global-draft-delete-20261113`, based on integrated effective-filter + SKU removal branch, preserving both features.
+- Root cause: global draft has nullable manager_user_id, but customer-only deleteDraft requires manager_user_id equal to current user. Approver now uses dedicated Pharma service method for GLOBAL + DRAFT only, with transaction and row lock. All other statuses rejected; customer draft continues existing owner-scoped path.
+- ClientPortal DELETE endpoint requires explicit Web approver permission for global draft, and browse hides global draft delete from non-approvers. Validation errors are shown in the browse UI.
+- Focused PENDING LOCAL: `php artisan test tests/Feature/ClientApps/PharmaGlobalDraftDeleteContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListDirectRemoveContractTest.php`.
+- Regression PENDING AFTER FOCUSED PASS: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- UI PENDING USER: delete global draft as approver, confirm cancellation, non-approver visibility/403, active list remains protected, customer draft unchanged, validation errors visible. No PR, merge, deploy.
+
+---
+
+## 2026-11-13 — Integrate effective price-list filtering with direct SKU removal (checkpoint)
+
+- Branch: `fix/pharma-price-list-filter-remove-integration-20261113`, based on `feat/pharma-global-price-list-direct-remove-20261113` (which includes the global revision and direct-remove work from main baseline `702e1a8f1`). The effective-filter fix was ported from `fix/pharma-price-list-effective-filter-20261113` without overwriting direct SKU removal routes, controllers or views.
+- Root cause: the remove branch still used implicit start-of-month dates and filtered `effective_from` inside the selected window, excluding price lists whose validity started earlier. Browse now defaults to active-at-current-time; date filtering is opt-in and uses interval overlap with nullable endpoints. `status=all` explicitly disables status restriction.
+- Tests: restored `PharmaPriceListEffectiveFilterContractTest` and aligned legacy `PharmaPriceListsCapabilityTest` assertions with the intended overlap behavior. No production data/config changes.
+- Focused **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListDirectRemoveContractTest.php`.
+- Regression **PENDING AFTER FOCUSED PASS**: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- UI **PENDING USER**: default active list, historical effective_from still visible, explicit date overlap, clear filters, direct remove and add SKU, desktop/iPhone. No PR, merge or deployment.
+
+---
+
+## 2026-11-13 — Direct removal of active global price list SKU (checkpoint pending)
+
+- Branch: `feat/pharma-global-price-list-direct-remove-20261113`, based on unmerged `feat/pharma-global-price-list-revision-20261113` (main `702e1a8f1`). Keep the revision dependency intact; do not merge separately without reconciling base.
+- Authorized Web approver may remove one SKU from the same ACTIVE GLOBAL price list ID; server validates list type/status, item ownership, at least one remaining item, and performs transaction + row locking + existing approval-item audit. No new revision is created by removal. Customer price lists are excluded.
+- Risk: existing database foreign keys or downstream item references may reject physical deletion; transaction must roll back safely. Validate using disposable local data before any production action. No schema, env or production operations performed.
+- Focused test **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListDirectRemoveContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- Regression **PENDING after focused PASS**: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaPriceListManualLotsContractTest.php`.
+- UI **PENDING USER CONFIRMATION**: desktop/iPhone, approver-only remove button, confirmation cancel, successful removal and unchanged price-list ID, last-item rejection, no cross-list mutation, search remains functional. PR/merge/deploy NOT DONE.
+
+---
+
+## 2026-11-13 — Global price list revision: add SKU without mutating ACTIVE
+
+- Branch: `feat/pharma-global-price-list-revision-20261113`, based on latest main at branch creation.
+- Pharma owns `GlobalPriceListRevisionWorkflow`. An authorized approver clones a global ACTIVE price list into DRAFT, copies its assigned users and existing items, then adds new active SKU variants with validated prices.
+- ClientPortal provides permission-gated start, search/add, and activate routes plus a mobile-first revision editor. Search is debounced 400ms and clear affects only query text; saved draft items are preserved server-side.
+- Activation is atomic: lock revision/source, verify source ACTIVE and revision DRAFT, deactivate source and activate revision inside the same transaction. A validation exception rolls back both operations. Historical source and previous orders are retained.
+- Focused test pending local: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- Follow with impacted regression only after focused PASS: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListDirectCreateContractTest.php tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php`.
+- UI PASS pending user confirmation on desktop/mobile. No PR, merge or production deploy authorized yet.
+
 ## 2026-11-13 — Pharma order manager/source navigation fix (local checkpoint pending)
 
 - Branch: `fix/pharma-order-manager-source-20261113`, based on main `caa1c9821c3e614726558f5cbd66c8bb93cf3be3`.

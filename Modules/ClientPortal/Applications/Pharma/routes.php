@@ -388,6 +388,24 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::post('/price-lists/global', [PharmaApplicationController::class, 'storeGlobalPriceList'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.global.store');
+        Route::delete('/price-lists/{priceList}/items/{item}', [PharmaApplicationController::class, 'removeActiveGlobalPriceListItem'])
+            ->name('price-lists.items.remove');
+        Route::post('/price-lists/{priceList}/revision', [PharmaApplicationController::class, 'startGlobalPriceListRevision'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.revision.start');
+        Route::get('/price-lists/{priceList}/revision', [PharmaApplicationController::class, 'editGlobalPriceListRevision'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.revision.edit');
+        Route::post('/price-lists/{priceList}/revision/items', [PharmaApplicationController::class, 'addGlobalPriceListRevisionItems'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.revision.items.store');
+        Route::post('/price-lists/{priceList}/revision/activate', [PharmaApplicationController::class, 'activateGlobalPriceListRevision'])
+            ->whereNumber('priceList')
+            ->middleware('client.feature:pharma,price-lists')
+            ->name('price-lists.revision.activate');
         Route::get('/price-lists/{priceList}/edit', [PharmaApplicationController::class, 'editPriceList'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')

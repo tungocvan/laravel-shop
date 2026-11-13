@@ -44,6 +44,132 @@ use Illuminate\Support\Facades\Storage;
 
 final class PharmaApplicationController extends Controller
 {
+    public function startGlobalPriceListRevision(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        \Modules\Pharma\Services\GlobalPriceListRevisionWorkflow $revisions,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $revision = $revisions->createDraft($priceList, (int) $user->id);
+
+        return redirect()->route('client.pharma.price-lists.revision.edit', $revision->id)
+            ->with('success', 'Đã sao chép bảng giá sang bản Nháp. Bảng giá cũ vẫn đang hiệu lực.');
+    }
+
+    public function editGlobalPriceListRevision(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        ClientPortalSettingsService $settings,
+    ): View {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $revision = PriceList::query()
+            ->where('type', PriceList::TYPE_GLOBAL)
+            ->where('status', PriceList::STATUS_DRAFT)
+            ->whereNotNull('source_price_list_id')
+            ->withCount('items')
+            ->findOrFail($priceList);
+        $validated = $request->validate(['q' => ['nullable', 'string', 'max:120']]);
+        $search = trim((string) ($validated['q'] ?? ''));
+        $variants = \Modules\Pharma\Models\MedicineVariant::query()
+            ->with('medicine')
+            ->where('status', 'active')
+            ->whereNotIn('id', $revision->items()->select('medicine_variant_id'))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('sku', 'like', '%'.$search.'%')
+                        ->orWhereHas('medicine', function ($medicine) use ($search) {
+                            $medicine->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('registration_number', 'like', '%'.$search.'%');
+                        });
+                });
+            })
+            ->orderBy('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        $application = $registry->find('pharma');
+        abort_if($application === null, 404);
+
+        return view('ClientPortal::applications.pharma.price-list-revision', [
+            'application' => $application,
+            'applicationPresentation' => $settings->applicationPresentation($application),
+            'revision' => $revision,
+            'variants' => $variants,
+            'search' => $search,
+        ]);
+    }
+
+    public function addGlobalPriceListRevisionItems(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        \Modules\Pharma\Services\GlobalPriceListRevisionWorkflow $revisions,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $validated = $request->validate([
+            'selected' => ['required', 'array', 'min:1', 'max:100'],
+            'selected.*' => ['required', 'integer', 'distinct', 'min:1'],
+            'company_price' => ['nullable', 'array'],
+            'company_price.*' => ['nullable', 'numeric', 'min:0'],
+            'receivable_price' => ['nullable', 'array'],
+            'receivable_price.*' => ['nullable', 'numeric', 'min:0'],
+            'invoice_price' => ['nullable', 'array'],
+            'invoice_price.*' => ['nullable', 'numeric', 'min:0'],
+        ]);
+        $items = collect($validated['selected'])->map(function ($id) use ($validated) {
+            return [
+                'medicine_variant_id' => (int) $id,
+                'company_sale_price' => $validated['company_price'][$id] ?? null,
+                'actual_receivable_price' => $validated['receivable_price'][$id] ?? null,
+                'invoice_price' => $validated['invoice_price'][$id] ?? null,
+            ];
+        })->all();
+        $revisions->addItems($priceList, $items);
+
+        return redirect()->route('client.pharma.price-lists.revision.edit', $priceList)
+            ->with('success', 'Đã bổ sung sản phẩm vào bản Nháp. Chưa ảnh hưởng bảng giá đang hiệu lực.');
+    }
+
+    public function removeActiveGlobalPriceListItem(
+        int $priceList,
+        int $item,
+        Request $request,
+        ApplicationRegistry $registry,
+        \Modules\Pharma\Services\GlobalPriceListRevisionWorkflow $revisions,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $revisions->removeActiveItem($priceList, $item, (int) $user->id);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã gỡ sản phẩm khỏi bảng giá hiện tại và ghi nhận lịch sử.');
+    }
+
+    public function activateGlobalPriceListRevision(
+        int $priceList,
+        Request $request,
+        ApplicationRegistry $registry,
+        \Modules\Pharma\Services\GlobalPriceListRevisionWorkflow $revisions,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+        $revision = $revisions->activateRevision($priceList, (int) $user->id);
+
+        return redirect()->route('client.pharma.price-lists.show', $revision->id)
+            ->with('success', 'Đã kích hoạt phiên bản mới và ngưng hiệu lực phiên bản cũ.');
+    }
+
     public function createPriceList(
         Request $request,
         ApplicationRegistry $registry,
@@ -187,9 +313,18 @@ final class PharmaApplicationController extends Controller
     ) {
         $user = $request->user('web');
         abort_if($user === null, 401);
-        abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+        $canCreate = $registry->userCan($user, 'client.pharma.price-lists.create');
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        abort_unless($canCreate || $canApprove, 403);
 
         $list = PriceList::query()->findOrFail($priceList);
+        if ($list->type === PriceList::TYPE_GLOBAL && $list->status === PriceList::STATUS_DRAFT) {
+            abort_unless($canApprove, 403);
+            $workflow->deleteGlobalDraft($priceList);
+
+            return redirect()->route('client.pharma.price-lists')
+                ->with('success', 'Đã xóa bảng giá chung Nháp.');
+        }
         if ($list->status === PriceList::STATUS_INACTIVE) {
             abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
             $manager->deleteRemovable($list);
@@ -603,7 +738,7 @@ final class PharmaApplicationController extends Controller
     ): View {
         $validated = $request->validate([
             'q' => ['nullable', 'string', 'max:120'],
-            'status' => ['nullable', 'in:'.implode(',', [
+            'status' => ['nullable', 'in:all,'.implode(',', [
                 PriceList::STATUS_DRAFT,
                 PriceList::STATUS_PENDING_APPROVAL,
                 PriceList::STATUS_REJECTED,
@@ -627,9 +762,9 @@ final class PharmaApplicationController extends Controller
         $priceListsFeature = collect($application['features'] ?? [])->first(fn (array $feature): bool => $feature['key'] === 'price-lists');
         abort_if($priceListsFeature === null, 404);
 
-        $status = $validated['status'] ?? null;
-        $fromDate = $validated['from_date'] ?? now()->startOfMonth()->toDateString();
-        $toDate = $validated['to_date'] ?? now()->toDateString();
+        $status = $validated['status'] ?? PriceList::STATUS_ACTIVE;
+        $fromDate = $validated['from_date'] ?? null;
+        $toDate = $validated['to_date'] ?? null;
 
         $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
         $managerUserId = $canApprove && ! empty($validated['manager_user_id'])
@@ -639,7 +774,7 @@ final class PharmaApplicationController extends Controller
         $priceLists = $workspace->browse(
             userId: (int) $user->id,
             search: $validated['q'] ?? null,
-            status: $status,
+            status: $status === 'all' ? null : $status,
             perPage: (int) ($validated['per_page'] ?? 25),
             page: (int) ($validated['page'] ?? 1),
             fromDate: $fromDate,
