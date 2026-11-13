@@ -54,6 +54,50 @@ final class PartnerApplicationController extends Controller
   return redirect()->route('client.partners.index')->with('success','Đã xóa đối tác.');
  }
 
+
+ public function import(Request $request, PartnerService $partners)
+ {
+  $request->validate(['import_file'=>['required','file','mimes:xlsx,csv,txt','max:5120']]);
+  $rows=(new FastExcel)->import($request->file('import_file')->getRealPath());
+  if ($rows->count()>1000) return back()->withErrors(['import_file'=>'Tối đa 1000 dòng mỗi lần import.']);
+  $normalized=[];
+  foreach ($rows as $index=>$row) {
+   $name=trim((string)($row['name']??$row['Tên đối tác']??''));
+   $legal=trim((string)($row['legal_type']??$row['Loại pháp lý']??''));
+   $types=collect(explode(',',(string)($row['partner_types']??($legal==='hospital'?'customer':'supplier'))))->map(fn($v)=>trim($v))->filter()->values()->all();
+   $data=[
+    'name'=>$name,'tax_code'=>trim((string)($row['tax_code']??$row['Mã số thuế']??'')),
+    'legal_type'=>$legal,'partner_types'=>$types,
+    'address'=>trim((string)($row['address']??'')),'province_code'=>trim((string)($row['province_code']??'')),
+    'email'=>trim((string)($row['email']??'')),'phone'=>trim((string)($row['phone']??'')),
+    'contact_person'=>trim((string)($row['contact_person']??'')),
+    'source'=>in_array($row['source']??'',array_keys(Partner::SOURCES),true)?$row['source']:'import',
+    'status'=>in_array($row['status']??'',array_keys(Partner::STATUSES),true)?$row['status']:'active',
+    'note'=>trim((string)($row['note']??'')),
+   ];
+   $validator=\Illuminate\Support\Facades\\Validator::make($data,[
+    'name'=>['required','string','max:255'],
+    'tax_code'=>['nullable','string','max:50'],
+    'legal_type'=>['required',Rule::in(array_keys(Partner::LEGAL_TYPES))],
+    'partner_types'=>['required','array','min:1'],
+    'partner_types.*'=>[Rule::in(array_keys(Partner::PARTNER_TYPES))],
+    'email'=>['nullable','email','max:255'],
+    'phone'=>['nullable','string','max:50'],'contact_person'=>['nullable','string','max:255'],
+    'address'=>['nullable','string','max:1000'],'province_code'=>['nullable','string','max:20'],
+    'note'=>['nullable','string','max:2000'],
+   ]);
+   if($validator->fails()) return back()->withErrors(['import_file'=>'Dòng '.($index+2).': '.$validator->errors()->first()]);
+   $normalized[]=$data;
+  }
+  \Illuminate\Support\Facades\\DB::transaction(function () use ($normalized,$partners) {
+   foreach($normalized as $data) {
+    $existing=$data['tax_code']!==''?Partner::where('tax_code',$data['tax_code'])->first():Partner::where('name',$data['name'])->where('legal_type',$data['legal_type'])->first();
+    if($existing) $partners->update($existing,$data);
+    else $partners->create($data);
+   }
+  });
+  return redirect()->route('client.partners.index')->with('success','Đã import '.count($normalized).' đối tác.');
+ }
  public function export(Request $request, PartnerQueryService $queryService)
  {
   $data=$request->validate([
