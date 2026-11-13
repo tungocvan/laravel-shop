@@ -30,6 +30,25 @@ final class KqlcntAwardReadService
                         ->orWhere('investor_name', 'like', '%'.$term.'%');
                 });
             })
+            ->when($filters['assigned_group_ids'] ?? null, function (Builder $query, array $ids): void {
+                // Filter complete groups, never individual medicine lines.
+                $query->whereExists(function ($sub) use ($ids): void {
+                    $sub->selectRaw('1')->from('muasamcong_kqlcnt_award_items as group_member')
+                        ->whereColumn('group_member.notify_no', 'muasamcong_kqlcnt_award_items.notify_no')
+                        ->whereRaw('(group_member.contractor_code = muasamcong_kqlcnt_award_items.contractor_code OR (group_member.contractor_code IS NULL AND muasamcong_kqlcnt_award_items.contractor_code IS NULL))')
+                        ->whereRaw('(group_member.contractor_name = muasamcong_kqlcnt_award_items.contractor_name OR (group_member.contractor_name IS NULL AND muasamcong_kqlcnt_award_items.contractor_name IS NULL))')
+                        ->whereIn('group_member.id', $ids);
+                });
+            })
+            ->when($filters['unassigned_group_ids'] ?? null, function (Builder $query, array $ids): void {
+                $query->whereNotExists(function ($sub) use ($ids): void {
+                    $sub->selectRaw('1')->from('muasamcong_kqlcnt_award_items as group_member')
+                        ->whereColumn('group_member.notify_no', 'muasamcong_kqlcnt_award_items.notify_no')
+                        ->whereRaw('(group_member.contractor_code = muasamcong_kqlcnt_award_items.contractor_code OR (group_member.contractor_code IS NULL AND muasamcong_kqlcnt_award_items.contractor_code IS NULL))')
+                        ->whereRaw('(group_member.contractor_name = muasamcong_kqlcnt_award_items.contractor_name OR (group_member.contractor_name IS NULL AND muasamcong_kqlcnt_award_items.contractor_name IS NULL))')
+                        ->whereIn('group_member.id', $ids);
+                });
+            })
             ->when($filters['medicine'] ?? null, function (Builder $query, string $term): void {
                 // Filter the entire TBMT/contractor group by matching medicine lines.
                 // Do not exclude non-matching lines from the group's totals.

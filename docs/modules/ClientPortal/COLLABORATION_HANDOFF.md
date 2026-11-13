@@ -1,3 +1,21 @@
+### 2026-11-13 — Follow-up: assignment display reconciled with Pharma workflow
+
+- Root cause: first adapter only found direct `source_type=muasamcong` links, omitting existing historical Pharma assignments visible on `/apps/pharma/bid-awards/{scope}/manager-assignment`.
+- Fixed read adapter to resolve verified linked scope or uniquely matched historical candidate via existing `KqlcntLegacyWorkflowBridge`, then use `ClientBidAwardWorkflow::managementAssignmentSummary()` as the single source of truth for active User assignment.
+- No assignment write, provenance update, route removal, or production action. Ambiguous matches remain unassigned rather than guessing by TBMT.
+- Focused and impacted tests require local execution; UI requires user verification of TBMT IB2500515642, assigned/unassigned filters and desktop/mobile rendering.
+
+## 2026-11-13 — KQLCNT assigned-user browse filter (checkpoint pending)
+
+- Branch: `feat/pharma-kqlcnt-assigned-users-filter-20261113`, based on main `b65e44901050f010ab7ec81cd73d65d078f52cb0`.
+- Added read-only assigned-user summary for canonical KQLCNT TBMT/contractor groups. Only active Pharma management assignments from directly linked canonical medicine rows are considered, and the entire group must pass the existing verified legacy bridge. Unverified or historical unlinked assignments are deliberately shown as unassigned rather than guessed by TBMT.
+- Filter values: all / assigned / unassigned; applied before pagination without shrinking product totals. The UI displays distinct user names and keeps existing Excel, allocation and policy actions.
+- Focused test PENDING LOCAL: `php artisan test tests/Feature/ClientApps/PharmaKqlcntAssignedUsersContractTest.php tests/Feature/ClientApps/PharmaKqlcntAwardWorkspaceContractTest.php`.
+- Regression PENDING AFTER FOCUSED PASS: `php artisan test tests/Feature/ClientApps/PharmaKqlcntWorkflowPreviewContractTest.php tests/Feature/ClientApps/PharmaKqlcntAwardExcelContractTest.php`.
+- UI PENDING USER: all/assigned/unassigned filters, multiple users, empty state, pagination, mobile/desktop, unchanged Excel and workflow actions. No PR, merge or production deploy.
+
+---
+
 ## 2026-11-13 — PR #386 merge readiness
 
 - User confirmed focused tests PASS, module regression PASS and UI PASS in conversation.

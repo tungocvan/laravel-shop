@@ -8,6 +8,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAssignedUserOverview;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingDiagnostics;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntLegacyWorkflowBridge;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAllocationBlockers;
@@ -20,7 +21,7 @@ use Modules\Pharma\Services\KqlcntExcelAwardRemovalService;
 
 final class PharmaKqlcntAwardController extends Controller
 {
-    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards): View
+    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards, KqlcntAssignedUserOverview $assignments): View
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
@@ -28,7 +29,14 @@ final class PharmaKqlcntAwardController extends Controller
             'investor_code' => ['nullable', 'string', 'max:255'],
             'medicine' => ['nullable', 'string', 'max:255'],
             'active' => ['nullable', 'in:0,1'],
+            'assigned' => ['nullable', 'in:0,1'],
         ]);
+        $assignedUsers = $assignments->assignedGroups();
+        if (($filters['assigned'] ?? '') === '1') {
+            $filters['assigned_group_ids'] = array_keys($assignedUsers) ?: [-1];
+        } elseif (($filters['assigned'] ?? '') === '0') {
+            $filters['unassigned_group_ids'] = array_keys($assignedUsers) ?: [-1];
+        }
         $items = $awards->paginate($filters);
         $application = $registry->find('pharma');
         abort_if($application === null, 404);
@@ -38,6 +46,7 @@ final class PharmaKqlcntAwardController extends Controller
             'applicationPresentation' => $settings->applicationPresentation($application),
             'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
             'items' => $items,
+            'assignedUsers' => $assignedUsers,
             'options' => $awards->filterOptions(),
             'dashboard' => $awards->dashboard(),
             'filters' => $filters,
