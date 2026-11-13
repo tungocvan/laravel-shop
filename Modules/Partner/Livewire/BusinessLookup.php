@@ -16,6 +16,8 @@ use Throwable;
 
 class BusinessLookup extends Component
 {
+    public bool $clientContext = false;
+
     public string $query = '';
 
     public string $selectedSource = MstCongTyProvider::SOURCE;
@@ -48,6 +50,7 @@ class BusinessLookup extends Component
 
     public function mount(): void
     {
+        $this->clientContext = request()->routeIs('client.partners.*');
         $this->authorizePermission('view_partner');
     }
 
@@ -169,6 +172,19 @@ class BusinessLookup extends Component
 
     private function authorizePermission(string $permission): void
     {
+        if ($this->clientContext) {
+            $user = auth('web')->user();
+            $required = match ($permission) {
+                'view_partner' => 'client.partners.lookup',
+                'create_partner', 'edit_partner' => 'client.partners.sync',
+                default => null,
+            };
+            abort_unless($required && $user && $user->can($required), 403);
+            if ($permission !== 'view_partner') {
+                abort_unless($user->can($permission === 'edit_partner' ? 'client.partners.edit' : 'client.partners.create'), 403);
+            }
+            return;
+        }
         abort_unless(auth('admin')->check() && auth('admin')->user()->can($permission), 403);
     }
 

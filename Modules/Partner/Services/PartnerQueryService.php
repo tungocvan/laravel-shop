@@ -28,7 +28,11 @@ class PartnerQueryService
         }
 
         if ($partnerType = $filters['partner_type'] ?? null) {
-            $query->withPartnerType($partnerType);
+            if ($partnerType === 'both') {
+                $query->withPartnerType('supplier')->withPartnerType('customer');
+            } else {
+                $query->withPartnerType($partnerType);
+            }
         }
 
         return $query;

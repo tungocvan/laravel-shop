@@ -13,7 +13,7 @@
 
             <div>
                 <label for="business-query" class="mb-1 block text-sm font-medium text-gray-700">Tên doanh nghiệp hoặc mã số thuế</label>
-                <input id="business-query" wire:model="query" type="text" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" placeholder="Ví dụ: Công ty ABC hoặc 0317193865">
+                <input id="business-query" wire:model.live.debounce.400ms="query" type="text" autocomplete="off" class="w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200" placeholder="Ví dụ: Công ty ABC hoặc 0317193865">
                 @error('query') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
             </div>
 
@@ -117,7 +117,11 @@
 
                 @php $stateLabels = ['new_value'=>'Giá trị mới','same'=>'Giống dữ liệu local','local_differs'=>'Khác dữ liệu local','missing_locally'=>'Local đang thiếu','source_missing'=>'Nguồn không có']; $fieldLabels = ['tax_code'=>'Mã số thuế','name'=>'Tên Partner','address'=>'Địa chỉ']; @endphp
                 <div class="mt-4 overflow-x-auto"><table class="min-w-full text-sm"><thead><tr class="border-b border-gray-200 text-left text-gray-500"><th class="py-2 pr-3">Chọn</th><th class="py-2 pr-3">Trường</th><th class="py-2 pr-3">Local</th><th class="py-2 pr-3">Nguồn được chọn</th><th class="py-2">Trạng thái</th></tr></thead><tbody class="divide-y divide-gray-100">@foreach ($plan as $field => $row)<tr wire:key="sync-plan-{{ $field }}"><td class="py-3 pr-3"><input wire:model="selectedFields" value="{{ $field }}" type="checkbox" class="rounded border-gray-300 text-indigo-600"></td><td class="py-3 pr-3 font-medium">{{ $fieldLabels[$field] ?? $field }}</td><td class="py-3 pr-3 text-gray-600">{{ $row['local'] ?: '—' }}</td><td class="py-3 pr-3 text-gray-600">{{ $row['source'] ?: '—' }}</td><td class="py-3 text-gray-600">{{ $stateLabels[$row['state']] ?? $row['state'] }}</td></tr>@endforeach</tbody></table></div>
+                @if (!$clientContext || (auth('web')->user()?->can('client.partners.sync') && auth('web')->user()?->can($match && $match['partner_id'] ? 'client.partners.edit' : 'client.partners.create')))
                 <button type="button" wire:click="sync" wire:loading.attr="disabled" wire:target="sync" class="mt-5 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"><span wire:loading.remove wire:target="sync">Đồng bộ nguồn đã chọn vào Partner</span><span wire:loading wire:target="sync">Đang đồng bộ...</span></button>
+                @else
+                <p class="mt-5 text-sm text-slate-500">Bạn có quyền tra cứu, nhưng chưa được cấp quyền đồng bộ doanh nghiệp.</p>
+                @endif
                 @error('sync') <p class="mt-2 text-sm text-red-600">{{ $message }}</p> @enderror
                 @if ($syncedPartnerId) <p class="mt-3 text-sm font-medium text-emerald-700">Đồng bộ thành công Partner #{{ $syncedPartnerId }}.</p> @endif
             </div>

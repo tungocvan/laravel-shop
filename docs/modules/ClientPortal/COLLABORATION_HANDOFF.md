@@ -1,3 +1,34 @@
+## 2026-11-13 — Partner business lookup in ClientPortal (checkpoint pending)
+
+- Branch: `feat/clientportal-partner-pwa-20261113`, based on main `7c0ef7d7b3afd0a794bb0ec88520bfd0857f569a`; existing Partner PWA work remains unmerged.
+- New web-guard route `/apps/partners/business-lookup`, manifest lookup feature, managed hero presentation and navigation. Admin lookup route remains intact.
+- Reuse `Modules/Partner/Livewire/BusinessLookup` and canonical Partner lookup/match/plan/sync services. Client read requires `client.partners.lookup`; mutation requires `client.partners.sync` AND `client.partners.create` or `client.partners.edit` as applicable. No automatic sync.
+- Registered ClientPortal web permissions in Partner module configuration. Explicit assignment/sync via approved permission workflow required; no automatic user grants.
+- Focused tests **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PartnerBusinessLookupPwaContractTest.php tests/Feature/ClientApps/PartnerPwaContractTest.php`.
+- Module/impacted regression **PENDING AFTER FOCUSED PASS**: `php artisan test tests/Feature/Partner tests/Feature/ClientApps/PartnerBusinessLookupPwaContractTest.php tests/Feature/ClientApps/PartnerPwaContractTest.php`.
+- UI **PENDING USER CONFIRMATION**: web user lookup, source selection, comparison, read-only no sync, authorized create/edit sync, Admin unchanged, desktop/iPhone. No PR, merge or deploy.
+
+---
+
+## 2026-11-13 — Partner PWA data tools checkpoint
+
+- Added dual supplier+customer role intersection through canonical PartnerQueryService (also available to Admin query consumers without changing their UI).
+- PWA list has page-scoped selection and select-all; Excel export of selected rows or currently filtered rows; expandable data tools, template download, and bounded Excel import (5 MB, 1000 rows, row validation, transactional PartnerService writes).
+- File operations have separate web-guard permissions: view for export; create for template/import. No bulk deletion in PWA. Never test import against real records: matching tax code/name can update existing partners.
+- CHECKPOINT PENDING: run focused PartnerPwaContractTest, relevant ClientPortal/Partner regression, and manual Excel roundtrip with disposable data; confirm PWA download behavior and desktop/iPhone UI. No claim of test/UI pass for this batch.
+
+---
+
+## 2026-11-13 — Partner PWA application (checkpoint pending)
+
+- Branch: `feat/clientportal-partner-pwa-20261113`, based on main `7c0ef7d7b`.
+- New ClientPortal application `partners` uses canonical `Modules/Partner` PartnerService/PartnerQueryService and the existing `partners` table; Admin routes and Livewire authorization remain untouched.
+- Routes: `/apps/partners`, `/apps/partners/list`, `/apps/partners/create`, `/apps/partners/{partner}/edit`. Web guard and app/feature/action permissions are separate. Permission grants must be configured explicitly via Admin Client Apps; no automatic user grants.
+- Responsive PWA list, search debounce 400ms, immediate select filtering, conditional reset, create/edit/delete; managed page presentation via application manifest/settings. Excel import/export and batch deletion are deferred pending PWA external-file UX and security review. No migrations or production operations.
+- Focused test: `php artisan test tests/Feature/ClientApps/PartnerPwaContractTest.php`. Module regression: `php artisan test tests/Feature/ClientApps` (scope may be narrowed if unrelated existing failures). Both tests and real UI acceptance PENDING. No PR/merge/deploy until gates pass.
+
+---
+
 ## 2026-11-12 — LoanManagement Web permission registry (checkpoint pending)
 
 - Branch: `fix/loanmanagement-client-permission-registry-20261112` from main `071420ad6aa1ca1c7983142ed5da829f830aeaab`.
