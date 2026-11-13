@@ -138,6 +138,23 @@ final class PharmaApplicationController extends Controller
             ->with('success', 'Đã bổ sung sản phẩm vào bản Nháp. Chưa ảnh hưởng bảng giá đang hiệu lực.');
     }
 
+    public function removeActiveGlobalPriceListItem(
+        int $priceList,
+        int $item,
+        Request $request,
+        ApplicationRegistry $registry,
+        \Modules\Pharma\Services\GlobalPriceListRevisionWorkflow $revisions,
+    ) {
+        $user = $request->user('web');
+        abort_if($user === null, 401);
+        abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
+
+        $revisions->removeActiveItem($priceList, $item, (int) $user->id);
+
+        return redirect()->route('client.pharma.price-lists.show', $priceList)
+            ->with('success', 'Đã gỡ sản phẩm khỏi bảng giá hiện tại và ghi nhận lịch sử.');
+    }
+
     public function activateGlobalPriceListRevision(
         int $priceList,
         Request $request,
