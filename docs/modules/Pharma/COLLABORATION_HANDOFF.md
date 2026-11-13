@@ -1,3 +1,14 @@
+## 2026-11-13 — Delete global DRAFT price list (checkpoint)
+
+- Branch: `fix/pharma-global-draft-delete-20261113`, based on integrated effective-filter + SKU removal branch, preserving both features.
+- Root cause: global draft has nullable manager_user_id, but customer-only deleteDraft requires manager_user_id equal to current user. Approver now uses dedicated Pharma service method for GLOBAL + DRAFT only, with transaction and row lock. All other statuses rejected; customer draft continues existing owner-scoped path.
+- ClientPortal DELETE endpoint requires explicit Web approver permission for global draft, and browse hides global draft delete from non-approvers. Validation errors are shown in the browse UI.
+- Focused PENDING LOCAL: `php artisan test tests/Feature/ClientApps/PharmaGlobalDraftDeleteContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListDirectRemoveContractTest.php`.
+- Regression PENDING AFTER FOCUSED PASS: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- UI PENDING USER: delete global draft as approver, confirm cancellation, non-approver visibility/403, active list remains protected, customer draft unchanged, validation errors visible. No PR, merge, deploy.
+
+---
+
 ## 2026-11-13 — Direct removal of active global price list SKU (checkpoint pending)
 
 - Branch: `feat/pharma-global-price-list-direct-remove-20261113`, based on unmerged `feat/pharma-global-price-list-revision-20261113` (main `702e1a8f1`). Keep the revision dependency intact; do not merge separately without reconciling base.
