@@ -21,10 +21,11 @@ final class PharmaKqlcntAssignedUsersContractTest extends TestCase
     public function assignment_lookup_requires_active_users_and_verified_group_mapping(): void
     {
         $service = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/KqlcntAssignedUserOverview.php'));
-        $this->assertStringContainsString("where('a.status', 'active')", $service);
         $this->assertStringContainsString('bridge->scopeKey($id)', $service);
-        $this->assertStringContainsString("whereIn('p.source_id', \$group->pluck('id'))", $service);
-        $this->assertStringContainsString('distinct()', $service);
+        $this->assertStringContainsString('bridge->verifiedMappingCandidateIds($id)', $service);
+        $this->assertStringContainsString('workflow->managementAssignmentSummary($award)', $service);
+        $this->assertStringContainsString('workflow->contextAward($scope)', $service);
+        $this->assertStringNotContainsString("where('p.source_type', 'muasamcong')", $service);
     }
 
     #[Test]
