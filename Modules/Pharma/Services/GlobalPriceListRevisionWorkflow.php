@@ -66,6 +66,43 @@ final class GlobalPriceListRevisionWorkflow
         });
     }
 
+
+    /**
+     * Remove one SKU from the existing ACTIVE global list without changing its ID.
+     * The approval audit retains the removed SKU and its previous price.
+     */
+    public function removeActiveItem(int $priceListId, int $itemId, int $actorId): PriceList
+    {
+        return DB::transaction(function () use ($priceListId, $itemId, $actorId): PriceList {
+            $list = PriceList::query()->lockForUpdate()->findOrFail($priceListId);
+            $this->assertGlobalActive($list);
+
+            $item = $list->items()->whereKey($itemId)->lockForUpdate()->first();
+            if ($item === null) {
+                throw ValidationException::withMessages(['item' => 'Sản phẩm không thuộc bảng giá này.']);
+            }
+            if ($list->items()->count() <= 1) {
+                throw ValidationException::withMessages(['items' => 'Bảng giá đang hiệu lực phải còn ít nhất một sản phẩm.']);
+            }
+
+            DB::table('pharma_price_list_approval_item_audits')->insert([
+                'price_list_id' => $list->id,
+                'price_list_item_id' => $item->id,
+                'medicine_variant_id' => $item->medicine_variant_id,
+                'action' => 'removed',
+                'old_company_sale_price' => $item->company_sale_price,
+                'new_company_sale_price' => null,
+                'changed_by' => $actorId,
+                'changed_at' => now(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+            $item->delete();
+
+            return $list->refresh();
+        });
+    }
+
     public function activateRevision(int $revisionId, int $approverId): PriceList
     {
         return DB::transaction(function () use ($revisionId, $approverId): PriceList {
