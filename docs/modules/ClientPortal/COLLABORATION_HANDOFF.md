@@ -1,3 +1,15 @@
+## 2026-11-13 — Pharma Web Role action catalog / supplier pricing visibility (checkpoint)
+
+- Root cause: `navigation.products.actions` held 13 permissions (including `client.pharma.products.supplier-pricing`) while `ApplicationPermissionService::applicationDefinitions()` discovers actions only under normalized `features[*].actions`. As a result, Web Role edit and the `Quét & đồng bộ quyền` catalog omitted those actions. The `PharmaApplicationController` correctly enforces supplier pricing permission on list filters, browse data, and product details; do not bypass this gate.
+- Moved the 13 product action definitions to `features.products.actions`, preserving exact permission names, labels and order. Also removed unsupported navigation action declarations for price-lists and orders (their corresponding feature actions already existed). No new privilege grants, database schema changes or UI rewrites.
+- Added `tests/Feature/ClientApps/PharmaWebRoleActionCatalogContractTest.php` to protect all 13 product actions, supplier pricing label, canonical ownership and existing price-list/order actions.
+- Focused checkpoint: `php artisan test tests/Feature/ClientApps/PharmaWebRoleActionCatalogContractTest.php tests/Feature/ClientApps/PharmaProductsCapabilityTest.php`.
+- After focused PASS: `php artisan test tests/Feature/ClientApps/PharmaKqlcntWebRolePermissionCatalogTest.php tests/Feature/ClientApps/PharmaKqlcntAwardWorkspaceContractTest.php`.
+- UI verification: Admin `/admin/client-apps/roles/{role}` must show `Danh mục thuốc · Xem giá nhà cung cấp`, save intended role permission, verify user sees supplier pricing and unauthorized user still cannot see it. If data is missing despite effective permission, audit supplier records separately.
+- Tests and UI pending user verification; do not merge or deploy without approval.
+
+---
+
 ## 2026-11-13 — KQLCNT Web Role regression contract correction
 
 - User reported module regression: `PharmaKqlcntAwardWorkspaceContractTest::manifest_exposes_managed_feature_and_independent_permissions` failed because it still asserted `navigation.kqlcnt-awards.actions` after canonical action registration moved to `features.kqlcnt-awards.actions`.
