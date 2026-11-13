@@ -54,8 +54,8 @@ final class KqlcntAssignedUserOverview
             }
 
             $users = $this->workflow->managementAssignmentSummary($award)
-                ->filter(fn ($row) => (int) ($row['user_id'] ?? 0) > 0)
-                ->map(fn ($row) => ['user_id' => (int) $row['user_id'], 'name' => (string) ($row['user']->name ?? '')])
+                ->filter(fn ($row) => (int) ($row->user_id ?? 0) > 0)
+                ->map(fn ($row) => ['user_id' => (int) $row->user_id, 'name' => (string) ($row->user?->name ?? '')])
                 ->unique('user_id')->sortBy('name')->values()->all();
 
             if ($users !== []) {
