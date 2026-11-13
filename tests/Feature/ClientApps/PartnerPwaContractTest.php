@@ -29,6 +29,12 @@ final class PartnerPwaContractTest extends TestCase
   }
   $controller=file_get_contents(base_path('Modules/ClientPortal/Applications/Partner/Http/Controllers/PartnerApplicationController.php'));
   $this->assertStringContainsString('PartnerService',$controller);
+  $this->assertStringContainsString("Rule::in([...array_keys(Partner::PARTNER_TYPES),'both'])",$controller);
+  $this->assertStringContainsString("'max:5120'",$controller);
+  $this->assertStringContainsString("DB::transaction",$controller);
+  foreach (['client.partners.view','client.partners.create'] as $permission) {
+   $this->assertStringContainsString('permission:'.$permission.',web',$routes);
+  }
   $this->assertStringContainsString("featurePresentation('partners'",$controller);
   $this->assertStringNotContainsString("auth('admin')",$controller);
  }
@@ -40,6 +46,12 @@ final class PartnerPwaContractTest extends TestCase
   $this->assertStringContainsString("setTimeout(submitFilters, 400)",$index);
   $this->assertStringContainsString("select.addEventListener('change'",$index);
   $this->assertStringContainsString("reset.hidden = !hasChanges()",$index);
+  $this->assertStringContainsString('Vừa là khách hàng vừa là nhà cung cấp',$index);
+  $this->assertStringContainsString('partner-select-all',$index);
+  $this->assertStringContainsString('partner-row-select',$index);
+  $this->assertStringContainsString('partner-export-form',$index);
+  $this->assertStringContainsString('client.partners.import',$index);
+  $this->assertStringContainsString('client.partners.template',$index);
   $this->assertStringNotContainsString('>Lọc</button>',$index);
   $this->assertStringContainsString("client.apps.index",$index);
   $this->assertStringContainsString("@csrf",$form);
