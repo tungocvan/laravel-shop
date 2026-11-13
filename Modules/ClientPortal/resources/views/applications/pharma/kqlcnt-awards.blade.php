@@ -64,6 +64,7 @@
     </details>
     @endif
 
+    <p class="mb-3 text-sm font-semibold text-indigo-800" role="status">{{ $canViewAllAwards ? 'Phạm vi: Tất cả TBMT' : 'Phạm vi: TBMT tôi phụ trách' }}</p>
     <form id="kqlcnt-live-filters" method="GET" action="{{ route('client.pharma.kqlcnt-awards.index') }}" class="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
         <h2 class="text-base font-bold text-slate-950">Bộ lọc hồ sơ</h2>
         <p class="mt-1 text-xs text-slate-500">Lọc theo mã TBMT, chủ đầu tư, thuốc, trạng thái hoặc User phụ trách.</p>
