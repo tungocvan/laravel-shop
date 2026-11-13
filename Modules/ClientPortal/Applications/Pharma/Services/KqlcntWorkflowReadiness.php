@@ -73,6 +73,19 @@ final class KqlcntWorkflowReadiness
                     || trim((string) $linked->winning_company_name) === trim((string) $medicine->contractor_name));
         });
 
+        // Historical imports can carry a unique, active provenance source
+        // without a direct source_id. Reuse the strict full-group bridge:
+        // it checks TBMT, contractor, medicine, decimal values, source
+        // uniqueness and the exact Pharma result-group membership.
+        if (! $identityMatches && app(KqlcntLegacyWorkflowBridge::class)->scopeKey($awardItemId) !== null) {
+            return [
+                'status' => 'linked',
+                'canonical_count' => $count,
+                'linked_count' => $count,
+                'reason' => 'Các dòng canonical đã được xác minh qua provenance Pharma hiện có.',
+            ];
+        }
+
         return [
             'status' => $identityMatches ? 'linked' : 'requires_mapping',
             'canonical_count' => $count,
