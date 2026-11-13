@@ -29,6 +29,6 @@ final class PharmaKqlcntHistoricalProvenanceContractTest extends TestCase
 
         $this->assertStringContainsString('app(KqlcntLegacyWorkflowBridge::class)->scopeKey($awardItemId)', $source);
         $this->assertStringContainsString("'linked_count' => \$count", $source);
-        $this->assertStringContainsString("'status' => 'requires_mapping'", $source);
+        $this->assertStringContainsString("'status' => \$identityMatches ? 'linked' : 'requires_mapping'", $source);
     }
 }
