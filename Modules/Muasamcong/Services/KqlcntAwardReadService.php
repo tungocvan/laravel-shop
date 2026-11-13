@@ -81,6 +81,28 @@ final class KqlcntAwardReadService
     }
 
 
+    /** Filter options must not reveal notices, medicines or investors outside scope. */
+    public function filterOptionsForGroupIds(array $ids): array
+    {
+        if ($ids === []) {
+            return ['notices' => collect(), 'medicines' => collect(), 'investors' => collect()];
+        }
+
+        $base = $this->base()->whereExists(function ($sub) use ($ids): void {
+            $sub->selectRaw('1')->from('muasamcong_kqlcnt_award_items as permitted')
+                ->whereColumn('permitted.notify_no', 'muasamcong_kqlcnt_award_items.notify_no')
+                ->whereRaw('(permitted.contractor_code = muasamcong_kqlcnt_award_items.contractor_code OR (permitted.contractor_code IS NULL AND muasamcong_kqlcnt_award_items.contractor_code IS NULL))')
+                ->whereRaw('(permitted.contractor_name = muasamcong_kqlcnt_award_items.contractor_name OR (permitted.contractor_name IS NULL AND muasamcong_kqlcnt_award_items.contractor_name IS NULL))')
+                ->whereIn('permitted.id', $ids);
+        });
+
+        return [
+            'notices' => (clone $base)->whereNotNull('notify_no')->distinct()->orderBy('notify_no')->pluck('notify_no'),
+            'medicines' => (clone $base)->whereNotNull('medicine_name')->where('medicine_name', '<>', '')->distinct()->orderBy('medicine_name')->pluck('medicine_name'),
+            'investors' => (clone $base)->whereNotNull('investor_code')->select('investor_code', 'investor_name')->distinct()->orderBy('investor_name')->get(),
+        ];
+    }
+
     public function filterOptions(): array
     {
         $base = $this->base();
