@@ -1,3 +1,14 @@
+## 2026-11-13 — Direct removal of active global price list SKU (checkpoint pending)
+
+- Branch: `feat/pharma-global-price-list-direct-remove-20261113`, based on unmerged `feat/pharma-global-price-list-revision-20261113` (main `702e1a8f1`). Keep the revision dependency intact; do not merge separately without reconciling base.
+- Authorized Web approver may remove one SKU from the same ACTIVE GLOBAL price list ID; server validates list type/status, item ownership, at least one remaining item, and performs transaction + row locking + existing approval-item audit. No new revision is created by removal. Customer price lists are excluded.
+- Risk: existing database foreign keys or downstream item references may reject physical deletion; transaction must roll back safely. Validate using disposable local data before any production action. No schema, env or production operations performed.
+- Focused test **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListDirectRemoveContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- Regression **PENDING after focused PASS**: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php`.
+- UI **PENDING USER CONFIRMATION**: desktop/iPhone, approver-only remove button, confirmation cancel, successful removal and unchanged price-list ID, last-item rejection, no cross-list mutation, search remains functional. PR/merge/deploy NOT DONE.
+
+---
+
 ## 2026-11-13 — Global price list revision: add SKU without mutating ACTIVE
 
 - Branch: `feat/pharma-global-price-list-revision-20261113`, based on latest main at branch creation.
