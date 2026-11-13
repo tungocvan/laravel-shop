@@ -1,3 +1,16 @@
+## 2026-11-13 — Pharma global price list direct creation from Medicine Master (checkpoint pending)
+
+- Branch: `fix/pharma-global-price-list-direct-create-20261113`, based on main `702e1a8f1029405077299d45904432fe7adfa67d`.
+- ClientPortal /apps/pharma/price-lists/create?type=global now uses a separate global creation view, guarded by `client.pharma.price-lists.approve`; customer creation/edit remains on the existing view and workflow.
+- The global workspace collects name, dates, notes, User scope, and Medicine Master active SKU prices; searchable 30-SKU pages. Selection is **page-scoped**, not persistent across pagination. Existing Pharma PriceListManager validations and ApproverGlobalPriceListWorkflow transaction/activation remain canonical. Global source_price_list_id is optional; source-backed creation remains supported. No migration or permission grant.
+- Known UX limitation: to include SKU from multiple search pages, an additional persisted selection/draft workflow is required; do not assume cross-page selections survive navigation. The direct creation view currently submits selected SKUs from one page only.
+- Focused tests **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListDirectCreateContractTest.php`.
+- Impacted regression **PENDING AFTER FOCUSED PASS**: `php artisan test tests/Feature/ClientApps/PharmaPriceList*Test.php` (confirm matching filenames before use) and related Pharma price list tests.
+- Manual UI **PENDING USER CONFIRMATION**: authorized global creation, SKU search, pricing validation, User scope, activation, customer workflow unchanged, desktop/iPhone. No PR, merge, production action.
+- GitHub-only edits; local tracked/untracked files not touched.
+
+---
+
 ## 2026-11-13 — Pharma order manager/source navigation fix (local checkpoint pending)
 
 - Branch: `fix/pharma-order-manager-source-20261113`, based on main `caa1c9821c3e614726558f5cbd66c8bb93cf3be3`.
