@@ -40,11 +40,11 @@
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 class="text-base font-black">03 · Chọn thuốc và thiết lập giá</h2>
             <p class="mt-1 text-sm text-slate-500">Chọn SKU đang hoạt động. Ba mức giá mặc định theo giá kê khai (nếu có) và có thể chỉnh sửa.</p>
-    <form id="global-medicine-search" method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex items-center gap-2">
+    <div id="global-medicine-search" data-action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex items-center gap-2">
         <input type="hidden" name="type" value="global">
         <input id="global-search-input" type="search" name="q" value="{{ $search }}" maxlength="120" autocomplete="off" placeholder="Tìm tên thuốc, SĐK hoặc SKU..." aria-label="Tìm thuốc" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-sm">
         <button id="global-search-clear" type="button" aria-label="Xóa tìm kiếm" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold {{ $search === '' ? 'hidden' : '' }}">×</button>
-    </form>
+    </div>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <label class="flex items-center gap-2 text-sm font-bold"><input id="global-select-page" type="checkbox" class="h-5 w-5"> Chọn tất cả trên trang</label>
                 <span id="global-selected-count" class="text-sm text-slate-600">0 SKU được chọn</span>
@@ -163,13 +163,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     const search = () => {
-        const url = new URL(searchForm.action, window.location.href);
+        const url = new URL(searchForm.dataset.action, window.location.href);
         url.searchParams.set('type', 'global');
         if (searchInput.value.trim()) url.searchParams.set('q', searchInput.value.trim());
         load(url.toString());
     };
 
-    searchForm.addEventListener('submit', event => { event.preventDefault(); clearTimeout(searchTimer); search(); });
     searchInput.addEventListener('input', () => {
         clearTimeout(searchTimer);
         clearSearch.classList.toggle('hidden', searchInput.value.length === 0);
