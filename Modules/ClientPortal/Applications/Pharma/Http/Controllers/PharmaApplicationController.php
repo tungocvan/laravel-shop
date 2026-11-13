@@ -63,8 +63,8 @@ final class PharmaApplicationController extends Controller
             $variants = \Modules\Pharma\Models\MedicineVariant::query()
                 ->with('medicine')
                 ->where('status', 'active')
-                ->whereHas('medicine', function ($query) use ($search) {
-                    if ($search !== '') {
+                ->whereHas('medicine');
+            if ($search !== '') {
                         $query->where(function ($q) use ($search) {
                             $q->where('name', 'like', '%'.$search.'%')
                                 ->orWhere('registration_number', 'like', '%'.$search.'%');
