@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\Pharma\Models\PriceList;
+use Modules\Pharma\Models\MedicineVariant;
 
 final class ApproverGlobalPriceListWorkflow
 {
@@ -45,13 +46,20 @@ final class ApproverGlobalPriceListWorkflow
             ->with('items')
             ->first();
 
-        if (! $source) {
+        if ($sourceId > 0 && ! $source) {
             throw ValidationException::withMessages(['source_price_list_id' => 'Bảng giá gốc phải là bảng giá chung đang ACTIVE.']);
         }
 
-        $sourceItems = $source->items->where('status', 'active')->keyBy('medicine_variant_id');
+        $sourceItems = $source ? $source->items->where('status', 'active')->keyBy('medicine_variant_id') : collect();
+        if (! $source) {
+            $variantIds = collect($items)->pluck('medicine_variant_id')->map(fn ($id) => (int) $id)->unique()->all();
+            $availableIds = MedicineVariant::query()->whereIn('id', $variantIds)->where('status', 'active')->pluck('id')->map(fn ($id) => (int) $id)->all();
+            if (count($availableIds) !== count($variantIds)) {
+                throw ValidationException::withMessages(['items' => 'Sản phẩm phải là SKU đang hoạt động trong Medicine Master.']);
+            }
+        }
 
-        return DB::transaction(function () use ($approverUserId, $applyAllUsers, $userIds, $header, $items, $sourceItems): PriceList {
+        return DB::transaction(function () use ($approverUserId, $applyAllUsers, $userIds, $header, $items, $sourceItems, $source): PriceList {
             $validatedHeader = $this->manager->validateHeader(array_merge($header, [
                 'type' => PriceList::TYPE_GLOBAL,
                 'partner_id' => null,
@@ -71,14 +79,14 @@ final class ApproverGlobalPriceListWorkflow
             foreach ($items as $item) {
                 $variantId = (int) $item['medicine_variant_id'];
                 $sourceItem = $sourceItems->get($variantId);
-                if (! $sourceItem) {
+                if ($source && ! $sourceItem) {
                     throw ValidationException::withMessages(['items' => 'Sản phẩm đã chọn không thuộc bảng giá gốc.']);
                 }
 
                 $list->items()->create($this->manager->validateItem([
                     'medicine_variant_id' => $variantId,
-                    'medicine_package_id' => $sourceItem->medicine_package_id,
-                    'declared_price_snapshot' => $sourceItem->declared_price_snapshot,
+                    'medicine_package_id' => $sourceItem?->medicine_package_id,
+                    'declared_price_snapshot' => $sourceItem?->declared_price_snapshot,
                     'company_sale_price' => $item['company_sale_price'],
                     'actual_receivable_price' => $item['actual_receivable_price'] ?? $item['company_sale_price'],
                     'invoice_price' => $item['invoice_price'] ?? $item['company_sale_price'],
