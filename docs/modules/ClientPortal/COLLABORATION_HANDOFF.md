@@ -1,3 +1,15 @@
+## 2026-11-13 — KQLCNT per-user visibility and view-all permission
+
+- Feature branch: `feat/pharma-kqlcnt-view-all-scope-20261113` from main `6e93050c4af1f73a92452c0ff5f47db82ee251a5`.
+- New ClientPortal action permission `client.pharma.kqlcnt-awards.view-all`, grantable separately; no automatic grant to existing users. Without it, list is restricted to groups with active Pharma management assignment for authenticated web user ID.
+- Shared assignment workflow returns IDs and display names; no matching by user name or guessed TBMT. Restricted list, dashboard, filter options, item routes and Excel export use server-side visibility scope. Admin/domain assignments remain untouched.
+- Read service adds scoped dashboard and filter options; group aggregates remain complete and pagination is scoped before query execution.
+- Focused test pending local: `php artisan test tests/Feature/ClientApps/PharmaKqlcntVisibilityScopeContractTest.php tests/Feature/ClientApps/PharmaKqlcntAssignedUsersContractTest.php`.
+- Regression pending focused PASS: `php artisan test tests/Feature/ClientApps/PharmaKqlcntAwardWorkspaceContractTest.php tests/Feature/ClientApps/PharmaKqlcntWorkflowPreviewContractTest.php tests/Feature/ClientApps/PharmaKqlcntAwardExcelContractTest.php`.
+- UI PENDING: users with and without view-all; empty assignment; user reassignment; deep link 403; export 403; responsive; dashboard and filters. No PR/merge/deploy.
+
+---
+
 ## 2026-11-13 — Pharma orders total amount column (post-#387 merge replay)
 
 - Original approved branch: `fix/pharma-orders-total-nowrap-20261113`; replayed without semantic changes from latest main after PR #387 merged to avoid handoff conflict.
