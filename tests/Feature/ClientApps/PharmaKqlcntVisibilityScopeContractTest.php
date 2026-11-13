@@ -24,6 +24,7 @@ final class PharmaKqlcntVisibilityScopeContractTest extends TestCase
         $visibility = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/KqlcntAwardVisibility.php'));
         $this->assertStringContainsString("\$entry['user_id'] === \$id", $visibility);
         $this->assertStringContainsString('abort_unless($allowed, 403)', $visibility);
+        $this->assertStringContainsString('array_diff($exportGroups, $visible) === []', $visibility);
     }
 
     #[Test]
