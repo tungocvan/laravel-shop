@@ -10,6 +10,7 @@
    <p class="mt-2 text-xs font-semibold uppercase text-slate-500">{{ $pagePresentation['eyebrow'] }}</p>
    <h1 class="text-2xl font-bold text-slate-900">{{ $pagePresentation['page_title'] }}</h1>
    <p class="text-sm text-slate-500">{{ $pagePresentation['page_description'] }}</p></div>
+  @can('client.partners.lookup')<a href="{{ route('client.partners.lookup') }}" class="inline-flex min-h-11 items-center rounded-xl border border-slate-300 bg-white px-4 font-semibold text-indigo-700">Tra cứu doanh nghiệp</a>@endcan
   @can('client.partners.create')<a href="{{ route('client.partners.create') }}" class="inline-flex min-h-11 items-center rounded-xl bg-indigo-700 px-4 font-semibold text-white">+ Thêm đối tác</a>@endcan
  </header>
  @if(session('success'))<p role="status" class="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">{{ session('success') }}</p>@endif
