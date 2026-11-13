@@ -65,13 +65,6 @@ final class PharmaApplicationController extends Controller
                 ->where('status', 'active')
                 ->whereHas('medicine');
             if ($search !== '') {
-                        $query->where(function ($q) use ($search) {
-                            $q->where('name', 'like', '%'.$search.'%')
-                                ->orWhere('registration_number', 'like', '%'.$search.'%');
-                        });
-                    }
-                });
-            if ($search !== '') {
                 $variants->where(function ($query) use ($search) {
                     $query->where('sku', 'like', '%'.$search.'%')
                         ->orWhereHas('medicine', fn ($medicine) => $medicine
