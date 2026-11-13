@@ -59,7 +59,7 @@ final class PharmaApplicationController extends Controller
         $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
 
         if ($canApprove && $request->query('type') === 'global') {
-            $search = trim((string) $request->query('q', ''));
+            $search = trim((string) $request->validate(['q' => ['nullable', 'string', 'max:120']])['q'] ?? '');
             $variants = \Modules\Pharma\Models\MedicineVariant::query()
                 ->with('medicine')
                 ->where('status', 'active')
