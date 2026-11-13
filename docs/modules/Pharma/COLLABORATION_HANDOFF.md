@@ -1,3 +1,15 @@
+## 2026-11-13 — Optional Pharma migration bootstrap fix (checkpoint)
+
+- Branch: `fix/pharma-optional-excel-profile-migration-20261113` from main `4ce6c5325`.
+- Root cause: Pharma defaults to disabled, so its migrations are not registered; the core migration expanding `pharma_medicine_excel_profiles.owner_guard` ran before the optional table existed during a clean Docker setup.
+- Core migration now skips absent optional table/column. New Pharma-owned migration enforces the 64-character width whenever Pharma is installed, including when the core migration previously ran while Pharma was disabled.
+- No runtime module enablement changes, no destructive DB operations, no production actions. Existing completed migration ledger is not rewritten.
+- Focused test: `php artisan test tests/Feature/Pharma/OptionalExcelProfileMigrationContractTest.php`.
+- Follow-up: verify `php artisan migrate:status` and `php artisan module:migration-status Pharma`; re-run non-destructive bootstrap only after focused tests pass and user confirms isolated DB context.
+- TEST PENDING; module regression PENDING; UI NOT APPLICABLE (migration-only). No PR/merge/deploy.
+
+---
+
 ## 2026-11-13 — Customer price list approval: three independent prices
 
 - Feature branch: `feat/pharma-approval-three-prices-20261113` from main `6e93050c4`.
