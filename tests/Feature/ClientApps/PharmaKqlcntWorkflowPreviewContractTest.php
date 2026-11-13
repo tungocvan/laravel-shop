@@ -6,7 +6,7 @@ use Tests\TestCase;
 
 class PharmaKqlcntWorkflowPreviewContractTest extends TestCase
 {
-    public function test_canonical_workspaces_are_read_only_and_feature_gated(): void
+    public function test_canonical_workspaces_keep_guarded_write_routes_and_feature_gate(): void
     {
         $routes = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/routes.php'));
         $this->assertNotFalse($routes);
@@ -14,7 +14,8 @@ class PharmaKqlcntWorkflowPreviewContractTest extends TestCase
         $this->assertStringContainsString("'/kqlcnt-awards/{awardItem}/commercial-policy'", $routes);
         $this->assertStringContainsString("->middleware('client.feature:pharma,kqlcnt-awards')", $routes);
         $this->assertStringNotContainsString("Route::post('/kqlcnt-awards/{awardItem}/allocation'", $routes);
-        $this->assertStringNotContainsString("Route::post('/kqlcnt-awards/{awardItem}/commercial-policy'", $routes);
+        $this->assertStringContainsString("Route::post('/kqlcnt-awards/{awardItem}/commercial-policy', [PharmaKqlcntAwardController::class, 'saveCommercialPolicy'])", $routes);
+        $this->assertStringContainsString("->name('kqlcnt-awards.commercial-policy.store')", $routes);
     }
 
     public function test_controller_checks_action_permission_and_reads_canonical_source(): void
