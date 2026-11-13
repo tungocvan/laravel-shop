@@ -1,3 +1,14 @@
+## 2026-11-13 — Integrate effective price-list filtering with direct SKU removal (checkpoint)
+
+- Branch: `fix/pharma-price-list-filter-remove-integration-20261113`, based on `feat/pharma-global-price-list-direct-remove-20261113` (which includes the global revision and direct-remove work from main baseline `702e1a8f1`). The effective-filter fix was ported from `fix/pharma-price-list-effective-filter-20261113` without overwriting direct SKU removal routes, controllers or views.
+- Root cause: the remove branch still used implicit start-of-month dates and filtered `effective_from` inside the selected window, excluding price lists whose validity started earlier. Browse now defaults to active-at-current-time; date filtering is opt-in and uses interval overlap with nullable endpoints. `status=all` explicitly disables status restriction.
+- Tests: restored `PharmaPriceListEffectiveFilterContractTest` and aligned legacy `PharmaPriceListsCapabilityTest` assertions with the intended overlap behavior. No production data/config changes.
+- Focused **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListDirectRemoveContractTest.php`.
+- Regression **PENDING AFTER FOCUSED PASS**: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- UI **PENDING USER**: default active list, historical effective_from still visible, explicit date overlap, clear filters, direct remove and add SKU, desktop/iPhone. No PR, merge or deployment.
+
+---
+
 ## 2026-11-13 — Direct removal of active global price list SKU (checkpoint pending)
 
 - Branch: `feat/pharma-global-price-list-direct-remove-20261113`, based on unmerged `feat/pharma-global-price-list-revision-20261113` (main `702e1a8f1`). Keep the revision dependency intact; do not merge separately without reconciling base.
