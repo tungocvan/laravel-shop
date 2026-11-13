@@ -15,11 +15,11 @@
     @if($errors->any())
         <div role="alert" class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"><strong>Không thể lưu bảng giá:</strong><ul class="mt-2 list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
     @endif
-            <form method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex flex-wrap gap-2">
-                <input type="hidden" name="type" value="global">
-                <input type="search" name="q" value="{{ $search }}" maxlength="120" placeholder="Tìm tên thuốc, SĐK hoặc SKU" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-sm">
-                <button type="submit" class="min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-bold text-white">Tìm thuốc</button>
-            </form>
+    <form id="global-medicine-search" method="GET" action="{{ route('client.pharma.price-lists.create') }}" class="mt-4 flex items-center gap-2">
+        <input type="hidden" name="type" value="global">
+        <input id="global-search-input" type="search" name="q" value="{{ $search }}" maxlength="120" autocomplete="off" placeholder="Tìm tên thuốc, SĐK hoặc SKU..." aria-label="Tìm thuốc" class="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 px-3 text-sm">
+        <button id="global-search-clear" type="button" aria-label="Xóa tìm kiếm" class="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold {{ $search === '' ? 'hidden' : '' }}">×</button>
+    </form>
     <form id="global-price-list-form" method="POST" action="{{ route('client.pharma.price-lists.global.store') }}" class="space-y-5">
         @csrf
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -44,19 +44,19 @@
         </section>
         <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <h2 class="text-base font-black">03 · Chọn thuốc và thiết lập giá</h2>
-            <p class="mt-1 text-sm text-slate-500">Chọn SKU đang hoạt động và nhập Giá bán (VAT). Giá thu và Giá HĐ có thể để trống để dùng Giá bán.</p>
+            <p class="mt-1 text-sm text-slate-500">Chọn SKU đang hoạt động. Ba mức giá mặc định theo giá kê khai (nếu có) và có thể chỉnh sửa.</p>
             <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
                 <label class="flex items-center gap-2 text-sm font-bold"><input id="global-select-page" type="checkbox" class="h-5 w-5"> Chọn tất cả trên trang</label>
                 <span id="global-selected-count" class="text-sm text-slate-600">0 SKU được chọn</span>
             </div>
             <div class="mt-3 space-y-3">
                 @forelse($variants as $variant)
-                    @php $medicine = $variant->medicine; $id = $variant->id; @endphp
+                    @php $medicine = $variant->medicine; $id = $variant->id; $declaredPrice = $medicine?->declared_price; @endphp
                     <article class="rounded-xl border border-slate-200 p-3" data-global-product>
                         <label class="flex items-start gap-3"><input type="checkbox" name="selected[{{ $id }}]" value="1" @checked(old('selected.'.$id)) class="mt-1 h-5 w-5" data-global-select><span><strong class="text-sm">{{ $medicine?->name }}</strong><small class="mt-1 block text-xs text-slate-500">{{ $variant->sku }} · {{ $medicine?->registration_number }} · Giá kê khai: {{ $medicine?->declared_price === null ? '—' : number_format((float) $medicine->declared_price, 0, ',', '.') }} ₫</small></span></label>
                         <div class="mt-3 grid gap-3 sm:grid-cols-3">
-                            @foreach(['company_price' => 'Giá bán (VAT) *', 'actual_receivable_price' => 'Giá thu', 'invoice_price' => 'Giá HĐ'] as $key => $label)
-                                <label class="text-xs font-bold text-slate-600">{{ $label }}<input type="number" min="0" step="1" name="{{ $key }}[{{ $id }}]" value="{{ old($key.'.'.$id) }}" inputmode="numeric" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" data-global-price></label>
+                            @foreach(['company_price' => 'Giá bán (VAT) *', 'actual_receivable_price' => 'Giá thu về', 'invoice_price' => 'Giá Xuất HĐ'] as $key => $label)
+                                <label class="text-xs font-bold text-slate-600">{{ $label }}<input type="number" min="0" step="1" name="{{ $key }}[{{ $id }}]" value="{{ old($key.'.'.$id, $declaredPrice === null ? '' : (float) $declaredPrice) }}" inputmode="numeric" class="mt-1 h-11 w-full rounded-xl border border-slate-300 px-3" data-global-price></label>
                             @endforeach
                         </div>
                     </article>
@@ -76,6 +76,22 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    const searchForm = document.getElementById('global-medicine-search');
+    const searchInput = document.getElementById('global-search-input');
+    const clearSearch = document.getElementById('global-search-clear');
+    let searchTimer;
+    searchInput.addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        clearSearch.classList.toggle('hidden', searchInput.value.length === 0);
+        searchTimer = setTimeout(() => {
+            if (searchInput.value.trim() !== @json($search)) searchForm.requestSubmit();
+        }, 400);
+    });
+    clearSearch.addEventListener('click', () => {
+        clearTimeout(searchTimer);
+        searchInput.value = '';
+        searchForm.requestSubmit();
+    });
     const all = document.getElementById('global-apply-all');
     const users = document.getElementById('global-user-list');
     const selections = [...document.querySelectorAll('[data-global-select]')];
