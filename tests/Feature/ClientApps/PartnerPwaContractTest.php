@@ -37,6 +37,10 @@ final class PartnerPwaContractTest extends TestCase
   $index=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/partners/index.blade.php'));
   $form=file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/partners/form.blade.php'));
   $this->assertStringContainsString("hide-mobile-navigation",$index);
+  $this->assertStringContainsString("setTimeout(submitFilters, 400)",$index);
+  $this->assertStringContainsString("select.addEventListener('change'",$index);
+  $this->assertStringContainsString("reset.hidden = !hasChanges()",$index);
+  $this->assertStringNotContainsString('>Lọc</button>',$index);
   $this->assertStringContainsString("client.apps.index",$index);
   $this->assertStringContainsString("@csrf",$form);
   $this->assertStringContainsString("client.partners.update",$form);
