@@ -1,3 +1,12 @@
+## 2026-11-13 — Pharma orders total amount column (post-#387 merge replay)
+
+- Original approved branch: `fix/pharma-orders-total-nowrap-20261113`; replayed without semantic changes from latest main after PR #387 merged to avoid handoff conflict.
+- Desktop `/apps/pharma/orders`: table-auto, nonwrapping total column heading and amount/currency; preserves all order/print functionality.
+- User confirmed TEST + UI PASS for original change. Same view and contract test bytes replayed onto current main; no new runtime changes.
+- No production deployment.
+
+---
+
 ### 2026-11-13 — Follow-up: assignment display reconciled with Pharma workflow
 
 - Root cause: first adapter only found direct `source_type=muasamcong` links, omitting existing historical Pharma assignments visible on `/apps/pharma/bid-awards/{scope}/manager-assignment`.
