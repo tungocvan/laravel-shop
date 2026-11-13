@@ -75,7 +75,7 @@ final class PartnerApplicationController extends Controller
     'status'=>in_array($row['status']??'',array_keys(Partner::STATUSES),true)?$row['status']:'active',
     'note'=>trim((string)($row['note']??'')),
    ];
-   $validator=\Illuminate\Support\Facades\\Validator::make($data,[
+   $validator=\Illuminate\Support\Facades\Validator::make($data,[
     'name'=>['required','string','max:255'],
     'tax_code'=>['nullable','string','max:50'],
     'legal_type'=>['required',Rule::in(array_keys(Partner::LEGAL_TYPES))],
@@ -89,7 +89,7 @@ final class PartnerApplicationController extends Controller
    if($validator->fails()) return back()->withErrors(['import_file'=>'Dòng '.($index+2).': '.$validator->errors()->first()]);
    $normalized[]=$data;
   }
-  \Illuminate\Support\Facades\\DB::transaction(function () use ($normalized,$partners) {
+  \Illuminate\Support\Facades\DB::transaction(function () use ($normalized,$partners) {
    foreach($normalized as $data) {
     $existing=$data['tax_code']!==''?Partner::where('tax_code',$data['tax_code'])->first():Partner::where('name',$data['name'])->where('legal_type',$data['legal_type'])->first();
     if($existing) $partners->update($existing,$data);
