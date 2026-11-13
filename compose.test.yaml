@@ -1,0 +1,19 @@
+# Opt-in, isolated test runner. Use together with compose.yaml.
+# Does not mount host .env, storage, or the application database.
+services:
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      target: test
+    network_mode: none
+    environment:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: sqlite
+      DB_DATABASE: ":memory:"
+      CACHE_STORE: array
+      SESSION_DRIVER: array
+      QUEUE_CONNECTION: sync
+    working_dir: /var/www/html
+    command: ["php", "artisan", "test"]
