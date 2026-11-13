@@ -20,7 +20,7 @@ final class PharmaKqlcntVisibilityScopeContractTest extends TestCase
     {
         $service = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/KqlcntAssignedUserOverview.php'));
         $this->assertStringContainsString('managementAssignmentSummary($award)', $service);
-        $this->assertStringContainsString("'user_id' => (int) \$row['user_id']", $service);
+        $this->assertStringContainsString("'user_id' => (int) \$row->user_id", $service);
         $visibility = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Services/KqlcntAwardVisibility.php'));
         $this->assertStringContainsString("\$entry['user_id'] === \$id", $visibility);
         $this->assertStringContainsString('abort_unless($allowed, 403)', $visibility);
