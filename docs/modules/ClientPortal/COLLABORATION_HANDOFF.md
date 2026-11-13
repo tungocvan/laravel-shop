@@ -1,3 +1,14 @@
+## 2026-11-13 — Customer price list approval: three independent prices
+
+- Feature branch: `feat/pharma-approval-three-prices-20261113` from main `6e93050c4`.
+- Pending customer price-list approver UI shows/edits company_sale_price, actual_receivable_price and invoice_price separately. Declared price remains read-only; self-approval editing restrictions are unchanged.
+- Pharma PriceListApprovalWorkflow validates all three via existing PriceListManager, saves atomically and retains pending/independent approval gate. Previously the sale price overwrote receivable and invoice price.
+- New nullable audit columns preserve before/after values for receivable and invoice prices; existing company price audit remains intact. Local migration required before exercising update route; no production database operations authorized.
+- Focused contract: `php artisan test tests/Feature/ClientApps/PharmaPriceListApprovalThreePricesContractTest.php`. Regression: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/Pharma/PharmaPriceListPipelineTest.php`.
+- TEST PENDING, UI PENDING (desktop/tablet/iPhone, edit/save, self-approval read-only, rejection/activation, audit). No PR/merge/deploy.
+
+---
+
 ## 2026-11-13 — Pharma orders total amount column (post-#387 merge replay)
 
 - Original approved branch: `fix/pharma-orders-total-nowrap-20261113`; replayed without semantic changes from latest main after PR #387 merged to avoid handoff conflict.

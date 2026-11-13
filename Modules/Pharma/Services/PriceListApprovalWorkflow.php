@@ -54,9 +54,9 @@ final class PriceListApprovalWorkflow
             ->first();
     }
 
-    public function updateItemPrice(int $approverUserId, int $priceListId, int $itemId, float $companySalePrice): PriceList
+    public function updateItemPrice(int $approverUserId, int $priceListId, int $itemId, float $companySalePrice, float $actualReceivablePrice, float $invoicePrice): PriceList
     {
-        return DB::transaction(function () use ($approverUserId, $priceListId, $itemId, $companySalePrice): PriceList {
+        return DB::transaction(function () use ($approverUserId, $priceListId, $itemId, $companySalePrice, $actualReceivablePrice, $invoicePrice): PriceList {
             $list = PriceList::query()->lockForUpdate()->with('items')->findOrFail($priceListId);
             $this->assertPendingAndIndependent($list, $approverUserId);
             $item = $list->items->firstWhere('id', $itemId);
@@ -65,10 +65,12 @@ final class PriceListApprovalWorkflow
             }
 
             $oldPrice = $item->company_sale_price;
+            $oldReceivablePrice = $item->actual_receivable_price;
+            $oldInvoicePrice = $item->invoice_price;
             $validated = $this->manager->validateItem(array_merge($item->toArray(), [
                 'company_sale_price' => $companySalePrice,
-                'actual_receivable_price' => $companySalePrice,
-                'invoice_price' => $companySalePrice,
+                'actual_receivable_price' => $actualReceivablePrice,
+                'invoice_price' => $invoicePrice,
             ]));
             $item->fill($validated)->save();
 
@@ -79,6 +81,10 @@ final class PriceListApprovalWorkflow
                 'action' => 'price_changed',
                 'old_company_sale_price' => $oldPrice,
                 'new_company_sale_price' => $item->company_sale_price,
+                'old_actual_receivable_price' => $oldReceivablePrice,
+                'new_actual_receivable_price' => $item->actual_receivable_price,
+                'old_invoice_price' => $oldInvoicePrice,
+                'new_invoice_price' => $item->invoice_price,
                 'changed_by' => $approverUserId,
                 'changed_at' => now(),
                 'created_at' => now(),
