@@ -1,3 +1,15 @@
+## 2026-11-13 — Partner business lookup in ClientPortal (checkpoint pending)
+
+- Branch: `feat/clientportal-partner-pwa-20261113`, based on main `7c0ef7d7b3afd0a794bb0ec88520bfd0857f569a`; existing Partner PWA work remains unmerged.
+- New web-guard route `/apps/partners/business-lookup`, manifest lookup feature, managed hero presentation and navigation. Admin lookup route remains intact.
+- Reuse `Modules/Partner/Livewire/BusinessLookup` and canonical Partner lookup/match/plan/sync services. Client read requires `client.partners.lookup`; mutation requires `client.partners.sync` AND `client.partners.create` or `client.partners.edit` as applicable. No automatic sync.
+- Registered ClientPortal web permissions in Partner module configuration. Explicit assignment/sync via approved permission workflow required; no automatic user grants.
+- Focused tests **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PartnerBusinessLookupPwaContractTest.php tests/Feature/ClientApps/PartnerPwaContractTest.php`.
+- Module/impacted regression **PENDING AFTER FOCUSED PASS**: `php artisan test tests/Feature/Partner tests/Feature/ClientApps/PartnerBusinessLookupPwaContractTest.php tests/Feature/ClientApps/PartnerPwaContractTest.php`.
+- UI **PENDING USER CONFIRMATION**: web user lookup, source selection, comparison, read-only no sync, authorized create/edit sync, Admin unchanged, desktop/iPhone. No PR, merge or deploy.
+
+---
+
 ## 2026-11-13 — Partner PWA data tools checkpoint
 
 - Added dual supplier+customer role intersection through canonical PartnerQueryService (also available to Admin query consumers without changing their UI).
