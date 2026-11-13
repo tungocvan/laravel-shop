@@ -55,7 +55,7 @@ final class PharmaKqlcntAwardController extends Controller
             'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
             'items' => $items,
             'assignedUsers' => $assignedUsers,
-            'options' => $awards->filterOptions(),
+            'options' => $canViewAll ? $awards->filterOptions() : $awards->filterOptionsForGroupIds(array_keys($visibleGroups)),
             'dashboard' => $canViewAll ? $awards->dashboard() : $awards->dashboardForGroupIds(array_keys($visibleGroups)),
             'canViewAllAwards' => $canViewAll,
             'filters' => $filters,
