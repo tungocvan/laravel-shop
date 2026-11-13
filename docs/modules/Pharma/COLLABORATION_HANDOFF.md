@@ -1,3 +1,13 @@
+## 2026-11-13 — Global price list revision: add SKU without mutating ACTIVE
+
+- Branch: `feat/pharma-global-price-list-revision-20261113`, based on latest main at branch creation.
+- Pharma owns `GlobalPriceListRevisionWorkflow`. An authorized approver clones a global ACTIVE price list into DRAFT, copies its assigned users and existing items, then adds new active SKU variants with validated prices.
+- ClientPortal provides permission-gated start, search/add, and activate routes plus a mobile-first revision editor. Search is debounced 400ms and clear affects only query text; saved draft items are preserved server-side.
+- Activation is atomic: lock revision/source, verify source ACTIVE and revision DRAFT, deactivate source and activate revision inside the same transaction. A validation exception rolls back both operations. Historical source and previous orders are retained.
+- Focused test pending local: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- Follow with impacted regression only after focused PASS: `php artisan test tests/Feature/ClientApps/PharmaGlobalPriceListDirectCreateContractTest.php tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php`.
+- UI PASS pending user confirmation on desktop/mobile. No PR, merge or production deploy authorized yet.
+
 ## 2026-11-12 — Web Excel profile sharing (permission-gated)
 
 - Feature branch: `feat/pharma-web-excel-profile-sharing-20261112`, extending unmerged `feat/pharma-shared-excel-profiles-20261112` (base main `6e37e7db5`); previous sharing implementation is included in this branch.
