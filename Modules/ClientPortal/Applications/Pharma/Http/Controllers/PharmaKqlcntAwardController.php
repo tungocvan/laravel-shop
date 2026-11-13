@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Modules\ClientPortal\Services\ApplicationRegistry;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntWorkflowReadiness;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAssignedUserOverview;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAwardVisibility;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntMappingDiagnostics;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntLegacyWorkflowBridge;
 use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAllocationBlockers;
@@ -21,7 +22,7 @@ use Modules\Pharma\Services\KqlcntExcelAwardRemovalService;
 
 final class PharmaKqlcntAwardController extends Controller
 {
-    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards, KqlcntAssignedUserOverview $assignments): View
+    public function index(Request $request, ApplicationRegistry $registry, ClientPortalSettingsService $settings, KqlcntAwardReadService $awards, KqlcntAssignedUserOverview $assignments, KqlcntAwardVisibility $visibility): View
     {
         $filters = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
@@ -31,9 +32,16 @@ final class PharmaKqlcntAwardController extends Controller
             'active' => ['nullable', 'in:0,1'],
             'assigned' => ['nullable', 'in:0,1'],
         ]);
-        $assignedUsers = $assignments->assignedGroups();
+        $canViewAll = $visibility->canViewAll($request);
+        $visibleGroups = $visibility->visibleAssignments($request);
+        $assignedUsers = $canViewAll ? $assignments->assignedGroups() : array_map(
+            fn (array $users) => array_column($users, 'name'), $visibleGroups
+        );
+        if (! $canViewAll) {
+            $filters['assigned_group_ids'] = array_keys($visibleGroups) ?: [-1];
+        }
         if (($filters['assigned'] ?? '') === '1') {
-            $filters['assigned_group_ids'] = array_keys($assignedUsers) ?: [-1];
+            $filters['assigned_group_ids'] = $canViewAll ? (array_keys($assignedUsers) ?: [-1]) : (array_keys($visibleGroups) ?: [-1]);
         } elseif (($filters['assigned'] ?? '') === '0') {
             $filters['unassigned_group_ids'] = array_keys($assignedUsers) ?: [-1];
         }
@@ -47,8 +55,9 @@ final class PharmaKqlcntAwardController extends Controller
             'presentation' => $settings->featurePresentation('pharma', collect($application['features'])->firstWhere('key', 'kqlcnt-awards') ?? abort(404)),
             'items' => $items,
             'assignedUsers' => $assignedUsers,
-            'options' => $awards->filterOptions(),
-            'dashboard' => $awards->dashboard(),
+            'options' => $canViewAll ? $awards->filterOptions() : $awards->filterOptionsForGroupIds(array_keys($visibleGroups)),
+            'dashboard' => $canViewAll ? $awards->dashboard() : $awards->dashboardForGroupIds(array_keys($visibleGroups)),
+            'canViewAllAwards' => $canViewAll,
             'filters' => $filters,
             'canImportAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.kqlcnt-awards.import'),
             'canExportAwards' => $request->user('web') && $registry->userCan($request->user('web'), 'client.pharma.kqlcnt-awards.export'),
