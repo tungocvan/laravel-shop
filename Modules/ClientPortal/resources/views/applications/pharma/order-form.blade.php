@@ -10,7 +10,10 @@
 @section('content')
 @php
     $editing = $issue !== null;
-    $currentSource = old('source', $editing && ($issue->issue_source ?? 'normal') === 'bid' ? 'bid' : 'price_list');
+    $requestedSource = request()->query('source');
+    $currentSource = old('source', in_array($requestedSource, ['bid', 'price_list'], true) && ! $editing
+        ? $requestedSource
+        : ($editing && ($issue->issue_source ?? 'normal') === 'bid' ? 'bid' : 'price_list'));
     $currentByMedicine = $editing ? $issue->items->keyBy('medicine_id') : collect();
     $currentByAllocation = $editing ? $issue->items->whereNotNull('drug_bid_award_allocation_id')->keyBy('drug_bid_award_allocation_id') : collect();
     $money = fn($value) => number_format((float)$value, 0, ',', '.').' đ';
@@ -205,7 +208,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  setOrderStep(1);
  const managers=@json($orderManagers->map(fn($m)=>['id'=>$m->id,'name'=>$m->name,'email'=>$m->email])->values());
  const managerBox=document.querySelector('[data-manager-combobox]'), managerToggle=document.getElementById('manager-toggle'), managerPanel=document.getElementById('manager-panel'), managerSearch=document.getElementById('manager-search'), managerResults=document.getElementById('manager-results'), managerId=document.getElementById('manager-id'), managerLabel=document.getElementById('manager-label');
- const renderManagers=()=>{if(!managerResults)return;const q=(managerSearch?.value||'').toLocaleLowerCase('vi').trim();managerResults.innerHTML='';managers.filter(m=>(m.name+' '+(m.email||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=m.name+(m.email?' · '+m.email:'');b.onclick=()=>{managerId.value=m.id;managerLabel.textContent=m.name+(m.email?' · '+m.email:'');managerPanel.classList.add('hidden');const u=new URL(location.href);u.searchParams.set('manager_user_id',m.id);location.href=u.toString();};managerResults.appendChild(b);});};
+ const renderManagers=()=>{if(!managerResults)return;const q=(managerSearch?.value||'').toLocaleLowerCase('vi').trim();managerResults.innerHTML='';managers.filter(m=>(m.name+' '+(m.email||'')).toLocaleLowerCase('vi').includes(q)).slice(0,25).forEach(m=>{const b=document.createElement('button');b.type='button';b.className='block w-full rounded-xl px-3 py-2 text-left text-sm hover:bg-slate-100';b.textContent=m.name+(m.email?' · '+m.email:'');b.onclick=()=>{managerId.value=m.id;managerLabel.textContent=m.name+(m.email?' · '+m.email:'');managerPanel.classList.add('hidden');const u=new URL(location.href);u.searchParams.set('manager_user_id',m.id);u.searchParams.set('source',document.querySelector('input[name="source"]:checked')?.value||document.querySelector('input[type="hidden"][name="source"]')?.value||'price_list');location.href=u.toString();};managerResults.appendChild(b);});};
  const openManagers=()=>{managerPanel?.classList.remove('hidden');renderManagers();setTimeout(()=>managerSearch?.focus(),0);};
  managerToggle?.addEventListener('click',()=>{if(managerPanel.classList.contains('hidden'))openManagers();else managerPanel.classList.add('hidden');});
  managerSearch?.addEventListener('input',renderManagers);

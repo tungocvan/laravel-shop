@@ -1,3 +1,14 @@
+## 2026-11-13 — Pharma order manager/source navigation fix (local checkpoint pending)
+
+- Branch: `fix/pharma-order-manager-source-20261113`, based on main `caa1c9821c3e614726558f5cbd66c8bb93cf3be3`.
+- Root cause: manager selection navigated with only `manager_user_id`; Blade initialized the order source to `price_list` on the new GET, even when `bid` had been selected.
+- Fix: carry current `source` in the manager-navigation query and restore only allowlisted `bid`/`price_list` values on create; edit mode continues using persisted issue source. No changes to Pharma canonical pricing, bid allocations, persistence, or permissions.
+- Focused test **PENDING LOCAL**: `php artisan test tests/Feature/ClientApps/PharmaOrderManagerSourceContractTest.php tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php`.
+- After focused PASS, run relevant ClientApps Pharma order regression. UI **PENDING USER CONFIRMATION**: switching manager in bid and price-list modes, source selection remains correct, bid investor/partner and product workflow works on desktop/iPhone.
+- No PR/merge/deploy authorized at this checkpoint.
+
+---
+
 ## 2026-11-13 — Partner business lookup in ClientPortal (checkpoint pending)
 
 - Branch: `feat/clientportal-partner-pwa-20261113`, based on main `7c0ef7d7b3afd0a794bb0ec88520bfd0857f569a`; existing Partner PWA work remains unmerged.
