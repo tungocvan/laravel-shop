@@ -1,4 +1,10 @@
 @extends('ClientPortal::layouts.application')
+@push('application-head')
+@livewireStyles
+@endpush
+@push('application-scripts')
+@livewireScripts
+@endpush
 @section('title', $pagePresentation['page_title'])
 @section('app-name', $applicationPresentation['name'] ?? $application['name'])
 @section('hide-application-header', true)
