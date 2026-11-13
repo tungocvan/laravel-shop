@@ -70,10 +70,16 @@ final class KqlcntAwardVisibility
             return;
         }
 
-        $allowed = KqlcntAwardItem::query()->whereNotNull('synced_from_catalog_at')
+        // Export selects all rows for a notice + contractor code. Require
+        // every distinct canonical group in that export to be authorized;
+        // otherwise two legal names sharing a code could leak rows.
+        $exportGroups = KqlcntAwardItem::query()->whereNotNull('synced_from_catalog_at')
             ->where('notify_no', $notice)->where('contractor_code', $contractor)
-            ->whereIn('id', $this->visibleGroupIds($request))->exists();
+            ->selectRaw('MIN(id) AS id')
+            ->groupBy('notify_no', 'contractor_code', 'contractor_name')
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $visible = $this->visibleGroupIds($request);
 
-        abort_unless($allowed, 403);
+        abort_unless($exportGroups !== [] && array_diff($exportGroups, $visible) === [], 403);
     }
 }
