@@ -17,6 +17,15 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p class="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Price List</p><h1 class="mt-2 text-2xl font-black sm:text-3xl">{{ $priceList->name }}</h1><p class="mt-2 text-sm text-slate-300">{{ $customer }} · {{ $priceList->purpose?->name ?: 'Chưa có mục đích' }}</p></div><span class="w-fit rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold">{{ $priceList->status }}</span></div>
     </section>
 
+    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_ACTIVE)
+        <form method="POST" action="{{ route('client.pharma.price-lists.revision.start', $priceList->id) }}" onsubmit="return confirm('Tạo bản Nháp từ bảng giá đang hiệu lực để bổ sung sản phẩm?')">
+            @csrf
+            <button type="submit" class="min-h-11 rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white">+ Bổ sung sản phẩm (tạo phiên bản mới)</button>
+        </form>
+    @endif
+    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && $priceList->source_price_list_id)
+        <a href="{{ route('client.pharma.price-lists.revision.edit', $priceList->id) }}" class="inline-flex min-h-11 items-center rounded-2xl bg-indigo-600 px-5 py-3 text-sm font-black text-white">+ Bổ sung sản phẩm vào bản Nháp</a>
+    @endif
     @if($priceList->status === \Modules\Pharma\Models\PriceList::STATUS_DRAFT && ($canSubmit || $canEdit))
         <section class="flex flex-col gap-3 rounded-3xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div><p class="font-black text-amber-950">Bảng giá đang ở trạng thái Nháp</p><p class="mt-1 text-sm text-amber-800">Gửi duyệt sẽ khóa bước lập giá và chuyển sang hàng chờ người có quyền phê duyệt.</p></div>
