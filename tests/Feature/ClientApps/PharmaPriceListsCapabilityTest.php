@@ -118,8 +118,10 @@ class PharmaPriceListsCapabilityTest extends TestCase
         $this->assertStringContainsString('Đặt lại', $view);
         $this->assertStringContainsString("'from_date' => \$fromDate", $view);
         $this->assertStringContainsString("'to_date' => \$toDate", $view);
-        $this->assertStringContainsString("whereDate('effective_from', '>='", $service);
-        $this->assertStringContainsString("whereDate('effective_from', '<='", $service);
+        $this->assertStringContainsString("orWhereDate('effective_to', '>='", $service);
+        $this->assertStringContainsString("orWhereDate('effective_from', '<='", $service);
+        $this->assertStringContainsString("whereNull('effective_to')", $service);
+        $this->assertStringContainsString("whereNull('effective_from')", $service);
         $this->assertStringContainsString('?int $managerUserId = null', $service);
         $this->assertStringContainsString('bool $approverScope = false', $service);
         $this->assertStringContainsString("->where('manager_user_id', \$managerUserId)", $service);
