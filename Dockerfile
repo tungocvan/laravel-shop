@@ -72,3 +72,18 @@ COPY --from=frontend-build /var/www/html/public/build /var/www/html/public/build
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf
 COPY docker/nginx/site-snippets /etc/nginx/site-snippets
 RUN ln -s /var/www/html/storage/app/public /var/www/html/public/storage
+
+# Isolated development-only test runner. Never used by production services.
+FROM composer-deps AS test
+RUN composer install --prefer-dist --no-interaction --no-scripts --optimize-autoloader
+COPY . .
+# No host secrets: provide an empty env file for legacy boot readers.
+RUN touch .env
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache
+ENV APP_ENV=testing \
+    DB_CONNECTION=sqlite \
+    DB_DATABASE=:memory: \
+    CACHE_STORE=array \
+    SESSION_DRIVER=array \
+    QUEUE_CONNECTION=sync
+CMD ["php", "artisan", "test"]

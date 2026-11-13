@@ -1,3 +1,31 @@
+## 2026-11-13 — Test runner warnings follow-up
+
+- User executed focused tests (4 assertions) and Pharma regression (127 assertions): no assertion failures, but 2 and 12 warnings respectively due to missing `/var/www/html/.env` in isolated test image.
+- Added an empty, non-secret `.env` inside the `test` target only; production `app` remains unchanged. Await fresh image build and repeat both tests; do not claim warning-free PASS before user output.
+
+---
+
+## 2026-11-13 — Isolated Docker Development PHPUnit runner (checkpoint)
+
+- Approved by user after Docker audit: production `composer-deps` installs `--no-dev`, so `app` has neither PHPUnit nor Composer.
+- Added opt-in `test` Dockerfile target with dev dependencies and `compose.test.yaml` service. No network, no host `.env` mount, no MariaDB dependency; SQLite in-memory defaults; source copied into test image. Existing production targets/services unchanged.
+- Run build then focused migration contract, then Pharma unit regression via `docker compose -p laravel-app-dev -f compose.yaml -f compose.test.yaml --profile test run --rm --no-deps test ...`; instructions in `docs/DOCKER_DEVELOPMENT_TESTING.md`.
+- GitHub implementation committed; build/test execution PENDING. No database migration, UI changes, PR, merge or deployment.
+
+---
+
+## 2026-11-13 — Optional Pharma migration bootstrap fix (checkpoint)
+
+- Branch: `fix/pharma-optional-excel-profile-migration-20261113` from main `4ce6c5325`.
+- Root cause: Pharma defaults to disabled, so its migrations are not registered; the core migration expanding `pharma_medicine_excel_profiles.owner_guard` ran before the optional table existed during a clean Docker setup.
+- Core migration now skips absent optional table/column. New Pharma-owned migration enforces the 64-character width whenever Pharma is installed, including when the core migration previously ran while Pharma was disabled.
+- No runtime module enablement changes, no destructive DB operations, no production actions. Existing completed migration ledger is not rewritten.
+- Focused test: `php artisan test tests/Feature/Pharma/OptionalExcelProfileMigrationContractTest.php`.
+- Follow-up: verify `php artisan migrate:status` and `php artisan module:migration-status Pharma`; re-run non-destructive bootstrap only after focused tests pass and user confirms isolated DB context.
+- TEST PENDING; module regression PENDING; UI NOT APPLICABLE (migration-only). No PR/merge/deploy.
+
+---
+
 ## 2026-11-13 — Customer price list approval: three independent prices
 
 - Feature branch: `feat/pharma-approval-three-prices-20261113` from main `6e93050c4`.

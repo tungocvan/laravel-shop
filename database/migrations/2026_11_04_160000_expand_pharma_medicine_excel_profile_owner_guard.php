@@ -8,9 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Pharma is optional. On fresh installations its tables may not exist
+        // when application-level migrations run.
+        if (! Schema::hasTable('pharma_medicine_excel_profiles')
+            || ! Schema::hasColumn('pharma_medicine_excel_profiles', 'owner_guard')) {
+            return;
+        }
+
         Schema::table('pharma_medicine_excel_profiles', function (Blueprint $table): void {
-            // Client inventory profiles use web-inventory-stock / web-inventory-movements.
-            // The original owner_guard width cannot store these scoped identifiers.
             $table->string('owner_guard', 64)->change();
         });
     }
@@ -18,6 +23,5 @@ return new class extends Migration
     public function down(): void
     {
         // Do not truncate stored owner guards during rollback.
-        // Restoring the former short width would lose valid inventory profile data.
     }
 };
