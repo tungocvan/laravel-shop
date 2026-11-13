@@ -27,7 +27,7 @@ class PharmaGlobalPriceListDirectRemoveContractTest extends TestCase
 
         $this->assertStringContainsString("->name('price-lists.items.remove')", $routes);
         $this->assertStringContainsString('function removeActiveGlobalPriceListItem(', $controller);
-        $this->assertStringContainsString("userCan($user, 'client.pharma.price-lists.approve')", $controller);
+        $this->assertStringContainsString("userCan(\$user, 'client.pharma.price-lists.approve')", $controller);
         $this->assertStringContainsString('price-lists.items.remove', $view);
         $this->assertStringContainsString("@method('DELETE')", $view);
         $this->assertStringContainsString("confirm('Gỡ SKU này", $view);
