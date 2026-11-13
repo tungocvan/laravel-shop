@@ -1,3 +1,13 @@
+## 2026-11-13 — Partner PWA application (checkpoint pending)
+
+- Branch: `feat/clientportal-partner-pwa-20261113`, based on main `7c0ef7d7b`.
+- New ClientPortal application `partners` uses canonical `Modules/Partner` PartnerService/PartnerQueryService and the existing `partners` table; Admin routes and Livewire authorization remain untouched.
+- Routes: `/apps/partners`, `/apps/partners/list`, `/apps/partners/create`, `/apps/partners/{partner}/edit`. Web guard and app/feature/action permissions are separate. Permission grants must be configured explicitly via Admin Client Apps; no automatic user grants.
+- Responsive PWA list, filters, create/edit/delete; managed page presentation via application manifest/settings. Excel import/export and batch deletion are deferred pending PWA external-file UX and security review. No migrations or production operations.
+- Focused test: `php artisan test tests/Feature/ClientApps/PartnerPwaContractTest.php`. Module regression: `php artisan test tests/Feature/ClientApps` (scope may be narrowed if unrelated existing failures). Both tests and real UI acceptance PENDING. No PR/merge/deploy until gates pass.
+
+---
+
 ## 2026-11-12 — LoanManagement Web permission registry (checkpoint pending)
 
 - Branch: `fix/loanmanagement-client-permission-registry-20261112` from main `071420ad6aa1ca1c7983142ed5da829f830aeaab`.
