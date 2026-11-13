@@ -58,7 +58,17 @@ final class PartnerApplicationController extends Controller
  public function import(Request $request, PartnerService $partners)
  {
   $request->validate(['import_file'=>['required','file','mimes:xlsx,csv,txt','max:5120']]);
-  $rows=(new FastExcel)->import($request->file('import_file')->getRealPath());
+  $upload=$request->file('import_file');
+  $extension=strtolower($upload->getClientOriginalExtension());
+  $temp=tempnam(sys_get_temp_dir(),'partner-import-');
+  $path=$temp.'.'.$extension;
+  @unlink($temp);
+  try {
+   if (!copy($upload->getRealPath(),$path)) throw new \RuntimeException('Không thể xử lý file import.');
+   $rows=(new FastExcel)->import($path);
+  } finally {
+   @unlink($path);
+  }
   if ($rows->count()>1000) return back()->withErrors(['import_file'=>'Tối đa 1000 dòng mỗi lần import.']);
   $normalized=[];
   foreach ($rows as $index=>$row) {
