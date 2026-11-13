@@ -19,7 +19,7 @@ class PharmaGlobalDraftDeleteContractTest extends TestCase
         $this->assertStringContainsString('lockForUpdate()->findOrFail($priceListId)', $workflow);
         $this->assertStringContainsString('PriceList::TYPE_GLOBAL || $list->status !== PriceList::STATUS_DRAFT', $workflow);
         $this->assertStringContainsString('$list->delete();', $workflow);
-        $this->assertStringContainsString("($priceList->type !== 'global' || $canApprove)", $view);
+        $this->assertStringContainsString('($priceList->type !== \'global\' || $canApprove)', $view);
         $this->assertStringContainsString('$errors->all()', $view);
     }
 }
