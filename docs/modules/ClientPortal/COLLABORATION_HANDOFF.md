@@ -1,3 +1,11 @@
+## 2026-11-13 — KQLCNT Web Role regression contract correction
+
+- User reported module regression: `PharmaKqlcntAwardWorkspaceContractTest::manifest_exposes_managed_feature_and_independent_permissions` failed because it still asserted `navigation.kqlcnt-awards.actions` after canonical action registration moved to `features.kqlcnt-awards.actions`.
+- Updated existing contract to assert `features.kqlcnt-awards.actions` for `view-all`, `export`, `import`, `edit` and assert no unsupported `navigation.actions`. Runtime behavior and manifest remain unchanged from previous fix.
+- **Retest pending**: focused `PharmaKqlcntWebRolePermissionCatalogTest.php` and `PharmaKqlcntAwardWorkspaceContractTest.php`, then `PharmaKqlcntVisibilityScopeContractTest.php`. Do not claim PASS before local output.
+
+---
+
 ## 2026-11-13 — KQLCNT Web Role permission catalog fix (checkpoint)
 
 - Root cause: KQLCNT `view-all`, `export`, `import` and `edit` actions were declared under `navigation.kqlcnt-awards.actions`. `ApplicationPermissionService::applicationDefinitions()` discovers only normalized `features[*].actions`, so these permissions were absent from the Web Role checkbox catalog even though `KqlcntAwardVisibility` checked `view-all` at runtime.
