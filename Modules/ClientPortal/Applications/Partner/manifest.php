@@ -15,5 +15,5 @@ return [
   'create'=>['name'=>'Thêm đối tác','description'=>'Nhập thông tin đối tác.','eyebrow'=>'Danh mục','page_title'=>'Thêm đối tác','page_description'=>'Nhập thông tin định danh, phân loại và liên hệ.','route'=>'client.partners.create','permission'=>'client.partners.create','icon'=>'plus','sort_order'=>20],
   'edit'=>['name'=>'Sửa đối tác','description'=>'Cập nhật thông tin đối tác.','eyebrow'=>'Danh mục','page_title'=>'Sửa đối tác','page_description'=>'Cập nhật thông tin đối tác hiện có.','route'=>null,'permission'=>'client.partners.edit','icon'=>'pencil','sort_order'=>30],
  ],
- 'navigation'=>['lookup'=>['name'=>'Tra cứu doanh nghiệp','route'=>'client.partners.lookup','permission'=>'client.partners.lookup','icon'=>'search','sort_order'=>20],'list'=>[['name'=>'Đối tác','route'=>'client.partners.index','permission'=>'client.partners.view','icon'=>'users','sort_order'=>10]],
+ 'navigation'=>['lookup'=>['name'=>'Tra cứu doanh nghiệp','route'=>'client.partners.lookup','permission'=>'client.partners.lookup','icon'=>'search','sort_order'=>20],'list'=>['name'=>'Đối tác','route'=>'client.partners.index','permission'=>'client.partners.view','icon'=>'users','sort_order'=>10]],
 ];
