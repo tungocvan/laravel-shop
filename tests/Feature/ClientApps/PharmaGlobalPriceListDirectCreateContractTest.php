@@ -16,6 +16,7 @@ class PharmaGlobalPriceListDirectCreateContractTest extends TestCase
 
         $this->assertStringContainsString("request->query('type') === 'global'", $controller);
         $this->assertStringContainsString('MedicineVariant::query()', $controller);
+        $this->assertStringContainsString("\$validatedSearch['q'] ?? ''", $controller);
         $this->assertStringContainsString("where('status', 'active')", $controller);
         $this->assertStringContainsString("view('ClientPortal::applications.pharma.global-price-list-create'", $controller);
         $this->assertStringContainsString("view('ClientPortal::applications.pharma.price-list-create'", $controller);
