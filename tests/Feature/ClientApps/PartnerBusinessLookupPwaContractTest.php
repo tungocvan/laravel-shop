@@ -42,6 +42,11 @@ final class PartnerBusinessLookupPwaContractTest extends TestCase
         $this->assertStringContainsString("'client.partners.create'", $component);
         $view = file_get_contents(base_path('Modules/ClientPortal/resources/views/applications/partners/business-lookup.blade.php'));
         $this->assertStringContainsString("@livewire('partner.business-lookup')", $view);
+        $this->assertStringContainsString("@livewireStyles", $view);
+        $this->assertStringContainsString("@livewireScripts", $view);
+        $layout = file_get_contents(base_path('Modules/ClientPortal/resources/views/layouts/application.blade.php'));
+        $this->assertStringContainsString("@stack('application-head')", $layout);
+        $this->assertStringContainsString("@stack('application-scripts')", $layout);
         $this->assertStringContainsString("pagePresentation['page_title']", $view);
         $lookupView = file_get_contents(base_path('Modules/Partner/resources/views/livewire/business-lookup.blade.php'));
         $this->assertStringContainsString('wire:model.live.debounce.400ms="query"', $lookupView);
