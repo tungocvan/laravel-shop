@@ -1,3 +1,12 @@
+## 2026-11-13 — Isolated Docker Development PHPUnit runner (checkpoint)
+
+- Approved by user after Docker audit: production `composer-deps` installs `--no-dev`, so `app` has neither PHPUnit nor Composer.
+- Added opt-in `test` Dockerfile target with dev dependencies and `compose.test.yaml` service. No network, no host `.env` mount, no MariaDB dependency; SQLite in-memory defaults; source copied into test image. Existing production targets/services unchanged.
+- Run build then focused migration contract, then Pharma unit regression via `docker compose -p laravel-app-dev -f compose.yaml -f compose.test.yaml --profile test run --rm --no-deps test ...`; instructions in `docs/DOCKER_DEVELOPMENT_TESTING.md`.
+- GitHub implementation committed; build/test execution PENDING. No database migration, UI changes, PR, merge or deployment.
+
+---
+
 ## 2026-11-13 — Optional Pharma migration bootstrap fix (checkpoint)
 
 - Branch: `fix/pharma-optional-excel-profile-migration-20261113` from main `4ce6c5325`.
