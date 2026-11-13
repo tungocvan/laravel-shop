@@ -36,8 +36,9 @@ final class UserPriceListWorkspace
             })
             ->when($managerUserId, fn (Builder $query) => $query->where('manager_user_id', $managerUserId))
             ->when($status, fn (Builder $query) => $query->where('status', $status))
-            ->when($fromDate, fn (Builder $query) => $query->whereDate('effective_from', '>=', $fromDate))
-            ->when($toDate, fn (Builder $query) => $query->whereDate('effective_from', '<=', $toDate))
+            ->when($status === PriceList::STATUS_ACTIVE && ! $fromDate && ! $toDate, fn (Builder $query) => $query->activeAt(now()))
+            ->when($fromDate, fn (Builder $query) => $query->where(fn (Builder $inner) => $inner->whereNull('effective_to')->orWhereDate('effective_to', '>=', $fromDate)))
+            ->when($toDate, fn (Builder $query) => $query->where(fn (Builder $inner) => $inner->whereNull('effective_from')->orWhereDate('effective_from', '<=', $toDate)))
             ->orderByDesc('updated_at')
             ->orderByDesc('id')
             ->paginate(perPage: $perPage, page: $page);
