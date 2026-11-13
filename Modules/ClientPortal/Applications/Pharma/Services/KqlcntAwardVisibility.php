@@ -57,8 +57,8 @@ final class KqlcntAwardVisibility
         $visible = $this->visibleGroupIds($request);
         $allowed = KqlcntAwardItem::query()->whereNotNull('synced_from_catalog_at')
             ->where('notify_no', $item->notify_no)
-            ->where('contractor_code', $item->contractor_code)
-            ->where('contractor_name', $item->contractor_name)
+            ->when($item->contractor_code === null, fn ($q) => $q->whereNull('contractor_code'), fn ($q) => $q->where('contractor_code', $item->contractor_code))
+            ->when($item->contractor_name === null, fn ($q) => $q->whereNull('contractor_name'), fn ($q) => $q->where('contractor_name', $item->contractor_name))
             ->whereIn('id', $visible)->exists();
 
         abort_unless($allowed, 403);
