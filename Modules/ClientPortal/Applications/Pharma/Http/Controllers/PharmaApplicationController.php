@@ -58,6 +58,37 @@ final class PharmaApplicationController extends Controller
         abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
         $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
 
+        if ($canApprove && $request->query('type') === 'global') {
+            $search = trim((string) $request->query('q', ''));
+            $variants = \Modules\Pharma\Models\MedicineVariant::query()
+                ->with('medicine')
+                ->where('status', 'active')
+                ->whereHas('medicine', function ($query) use ($search) {
+                    if ($search !== '') {
+                        $query->where(function ($q) use ($search) {
+                            $q->where('name', 'like', '%'.$search.'%')
+                                ->orWhere('registration_number', 'like', '%'.$search.'%');
+                        });
+                    }
+                });
+            if ($search !== '') {
+                $variants->where(function ($query) use ($search) {
+                    $query->where('sku', 'like', '%'.$search.'%')
+                        ->orWhereHas('medicine', fn ($medicine) => $medicine
+                            ->where('name', 'like', '%'.$search.'%')
+                            ->orWhere('registration_number', 'like', '%'.$search.'%'));
+                });
+            }
+
+            return view('ClientPortal::applications.pharma.global-price-list-create', [
+                'application' => $application,
+                'applicationPresentation' => $settings->applicationPresentation($application),
+                'activeUsers' => $globalWorkflow->activeUsers(),
+                'variants' => $variants->orderBy('id')->paginate(30)->withQueryString(),
+                'search' => $search,
+            ]);
+        }
+
         return view('ClientPortal::applications.pharma.price-list-create', [
             'application' => $application,
             'applicationPresentation' => $settings->applicationPresentation($application),
