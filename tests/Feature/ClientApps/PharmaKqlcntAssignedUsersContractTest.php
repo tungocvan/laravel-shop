@@ -13,7 +13,7 @@ final class PharmaKqlcntAssignedUsersContractTest extends TestCase
         $controller = file_get_contents(base_path('Modules/ClientPortal/Applications/Pharma/Http/Controllers/PharmaKqlcntAwardController.php'));
         $this->assertStringContainsString("'assigned' => ['nullable', 'in:0,1']", $controller);
         $this->assertStringContainsString("array_keys(\$assignedUsers) ?: [-1]", $controller);
-        $this->assertLessThan(strpos($controller, '$items = $awards->paginate($filters);'), strpos($controller, "$filters['assigned_group_ids']"));
+        $this->assertLessThan(strpos($controller, '$items = $awards->paginate($filters);'), strpos($controller, '\$filters[\'assigned_group_ids\']'));
         $this->assertStringContainsString("'assignedUsers' => \$assignedUsers", $controller);
     }
 
