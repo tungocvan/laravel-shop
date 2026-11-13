@@ -93,6 +93,32 @@ final class KqlcntAwardReadService
         ];
     }
 
+    /** Dashboard for an explicit allowlist of complete TBMT/contractor groups. */
+    public function dashboardForGroupIds(array $ids): array
+    {
+        if ($ids === []) {
+            return ['total' => 0, 'active' => 0, 'amount' => 0, 'active_amount' => 0];
+        }
+
+        $groups = $this->base()->whereExists(function ($sub) use ($ids): void {
+            $sub->selectRaw('1')->from('muasamcong_kqlcnt_award_items as permitted')
+                ->whereColumn('permitted.notify_no', 'muasamcong_kqlcnt_award_items.notify_no')
+                ->whereRaw('(permitted.contractor_code = muasamcong_kqlcnt_award_items.contractor_code OR (permitted.contractor_code IS NULL AND muasamcong_kqlcnt_award_items.contractor_code IS NULL))')
+                ->whereRaw('(permitted.contractor_name = muasamcong_kqlcnt_award_items.contractor_name OR (permitted.contractor_name IS NULL AND muasamcong_kqlcnt_award_items.contractor_name IS NULL))')
+                ->whereIn('permitted.id', $ids);
+        })->selectRaw('notify_no, contractor_code, contractor_name')
+            ->selectRaw('SUM(COALESCE(amount, quantity * winning_price, 0)) AS winning_amount')
+            ->selectRaw('MIN(is_active) AS all_active')
+            ->groupBy('notify_no', 'contractor_code', 'contractor_name')->get();
+
+        return [
+            'total' => $groups->count(),
+            'active' => $groups->where('all_active', 1)->count(),
+            'amount' => $groups->sum('winning_amount'),
+            'active_amount' => $groups->where('all_active', 1)->sum('winning_amount'),
+        ];
+    }
+
     public function dashboard(): array
     {
         $groups = $this->base()->selectRaw('notify_no, contractor_code, contractor_name')
