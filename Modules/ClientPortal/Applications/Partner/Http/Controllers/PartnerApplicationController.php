@@ -30,6 +30,10 @@ final class PartnerApplicationController extends Controller
   return view('ClientPortal::applications.partners.index',array_merge($this->context('list',$registry,$settings),[
    'partners'=>$partners->paginate($filters,(int)($filters['per_page']??10)),'filters'=>$filters]));
  }
+ public function businessLookup(ApplicationRegistry $registry, ClientPortalSettingsService $settings)
+ {
+  return view('ClientPortal::applications.partners.business-lookup', $this->context('lookup',$registry,$settings));
+ }
  public function create(ApplicationRegistry $registry, ClientPortalSettingsService $settings)
  {
   return view('ClientPortal::applications.partners.form',array_merge($this->context('create',$registry,$settings),['partner'=>null]));
