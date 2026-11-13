@@ -1,3 +1,11 @@
+## 2026-11-13 — PR #386 merge readiness
+
+- User confirmed focused tests PASS, module regression PASS and UI PASS in conversation.
+- GitHub PR #386 targets `main`; review confirms effective filtering, global revision, SKU removal and approver-only GLOBAL DRAFT deletion are included.
+- GitHub commit status API returned no status checks; user local test evidence is the acceptance source. Merge authorized by user; no production deployment.
+
+---
+
 ## 2026-11-13 — Delete global DRAFT price list (checkpoint)
 
 - Branch: `fix/pharma-global-draft-delete-20261113`, based on integrated effective-filter + SKU removal branch, preserving both features.
