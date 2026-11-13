@@ -1,3 +1,11 @@
+## 2026-11-13 — Integrated active price-list filtering + global revision (checkpoint)
+
+- Branch: `fix/pharma-price-list-filter-revision-integration-20261113`; derived from global revision feature branch, preserving revision controller actions, routes, Blade and canonical Pharma revision workflow.
+- Integrated default ACTIVE browse, opt-in date range with overlapping effective intervals and nullable bounds, plus 'Tất cả' status and empty initial date fields. Retained all global revision actions and permissions.
+- Focused tests PENDING LOCAL: `php artisan test tests/Feature/ClientApps/PharmaPriceListEffectiveFilterContractTest.php tests/Feature/ClientApps/PharmaGlobalPriceListRevisionContractTest.php`.
+- Impacted regression PENDING after focused PASS: `php artisan test tests/Feature/ClientApps/PharmaPriceListsCapabilityTest.php tests/Feature/ClientApps/PharmaPriceListManualLotsContractTest.php`.
+- UI PASS pending user confirmation: default ACTIVE list, opt-in dates, All tab, global revision draft SKU additions, activation; desktop/iPhone. No PR/merge/deploy.
+
 ## 2026-11-13 — Global price list revision: add SKU without mutating ACTIVE
 
 - Branch: `feat/pharma-global-price-list-revision-20261113`, based on latest main at branch creation.
