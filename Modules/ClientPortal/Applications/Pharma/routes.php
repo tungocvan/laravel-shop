@@ -388,6 +388,8 @@ if ((bool) config('modules.registry.Pharma.enabled', false)) {
         Route::post('/price-lists/global', [PharmaApplicationController::class, 'storeGlobalPriceList'])
             ->middleware('client.feature:pharma,price-lists')
             ->name('price-lists.global.store');
+        Route::delete('/price-lists/{priceList}/items/{item}', [PharmaApplicationController::class, 'removeActiveGlobalPriceListItem'])
+            ->name('price-lists.items.remove');
         Route::post('/price-lists/{priceList}/revision', [PharmaApplicationController::class, 'startGlobalPriceListRevision'])
             ->whereNumber('priceList')
             ->middleware('client.feature:pharma,price-lists')
