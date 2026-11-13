@@ -1,3 +1,13 @@
+## 2026-11-13 — Pharma orders total amount column (UI checkpoint)
+
+- Branch: `fix/pharma-orders-total-nowrap-20261113` from main `b65e44901050f010ab7ec81cd73d65d078f52cb0`.
+- Desktop orders list `/apps/pharma/orders`: table-auto width; total header w-px/whitespace-nowrap; currency cell whitespace-nowrap. Keeps amount and `đ` together. No order, pricing, print or export logic changed.
+- Focused test pending: `php artisan test tests/Feature/ClientApps/PharmaOrdersTotalColumnContractTest.php`.
+- Module regression pending focused PASS: `php artisan test tests/Feature/ClientApps/PharmaOrderAuthoringCapabilityTest.php tests/Feature/ClientApps/PharmaOrderManagerSourceContractTest.php`.
+- UI pending user confirmation desktop/tablet/iPhone, long values and responsive overflow. No PR, merge or production deploy.
+
+---
+
 ## 2026-11-13 — PR #386 merge readiness
 
 - User confirmed focused tests PASS, module regression PASS and UI PASS in conversation.
