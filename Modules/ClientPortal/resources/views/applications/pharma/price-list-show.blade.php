@@ -91,6 +91,13 @@
                 @php $productSearchText = collect([$item->variant?->medicine?->name, $item->variant?->sku, $item->package?->name, $item->package?->packaging_specification])->filter()->implode(' '); @endphp
                 <article class="px-4 py-5 sm:px-5" data-price-list-product data-search="{{ $productSearchText }}">
                     <div><p class="font-black leading-6 text-slate-900">{{ $item->variant?->medicine?->name ?? $item->variant?->sku ?? 'SKU #'.$item->medicine_variant_id }}</p><p class="mt-1 break-words text-xs leading-5 text-slate-400">{{ $item->variant?->sku }}@if($item->package) · {{ $item->package->name ?? $item->package->packaging_specification ?? '' }}@endif</p></div>
+                    @if($canApprove && $priceList->type === \Modules\Pharma\Models\PriceList::TYPE_GLOBAL && $priceList->status === \Modules\Pharma\Models\PriceList::STATUS_ACTIVE)
+                        <form method="POST" action="{{ route('client.pharma.price-lists.items.remove', [$priceList->id, $item->id]) }}" class="mt-3" onsubmit="return confirm('Gỡ SKU này khỏi bảng giá đang hiệu lực? Thao tác cập nhật ngay bảng giá hiện tại và không thể hoàn tác tự động.')">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="min-h-11 rounded-xl border border-rose-200 bg-white px-4 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50">Gỡ khỏi bảng giá</button>
+                        </form>
+                    @endif
                     <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 lg:grid-cols-3">
                         <div><p class="text-xs font-bold text-slate-400">Giá kê khai</p><p class="mt-1 font-bold tabular-nums">{{ $item->declared_price_snapshot !== null ? number_format((float)$item->declared_price_snapshot,0,',','.') : '—' }}</p></div>
                         <div><p class="text-xs font-bold text-slate-400">Giá bán CT</p><p class="mt-1 font-black tabular-nums text-slate-950">{{ $item->company_sale_price !== null ? number_format((float)$item->company_sale_price,0,',','.') : '—' }}</p></div>
