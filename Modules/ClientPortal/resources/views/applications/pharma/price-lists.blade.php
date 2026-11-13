@@ -24,13 +24,11 @@
     </section>
 
     @php
-        $defaultFromDate = now()->startOfMonth()->toDateString();
-        $defaultToDate = now()->toDateString();
-        $hasAdvancedFilters = ($canApprove && $managerUserId) || $fromDate !== $defaultFromDate || $toDate !== $defaultToDate;
-        $hasAnyFilters = $search !== '' || $status !== null || $hasAdvancedFilters;
-        $advancedFilterCount = ($canApprove && $managerUserId ? 1 : 0) + ($fromDate !== $defaultFromDate ? 1 : 0) + ($toDate !== $defaultToDate ? 1 : 0);
+        $hasAdvancedFilters = ($canApprove && $managerUserId) || filled($fromDate) || filled($toDate);
+        $hasAnyFilters = $search !== '' || $status !== 'active' || $hasAdvancedFilters;
+        $advancedFilterCount = ($canApprove && $managerUserId ? 1 : 0) + (filled($fromDate) ? 1 : 0) + (filled($toDate) ? 1 : 0);
         $statuses = [
-            null => ['label' => 'Tất cả', 'class' => 'slate'],
+            'all' => ['label' => 'Tất cả', 'class' => 'slate'],
             'active' => ['label' => 'Đang hiệu lực', 'class' => 'emerald'],
             'draft' => ['label' => 'Nháp', 'class' => 'amber'],
             'pending_approval' => ['label' => 'Chờ duyệt', 'class' => 'amber'],
@@ -62,7 +60,7 @@
                             <x-pwa-date :name="$dateName" :label="$dateLabel" :value="$dateIso" :min="$dateName === 'to_date' ? $fromDate : null" :max="$dateName === 'from_date' ? $toDate : null" :aria-label="$dateLabel" onchange="this.form?.requestSubmit()" />
                         @endforeach
                     </div>
-                    @if($hasAnyFilters)<a href="{{ route('client.pharma.price-lists', ['from_date' => $defaultFromDate, 'to_date' => $defaultToDate]) }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Đặt lại bộ lọc</a>@endif
+                    @if($hasAnyFilters)<a href="{{ route('client.pharma.price-lists') }}" class="flex min-h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-600 hover:bg-slate-50">Đặt lại bộ lọc</a>@endif
                 </div>
             </details>
         </form>
@@ -71,9 +69,9 @@
             <div class="flex w-max flex-nowrap gap-2 whitespace-nowrap">
                 @foreach($statuses as $value => $meta)
                     @php
-                        $normalizedValue = $value === '' ? null : $value;
+                        $normalizedValue = $value;
                         $active = $status === $normalizedValue;
-                        $countKey = $normalizedValue ?? 'all';
+                        $countKey = $normalizedValue === 'all' ? 'all' : $normalizedValue;
                         $statusCount = $normalizedValue === 'pending_approval' && $canApprove ? ($pendingApprovalCount ?? 0) : ($counts[$countKey] ?? 0);
                         $disabled = !$active && $statusCount < 1;
                     @endphp
