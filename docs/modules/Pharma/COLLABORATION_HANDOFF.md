@@ -1,3 +1,10 @@
+## 2026-11-13 — Test runner warnings follow-up
+
+- User executed focused tests (4 assertions) and Pharma regression (127 assertions): no assertion failures, but 2 and 12 warnings respectively due to missing `/var/www/html/.env` in isolated test image.
+- Added an empty, non-secret `.env` inside the `test` target only; production `app` remains unchanged. Await fresh image build and repeat both tests; do not claim warning-free PASS before user output.
+
+---
+
 ## 2026-11-13 — Isolated Docker Development PHPUnit runner (checkpoint)
 
 - Approved by user after Docker audit: production `composer-deps` installs `--no-dev`, so `app` has neither PHPUnit nor Composer.
