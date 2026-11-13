@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\ClientPortal\Services\ApplicationRegistry;
+use Modules\ClientPortal\Applications\Pharma\Services\KqlcntAwardVisibility;
 use Modules\ClientPortal\Services\ClientPortalSettingsService;
 use Modules\Muasamcong\Exports\KqlcntAwardImportTemplateExport;
 use Modules\Muasamcong\Exports\KqlcntAwardWorkbookExport;
@@ -50,13 +51,14 @@ final class PharmaKqlcntAwardExcelController extends Controller
             ->with('success', 'Đã import: '.$result['updated'].' cập nhật, '.$result['created'].' thêm mới, '.$result['skipped'].' bỏ qua.');
     }
 
-    public function export(Request $request, ApplicationRegistry $registry): BinaryFileResponse
+    public function export(Request $request, ApplicationRegistry $registry, KqlcntAwardVisibility $visibility): BinaryFileResponse
     {
         $this->authorizeAction($request, $registry, 'export');
         $data = $request->validate([
             'notify_no' => ['required', 'string', 'max:255'],
             'contractor_code' => ['required', 'string', 'max:255'],
         ]);
+        $visibility->authorizeExport($request, $data['notify_no'], $data['contractor_code']);
         $items = KqlcntAwardItem::query()->whereNotNull('synced_from_catalog_at')
             ->where('notify_no', $data['notify_no'])
             ->where('contractor_code', $data['contractor_code'])
