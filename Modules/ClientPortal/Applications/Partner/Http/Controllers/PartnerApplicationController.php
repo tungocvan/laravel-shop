@@ -78,7 +78,7 @@ final class PartnerApplicationController extends Controller
   try {
    (new FastExcel($rows))->export($path);
    return response()->download($path,'partners_'.now()->format('Ymd_His').'.xlsx')->deleteFileAfterSend(true);
-  } catch (\\Throwable $e) {
+  } catch (\Throwable $e) {
    @unlink($path);
    throw $e;
   }
@@ -93,7 +93,7 @@ final class PartnerApplicationController extends Controller
     'source'=>'import','status'=>'active','note'=>'',
    ]])))->export($path);
    return response()->download($path,'partner_import_template.xlsx')->deleteFileAfterSend(true);
-  } catch (\\Throwable $e) {
+  } catch (\Throwable $e) {
    @unlink($path);
    throw $e;
   }
