@@ -26,8 +26,9 @@ final class PharmaKqlcntAwardWorkspaceContractTest extends TestCase
         $this->assertNotEmpty($manifest['features']['kqlcnt-awards']['page_title']);
         $this->assertNotEmpty($manifest['features']['kqlcnt-awards']['page_description']);
         $this->assertNotEmpty($manifest['features']['kqlcnt-awards']['eyebrow']);
-        foreach (['export', 'import', 'edit'] as $action) {
-            $this->assertSame('client.pharma.kqlcnt-awards.'.$action, $manifest['navigation']['kqlcnt-awards']['actions'][$action]['permission']);
+        $this->assertArrayNotHasKey('actions', $manifest['navigation']['kqlcnt-awards']);
+        foreach (['view-all', 'export', 'import', 'edit'] as $action) {
+            $this->assertSame('client.pharma.kqlcnt-awards.'.$action, $manifest['features']['kqlcnt-awards']['actions'][$action]['permission']);
         }
     }
 
