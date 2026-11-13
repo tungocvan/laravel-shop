@@ -313,9 +313,18 @@ final class PharmaApplicationController extends Controller
     ) {
         $user = $request->user('web');
         abort_if($user === null, 401);
-        abort_unless($registry->userCan($user, 'client.pharma.price-lists.create'), 403);
+        $canCreate = $registry->userCan($user, 'client.pharma.price-lists.create');
+        $canApprove = $registry->userCan($user, 'client.pharma.price-lists.approve');
+        abort_unless($canCreate || $canApprove, 403);
 
         $list = PriceList::query()->findOrFail($priceList);
+        if ($list->type === PriceList::TYPE_GLOBAL && $list->status === PriceList::STATUS_DRAFT) {
+            abort_unless($canApprove, 403);
+            $workflow->deleteGlobalDraft($priceList);
+
+            return redirect()->route('client.pharma.price-lists')
+                ->with('success', 'Đã xóa bảng giá chung Nháp.');
+        }
         if ($list->status === PriceList::STATUS_INACTIVE) {
             abort_unless($registry->userCan($user, 'client.pharma.price-lists.approve'), 403);
             $manager->deleteRemovable($list);
